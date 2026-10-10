@@ -29,9 +29,13 @@ EVENT MAP (Claude -> Cursor)
     SessionStart                       ->  sessionStart           [context]
     Stop                               ->  stop                   [never blocks]
     UserPromptSubmit                   ->  beforeSubmitPrompt     [never blocks]
+    PreCompact                         ->  preCompact             [observe; v0.9]
+    SubagentStart                      ->  subagentStart          [permission; v0.9]
 
-Anything else is explicitly skipped WITH A REASON, never silently dropped —
-`--check` fails the build otherwise.
+`preToolUse` / `postToolUse` remain unwired for *enforcement* until a live
+payload probe; v0.9 only opens the docs-verified PreCompact / SubagentStart
+observe lanes for spectate-emit. Anything else is explicitly skipped WITH A
+REASON, never silently dropped — `--check` fails the build otherwise.
 """
 
 from __future__ import annotations
@@ -62,6 +66,11 @@ _EVENT = {
     "PostToolUse": ("afterFileEdit", "file-posttool"),
     "Stop": ("stop", "stop"),
     "UserPromptSubmit": ("beforeSubmitPrompt", "promptsubmit"),
+    # Spectate v0.9 — schemas docs-verified 2026-10-10 (cursor.com/docs/agent/hooks).
+    # subagentStart is a permission hook (empty/invalid stdout BLOCKS); adapter
+    # mode always emits {"permission":"allow"} after the observe hook.
+    "PreCompact": ("preCompact", "precompact"),
+    "SubagentStart": ("subagentStart", "subagentstart"),
 }
 
 # PreToolUse hooks reach Cursor only through beforeShellExecution, which carries a
@@ -90,9 +99,10 @@ _SKIP = {
         "silent by construction, so a projection would read as coverage it cannot give."
     ),
     "agent-dispatch-evaluator.sh": (
-        "SubagentStart. Cursor does expose subagentStart, but its payload schema is "
-        "not published on the page verified, and this hook is an audit-only shadow "
-        "that never denies — observability, not enforcement."
+        "SubagentStart audit-only shadow (never denies). Cursor subagentStart is "
+        "now docs-verified and reserved for spectate-emit observe + allow "
+        "(Spectate v0.9); the Haiku evaluator stays Claude-Code-only until a "
+        "Cursor adapter path is designed for its audit ledger."
     ),
     "mark-web-domain-seen.sh": (
         "PostToolUse on WebFetch; pairs with guard-web-access.sh, which is skipped."
@@ -123,11 +133,10 @@ _SKIP = {
         "PermissionDenied. Cursor has no verified lane for Claude Code PermissionDenied hooks."
     ),
     "precompact-digest.sh": (
-        "PreCompact. Cursor has no verified compaction-hook event (nothing analogous "
-        "to Claude Code's PreCompact is published on the pages verified), so wiring "
-        "this would claim coverage that does not exist. This hook is archival-only "
-        "and never denies, so the cost of the gap is one un-archived digest, not "
-        "lost enforcement."
+        "PreCompact is docs-verified on Cursor (Spectate v0.9 wires spectate-emit "
+        "there). precompact-digest stays skipped: its cheap_lane/egress floor is "
+        "Claude-Code-shaped; Cursor PreCompact is observational and cannot host "
+        "that archival engine without a separate adapter design."
     ),
     # ⛔ R7 — THE THREE verify-before-assert CELLS SHIP **UNWIRED AND DECLARED**.
     # This is a deliberate DOWNGRADE from what the lane would otherwise do: both
@@ -182,20 +191,9 @@ _SKIP = {
 # Per-event skip — (script, Claude event) → reason. Used when a multi-event
 # observe hook can wire on some Cursor lanes but not others. Script-keyed
 # `_SKIP` would drop every event; this map lets SessionStart / UserPromptSubmit /
-# Stop / Bash-PreToolUse project while PreCompact / SubagentStart /
-# PermissionRequest / PreCompact / SubagentStart stay explicitly skipped.
-# PostToolUse wires via afterFileEdit + Claude-shaped stdin (Spectate v0.8).
+# Stop / Bash-PreToolUse / afterFileEdit / PreCompact / SubagentStart project
+# while PermissionRequest stays explicitly skipped (Spectate v0.9).
 _SKIP_EVENT = {
-    ("spectate-emit.sh", "PreCompact"): (
-        "PreCompact. Cursor has no verified compaction-hook event on the pages "
-        "checked — projecting it would claim coverage that does not exist. "
-        "SessionStart / UserPromptSubmit / Stop / Bash-PreToolUse emit lanes wire."
-    ),
-    ("spectate-emit.sh", "SubagentStart"): (
-        "SubagentStart. Cursor exposes subagentStart, but its payload schema is "
-        "not published on the page verified — same caution as "
-        "agent-dispatch-evaluator.sh. Other emit lanes wire."
-    ),
     ("spectate-emit.sh", "PermissionRequest"): (
         "PermissionRequest. Cursor has no verified permission-prompt hook lane "
         "on the pages checked. Claude Code + Copilot carry permission.request emit."
@@ -348,6 +346,21 @@ def main(argv: list) -> int:
                 file=sys.stderr,
             )
             return 1
+        # Spectate v0.9 floor: spectate-emit must ride preCompact + subagentStart
+        # once those Claude events are in _EVENT. A SessionStart-only wire would
+        # still "account" the script via other lanes — catch the new events.
+        wired_pairs = {(s, e) for s, e, _, _ in wired}
+        for need_ev, cursor_ev in (
+            ("PreCompact", "preCompact"),
+            ("SubagentStart", "subagentStart"),
+        ):
+            if ("spectate-emit.sh", need_ev) not in wired_pairs:
+                print(
+                    f"cursor-hooks: spectate-emit.sh not wired on {need_ev}→{cursor_ev} "
+                    f"(Spectate v0.9)",
+                    file=sys.stderr,
+                )
+                return 1
         print(
             f"Cursor hooks OK — {len(wired)} wired, {len(skipped)} explicitly skipped, "
             f"{len(canonical)} canonical hooks all accounted for."

@@ -24,7 +24,7 @@ docs list far more, including Claude-named events**:
 
 Config lives at `<project>/.cursor/hooks.json`, `~/.cursor/hooks.json`, or an enterprise path
 (`/Library/Application Support/Cursor/hooks.json`, `/etc/cursor/hooks.json`, or the Windows
-`ProgramData` equivalent). **`matcher` is supported** — the docs' own example scopes a hook with
+`ProgramData` equivalent). **`matcher` is supported** `[docs-verified 2026-10-10 — cursor.com/docs/agent/hooks]` — the docs' own example scopes a hook with
 `"matcher": "curl|wget|nc"`.
 
 ---
@@ -86,10 +86,11 @@ hook_event_name · cursor_version · workspace_roots[] · user_email · transcri
   "agent_message": "sent to the agent" }
 ```
 
-> **`preToolUse` / `postToolUse` exist but are NOT wired.** Their per-event payload fields were not
-> published on the page fetched, and guessing a payload shape on a host that fails open is exactly the
-> trade this repo does not make. Wire them when their schema is verified — the event names are already
-> known, so it is a small change, not a redesign.
+> **`preToolUse` / `postToolUse` schemas are now published** `[docs-verified 2026-10-10]` (`tool_use_id`,
+> `tool_name`, `tool_input`, …) but the **enforcement** lane stays on `beforeShellExecution` until a
+> live payload probe. Spectate v0.9 wires docs-verified **`preCompact`** (observe) and
+> **`subagentStart`** (permission hook — adapter always emits `{"permission":"allow"}` after
+> observe; maps `tool_call_id` → `tool_use_id`; never forwards `task`).
 
 ---
 
@@ -136,7 +137,9 @@ is exactly the shape of this repo's most distinctive mechanism, the layout allow
 
 ## What this means for the Cursor lane
 
-1. **Build on `beforeShellExecution`**, not on `preToolUse`, until the latter's payload is verified.
+1. **Build enforcement on `beforeShellExecution`**, not on `preToolUse`, until a live
+   payload probe confirms the published `preToolUse` schema end-to-end. Observe lanes
+   (`preCompact`, `subagentStart`) are wired for Spectate v0.9.
 2. **Never let the deny path depend on `jq`, string interpolation, or the shell's error handling.**
    On this host those are not robustness concerns, they are the difference between a guardrail and a
    no-op.

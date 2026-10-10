@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.340.0 — 2026-10-10
+
+### Added
+- **Spectate v0.9 Codex tool/stop emit + Cursor PreCompact/SubagentStart** — Codex fixed PreToolUse/PostToolUse/Stop lists wire `spectate-emit.sh` (SessionStart already derived; native Claude contract). Cursor adapter modes `precompact` / `subagentstart` wire spectate-emit on docs-verified lanes `[docs-verified 2026-10-10 — cursor.com/docs/agent/hooks]`; SubagentStart always emits `{"permission":"allow"}` (empty stdout blocks), never forwards `task`, maps `tool_call_id` → `tool_use_id`. PermissionRequest stays skipped. Gates 155/159/160.
+
 ## 0.339.6 — 2026-10-10
 
 ### Fixed

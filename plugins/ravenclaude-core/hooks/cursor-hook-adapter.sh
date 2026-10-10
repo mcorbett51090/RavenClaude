@@ -36,11 +36,12 @@
 # Usage (from a generated .cursor/hooks.json entry):
 #   cursor-hook-adapter.sh <mode> /abs/path/to/real-hook.sh [args...]
 # Modes: shell-pretool | file-posttool | sessionstart | stop | promptsubmit
+#        | precompact | subagentstart
 #
-# NOT wired: Cursor's `preToolUse`/`postToolUse`. Those events exist, but their
-# per-event payload fields are not published on the page verified, and guessing a
-# payload shape on a host that fails open is precisely the trade this repo refuses.
-# See knowledge/cursor-customization.md.
+# NOT wired for enforcement: Cursor's `preToolUse`/`postToolUse`. Schemas are
+# now published (docs-verified 2026-10-10), but the Bash enforcement lane stays
+# on beforeShellExecution until a live payload probe. Spectate v0.9 wires
+# preCompact + subagentStart for observe-only emit. See knowledge/cursor-customization.md.
 set -uo pipefail
 
 # The literal deny. Kept as ONE constant so there is exactly one thing to get right,
@@ -243,6 +244,62 @@ case "$mode" in
       export CLAUDE_HOOK_EVENT=UserPromptSubmit
     fi
     printf '%s' "$payload" | bash "$real" "$@" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  precompact)
+    # Cursor preCompact — observational only (cannot block). Docs-verified
+    # 2026-10-10: trigger / context_* fields; no transcript_path. Forward host
+    # payload + CLAUDE_HOOK_EVENT for spectate-emit; discard stdout (observe
+    # hooks emit empty; do not invent a user_message).
+    export CLAUDE_HOOK_EVENT=PreCompact
+    printf '%s' "$payload" | bash "$real" "$@" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  subagentstart)
+    # Cursor subagentStart is a PERMISSION hook: invalid/empty JSON BLOCKS the
+    # subagent `[docs-verified 2026-10-10 — cursor.com/docs/agent/hooks]`.
+    # Spectate is observe-only — always emit allow after the hook, never forward
+    # `task` text (prompt-shaped; Streams Gate 110 / spectate scrub), map
+    # tool_call_id → tool_use_id (never mint from generation_id).
+    export CLAUDE_HOOK_EVENT=SubagentStart
+    _tid="$(_field tool_call_id)"
+    [ -z "$_tid" ] && _tid="$(_tool_use_id)"
+    _aid="$(_field subagent_id)"; [ -z "$_aid" ] && _aid="$(_field agent_id)"
+    _atype="$(_field subagent_type)"; [ -z "$_atype" ] && _atype="$(_field subagentType)"
+    _psid="$(_field parent_conversation_id)"
+    [ -z "$sid" ] && sid="$_psid"
+    if command -v jq >/dev/null 2>&1; then
+      stdin_json="$(jq -cn --arg d "$cw" --arg s "$sid" --arg u "$_tid" \
+        --arg a "$_aid" --arg t "$_atype" \
+        '{cwd:$d,session_id:$s}
+         | if $u != "" then . + {tool_use_id:$u} else . end
+         | if $a != "" then . + {agent_id:$a,subagent_id:$a} else . end
+         | if $t != "" then . + {subagent_type:$t} else . end' 2>/dev/null)" || stdin_json=""
+    elif command -v python3 >/dev/null 2>&1; then
+      stdin_json="$(python3 -c '
+import json, sys
+o = {"cwd": sys.argv[1], "session_id": sys.argv[2]}
+if sys.argv[3]:
+    o["tool_use_id"] = sys.argv[3]
+if sys.argv[4]:
+    o["agent_id"] = sys.argv[4]
+    o["subagent_id"] = sys.argv[4]
+if sys.argv[5]:
+    o["subagent_type"] = sys.argv[5]
+print(json.dumps(o))
+' "$cw" "$sid" "$_tid" "$_aid" "$_atype" 2>/dev/null)" || stdin_json=""
+    else
+      stdin_json=""
+    fi
+    if [ -n "$stdin_json" ]; then
+      printf '%s' "$stdin_json" | bash "$real" "$@" >/dev/null 2>&1 || true
+    else
+      # Translation failed — still allow (observe must never brick Task).
+      :
+    fi
+    # Fixed allow literal — both spellings not required; permission is the only
+    # binding field. Empty stdout would BLOCK; this is the observe-lane safety.
+    printf '%s\n' '{"permission":"allow"}'
     exit 0
     ;;
   *)
