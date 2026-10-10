@@ -99,9 +99,8 @@ _GEMINI_HOST_EXEMPT = frozenset(
         # generate-gemini-hooks.py's _SKIP entry for the same hook.
         "routine-reserve-hook.sh",  # claude.ai Routines + Claude Code statusline
         # data only; see the same generator's _SKIP entry.
-        "spectate-emit.sh",  # script-keyed _SKIP — Gemini has no verified
-        # PreCompact/SubagentStart lanes for the full emit path; see
-        # generate-gemini-hooks.py's _SKIP entry.
+        # spectate-emit.sh is NOT exempt: v0.7 per-event skip wires SessionStart
+        # (and PreToolUse/PostToolUse); only unmapped lifecycle events stay skipped.
     }
 )
 
@@ -113,13 +112,14 @@ _GEMINI_HOST_EXEMPT = frozenset(
 _COPILOT_HOST_EXEMPT = frozenset({"caveman-route-hook.sh", "routine-reserve-hook.sh"})
 
 # Same exemption again, independently declared by generate-cursor-hooks.py's
-# own `_SKIP` map (identical reasoning for caveman/routine-reserve;
-# spectate-emit is a full script-keyed skip — Cursor probe is a follow-up).
+# own `_SKIP` map (identical reasoning for caveman/routine-reserve).
+# spectate-emit.sh is NOT exempt: v0.7 per-event skip wires SessionStart
+# (plus UserPromptSubmit/Stop/Bash-PreToolUse); PreCompact/SubagentStart/
+# PermissionRequest/PostToolUse stay per-event skipped.
 _CURSOR_HOST_EXEMPT = frozenset(
     {
         "caveman-route-hook.sh",
         "routine-reserve-hook.sh",
-        "spectate-emit.sh",
     }
 )
 

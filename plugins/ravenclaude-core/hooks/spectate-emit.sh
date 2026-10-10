@@ -111,6 +111,8 @@ def detect_harness() -> str:
         return "codex-cli"
     if th == "copilot":
         return "copilot-cli"
+    if th == "gemini":
+        return "gemini-cli"
     # Grok Build — env detection override (v0.2). Prefer explicit build markers,
     # then session/home markers shared with handoff-spawn.sh. GROK_AGENT alone
     # is not enough to distinguish grok-bot from grok-build.
