@@ -12,6 +12,7 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 - `scripts/open-dashboard.sh` `WALK=10` (mirrors `_bind_server` span=10 / 8000–8010).
 - `tool_use_id` capability evidence for cursor / gemini-cli updated (still `unsupported` — adapters do not mint `tool_use_id`).
 - `spectate-emit.sh` maps adapter `THING_HOST=gemini` → harness `gemini-cli` (mirrors codex/copilot short-name aliases).
+- Cursor / Gemini adapters set `CLAUDE_HOOK_EVENT` unconditionally per mode (do not inherit ambient from a parent Claude session), so observe emit cannot mis-kind Stop as SessionStart under a nested harness.
 
 ## 0.337.0 — 2026-10-10
 

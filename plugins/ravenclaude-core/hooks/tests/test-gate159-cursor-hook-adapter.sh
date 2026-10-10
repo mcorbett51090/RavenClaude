@@ -42,8 +42,15 @@ chmod +x "$TMP/stub.sh"
 
 BENIGN='{"conversation_id":"conv-1","hook_event_name":"beforeShellExecution","workspace_roots":["/ws/proj"],"command":"echo hello","cwd":"/ws/proj","sandbox":false}'
 
+# Unset ambient Claude session vars — cloud-agent / nested harnesses export them
+# and would mask the adapter's payload-derived CLAUDE_PROJECT_DIR / SESSION_ID /
+# HOOK_EVENT (same class of defect as inheriting CLAUDE_HOOK_EVENT into Stop).
+_run_ad() {
+  env -u CLAUDE_PROJECT_DIR -u CLAUDE_SESSION_ID -u CLAUDE_HOOK_EVENT "$@"
+}
+
 run() { # <exit-code> <payload>  -> stdout of the adapter
-  RC_OUT="$TMP" RC_RC="$1" bash "$AD" shell-pretool "$TMP/stub.sh" <<<"$2" 2>/dev/null
+  RC_OUT="$TMP" RC_RC="$1" _run_ad bash "$AD" shell-pretool "$TMP/stub.sh" <<<"$2" 2>/dev/null
 }
 
 printf '── Gate 159: Cursor hook adapter ──\n'
@@ -120,7 +127,7 @@ grep -q '^THING_HOST=cursor$' "$TMP/env.txt" \
   && ok "THING_HOST asserted as cursor" || bad "THING_HOST not cursor"
 
 # ── misconfiguration must not brick the editor ──────────────────────────────
-out_missing="$(RC_OUT="$TMP" bash "$AD" shell-pretool "$TMP/does-not-exist.sh" <<<"$BENIGN" 2>/dev/null)"
+out_missing="$(RC_OUT="$TMP" _run_ad bash "$AD" shell-pretool "$TMP/does-not-exist.sh" <<<"$BENIGN" 2>/dev/null)"
 rc_missing=$?
 if [ "$rc_missing" -eq 0 ] && [ -z "$out_missing" ]; then
   ok "a missing hook script exits 0 silently (never bricks every shell command)"
@@ -145,7 +152,7 @@ fi
 # ── v0.7 observe-lane forwarding (spectate-emit needs stdin + CLAUDE_HOOK_EVENT) ─
 SS_PAYLOAD='{"conversation_id":"conv-ss","hook_event_name":"sessionStart","workspace_roots":["/ws/proj"],"transcript_path":"/ws/proj/t.jsonl"}'
 rm -f "$TMP/stdin.json" "$TMP/env.txt"
-RC_OUT="$TMP" RC_RC=0 bash "$AD" sessionstart "$TMP/stub.sh" <<<"$SS_PAYLOAD" >/dev/null 2>&1
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" sessionstart "$TMP/stub.sh" <<<"$SS_PAYLOAD" >/dev/null 2>&1
 if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=SessionStart' "$TMP/env.txt"; then
   ok "sessionstart forwards payload stdin + CLAUDE_HOOK_EVENT=SessionStart"
 else
@@ -154,7 +161,7 @@ fi
 
 STOP_PAYLOAD='{"conversation_id":"conv-stop","hook_event_name":"stop","workspace_roots":["/ws/proj"]}'
 rm -f "$TMP/stdin.json" "$TMP/env.txt"
-RC_OUT="$TMP" RC_RC=0 bash "$AD" stop "$TMP/stub.sh" <<<"$STOP_PAYLOAD" >/dev/null 2>&1
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" stop "$TMP/stub.sh" <<<"$STOP_PAYLOAD" >/dev/null 2>&1
 if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=Stop' "$TMP/env.txt"; then
   ok "stop forwards payload stdin + CLAUDE_HOOK_EVENT=Stop"
 else
@@ -163,7 +170,7 @@ fi
 
 PROMPT_PAYLOAD='{"conversation_id":"conv-p","hook_event_name":"beforeSubmitPrompt","workspace_roots":["/ws/proj"],"prompt":"hi"}'
 rm -f "$TMP/stdin.json" "$TMP/env.txt"
-RC_OUT="$TMP" RC_RC=0 bash "$AD" promptsubmit "$TMP/stub.sh" <<<"$PROMPT_PAYLOAD" >/dev/null 2>&1
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" promptsubmit "$TMP/stub.sh" <<<"$PROMPT_PAYLOAD" >/dev/null 2>&1
 if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=UserPromptSubmit' "$TMP/env.txt"; then
   ok "promptsubmit forwards payload stdin + CLAUDE_HOOK_EVENT=UserPromptSubmit"
 else
@@ -171,7 +178,7 @@ else
 fi
 
 rm -f "$TMP/stdin.json" "$TMP/env.txt"
-RC_OUT="$TMP" RC_RC=0 bash "$AD" shell-pretool "$TMP/stub.sh" <<<"$BENIGN" >/dev/null 2>&1
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" shell-pretool "$TMP/stub.sh" <<<"$BENIGN" >/dev/null 2>&1
 if grep -q 'HOOK_EVENT=PreToolUse' "$TMP/env.txt"; then
   ok "shell-pretool sets CLAUDE_HOOK_EVENT=PreToolUse"
 else
