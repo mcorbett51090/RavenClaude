@@ -55,6 +55,7 @@ The three surfaces at a glance:
 - [`plugins/ravenclaude-core/skills/set-posture/SKILL.md`](../../plugins/ravenclaude-core/skills/set-posture/SKILL.md) — the (category, level) → permission-rule translation pipeline.
 - [`plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md`](../../plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md) — orchestrator scopes + the ZDR attestation.
 - [`plugin-lifecycle-off-ask-auto.md`](./plugin-lifecycle-off-ask-auto.md) — `plugin_lifecycle:` is a third surface (`off` / `ask` / `auto`, uninstall ON/OFF). Setting every `categories.*` to `allow` does not install or uninstall plugins.
+- [`routine-token-reserve-setup-and-operations.md`](./routine-token-reserve-setup-and-operations.md) — `routine_reserve:` is another orthogonal surface (`off` / `advise` / `guard`). `allow` does not enable the weekly-cap warning; `guard` (0.327.0) asks before autonomous work past the line in an attended live session, and warns-only everywhere a person cannot answer.
 
 ## Provenance
 
