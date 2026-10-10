@@ -400,6 +400,26 @@ jobs:
           branch: chore/self-heal-artifacts
           base: main
           delete-branch: true
+          # CI-05: commit ONLY the known self-heal outputs. Without add-paths the
+          # action stages the whole dirty tree — including anything npx/mermaid-cli
+          # (or a stray pip install) dropped under the workspace — then this job
+          # squash-merges at 0 approvals. A wrong allowlist silently drops a real
+          # regen target, so every path below is tied to a generator step above.
+          add-paths: |
+            README.md
+            AGENTS.md
+            docs/concepts.md
+            index.html
+            feedback-report.html
+            .claude-plugin/marketplace.json
+            plugins/*/dashboard.html
+            plugins/*/report.html
+            plugins/*/.claude-plugin/plugin.json
+            plugins/ravenclaude-core/README.md
+            plugins/ravenclaude-core/concepts.json
+            plugins/ravenclaude-core/knowledge/concepts/visuals/**
+            plugins/ravenclaude-core/knowledge/tree-visuals/**
+            plugins/ravenclaude-core/copilot/**
           commit-message: "chore(artifacts): self-heal generated artifacts after merge"
           title: "chore(artifacts): self-heal generated artifacts"
           body: |
