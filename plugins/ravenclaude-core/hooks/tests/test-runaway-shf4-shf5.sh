@@ -66,6 +66,26 @@ fi
 
 echo
 echo "── SH-F5: tripped brake reason reaches stderr after flock ────────────────"
+# Stock macOS has no flock — the hook skips the lock block entirely, so SH-F5's
+# brace-scoped open is never exercised. Inject a no-op flock stub when absent so
+# the flock path (and the teeth mutant) still run on the macOS CI shard.
+stub_bin=""
+run_with_flock() {
+  # Usage: run_with_flock <hook> <payload> <stderr-file> → sets rc_last
+  local hook="$1" payload="$2" err="$3"
+  if command -v flock >/dev/null 2>&1; then
+    printf '%s' "$payload" | bash "$hook" >/dev/null 2>"$err"
+  else
+    if [ -z "$stub_bin" ]; then
+      stub_bin="$(mktemp -d)"
+      printf '%s\n' '#!/bin/sh' 'exit 0' >"$stub_bin/flock"
+      chmod +x "$stub_bin/flock"
+    fi
+    printf '%s' "$payload" | PATH="$stub_bin:$PATH" bash "$hook" >/dev/null 2>"$err"
+  fi
+  rc_last=$?
+}
+
 root3="$(mktemp -d)"
 mkdir -p "$root3/.ravenclaude"
 printf '%s\n' 'runaway:' '  max_consecutive: 3' '  max_total: 1000' \
@@ -75,8 +95,7 @@ payload3="$(mk_payload "$root3" "$sid3" "Bash" '{"command":"touch y"}')"
 errf="$(mktemp)"
 rc_last=0
 for _ in 1 2 3; do
-  printf '%s' "$payload3" | bash "$HOOK" >/dev/null 2>"$errf"
-  rc_last=$?
+  run_with_flock "$HOOK" "$payload3" "$errf"
 done
 if [ "$rc_last" -eq 2 ] && grep -q 'Runaway brake:' "$errf"; then
   pass "SH-F5: trip reason present on stderr (flock did not silence fd 2)"
@@ -85,11 +104,22 @@ else
 fi
 
 # Teeth: restore the unbraced exec form and the reason must vanish.
+# Python replace — BSD sed on macOS does not reliably apply the GNU-style escape.
 MUT="$(mktemp)"
-sed 's/{ exec 9>"\${f}.lock"; } 2>\/dev\/null/exec 9>"${f}.lock" 2>\/dev\/null/' "$HOOK" >"$MUT"
-chmod +x "$MUT"
-if grep -q 'exec 9>"\${f}.lock" 2>/dev/null && flock' "$MUT" \
-   || grep -q 'exec 9>"${f}.lock" 2>/dev/null && flock' "$MUT"; then
+python3 - "$HOOK" "$MUT" <<'PY'
+import sys
+from pathlib import Path
+src = Path(sys.argv[1]).read_text()
+old = '{ exec 9>"${f}.lock"; } 2>/dev/null'
+new = 'exec 9>"${f}.lock" 2>/dev/null'
+if old not in src:
+    sys.stderr.write("SH-F5 teeth: braced exec open not found in hook\n")
+    sys.exit(2)
+Path(sys.argv[2]).write_text(src.replace(old, new, 1))
+PY
+mut_rc=$?
+chmod +x "$MUT" 2>/dev/null || true
+if [ "$mut_rc" -eq 0 ] && grep -q 'exec 9>"${f}.lock" 2>/dev/null && flock' "$MUT"; then
   root4="$(mktemp -d)"
   mkdir -p "$root4/.ravenclaude"
   printf '%s\n' 'runaway:' '  max_consecutive: 3' '  max_total: 1000' \
@@ -99,8 +129,7 @@ if grep -q 'exec 9>"\${f}.lock" 2>/dev/null && flock' "$MUT" \
   err4="$(mktemp)"
   rc_last=0
   for _ in 1 2 3; do
-    printf '%s' "$payload4" | bash "$MUT" >/dev/null 2>"$err4"
-    rc_last=$?
+    run_with_flock "$MUT" "$payload4" "$err4"
   done
   if [ "$rc_last" -eq 2 ] && ! grep -q 'Runaway brake:' "$err4"; then
     pass "SH-F5 teeth: unbraced exec 9>… 2>/dev/null loses the reason"
@@ -112,7 +141,7 @@ else
   fail "SH-F5 teeth: could not build the unbraced-exec mutant (adapter shape changed?)"
 fi
 
-rm -rf "$root" "$empty" "$root3" "$errf" "$MUT"
+rm -rf "$root" "$empty" "$root3" "$errf" "$MUT" ${stub_bin:+"$stub_bin"}
 
 echo
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
