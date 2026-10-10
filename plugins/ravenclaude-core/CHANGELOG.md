@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.339.1 — 2026-10-10
+
+### Fixed
+- **Hook commands quote `${CLAUDE_PLUGIN_ROOT}` (SH-F11).** 50 unquoted
+  `${CLAUDE_PLUGIN_ROOT}/…` paths in `hooks.json` (and the matching
+  `${CLAUDE_PROJECT_DIR}/…` marketplace-dev mirror in `.claude/settings.json`)
+  split when the root contains a space → exit 127 → every fail-open guard
+  silently no-ops. Quote every root-path token. Gate 298
+  (`scripts/check-hook-root-quoted.py`) + teeth.
 ## 0.339.0 — 2026-10-10
 
 ### Added
