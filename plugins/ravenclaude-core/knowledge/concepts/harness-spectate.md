@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 910
 summary: "Spectate reduces scrubbed JSONL into a loop graph; empty streams stay idle with cause-not-established, and unknown capability cells never upgrade to unavailable-harness."
-last_verified: 2026-10-09
+last_verified: 2026-10-10
 covers:
   - plugins/ravenclaude-core/scripts/spectate_store.py
   - plugins/ravenclaude-core/scripts/spectate_demo.py
@@ -16,7 +16,7 @@ covers:
   - plugins/ravenclaude-core/hooks/spectate-steer.sh
   - plugins/ravenclaude-core/monitors/watch-spectate.sh
   - plugins/ravenclaude-core/skills/spectate/SKILL.md
-covers_digest: "sha256:3198359678f8bd5a5cc2c16263ea08aed134c19e2a58c063df50df20ebb16d4b"
+covers_digest: "sha256:0508063cbd00927635c5c6245bfe073d204c4d3a8a0c02c064e4920bce31fdfd"
 nuance: "An empty Spectate stream reduces every node to idle with cause-not-established; a capability cell whose state is unknown never reduces to unavailable-harness."
 nuance_evidence:
   measured: 2026-10-09

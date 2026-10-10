@@ -191,6 +191,23 @@ else
 fi
 rm -rf "$T7"
 
+echo "── S9: THING_HOST=gemini → harness=gemini-cli (adapter short name) ─"
+T9="$(mktemp -d)"
+payload9='{"session_id":"s9"}'
+printf '%s' "$payload9" \
+  | env -u CURSOR_AGENT -u CURSOR_TRACE_ID -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT \
+      CLAUDE_PROJECT_DIR="$T9" CLAUDE_SESSION_ID="s9" CLAUDE_HOOK_EVENT=SessionStart \
+      THING_HOST=gemini \
+      bash "$HOOK" >/dev/null 2>&1 || true
+log9="$T9/.ravenclaude/runs/s9/spectate-events.jsonl"
+harness9="$(python3 -c 'import json; print(json.load(open("'"$log9"'")).get("harness",""))' 2>/dev/null || true)"
+if [ "$harness9" = "gemini-cli" ]; then
+  pass "S9: THING_HOST=gemini → harness=gemini-cli"
+else
+  fail "S9: expected gemini-cli, got '$harness9'"
+fi
+rm -rf "$T9"
+
 if [ "$FAILED" -ne 0 ]; then
   echo "test-spectate-emit: $FAILED failure(s)"
   exit 1

@@ -34,7 +34,8 @@ cat >"$TMP/stub.sh" <<'STUB'
 { cat; } >"$RC_OUT/stdin.json" 2>/dev/null
 { printf 'PROJECT_DIR=%s\n' "${CLAUDE_PROJECT_DIR:-}"
   printf 'SESSION_ID=%s\n'  "${CLAUDE_SESSION_ID:-}"
-  printf 'THING_HOST=%s\n'  "${THING_HOST:-}"; } >"$RC_OUT/env.txt"
+  printf 'THING_HOST=%s\n'  "${THING_HOST:-}"
+  printf 'HOOK_EVENT=%s\n'  "${CLAUDE_HOOK_EVENT:-}"; } >"$RC_OUT/env.txt"
 exit "${RC_RC:-0}"
 STUB
 chmod +x "$TMP/stub.sh"
@@ -139,6 +140,42 @@ elif command -v python3 >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
   ok "internal fail-closed test skipped (python3+jq on PATH — cannot strip both)"
 else
   bad "expected exit 2 on internal adapter failure, got rc=$rc_if"
+fi
+
+# ── v0.7 observe-lane forwarding (spectate-emit needs stdin + CLAUDE_HOOK_EVENT) ─
+SS_PAYLOAD='{"conversation_id":"conv-ss","hook_event_name":"sessionStart","workspace_roots":["/ws/proj"],"transcript_path":"/ws/proj/t.jsonl"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+RC_OUT="$TMP" RC_RC=0 bash "$AD" sessionstart "$TMP/stub.sh" <<<"$SS_PAYLOAD" >/dev/null 2>&1
+if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=SessionStart' "$TMP/env.txt"; then
+  ok "sessionstart forwards payload stdin + CLAUDE_HOOK_EVENT=SessionStart"
+else
+  bad "sessionstart did not forward payload/event (stdin=$(wc -c <"$TMP/stdin.json" 2>/dev/null || echo 0) env=$(cat "$TMP/env.txt" 2>/dev/null))"
+fi
+
+STOP_PAYLOAD='{"conversation_id":"conv-stop","hook_event_name":"stop","workspace_roots":["/ws/proj"]}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+RC_OUT="$TMP" RC_RC=0 bash "$AD" stop "$TMP/stub.sh" <<<"$STOP_PAYLOAD" >/dev/null 2>&1
+if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=Stop' "$TMP/env.txt"; then
+  ok "stop forwards payload stdin + CLAUDE_HOOK_EVENT=Stop"
+else
+  bad "stop did not forward payload/event"
+fi
+
+PROMPT_PAYLOAD='{"conversation_id":"conv-p","hook_event_name":"beforeSubmitPrompt","workspace_roots":["/ws/proj"],"prompt":"hi"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+RC_OUT="$TMP" RC_RC=0 bash "$AD" promptsubmit "$TMP/stub.sh" <<<"$PROMPT_PAYLOAD" >/dev/null 2>&1
+if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=UserPromptSubmit' "$TMP/env.txt"; then
+  ok "promptsubmit forwards payload stdin + CLAUDE_HOOK_EVENT=UserPromptSubmit"
+else
+  bad "promptsubmit did not forward payload/event"
+fi
+
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+RC_OUT="$TMP" RC_RC=0 bash "$AD" shell-pretool "$TMP/stub.sh" <<<"$BENIGN" >/dev/null 2>&1
+if grep -q 'HOOK_EVENT=PreToolUse' "$TMP/env.txt"; then
+  ok "shell-pretool sets CLAUDE_HOOK_EVENT=PreToolUse"
+else
+  bad "shell-pretool missing CLAUDE_HOOK_EVENT=PreToolUse"
 fi
 
 # ── TEETH ───────────────────────────────────────────────────────────────────

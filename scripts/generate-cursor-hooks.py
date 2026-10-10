@@ -119,13 +119,6 @@ _SKIP = {
         "skip is script-keyed until a Cursor adapter path is probed. Claude Code "
         "carries the steer path."
     ),
-    "spectate-emit.sh": (
-        "Registered under PreCompact and SubagentStart (Claude Code observe path). "
-        "Cursor has no verified compaction or subagentStart lane on the pages "
-        "checked, and skip is script-keyed — projecting the SessionStart/PreToolUse "
-        "lanes alone is not possible without dropping those events from hooks.json. "
-        "Claude Code + Copilot carry the emit path; Cursor probe is a follow-up."
-    ),
     "emit-permission-denied.sh": (
         "PermissionDenied. Cursor has no verified lane for Claude Code PermissionDenied hooks."
     ),
@@ -186,6 +179,34 @@ _SKIP = {
     ),
 }
 
+# Per-event skip — (script, Claude event) → reason. Used when a multi-event
+# observe hook can wire on some Cursor lanes but not others. Script-keyed
+# `_SKIP` would drop every event; this map lets SessionStart / UserPromptSubmit /
+# Stop / Bash-PreToolUse project while PreCompact / SubagentStart /
+# PermissionRequest / PostToolUse stay explicitly skipped.
+_SKIP_EVENT = {
+    ("spectate-emit.sh", "PreCompact"): (
+        "PreCompact. Cursor has no verified compaction-hook event on the pages "
+        "checked — projecting it would claim coverage that does not exist. "
+        "SessionStart / UserPromptSubmit / Stop / Bash-PreToolUse emit lanes wire."
+    ),
+    ("spectate-emit.sh", "SubagentStart"): (
+        "SubagentStart. Cursor exposes subagentStart, but its payload schema is "
+        "not published on the page verified — same caution as "
+        "agent-dispatch-evaluator.sh. Other emit lanes wire."
+    ),
+    ("spectate-emit.sh", "PermissionRequest"): (
+        "PermissionRequest. Cursor has no verified permission-prompt hook lane "
+        "on the pages checked. Claude Code + Copilot carry permission.request emit."
+    ),
+    ("spectate-emit.sh", "PostToolUse"): (
+        "PostToolUse → afterFileEdit. The Cursor file-posttool adapter passes a "
+        "path as argv and does not build Claude-shaped stdin with tool_name / "
+        "tool_use_id; wiring emit there would register a silent no-op that reads "
+        "as coverage. Bash-PreToolUse (beforeShellExecution) carries the tool lane."
+    ),
+}
+
 
 def _script_of(command: str) -> str:
     m = re.search(r"/(?:hooks|scripts)/([A-Za-z0-9._-]+\.sh)", command)
@@ -214,6 +235,10 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                     continue
                 if script in _SKIP:
                     skipped.append((script, event, _SKIP[script]))
+                    continue
+                skip_ev = _SKIP_EVENT.get((script, event))
+                if skip_ev:
+                    skipped.append((script, event, skip_ev))
                     continue
                 if event == "PreToolUse":
                     if "Bash" not in matcher:
@@ -303,6 +328,21 @@ def main(argv: list) -> int:
         if stale:
             print(
                 f"cursor-hooks: the skip map names hooks that no longer exist: {sorted(stale)}",
+                file=sys.stderr,
+            )
+            return 1
+        manifest_pairs = {
+            (_script_of(e.get("command", "")), ev)
+            for ev, groups in manifest.get("hooks", {}).items()
+            for g in groups
+            for e in g.get("hooks", [])
+            if _script_of(e.get("command", ""))
+        }
+        stale_ev = set(_SKIP_EVENT) - manifest_pairs
+        if stale_ev:
+            print(
+                "cursor-hooks: the per-event skip map names (script, event) pairs "
+                f"that no longer exist: {sorted(stale_ev)}",
                 file=sys.stderr,
             )
             return 1

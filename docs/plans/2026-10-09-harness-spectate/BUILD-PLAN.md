@@ -461,7 +461,7 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 
 - [ ] `rc spectate [--session ID] [--demo] [--no-open] [--port N] [--foreground]` — **attach, don't kill** (G2-2 / G3-5 / G9-1):
   - `--demo` runs `spectate_demo.py` (CLI write path only) then opens/follows the synthetic gallery
-  - Probe: walk ports **8000–8010**; identity = lsof LISTEN + `ps` cmdline contains `serve-dashboards.py` + cwd equals this project; then `GET /__spectate/capabilities` must return 200. **Do not** call `open-dashboard.sh` `find_our_live_port` (it curls `/index.html` without following redirects and only walks `WALK=5`)
+  - Probe: walk ports **8000–8010**; identity = lsof LISTEN + `ps` cmdline contains `serve-dashboards.py` + cwd equals this project; then `GET /__spectate/capabilities` must return 200. **Do not** call `open-dashboard.sh` `find_our_live_port` (it curls `/index.html` without following redirects; after v0.7 it walks `WALK=10` / 8000–8010, but still uses `/index.html` not `/__spectate/capabilities`)
   - If live same-project server lacks `/__spectate`: leave it running; start a new server on the next free port with `--no-reclaim`; print the **new** URL and that the older server was left untouched (narrow upgrade-coexistence exception to SURFACE “no second port” — G4-5)
   - If `lsof` absent: fail closed → start second server; never kill
   - Always pass `--no-reclaim` when starting; never call `_reclaim_port` on the open path
@@ -545,10 +545,18 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - [x] `skills/spectate` + `monitors.json` entry `spectate-push-mirror` (`when: on-skill-invoke:spectate`)
 - [x] Gate 297 (`test-watch-spectate.sh` M1–M5); core 0.336.0
 
-## Deferred (v0.7+)
+## Deferred (v0.8+)
 
 - ACP control channel (process ownership)
 - IDE `openExternal` to the same `/spectate` URL (only if alt-tab is the measured failure; not Simple Browser, not a second UI)
+- Cursor PostToolUse emit (afterFileEdit Claude-shaped stdin) + Cursor/Gemini `tool_use_id` → `corr_id`
+- Cursor/Gemini PermissionRequest / PreCompact / SubagentStart emit (host lanes unverified)
+
+## Shipped in v0.7
+
+- Per-event skip in `generate-cursor-hooks.py` / `generate-gemini-hooks.py` so `spectate-emit.sh` wires supported lanes (Cursor: SessionStart / UserPromptSubmit / Stop / Bash-PreToolUse; Gemini: SessionStart / PreToolUse / PostToolUse)
+- Adapter stdin + `CLAUDE_HOOK_EVENT` forwarding on those lifecycle lanes
+- `open-dashboard.sh` `WALK=10` (mirrors `_bind_server` span=10)
 
 ---
 
