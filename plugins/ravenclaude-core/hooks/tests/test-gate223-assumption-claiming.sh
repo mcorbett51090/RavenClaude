@@ -139,23 +139,23 @@ printf '%s' "$out8" | grep -q "unhedged absolute" &&
   pass "B8: check 1 still fires (check 3 did not displace it)" ||
   fail "B8: check 1 regressed — adding check 3 broke it"
 
-# C1 — teeth: neuter check 3's three suppressions by pointing each grep at a
-# pattern that cannot match. The describing-doc (B2) must then flag. Without this,
-# B2's silence is equally consistent with a check 3 that never runs at all.
-MUT1="$TMP/mut-lint.sh"
-sed -e 's/grep -qiE "\$evidence"/grep -qiE "zzzNEVERMATCHzzz"/' \
-  -e 's/grep -qiE "\$meta"/grep -qiE "zzzNEVERMATCHzzz"/' \
-  -e 's/grep -qiE "\$prescriptive"/grep -qiE "zzzNEVERMATCHzzz"/' \
-  "$LINT" >"$MUT1"
-mutcount="$(grep -c 'zzzNEVERMATCHzzz' "$MUT1" 2>/dev/null || echo 0)"
-if [ "$mutcount" -lt 3 ]; then
-  fail "C1: could not neuter the suppressions (sed matched $mutcount/3 — fixture stale)"
+# C1 — teeth: neuter check 3's three suppressions via the scanner's
+# CLAIM_GROUNDING_NEUTER_C3_SUPPRESSIONS=1 branch (SH-F9 moved the patterns into
+# claim_grounding_scan.py; a sed rewrite of multi-line Python assignments is not
+# syntax-safe). The describing-doc (B2) must then flag. Without this, B2's silence
+# is equally consistent with a check 3 that never runs at all.
+SCAN="$SCRIPTS/claim_grounding_scan.py"
+if ! grep -q 'CLAIM_GROUNDING_NEUTER_C3_SUPPRESSIONS' "$SCAN" ||
+  ! grep -q '^EVIDENCE = (' "$SCAN" ||
+  ! grep -q '^META = (' "$SCAN" ||
+  ! grep -q '^PRESCRIPTIVE = (' "$SCAN"; then
+  fail "C1: scanner missing neuter branch or EVIDENCE/META/PRESCRIPTIVE assignments (fixture stale)"
 else
-  # The mutant lives in $TMP, so its `../scripts` fallback cannot find the
-  # classifier — point CLAUDE_PLUGIN_ROOT at the real plugin or the mutant
-  # degrades to check 3's fail-safe silence and the teeth would pass for the
-  # wrong reason (this cost a red run to find).
-  mutout="$(CLAUDE_PLUGIN_ROOT="$(dirname "$HOOKS")" bash "$MUT1" "$KN/b2.md" 2>&1 1>/dev/null)"
+  mutout="$(
+    CLAUDE_PLUGIN_ROOT="$(dirname "$HOOKS")" \
+      CLAIM_GROUNDING_NEUTER_C3_SUPPRESSIONS=1 \
+      bash "$LINT" "$KN/b2.md" 2>&1 1>/dev/null
+  )"
   if printf '%s' "$mutout" | grep -q "Inference-as-observation nudge"; then
     pass "C1: must-fail — neutered suppressions DO flag the describing-doc (they are load-bearing)"
   else

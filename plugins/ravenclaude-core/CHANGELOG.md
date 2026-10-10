@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.339.3 — 2026-10-10
+
+### Fixed
+- **`claim-grounding-lint` no longer fork-storms large docs (SH-F9).** The PostToolUse
+  advisory walked every markdown line with per-check `echo|grep`/`sed` subprocesses;
+  `docs/concepts.md` (~3.7k lines) took ~14–20 s. Scan + check-3 typing now live in
+  one-process `scripts/claim_grounding_scan.py` (still types via `classify_claim.py`);
+  the hook keeps path/opt-in/advisory emit. Measured: concepts.md ~14 s → ~0.13 s.
+  Gate 34 + Gate 224 C1 teeth updated for the scanner's neuter env.
+
 ## 0.339.2 — 2026-10-10
 
 ### Fixed
