@@ -206,7 +206,9 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 75, // 74 -> 75: spectate-steer WIRED on PostToolUse for continue:false interrupt (v0.5)
+  hooks: 77, // 75 -> 77: spectate-emit WIRED on SessionEnd + SubagentStop (Spectate v0.12)
+  //   COUNTED, not inferred: hooks.json on this tree holds 77 registrations.
+  //        74 -> 75: spectate-steer WIRED on PostToolUse for continue:false interrupt (v0.5)
   //   (Spectate v0.5 true interrupt; posture spectate_steer: on). COUNTED, not
   //   inferred: hooks.json on this tree holds 75 registrations.
   //        63 -> 70: spectate-emit.sh WIRED on 7 events (SessionStart /

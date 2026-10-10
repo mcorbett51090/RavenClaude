@@ -59,6 +59,10 @@ readable off the canonical command:
     Stop                                            =>  stop
     UserPromptSubmit                                =>  userpromptsubmit
     PreCompact                                      =>  precompact
+    SubagentStart                                   =>  subagentstart
+    SubagentStop                                    =>  subagentstop
+    SessionEnd                                      =>  sessionend
+    PermissionRequest                               =>  permissionrequest
 
 A hand-listed mode map would be a second thing to drift; deriving it means adding
 a hook to the canonical manifest is the only edit needed.
@@ -107,6 +111,16 @@ _EVENT_MODE = {
     # stdout + exit code). Needed so multi-event observe hooks like
     # spectate-emit.sh can register under SubagentStart without a full skip.
     "SubagentStart": "subagentstart",
+    # SubagentStop — Copilot Chat documents SubagentStop; CLI fixed
+    # subagentStart/subagentStop firing in 1.0.52 [docs-verified 2026-09-01 /
+    # copilot-cli-hook-incompatibility.md]. Spectate v0.12 wires observe emit;
+    # adapter is fail-safe (discards stdout + exit).
+    "SubagentStop": "subagentstop",
+    # SessionEnd — Copilot CLI documents sessionEnd
+    # [docs-verified — knowledge/copilot-cli-customization.md]. Chat's eight-event
+    # set omits SessionEnd; PascalCase projection stays inert there (same shape as
+    # PreCompact-on-CLI). Spectate v0.12 observe; adapter fail-safe.
+    "SessionEnd": "sessionend",
     # PermissionRequest — Claude Code permission-prompt lane (Spectate v0.4).
     # Adapter mode is fail-safe (discards stdout + exit). Copilot has no verified
     # PermissionRequest event; projecting keeps multi-event spectate-* scripts
@@ -303,6 +317,28 @@ def main(argv: list) -> int:
         if stale:
             print(
                 f"copilot-hooks: the skip map names hooks that no longer exist: {sorted(stale)}",
+                file=sys.stderr,
+            )
+            return 1
+        # Spectate floors: multi-event spectate-emit must stay on every mapped
+        # lifecycle lane. A basename-only account via PreToolUse would otherwise
+        # hide a drop of SessionEnd/SubagentStop (v0.12) or SubagentStart.
+        floor_events = (
+            "SubagentStart",
+            "SessionEnd",
+            "SubagentStop",
+            "PermissionRequest",
+            "PreCompact",
+        )
+        by_event: dict[str, set[str]] = {e: set() for e in floor_events}
+        for script, event, *_rest in wired:
+            if event in by_event:
+                by_event[event].add(script)
+        missing_emit = [ev for ev, scripts in by_event.items() if "spectate-emit.sh" not in scripts]
+        if missing_emit:
+            print(
+                "copilot-hooks: spectate-emit.sh missing from mapped lanes: "
+                f"{missing_emit} (Spectate v0.12 Copilot observe)",
                 file=sys.stderr,
             )
             return 1

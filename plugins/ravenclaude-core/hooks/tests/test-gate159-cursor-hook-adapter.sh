@@ -344,6 +344,41 @@ else
   bad "subagentstart shape wrong (out=$sa_out stdin=$(cat "$TMP/stdin.json" 2>/dev/null | head -c 200))"
 fi
 
+# Spectate v0.12 — sessionEnd (fire-and-forget) + subagentStop (no task/summary leak)
+SE_PAYLOAD='{"conversation_id":"conv-se","hook_event_name":"sessionEnd","workspace_roots":["/ws/proj"],"session_id":"se-1","reason":"completed","duration_ms":1200,"generation_id":"gen-se"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+se_out="$(RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" sessionend "$TMP/stub.sh" <<<"$SE_PAYLOAD" 2>/dev/null)"
+if [ -z "$se_out" ] \
+  && grep -q 'HOOK_EVENT=SessionEnd' "$TMP/env.txt" \
+  && python3 -c 'import json; d=json.load(open("'"$TMP"'/stdin.json")); assert d.get("reason")=="completed" or d.get("session_id"), d' 2>/dev/null; then
+  ok "sessionend forwards payload stdin + CLAUDE_HOOK_EVENT=SessionEnd; empty stdout"
+else
+  bad "sessionend wrong (out=$se_out env=$(cat "$TMP/env.txt" 2>/dev/null))"
+fi
+
+SS_PAYLOAD='{"conversation_id":"conv-ss","hook_event_name":"subagentStop","workspace_roots":["/ws/proj"],"subagent_id":"sa-stop-1","subagent_type":"explore","status":"completed","task":"SECRET_TASK_STOP","summary":"SECRET_SUMMARY","modified_files":["/secret/path.ts"],"tool_call_id":"tc-ss-1","generation_id":"gen-ss"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+ss_out="$(RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" subagentstop "$TMP/stub.sh" <<<"$SS_PAYLOAD" 2>/dev/null)"
+if [ -z "$ss_out" ] \
+  && grep -q 'HOOK_EVENT=SubagentStop' "$TMP/env.txt" \
+  && python3 -c '
+import json
+d=json.load(open("'"$TMP"'/stdin.json"))
+assert d.get("tool_use_id")=="tc-ss-1", d
+assert d.get("agent_id")=="sa-stop-1" or d.get("subagent_id")=="sa-stop-1", d
+assert d.get("subagent_type")=="explore", d
+assert d.get("status")=="completed", d
+blob=json.dumps(d)
+assert "task" not in d and "SECRET_TASK" not in blob
+assert "summary" not in d and "SECRET_SUMMARY" not in blob
+assert "modified_files" not in d
+assert "gen-ss" not in blob
+' 2>/dev/null; then
+  ok "subagentstop Claude-shaped stdin; status+ids; no task/summary/files leak"
+else
+  bad "subagentstop shape wrong (out=$ss_out stdin=$(cat "$TMP/stdin.json" 2>/dev/null | head -c 200))"
+fi
+
 # ── TEETH ───────────────────────────────────────────────────────────────────
 # 1. If the exit-2 translation is removed, the deny must disappear — proving the
 #    deny assertion is not passing for some incidental reason.

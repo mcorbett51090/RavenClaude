@@ -3641,6 +3641,35 @@ gate "copilot: subsequent allow on call B is NOT sticky-denied (lockout regressi
 g20g3="$(printf '%s' "$G20_IN_ECHO" | bash "$ADAPTER" bash-pretool "$G20_BLK" 2>/dev/null)"
 rc=0; printf '%s' "$g20g3" | jq -e '.permissionDecision=="deny"' >/dev/null 2>&1 || rc=1
 gate "copilot: must-fail control — a hard-deny stub would lock out call B" must_pass "$rc"
+# (h) Spectate v0.12 Copilot observe modes — SessionEnd / SubagentStop (and the
+# repaired SubagentStart) must invoke the wrapped hook with CLAUDE_HOOK_EVENT set.
+# A regression to an undefined helper would exit 0 while never calling spectate-emit.
+G20_OBS="$TMP/g20-observe.sh"
+cat > "$G20_OBS" <<'EOF'
+#!/usr/bin/env bash
+cat >/dev/null
+marker="${RC_G20_MARKER:-/tmp/g20-obs-marker}"
+printf '%s\n' "${CLAUDE_HOOK_EVENT:-}" > "$marker"
+exit 0
+EOF
+chmod +x "$G20_OBS"
+for g20mode_ev in "sessionend:SessionEnd" "subagentstop:SubagentStop" "subagentstart:SubagentStart"; do
+  g20mode="${g20mode_ev%%:*}"
+  g20ev="${g20mode_ev##*:}"
+  G20_MARK="$TMP/g20-obs-$g20mode.marker"
+  rm -f "$G20_MARK"
+  printf '%s' '{"sessionId":"g20-obs","cwd":"/x","status":"completed"}' \
+    | RC_G20_MARKER="$G20_MARK" bash "$ADAPTER" "$g20mode" "$G20_OBS" >/dev/null 2>&1 || true
+  rc=0
+  [ -f "$G20_MARK" ] && [ "$(cat "$G20_MARK")" = "$g20ev" ] || rc=1
+  gate "copilot: adapter $g20mode invokes hook with CLAUDE_HOOK_EVENT=$g20ev" must_pass "$rc"
+done
+# Bidirectional: unknown mode must NOT invoke the hook (fail-open no-op).
+G20_MARK="$TMP/g20-obs-unknown.marker"; rm -f "$G20_MARK"
+printf '%s' '{"sessionId":"g20-obs"}' \
+  | RC_G20_MARKER="$G20_MARK" bash "$ADAPTER" not-a-real-mode "$G20_OBS" >/dev/null 2>&1 || true
+rc=0; [ -f "$G20_MARK" ] && rc=1
+gate "copilot: unknown adapter mode does not invoke wrapped hook" must_pass "$rc"
 # ── Gate 20 Phase-A extension: adapter diagnostics (G20.A–G20.G) ─────────────
 # Delegates all 7 subtest assertions to the standalone fixture runner.
 # Each subtest is: golden-path + must-fail-half where applicable.

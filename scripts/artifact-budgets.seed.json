@@ -397,8 +397,13 @@
         "Harness Spectate v0.5 true interrupt (core 0.335.0, 2026-10-09)",
         9582000,
         "Spectate v0.5 (core 0.335.0): true interrupt (continue:false) regenerates the portal after concept restamps + hooks.json PostToolUse spectate-steer (+1 reg to 75). index.html 9,581,052 bytes > prior 9,581,000 by 52 (0.00 MB). Island payload 7,335 <= 7,350 unchanged. Pure content-size raise. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "Spectate v0.12 SessionEnd/SubagentStop observe (0.343.0)",
+        9582100,
+        "index.html regenerated after hooks.json SessionEnd/SubagentStop + concepts restamp; +26 B over prior 9,582,000 byte floor \u2014 append-only raise, not an edit of prior rows."
       ]
     ]
   },
-  "measured_against": "93ab9107c183dbd71b1d612e02d942fa346838a0"
+  "measured_against": "f232b30aae703e55f0f0168061b016abe533631b"
 }

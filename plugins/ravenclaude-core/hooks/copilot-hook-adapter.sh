@@ -19,7 +19,8 @@
 # Usage (from a Copilot hooks.json `bash` entry):
 #   copilot-hook-adapter.sh <mode> <real-hook> [real-hook-args...]
 #     mode = bash-pretool | file-pretool | sessionstart | posttool | stop |
-#            userpromptsubmit | precompact | subagentstart | permissionrequest
+#            userpromptsubmit | precompact | subagentstart | subagentstop |
+#            sessionend | permissionrequest
 #
 # Fail-open is Copilot's default on hook error; for the PreToolUse command hooks
 # we translate a Claude `exit 2` (block) into a Copilot `deny` so the block still
@@ -347,13 +348,32 @@ case "$mode" in
   subagentstart)
     # SubagentStart observe/audit hooks (spectate-emit.sh) — never block.
     # Discard wrapped stdout/exit; always exit 0. Mirrors precompact fail-safe.
-    run_hook >/dev/null 2>&1 || true
+    # PascalCase PreToolUse-adjacent payloads already match Claude field names;
+    # set CLAUDE_HOOK_EVENT so spectate-emit does not rely on payload heuristics.
+    export CLAUDE_HOOK_EVENT=SubagentStart
+    printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  subagentstop)
+    # SubagentStop observe (Spectate v0.12). Chat documents SubagentStop; CLI
+    # fixed subagentStop firing in 1.0.52. Fail-safe discard stdout/exit.
+    # spectate-emit allowlists status/ids only — never ships task/summary text.
+    export CLAUDE_HOOK_EVENT=SubagentStop
+    printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  sessionend)
+    # SessionEnd observe (Spectate v0.12). CLI documents sessionEnd; Chat's
+    # eight-event set omits it (inert there, same as PreCompact-on-CLI).
+    export CLAUDE_HOOK_EVENT=SessionEnd
+    printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0
     ;;
   permissionrequest)
     # PermissionRequest — Claude Code-only (Spectate v0.4 approve/deny). Copilot
     # has no verified lane; fail-safe discard so projection stays honest/inert.
-    run_hook >/dev/null 2>&1 || true
+    export CLAUDE_HOOK_EVENT=PermissionRequest
+    printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0
     ;;
 
