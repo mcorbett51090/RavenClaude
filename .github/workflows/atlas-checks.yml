@@ -75,17 +75,11 @@ jobs:
         run: python3 -m unittest discover -s tests
 
       # ── ⛔ RE-MEASURE THE RULESET CLAIM (see the header). Inconclusive is not OK.
+      # Uses the DETAIL endpoint (list has no check contexts — CI-04).
+      # working-directory overrides the job default (_tools/) so the repo-root
+      # script is found.
       - name: Assert this workflow is NOT a required status check
+        working-directory: ${{ github.workspace }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -uo pipefail
-          if ! rules="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets" 2>&1)"; then
-            echo "::warning::could not read branch rulesets ($rules) - assertion inconclusive, not OK"
-            exit 0
-          fi
-          if grep -q 'Atlas data validates' <<<"$rules"; then
-            echo "::error::This workflow appears in a branch ruleset; with its paths filter it would hang PRs."
-            exit 1
-          fi
-          echo "OK: the atlas checks are not named in any branch ruleset."
+        run: bash scripts/assert-not-required-check.sh 'Atlas data validates'

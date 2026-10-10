@@ -95,23 +95,13 @@ jobs:
       # ⛔ NOT continue-on-error: a genuine match below must fail this job, or
       # the one control that catches the regression this workflow exists to
       # avoid can never be relied on to alert anyone. An API failure is its
-      # own case, handled below — it exits 0 (inconclusive is not a reason to
+      # own case — the shared script exits 0 (inconclusive is not a reason to
       # fail the scheduled run) but never as a false "OK".
+      # Uses the DETAIL endpoint (list has no check contexts — CI-04).
       - name: Assert this sweep is NOT a required status check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -uo pipefail
-          if ! rules="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets" 2>&1)"; then
-            echo "::warning::could not read branch rulesets ($rules) — assertion inconclusive, not OK"
-            exit 0
-          fi
-          if grep -q 'Inventory sweep' <<<"$rules"; then
-            echo "::error::This sweep appears in a branch ruleset. A scheduled workflow"
-            echo "::error::reports nothing on a PR, so a required check on it hangs the PR forever."
-            exit 1
-          fi
-          echo "OK: the scheduled sweep is not named in any branch ruleset."
+        run: bash scripts/assert-not-required-check.sh 'Inventory sweep'
 
       - name: Job summary — derived labels only
         if: always()
