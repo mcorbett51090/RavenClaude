@@ -554,6 +554,8 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 
 ## Shipped in v0.7
 
+<!-- CI trigger note: content sync for Actions pull_request event -->
+
 - Per-event skip in `generate-cursor-hooks.py` / `generate-gemini-hooks.py` so `spectate-emit.sh` wires supported lanes (Cursor: SessionStart / UserPromptSubmit / Stop / Bash-PreToolUse; Gemini: SessionStart / PreToolUse / PostToolUse)
 - Adapter stdin + `CLAUDE_HOOK_EVENT` forwarding on those lifecycle lanes
 - `open-dashboard.sh` `WALK=10` (mirrors `_bind_server` span=10)
