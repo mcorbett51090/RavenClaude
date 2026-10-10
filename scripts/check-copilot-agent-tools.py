@@ -19,6 +19,9 @@ Four assertions:
 
   1. PROJECTED — every agent in the generated package carries a `tools:` line
      (unless canonically `*`), so the field cannot silently vanish again.
+  1b. PB-14 — a non-`*` allowlist that projects to [] (every Claude tool
+     unmapped) is a hard failure; the old generator treated that like `*` and
+     omitted `tools:`, silently granting ALL Copilot tools.
   2. FAITHFUL  — the projected set equals project_tools(canonical tools) exactly.
   3. NO ESCALATION (the security floor) — no projected name outranks the highest
      privilege class the canonical agent declared. An agent with no Bash may not
@@ -114,14 +117,25 @@ def run(mod, *, mutate_map: bool = False) -> int:
         expected = mod.project_tools(declared)
         actual = projected_tools(proj)
 
+        # PB-14 — a non-* allowlist that projects to [] must NEVER omit tools:
+        # (None = intentional all / `*`; [] = every tool unmapped = hole).
+        if expected is not None and not expected:
+            bad(
+                f"{canon.stem}: PB-14 — tools {declared} projected to empty; "
+                f"omitting tools: would grant ALL Copilot tools"
+            )
+            continue
+
         # 1 — the field must be present whenever a restriction was intended.
-        if expected and actual is None:
-            bad(f"{canon.stem}: canonical tools {declared} but projection has NO "
-                f"tools: line — agent runs fully privileged")
+        if expected is not None and actual is None:
+            bad(
+                f"{canon.stem}: canonical tools {declared} but projection has NO "
+                f"tools: line — agent runs fully privileged"
+            )
             continue
 
         # 2 — faithful translation.
-        if expected and actual != expected:
+        if expected is not None and actual != expected:
             bad(f"{canon.stem}: projected {actual} != expected {expected}")
 
         # 3 — the security floor: the projected classes must be a SUBSET of the
@@ -141,25 +155,32 @@ def run(mod, *, mutate_map: bool = False) -> int:
         declared_classes = {
             mod._CLAUDE_TOOL_CLASS[t] for t in declared if t in mod._CLAUDE_TOOL_CLASS
         }
-        for label, names in (("map", expected), ("package", actual or [])):
+        map_names = expected if expected is not None else []
+        for label, names in (("map", map_names), ("package", actual or [])):
             for name in names:
                 cls = mod._COPILOT_TOOL_CLASS.get(name)
                 if cls is None:
-                    bad(f"{canon.stem}: projected unknown-class name {name!r} — add "
-                        f"it to _COPILOT_TOOL_CLASS with its privilege class")
+                    bad(
+                        f"{canon.stem}: projected unknown-class name {name!r} — add "
+                        f"it to _COPILOT_TOOL_CLASS with its privilege class"
+                    )
                     continue
                 if cls not in declared_classes:
-                    bad(f"{canon.stem}: ESCALATION in {label} — {name!r} is "
+                    bad(
+                        f"{canon.stem}: ESCALATION in {label} — {name!r} is "
                         f"{cls}-class but the canonical agent declares only "
-                        f"{sorted(declared_classes)}. Canonical: {declared}")
+                        f"{sorted(declared_classes)}. Canonical: {declared}"
+                    )
 
     # 4 — the worked example, by name.
     sec = PROJECTED / "security-reviewer.agent.md"
     if sec.is_file():
         got = projected_tools(sec) or []
         if "edit" in got:
-            bad("security-reviewer: projection grants 'edit' — the exact P0 MH-10 "
-                "closed (canonically Read/Grep/Glob/Bash/WebFetch, no Write/Edit)")
+            bad(
+                "security-reviewer: projection grants 'edit' — the exact P0 MH-10 "
+                "closed (canonically Read/Grep/Glob/Bash/WebFetch, no Write/Edit)"
+            )
         if not got:
             bad("security-reviewer: no projected tools at all — least-privilege lost")
     else:
@@ -170,8 +191,11 @@ def run(mod, *, mutate_map: bool = False) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--must-fail", action="store_true",
-                    help="teeth: widen a read-only row and assert this gate catches it")
+    ap.add_argument(
+        "--must-fail",
+        action="store_true",
+        help="teeth: widen a read-only row and assert this gate catches it",
+    )
     args = ap.parse_args()
 
     mod = load_generator()
@@ -185,16 +209,50 @@ def main() -> int:
             failures = run(mod, mutate_map=True)
         text = err.getvalue()
         if failures == 0:
-            print("MUST-FAIL: mutant produced NO failures — the gate has no teeth",
-                  file=sys.stderr)
+            print("MUST-FAIL: mutant produced NO failures — the gate has no teeth", file=sys.stderr)
             return 1
         if "ESCALATION" not in text:
-            print("MUST-FAIL: mutant failed, but not on the escalation assertion — "
-                  "the class check is not what caught it", file=sys.stderr)
+            print(
+                "MUST-FAIL: mutant failed, but not on the escalation assertion — "
+                "the class check is not what caught it",
+                file=sys.stderr,
+            )
             print(text, file=sys.stderr)
             return 1
-        print(f"  ok: teeth — a write-class name on a read-only row is caught "
-              f"({failures} failure(s), incl. ESCALATION)")
+        print(
+            f"  ok: teeth — a write-class name on a read-only row is caught "
+            f"({failures} failure(s), incl. ESCALATION)"
+        )
+        # PB-14 teeth: unmapped allowlist must not collapse into all-tools omit.
+        empty = mod.project_tools(["NotebookEdit", "SlashCommand"])
+        if empty != []:
+            print(
+                f"MUST-FAIL PB-14: unmapped tools should project to [] (got {empty!r})",
+                file=sys.stderr,
+            )
+            return 1
+        if mod.project_tools(["*"]) is not None:
+            print(
+                "MUST-FAIL PB-14: '*' must project to None (intentional all)",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            mod.build_agent_doc("x", "d", "body", [], "haiku")
+        except ValueError as exc:
+            if "PB-14" not in str(exc):
+                print(
+                    f"MUST-FAIL PB-14: ValueError lacked PB-14 marker: {exc}",
+                    file=sys.stderr,
+                )
+                return 1
+        else:
+            print(
+                "MUST-FAIL PB-14: build_agent_doc accepted empty tools list",
+                file=sys.stderr,
+            )
+            return 1
+        print("  ok: teeth — PB-14 empty projection refuses omit-as-all-tools")
         print("Copilot agent tools: MUST-FAIL half behaved correctly")
         return 0
 
