@@ -294,7 +294,7 @@ The pattern is documented end-to-end in [`docs/best-practices/self-referential-i
 | Cut a release | [`checklists/release-checklist.md`](checklists/release-checklist.md) |
 | Improve diagrams in docs you write | [`docs/best-practices/diagrams-in-docs.md`](docs/best-practices/diagrams-in-docs.md) |
 | Score a multi-agent run | [`docs/evaluation.md`](docs/evaluation.md) |
-| Strategy / packaging direction | [`STRATEGY.md`](STRATEGY.md) — currently a stub; content pending |
+| Strategy / packaging direction | [`docs/STRATEGY.md`](docs/STRATEGY.md) (root [`STRATEGY.md`](STRATEGY.md) is a pointer) |
 
 ---
 
