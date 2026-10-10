@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.339.6 — 2026-10-10
+
+### Fixed
+- **Copilot projection no longer treats an empty tools map as all-tools (PB-14).**
+  `project_tools()` returned `[]` both for canonical `*` (intentional all) and
+  for a non-`*` allowlist whose every Claude tool was unmapped; the caller then
+  omitted `tools:`, which Copilot reads as ALL tools — least-privilege inverted.
+  `*` now returns `None` (omit); a non-empty unmapped list stays `[]` and fails
+  the generator + Gate 166 instead of widening.
+
 ## 0.339.5 — 2026-10-10
 
 ### Fixed

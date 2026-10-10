@@ -328,19 +328,26 @@ _COPILOT_TOOL_CLASS = {
 }
 
 
-def project_tools(claude_tools: list[str]) -> list[str]:
+def project_tools(claude_tools: list[str]) -> list[str] | None:
     """Translate a Claude `tools:` list into Copilot agent-profile tool names.
 
-    Returns [] for `*` (or an empty list), which the caller renders as NO
-    `tools:` line at all — i.e. all tools, which is what `*` means. That is the
-    one case where omitting the restriction is correct rather than a hole.
+    Returns:
+      None  — intentional all-tools (`*` or empty canonical). Caller omits the
+              `tools:` line, which Copilot reads as all tools. That is the ONE
+              case where omitting the restriction is correct rather than a hole.
+      list  — projected Copilot names. May be empty when every Claude tool was
+              unmapped (PB-14). An empty list is a HAZARD: the previous caller
+              treated it like None and omitted `tools:`, silently granting ALL
+              tools to a least-privilege agent. Callers must refuse empty lists
+              (fail the generator / Gate 166), never render them as "all tools".
 
     An unmapped Claude tool contributes nothing. That is deliberate: silently
     inventing a name for a tool we have not verified is how a review-only agent
-    would get shell.
+    would get shell — but contributing nothing to every tool must not collapse
+    into the all-tools omit path.
     """
     if not claude_tools or "*" in claude_tools:
-        return []
+        return None
     out: list[str] = []
     for tool in claude_tools:
         for mapped in _AGENT_TOOL_MAP.get(tool, ()):
@@ -419,9 +426,10 @@ def build_agent_doc(
 ) -> str:
     """Render a Copilot .agent.md: frontmatter, then the verbatim original body.
 
-    `tools` is the ALREADY-PROJECTED Copilot name list (see project_tools). An
-    empty list emits NO `tools:` line, which Copilot reads as all tools — correct
-    only for a canonical `*`, and never a silent default.
+    `tools` is the ALREADY-PROJECTED Copilot name list (see project_tools).
+    None omits the `tools:` line (intentional all-tools / canonical `*`).
+    A non-empty list emits the allowlist. An empty list is rejected — rendering
+    it as an omit would re-open PB-14 (unmapped allowlist → all tools).
 
     `model` is the canonical Claude tier alias. It is stated in the header
     comment, never emitted as a frontmatter field — see parse_agent_frontmatter
@@ -429,7 +437,13 @@ def build_agent_doc(
     Copilot does anyway, so there is no gap to name.
     """
     fm = f"---\nname: {yaml_quote(name)}\ndescription: {yaml_quote(description)}\n"
-    if tools:
+    if tools is not None:
+        if not tools:
+            raise ValueError(
+                f"PB-14: refusing to omit tools: for agent {name!r} — projected "
+                "allowlist is empty (would grant ALL Copilot tools). Map the "
+                "canonical tools in _AGENT_TOOL_MAP or fix the agent frontmatter."
+            )
         # YAML flow sequence — the reference documents "both a comma separated
         # string and yaml string array"; the array form is unambiguous.
         fm += "tools: [" + ", ".join(yaml_quote(t) for t in tools) + "]\n"
@@ -507,7 +521,6 @@ def build_manifest(canonical: dict) -> str:
         ),
     }
     return json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
-
 
 
 TIER_EFFORT = {"haiku": "low", "sonnet": "medium", "opus": "high", "fable": "high"}
@@ -839,7 +852,14 @@ def generate() -> dict[str, str]:
         name, description, claude_tools, model = parse_agent_frontmatter(
             frontmatter, agent_path.stem
         )
-        doc = build_agent_doc(name, description, body, project_tools(claude_tools), model)
+        projected = project_tools(claude_tools)
+        if projected is not None and not projected:
+            raise SystemExit(
+                f"PB-14: {agent_path.name}: tools {claude_tools} projected to "
+                "empty — omitting tools: would grant ALL Copilot tools. Add "
+                "mappings in _AGENT_TOOL_MAP or fix the canonical allowlist."
+            )
+        doc = build_agent_doc(name, description, body, projected, model)
         tree[f"{rel_root}/agents/{agent_path.stem}.agent.md"] = doc
 
     return tree
