@@ -110,18 +110,8 @@ jobs:
       # ── ⛔ RE-MEASURE THE RULESET CLAIM. This workflow being absent from the
       #    required checks is an ASSERTION, not an assumption. An API failure is
       #    inconclusive and says so; it is never reported as OK.
+      # Uses the DETAIL endpoint (list has no check contexts — CI-04).
       - name: Assert this watch is NOT a required status check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -uo pipefail
-          if ! rules="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets" 2>&1)"; then
-            echo "::warning::could not read branch rulesets ($rules) - assertion inconclusive, not OK"
-            exit 0
-          fi
-          if grep -q 'Atlas watch' <<<"$rules"; then
-            echo "::error::The atlas watch appears in a branch ruleset. A scheduled workflow"
-            echo "::error::reports nothing on a PR, so a required check on it hangs the PR forever."
-            exit 1
-          fi
-          echo "OK: the atlas watch is not named in any branch ruleset."
+        run: bash scripts/assert-not-required-check.sh 'Atlas watch'

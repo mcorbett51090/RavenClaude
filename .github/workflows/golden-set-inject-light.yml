@@ -51,21 +51,11 @@ jobs:
         with:
           persist-credentials: false
 
+      # Uses the DETAIL endpoint (list has no check contexts — CI-04).
       - name: Assert non-required (never a ruleset check)
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          # Self-check: this job context must not appear in branch rulesets.
-          if ! rules="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets" 2>&1)"; then
-            echo "::warning::could not read branch rulesets ($rules) — assertion inconclusive, not OK"
-            exit 0
-          fi
-          if grep -Fqi "Golden-set inject" <<<"$rules"; then
-            echo "::error::This light job appears in a branch ruleset. It must never be required."
-            exit 1
-          fi
-          echo "OK: golden-set inject light is not named in any branch ruleset."
+        run: bash scripts/assert-not-required-check.sh 'Golden-set inject'
 
       - name: Run light judge (fixtures-only, no network model)
         run: |
