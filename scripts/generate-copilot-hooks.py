@@ -59,6 +59,7 @@ readable off the canonical command:
     Stop                                            =>  stop
     UserPromptSubmit                                =>  userpromptsubmit
     PreCompact                                      =>  precompact
+    PostCompact                                     =>  postcompact
     SubagentStart                                   =>  subagentstart
     SubagentStop                                    =>  subagentstop
     SessionEnd                                      =>  sessionend
@@ -107,6 +108,10 @@ _EVENT_MODE = {
     # about it), switch this to the literal `_SKIP` with that finding as the
     # reason, and file the resulting Chat-coverage loss as a follow-up.
     "PreCompact": "precompact",
+    # PostCompact — Claude Code + Codex document it; Copilot Chat's eight-event
+    # set omits PostCompact [docs-verified 2026-09-01]. Fail-safe inert projection
+    # keeps multi-event spectate-emit accounted (same shape as PermissionRequest).
+    "PostCompact": "postcompact",
     # SubagentStart — observe/audit only. Adapter mode is fail-safe (discards
     # stdout + exit code). Needed so multi-event observe hooks like
     # spectate-emit.sh can register under SubagentStart without a full skip.
@@ -329,6 +334,7 @@ def main(argv: list) -> int:
             "SubagentStop",
             "PermissionRequest",
             "PreCompact",
+            "PostCompact",
         )
         by_event: dict[str, set[str]] = {e: set() for e in floor_events}
         for script, event, *_rest in wired:

@@ -545,14 +545,20 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - [x] `skills/spectate` + `monitors.json` entry `spectate-push-mirror` (`when: on-skill-invoke:spectate`)
 - [x] Gate 297 (`test-watch-spectate.sh` M1–M5); core 0.336.0
 
-## Deferred (v0.13+)
+## Deferred (v0.14+)
 
 - ACP control channel (process ownership)
 - IDE `openExternal` to the same `/spectate` URL (only if alt-tab is the measured failure; not Simple Browser, not a second UI)
 - Cursor/Gemini PermissionRequest emit (host lane still unverified)
 - Cursor `preToolUse` / `postToolUse` **enforcement** wiring (replacing beforeShellExecution) — live payload probe still required; v0.10 only wires observe emit
 - Live Gemini `tool_use_id` probe (docs still publish none on BeforeTool/AfterTool)
-- Codex `PostCompact` observe (schema has no `compact.post` kind yet)
+
+## Shipped in v0.13
+
+- Schema `compact.post`; `spectate-emit` maps `PostCompact`→`compact.post`
+- Claude Code `hooks.json` + Codex fixed list wire observe emit
+- Cursor/Gemini explicitly skip; Copilot fail-safe inert `postcompact` mode
+- Reducer closes `update-context` on `compact.post`
 
 ## Shipped in v0.12
 

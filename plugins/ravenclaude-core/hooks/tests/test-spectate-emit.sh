@@ -288,6 +288,30 @@ else
 fi
 rm -rf "$T12"
 
+
+echo "── S13: PostCompact emits compact.post ───────────────────────────────────"
+T13="$(mktemp -d)"
+out13="$(run_hook "$T13" s13 PostCompact '{"session_id":"s13","transcript_path":"/tmp/t.jsonl"}')"
+rc13=$?
+log13="$T13/.ravenclaude/runs/s13/spectate-events.jsonl"
+if [ "$rc13" -eq 0 ] && [ -z "$out13" ] && [ -f "$log13" ]; then
+  kind13="$(jq -r '.kind' "$log13")"
+  node13="$(jq -r '.node_id // empty' "$log13")"
+  blob13="$(cat "$log13")"
+  ok13=1
+  [ "$kind13" = "compact.post" ] || ok13=0
+  [ "$node13" = "compact" ] || ok13=0
+  printf '%s' "$blob13" | grep -Fq 'transcript' && ok13=0
+  if [ "$ok13" -eq 1 ]; then
+    pass "S13: compact.post node_id=compact; no transcript path leak"
+  else
+    fail "S13: kind=$kind13 node=$node13 blob=$(printf '%s' "$blob13" | head -c 200)"
+  fi
+else
+  fail "S13: rc=$rc13 out_len=${#out13} log=$( [ -f "$log13" ] && echo y || echo n )"
+fi
+rm -rf "$T13"
+
 if [ "$FAILED" -ne 0 ]; then
   echo "test-spectate-emit: $FAILED failure(s)"
   exit 1

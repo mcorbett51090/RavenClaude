@@ -2859,7 +2859,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:a6c768cd3580285beb222aaf22d7bb2e851343717d113509f70473f8a776e904",
+      "covers_digest": "sha256:e4f2a66df612c74da024a8d06838d560d4d23641409949c0efdb02ce18adead2",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2908,7 +2908,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:142b6b49e64fbcffba549e9e668de1e236e0479072b4109cbfebf69b20e5ca55",
+      "covers_digest": "sha256:fe845b4e8afa11dbdeaed957055a3d0f146464e8efff69625deb772f1529994a",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3002,7 +3002,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:3888b84f07c7ba83575a8e0b034ad3a85c5ee42cbedae2b4424701b72d3a4ff3",
+      "covers_digest": "sha256:631a5808a5f9af01a019684fa40922cb0f416ad9c169095d9635f9457a968da4",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3475,7 +3475,7 @@
         "plugins/ravenclaude-core/monitors/watch-spectate.sh",
         "plugins/ravenclaude-core/skills/spectate/SKILL.md"
       ],
-      "covers_digest": "sha256:e32ab3cb3f3262076c16ca540684782b8ae5fb34164c1e49ef2eed8f38a8b3d8",
+      "covers_digest": "sha256:8f720f7d69dfe04d3e55e10f4b1146da3fb9bde55ddd86f2cdf65222d0f6ebc5",
       "nuance": "An empty Spectate stream reduces every node to idle with cause-not-established; a capability cell whose state is unknown never reduces to unavailable-harness.",
       "nuance_evidence": {
         "measured": "2026-10-09",

@@ -209,6 +209,11 @@ _SKIP_EVENT = {
         "PreCompact. Gemini exposes no verified compaction-hook event on the "
         "pages checked. Other emit lanes wire."
     ),
+    ("spectate-emit.sh", "PostCompact"): (
+        "PostCompact. Gemini exposes no verified post-compaction hook event on "
+        "the pages checked. Spectate v0.13 wires compact.post on Claude Code + "
+        "Codex only."
+    ),
     ("spectate-emit.sh", "PermissionRequest"): (
         "PermissionRequest. Gemini has no verified permission-prompt hook lane. "
         "Claude Code + Copilot carry permission.request emit."

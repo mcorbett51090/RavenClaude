@@ -4,7 +4,7 @@
 # Appends ONE scrubbed rc.spectate.v1 line to
 #   ${CLAUDE_PROJECT_DIR}/.ravenclaude/runs/<session>/spectate-events.jsonl
 # for SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop /
-# SubagentStart / SubagentStop / PreCompact / SessionEnd / PermissionRequest.
+# SubagentStart / SubagentStop / PreCompact / PostCompact / SessionEnd / PermissionRequest.
 # Never blocks; never writes stdout; never carries raw prompts, tool arguments,
 # tool output, task/summary text, or secrets.
 #
@@ -79,6 +79,7 @@ KIND_BY_EVENT = {
     "subagentstart": "subagent.start",
     "subagentstop": "subagent.stop",
     "precompact": "compact.pre",
+    "postcompact": "compact.post",
     "permissionrequest": "permission.request",
 }
 
@@ -320,7 +321,7 @@ def main() -> None:
                 asserted = "failed"
             else:
                 asserted = "succeeded"
-    elif kind == "compact.pre":
+    elif kind in {"compact.pre", "compact.post"}:
         node_id = "compact"
     elif kind == "turn.end":
         node_id = "turn"
