@@ -141,7 +141,10 @@ print(json.dumps({"tool_name": sys.argv[1], "tool_input": {"command": sys.argv[2
 
 case "$mode" in
   shell-pretool)
-    export CLAUDE_HOOK_EVENT="${CLAUDE_HOOK_EVENT:-PreToolUse}"
+    # Mode owns the event name — do not inherit ambient CLAUDE_HOOK_EVENT from a
+    # parent Claude Code session (cloud-agent / nested harness), or observe hooks
+    # mis-kind the line (e.g. stop recorded as SessionStart).
+    export CLAUDE_HOOK_EVENT=PreToolUse
     cmd="$(_field command)"
     [ -z "$cmd" ] && exit 0
     stdin_json="$(_claude_stdin Bash "$cmd")" || _rc_adapter_internal_fail
@@ -172,7 +175,7 @@ case "$mode" in
     # additionalContext is emitted as plain stdout, which the docs' own examples use.
     # Forward host payload + CLAUDE_HOOK_EVENT so observe hooks (spectate-emit)
     # can kind the line; empty stdin previously made emit a silent no-op.
-    export CLAUDE_HOOK_EVENT="${CLAUDE_HOOK_EVENT:-SessionStart}"
+    export CLAUDE_HOOK_EVENT=SessionStart
     out="$(printf '%s' "$payload" | bash "$real" "$@" 2>/dev/null || true)"
     if [ -n "$out" ] && command -v jq >/dev/null 2>&1; then
       ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)"
@@ -184,9 +187,9 @@ case "$mode" in
     # Fail-open by contract: these never block on any host.
     # Forward payload + event name for observe hooks (spectate-emit v0.7).
     if [ "$mode" = "stop" ]; then
-      export CLAUDE_HOOK_EVENT="${CLAUDE_HOOK_EVENT:-Stop}"
+      export CLAUDE_HOOK_EVENT=Stop
     else
-      export CLAUDE_HOOK_EVENT="${CLAUDE_HOOK_EVENT:-UserPromptSubmit}"
+      export CLAUDE_HOOK_EVENT=UserPromptSubmit
     fi
     printf '%s' "$payload" | bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0

@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.338.1 — 2026-10-10
+
+### Fixed
+- **Cursor / Gemini adapters inherit ambient `CLAUDE_HOOK_EVENT`.** Under a nested Claude Code / cloud-agent session the parent already exports `CLAUDE_HOOK_EVENT=SessionStart`, so `${CLAUDE_HOOK_EVENT:-Stop}` left Stop/UserPromptSubmit/PreToolUse as SessionStart and spectate-emit mis-kinded observe lines. Mode now sets the event name unconditionally. Gates 159 / 164 unset ambient Claude session vars when asserting payload-derived env.
+
 ## 0.338.0 — 2026-10-10
 
 ### Added

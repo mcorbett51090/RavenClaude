@@ -46,7 +46,13 @@ print(json.dumps({"session_id": "sess-9", "cwd": "/ws/p", "hook_event_name": "Be
 ' "$1"
 }
 
-run() { RC_OUT="$TMP" RC_RC="${2:-0}" bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload "$1")" >/dev/null 2>&1; }
+# Unset ambient Claude session vars — cloud-agent / nested harnesses export them
+# and would mask payload-derived CLAUDE_PROJECT_DIR / SESSION_ID / HOOK_EVENT.
+_run_ad() {
+  env -u CLAUDE_PROJECT_DIR -u CLAUDE_SESSION_ID -u CLAUDE_HOOK_EVENT "$@"
+}
+
+run() { RC_OUT="$TMP" RC_RC="${2:-0}" _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload "$1")" >/dev/null 2>&1; }
 seen_tool() { python3 -c 'import json;print(json.load(open("'"$TMP"'/stdin.json")).get("tool_name"))' 2>/dev/null; }
 
 printf -- '── Gate 164: Gemini shim ──\n'
@@ -75,13 +81,13 @@ run "some_future_tool"
   || bad "unmapped name became '$(seen_tool)' — a default was invented"
 
 # ── blocking: exit 2 is ALREADY Gemini's contract, so it must pass untouched ─
-RC_OUT="$TMP" RC_RC=2 bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
+RC_OUT="$TMP" RC_RC=2 _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
 [ "$?" -eq 2 ] && ok "exit 2 (block) passes through untouched" || bad "exit 2 did not propagate"
 
-RC_OUT="$TMP" RC_RC=0 bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
 [ "$?" -eq 0 ] && ok "exit 0 (allow) passes through" || bad "exit 0 did not propagate"
 
-out="$(RC_OUT="$TMP" RC_RC=2 bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" 2>/dev/null)"
+out="$(RC_OUT="$TMP" RC_RC=2 _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" 2>/dev/null)"
 [ -z "$out" ] && ok "emits NO stdout JSON — nothing to get wrong on the deny path" \
   || bad "emitted stdout on deny: ${out:0:60}"
 
@@ -92,7 +98,7 @@ grep -q '^SESSION_ID=sess-9$' "$TMP/env.txt" && ok "session_id -> CLAUDE_SESSION
 grep -q '^THING_HOST=gemini$' "$TMP/env.txt" && ok "THING_HOST asserted as gemini" || bad "THING_HOST not gemini"
 
 # ── fail-safe ───────────────────────────────────────────────────────────────
-RC_OUT="$TMP" bash "$AD" pretool "$TMP/missing.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
+RC_OUT="$TMP" _run_ad bash "$AD" pretool "$TMP/missing.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
 [ "$?" -eq 0 ] && ok "a missing hook script exits 0 (never bricks every tool call)" || bad "missing script did not exit 0"
 
 # ── the deny REASON survives (added 2026-08-12) ─────────────────────────────
@@ -109,7 +115,7 @@ exit 2
 LOUD
 chmod +x "$TMP/loud.sh"
 
-RC_OUT="$TMP" bash "$AD" pretool "$TMP/loud.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/err.txt"
+RC_OUT="$TMP" _run_ad bash "$AD" pretool "$TMP/loud.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/err.txt"
 _rc=$?
 [ "$_rc" -eq 2 ] && grep -q 'DENY_REASON_SENTINEL' "$TMP/err.txt" \
   && ok "a deny carries its reason through to stderr (exit 2 + reason, both halves)" \
@@ -117,7 +123,7 @@ _rc=$?
 
 # The negative control — an ALLOW must stay quiet, or the fix just becomes noise
 # on every tool call.
-RC_OUT="$TMP" RC_RC=0 bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/err0.txt"
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/err0.txt"
 [ ! -s "$TMP/err0.txt" ] \
   && ok "an allow emits no stderr (the fix adds no per-call noise)" \
   || bad "allow leaked $(wc -c <"$TMP/err0.txt" | tr -d ' ') bytes of stderr"
@@ -157,7 +163,7 @@ fi
 # ── v0.7 observe-lane forwarding (spectate-emit needs stdin + CLAUDE_HOOK_EVENT) ─
 SS_PAYLOAD='{"session_id":"sess-ss","cwd":"/ws/p","hook_event_name":"SessionStart"}'
 rm -f "$TMP/stdin.json" "$TMP/env.txt"
-RC_OUT="$TMP" RC_RC=0 bash "$AD" sessionstart "$TMP/stub.sh" <<<"$SS_PAYLOAD" >/dev/null 2>&1
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" sessionstart "$TMP/stub.sh" <<<"$SS_PAYLOAD" >/dev/null 2>&1
 if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=SessionStart' "$TMP/env.txt"; then
   ok "sessionstart forwards payload stdin + CLAUDE_HOOK_EVENT=SessionStart"
 else
@@ -166,7 +172,7 @@ fi
 
 POST_PAYLOAD='{"session_id":"sess-post","cwd":"/ws/p","hook_event_name":"AfterTool","tool_name":"write_file","tool_input":{"file_path":"/ws/p/a.txt"},"file_path":"/ws/p/a.txt"}'
 rm -f "$TMP/stdin.json" "$TMP/env.txt"
-RC_OUT="$TMP" RC_RC=0 bash "$AD" posttool "$TMP/stub.sh" <<<"$POST_PAYLOAD" >/dev/null 2>&1
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" posttool "$TMP/stub.sh" <<<"$POST_PAYLOAD" >/dev/null 2>&1
 if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=PostToolUse' "$TMP/env.txt"; then
   # posttool must also normalise tool_name for observe hooks
   post_tool="$(python3 -c 'import json;print(json.load(open("'"$TMP"'/stdin.json")).get("tool_name"))' 2>/dev/null)"
@@ -178,7 +184,7 @@ else
 fi
 
 rm -f "$TMP/env.txt"
-RC_OUT="$TMP" RC_RC=0 bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
 grep -q 'HOOK_EVENT=PreToolUse' "$TMP/env.txt" \
   && ok "pretool sets CLAUDE_HOOK_EVENT=PreToolUse" \
   || bad "pretool missing CLAUDE_HOOK_EVENT=PreToolUse"
