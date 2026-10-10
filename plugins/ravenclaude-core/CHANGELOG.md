@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.338.2 — 2026-10-10
+
+### Fixed
+- **Far-future `resets_at` no longer hangs the reserve projection.** A `resets_at` in epoch milliseconds (or otherwise > `now + 2 * WEEK_S`) used to make `Cron.count_between` walk minute-by-minute (~5×10¹⁰ iterations) at 100% CPU in SessionStart refresh, `compute`/`status`, and `GET /__reserve`. `project()` now discards those values (same fallback as a rolled-over reading); `count_between` also caps at one year of minutes. Gate 291 section H. Valid in-window resets are unchanged.
+
 ## 0.338.1 — 2026-10-10
 
 ### Fixed

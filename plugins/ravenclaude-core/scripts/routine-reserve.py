@@ -245,6 +245,15 @@ class Cron:
             return dom_ok
         return dom_ok or dow_ok
 
+    # One year of minutes. A legitimate reserve horizon is tiny (a 7-day window is
+    # 10,080 minutes; project() clamps the horizon to ~2 weeks = 20,160). This
+    # belt-and-suspenders bound stops even a caller that bypasses that clamp from
+    # spinning this minute-by-minute loop at 100% CPU on a far-future `end`.
+    # Control (this session): count_between over the largest horizon project() can
+    # produce (now + 2*WEEK_S = 20,160 steps) stays far below this cap, so the cap
+    # never fires on a valid horizon and the return is unchanged there.
+    _MAX_MINUTES = 366 * 24 * 60
+
     def count_between(self, start: float, end: float) -> int:
         """Firings in [start, end), minute resolution."""
         if end <= start:
@@ -254,10 +263,14 @@ class Cron:
             t += dt.timedelta(minutes=1)
         end_dt = dt.datetime.fromtimestamp(end, dt.timezone.utc)
         count = 0
+        steps = 0
         while t < end_dt:
+            if steps >= self._MAX_MINUTES:
+                break
             if self.matches(t):
                 count += 1
             t += dt.timedelta(minutes=1)
+            steps += 1
         return count
 
 
@@ -617,6 +630,15 @@ def project(
         reset = parse_ts(reading.get("resets_at"))
         if reset is not None and reset <= now:
             reset = None  # the window rolled over since the reading
+        elif reset is not None and reset > now + 2 * WEEK_S:
+            # A 7-day window never resets more than ~2 weeks out. A far-future
+            # value is anomalous — a resets_at in epoch MILLISECONDS (parse_ts
+            # reads a bare number as seconds), a corrupted/hand-edited file, or
+            # clock skew — and, unclamped, would make `horizon` far-future and
+            # spin count_between() minute-by-minute at 100% CPU in the detached
+            # SessionStart refresh. Discard it and fall back to now + WEEK_S,
+            # exactly as the rolled-over case does.
+            reset = None
         captured = parse_ts(reading.get("captured_at"))
         reading_age = None if captured is None else now - captured
         if reset is not None and reading.get("seven_day_pct") is not None:
