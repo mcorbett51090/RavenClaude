@@ -2858,7 +2858,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:95cbdddbf3ac4df7a10dad93c4666f52f79829d0c80acea452115cd93b1fdb94",
+      "covers_digest": "sha256:827dbd0af7b6977ad2b8a6e6bc7aecc28c8fc744a4ff4c1d6d040781bad534f8",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3001,7 +3001,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:45a852621eb73a6338f55c65f482db0cfdf87456212ee2a8808928d972739379",
+      "covers_digest": "sha256:0049c77f5d54312ccbdef761243426ab8cc4588aca66872145bfed54cf6e102c",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3030,7 +3030,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-09",
+      "last_verified": "2026-10-10",
       "refresh_when": null,
       "sources": [
         {
@@ -3063,7 +3063,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:7e29def211cad37699630f25b733640d921fe9c721f70625db5fc2ba31861acb",
+      "covers_digest": "sha256:bf1e57fe30d5b8c4e8641c2dcb40f7b268601a4b749f2b85b5e4cbebad92d4e4",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",

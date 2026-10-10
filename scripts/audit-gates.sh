@@ -6287,6 +6287,21 @@ gate "guard-web-access blocks flow-style deny list (was fail-open)" must_pass "$
 rc=0; printf '%s' '{"tool_name":"WebFetch","tool_input":{"url":"https://unlisted.example/x"}}' \
   | CLAUDE_PROJECT_DIR="$GWA_FS" bash plugins/ravenclaude-core/hooks/guard-web-access.sh >/dev/null 2>&1 || rc=$?
 gate "guard-web-access flow-style: unlisted host falls through (not a blanket block)" must_pass "$rc"
+
+# Host-parse order (2026-10-06 SH-F2): cut path/query/fragment BEFORE userinfo
+# strip, or `https://evil.com#@ok.example/` rewrites the host to ok.example and
+# bypasses the deny list (ask/allow instead of exit 2).
+GWA_HP="$TMP/gwa-hostparse"
+mkdir -p "$GWA_HP/.ravenclaude"
+printf 'deny:\n  - evil.com\nallow:\n  - ok.example\n' >"$GWA_HP/.ravenclaude/web-access.yaml"
+rc=0; printf '%s' '{"tool_name":"WebFetch","tool_input":{"url":"https://evil.com#@ok.example/"}}' \
+  | CLAUDE_PROJECT_DIR="$GWA_HP" bash plugins/ravenclaude-core/hooks/guard-web-access.sh >/dev/null 2>&1 || rc=$?
+gwa_hp=0; [ "$rc" -eq 2 ] || gwa_hp=1
+gate "guard-web-access blocks fragment-userinfo host spoof (deny list)" must_pass "$gwa_hp"
+rc=0; printf '%s' '{"tool_name":"WebFetch","tool_input":{"url":"https://evil.com?@ok.example/"}}' \
+  | CLAUDE_PROJECT_DIR="$GWA_HP" bash plugins/ravenclaude-core/hooks/guard-web-access.sh >/dev/null 2>&1 || rc=$?
+gwa_hpq=0; [ "$rc" -eq 2 ] || gwa_hpq=1
+gate "guard-web-access blocks query-userinfo host spoof (deny list)" must_pass "$gwa_hpq"
 # The exit-1-vs-exit-2 discrimination is proven WITH TEETH by the fixture's own
 # must-fail half (G70.6 patches a STRICT branch back to exit 1 and asserts the
 # exit-2-literal check catches it) — run as part of the fixture above. A prior

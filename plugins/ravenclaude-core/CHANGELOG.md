@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.338.3 — 2026-10-10
+
+### Fixed
+- **`guard-web-access` host parse no longer rewrites authority via `#@` / `?@` spoofs.** Path/query/fragment/backslash are cut before the userinfo strip, so `https://blocked.example#@allowed.example/` hits the deny list again (exit 2). Gate 70 teeth for fragment + query spoofs. Control chars rejected.
+
 ## 0.338.2 — 2026-10-10
 
 ### Fixed
