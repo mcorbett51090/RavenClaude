@@ -37,10 +37,11 @@ SCOPE OF THIS GENERATOR (Phase 4, sessionstart-safeguards-multihost)
   below are that literal transcription, unconditional -- they do not vary with
   `--legacy-sessionstart` or the manifest's current contents.
 * Every canonical hook this generator does NOT wire (all of PreToolUse /
-  PostToolUse / Stop beyond the fixed subset above, plus every hook under
-  UserPromptSubmit / SubagentStart / PreCompact, which have no Codex lane at
-  all yet) is accounted for in `_SKIP`, loudly, with a reason `--check` can
-  print -- never silently dropped.
+  PostToolUse / Stop beyond the fixed subset above, plus non-spectate hooks
+  under UserPromptSubmit / SubagentStart / PreCompact / PermissionRequest —
+  Spectate v0.11 wires spectate-emit only on those lifecycle lanes) is
+  accounted for in `_SKIP`, loudly, with a reason `--check` can print --
+  never silently dropped.
 
 --------------------------------------------------------------------------------
 KILL SWITCH -- RC_CODEX_SESSIONSTART_LEGACY=1
@@ -83,6 +84,13 @@ _EVENT = {
     "PreToolUse": "PreToolUse",
     "PostToolUse": "PostToolUse",
     "Stop": "Stop",
+    # Spectate v0.11 — observe-only lifecycle lanes (native Claude contract;
+    # docs-verified Codex event set includes these) [docs-verified 2026-07-28 —
+    # learn.chatgpt.com/docs/hooks via plugins/ravenclaude-core/knowledge/codex-cli-customization.md].
+    "UserPromptSubmit": "UserPromptSubmit",
+    "SubagentStart": "SubagentStart",
+    "PreCompact": "PreCompact",
+    "PermissionRequest": "PermissionRequest",
 }
 
 _LANE_SCOPE_REASON = (
@@ -146,9 +154,9 @@ _SKIP = {
     # skip is correct, not a downgrade.
     "precompact-digest.sh": _EVENT_UNWIRED_REASON,
     # spectate-emit.sh is wired via SessionStart derivation + fixed
-    # PreToolUse/PostToolUse/Stop (Spectate v0.9). SubagentStart / PreCompact /
-    # PermissionRequest / UserPromptSubmit have no Codex lane in this generator
-    # yet — by-basename accounting covers the script once any lane wires it.
+    # PreToolUse/PostToolUse/Stop (v0.9) + UserPromptSubmit/SubagentStart/
+    # PreCompact/PermissionRequest (v0.11). By-basename accounting covers the
+    # script once any lane wires it; floors below catch a lane drop.
     "spectate-steer.sh": _EVENT_UNWIRED_REASON,
     "emit-permission-denied.sh": _EVENT_UNWIRED_REASON,
     "prompt-optimizer-gate.sh": _EVENT_UNWIRED_REASON,
@@ -203,6 +211,19 @@ _FIXED_STOP = (
             ("stream-session-close.sh", ""),
             ("spectate-emit.sh", ""),
         ),
+    ),
+)
+# Spectate v0.11 — observe-only emit on Codex lifecycle lanes that speak the
+# native Claude contract. Matchers mirror hooks.json spectate-emit groups.
+# Enforcement / steer stay out of these fixed lists (spectate-steer remains
+# _SKIP'd — Claude Code PermissionRequest wait semantics are not Codex-verified).
+_FIXED_USERPROMPTSUBMIT = ((None, (("spectate-emit.sh", ""),)),)
+_FIXED_SUBAGENTSTART = ((None, (("spectate-emit.sh", ""),)),)
+_FIXED_PRECOMPACT = ((None, (("spectate-emit.sh", ""),)),)
+_FIXED_PERMISSIONREQUEST = (
+    (
+        "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
+        (("spectate-emit.sh", ""),),
     ),
 )
 
@@ -327,12 +348,20 @@ def build(
     pt_groups, pt_wired = _fixed_block(shim, hooks_dir, _FIXED_PRETOOLUSE)
     po_groups, po_wired = _fixed_block(shim, hooks_dir, _FIXED_POSTTOOLUSE)
     st_groups, st_wired = _fixed_block(shim, hooks_dir, _FIXED_STOP)
+    up_groups, up_wired = _fixed_block(shim, hooks_dir, _FIXED_USERPROMPTSUBMIT)
+    sa_groups, sa_wired = _fixed_block(shim, hooks_dir, _FIXED_SUBAGENTSTART)
+    pc_groups, pc_wired = _fixed_block(shim, hooks_dir, _FIXED_PRECOMPACT)
+    pr_groups, pr_wired = _fixed_block(shim, hooks_dir, _FIXED_PERMISSIONREQUEST)
 
     wired: list = (
         [(s, "SessionStart") for s in ss_wired]
         + [(s, "PreToolUse") for s in pt_wired]
         + [(s, "PostToolUse") for s in po_wired]
         + [(s, "Stop") for s in st_wired]
+        + [(s, "UserPromptSubmit") for s in up_wired]
+        + [(s, "SubagentStart") for s in sa_wired]
+        + [(s, "PreCompact") for s in pc_wired]
+        + [(s, "PermissionRequest") for s in pr_wired]
     )
     wired_names = {s for s, _ in wired}
 
@@ -372,6 +401,10 @@ def build(
             "PreToolUse": pt_groups,
             "PostToolUse": po_groups,
             "Stop": st_groups,
+            "UserPromptSubmit": up_groups,
+            "SubagentStart": sa_groups,
+            "PreCompact": pc_groups,
+            "PermissionRequest": pr_groups,
         },
     }
     return cfg, wired, skipped
@@ -423,12 +456,21 @@ def main(argv: list) -> int:
                 file=sys.stderr,
             )
             return 1
-        # Spectate v0.9 floor: spectate-emit must ride PreToolUse / PostToolUse /
-        # Stop (SessionStart already derives it). A regression that drops those
-        # fixed-list entries would still "account" the script via SessionStart
-        # alone — catch that explicitly when not on the legacy kill-switch.
+        # Spectate floors: v0.9 PreToolUse/PostToolUse/Stop; v0.11 UserPromptSubmit/
+        # SubagentStart/PreCompact/PermissionRequest. SessionStart already derives
+        # spectate-emit — a regression that drops a fixed-list entry would still
+        # "account" the script via SessionStart alone, so check each lane.
         if not legacy:
-            by_event = {e: set() for e in ("PreToolUse", "PostToolUse", "Stop")}
+            floor_events = (
+                "PreToolUse",
+                "PostToolUse",
+                "Stop",
+                "UserPromptSubmit",
+                "SubagentStart",
+                "PreCompact",
+                "PermissionRequest",
+            )
+            by_event = {e: set() for e in floor_events}
             for script, event in wired:
                 if event in by_event:
                     by_event[event].add(script)
@@ -438,7 +480,7 @@ def main(argv: list) -> int:
             if missing_emit:
                 print(
                     f"codex-hooks: spectate-emit.sh missing from fixed lanes: "
-                    f"{missing_emit} (Spectate v0.9)",
+                    f"{missing_emit} (Spectate v0.9/v0.11)",
                     file=sys.stderr,
                 )
                 return 1
