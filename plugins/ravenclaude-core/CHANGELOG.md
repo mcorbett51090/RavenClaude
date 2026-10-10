@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.338.7 — 2026-10-10
+
+### Fixed
+- **`guard-destructive` no longer false-positive-denies `cd /abs && rm -rf rel` (SH-F6).**
+  `_is_dangerous_rm` / `_is_dangerous_find` / `_is_dangerous_truncate` scored the
+  dangerous-target regex on the *whole* command, so an absolute path in a prior
+  `cd`/`&&` clause (`cd /tmp/build && rm -rf dist`) was read as the rm target.
+  Split on `;|&` and score flag+target on the owning segment only. Real
+  `cd /tmp && rm -rf /` still denies. Gate 5 cases + teeth.
+
 ## 0.338.6 — 2026-10-10
 
 ### Fixed
