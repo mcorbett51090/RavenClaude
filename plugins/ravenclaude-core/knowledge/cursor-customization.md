@@ -86,11 +86,11 @@ hook_event_name · cursor_version · workspace_roots[] · user_email · transcri
   "agent_message": "sent to the agent" }
 ```
 
-> **`preToolUse` / `postToolUse` schemas are now published** `[docs-verified 2026-10-10]` (`tool_use_id`,
-> `tool_name`, `tool_input`, …) but the **enforcement** lane stays on `beforeShellExecution` until a
-> live payload probe. Spectate v0.9 wires docs-verified **`preCompact`** (observe) and
-> **`subagentStart`** (permission hook — adapter always emits `{"permission":"allow"}` after
-> observe; maps `tool_call_id` → `tool_use_id`; never forwards `task`).
+> **`preToolUse` / `postToolUse` schemas are published** `[docs-verified 2026-10-10]` (`tool_use_id`,
+> `tool_name`, `tool_input`, …). **Enforcement** stays on `beforeShellExecution` until a live payload
+> probe. Spectate **observe** wires them (v0.10 `tool-pre` / `tool-post` — `preToolUse` always emits
+> `{"permission":"allow"}`; never forwards `tool_output` / `agent_message`). v0.9 also wires
+> **`preCompact`** and **`subagentStart`** (always allow; `tool_call_id` → `tool_use_id`; never `task`).
 
 ---
 

@@ -278,6 +278,43 @@ else
   bad "file-posttool missing tool_use_id: $(cat "$TMP/stdin.json" 2>/dev/null | head -c 200)"
 fi
 
+# ── v0.10 preToolUse / postToolUse observe (tool_use_id; no content leak) ────
+PRE_PAYLOAD='{"conversation_id":"conv-pre","generation_id":"gen-pre-not-corr","hook_event_name":"preToolUse","workspace_roots":["/ws/proj"],"tool_name":"Shell","tool_input":{"command":"echo SECRET_CMD_BODY"},"tool_use_id":"tu-pre-1","agent_message":"SECRET_AGENT_MSG","cwd":"/ws/proj"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+pre_out="$(RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" tool-pre "$TMP/stub.sh" <<<"$PRE_PAYLOAD" 2>/dev/null)"
+if printf '%s' "$pre_out" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("permission")=="allow", d' 2>/dev/null \
+  && grep -q 'HOOK_EVENT=PreToolUse' "$TMP/env.txt" \
+  && python3 -c '
+import json
+d=json.load(open("'"$TMP"'/stdin.json"))
+assert d.get("tool_name")=="Bash", d  # Shell→Bash
+assert d.get("tool_use_id")=="tu-pre-1", d
+assert d.get("tool_input",{}).get("command")=="echo SECRET_CMD_BODY", d
+assert "agent_message" not in d and "SECRET_AGENT" not in json.dumps(d)
+assert "gen-pre-not-corr" not in json.dumps(d)
+' 2>/dev/null; then
+  ok "tool-pre emits allow; Shell→Bash; tool_use_id; no agent_message leak"
+else
+  bad "tool-pre wrong (out=$pre_out stdin=$(cat "$TMP/stdin.json" 2>/dev/null | head -c 200))"
+fi
+
+POST_PAYLOAD='{"conversation_id":"conv-post","hook_event_name":"postToolUse","workspace_roots":["/ws/proj"],"tool_name":"Write","tool_input":{"path":"/ws/proj/out.ts"},"tool_output":"SECRET_TOOL_OUTPUT_BODY","tool_use_id":"tu-post-2","cwd":"/ws/proj","duration":12}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" tool-post "$TMP/stub.sh" <<<"$POST_PAYLOAD" >/dev/null 2>&1
+if grep -q 'HOOK_EVENT=PostToolUse' "$TMP/env.txt" \
+  && python3 -c '
+import json
+d=json.load(open("'"$TMP"'/stdin.json"))
+assert d.get("tool_name")=="Write", d
+assert d.get("tool_use_id")=="tu-post-2", d
+assert d.get("tool_input",{}).get("file_path")=="/ws/proj/out.ts", d
+assert "tool_output" not in d and "SECRET_TOOL_OUTPUT" not in json.dumps(d)
+' 2>/dev/null; then
+  ok "tool-post Claude-shaped stdin; path→file_path; no tool_output leak"
+else
+  bad "tool-post wrong: $(cat "$TMP/stdin.json" 2>/dev/null | head -c 200)"
+fi
+
 # ── v0.9 preCompact observe + subagentStart permission-allow ─────────────────
 PC_PAYLOAD='{"conversation_id":"conv-pc","generation_id":"gen-pc","hook_event_name":"preCompact","workspace_roots":["/ws/proj"],"trigger":"auto","context_usage_percent":85}'
 rm -f "$TMP/stdin.json" "$TMP/env.txt"

@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.341.0 — 2026-10-10
+
+### Added
+- **Spectate v0.10 Cursor preToolUse/postToolUse observe** — `spectate-emit.sh` wires Cursor `preToolUse` / `postToolUse` via adapter modes `tool-pre` / `tool-post` (all tools + docs-verified `tool_use_id`). `tool-pre` always emits `{"permission":"allow"}`; never forwards `tool_output` / `agent_message`. Bash enforcement stays on `beforeShellExecution`; formatters on `afterFileEdit`. Cursor `Shell` → shell family; `tool_use_id` capability → `supported`. Gates 159 / 160 / 295.
+
 ## 0.340.0 — 2026-10-10
 
 ### Added
