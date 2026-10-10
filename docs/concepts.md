@@ -2722,7 +2722,7 @@ Spectate is observe-only honesty infrastructure. Collapsing unknown into unavail
 
 **Sources:** [Harness Spectate BUILD-PLAN](../docs/plans/2026-10-09-harness-spectate/BUILD-PLAN.md)
 
-_Last verified: 2026-10-09_
+_Last verified: 2026-10-10_
 
 
 ---

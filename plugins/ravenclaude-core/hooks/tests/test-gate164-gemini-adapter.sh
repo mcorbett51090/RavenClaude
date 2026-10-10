@@ -32,7 +32,8 @@ cat >"$TMP/stub.sh" <<'STUB'
 { cat; } >"$RC_OUT/stdin.json" 2>/dev/null
 { printf 'PROJECT_DIR=%s\n' "${CLAUDE_PROJECT_DIR:-}"
   printf 'SESSION_ID=%s\n'  "${CLAUDE_SESSION_ID:-}"
-  printf 'THING_HOST=%s\n'  "${THING_HOST:-}"; } >"$RC_OUT/env.txt"
+  printf 'THING_HOST=%s\n'  "${THING_HOST:-}"
+  printf 'HOOK_EVENT=%s\n'  "${CLAUDE_HOOK_EVENT:-}"; } >"$RC_OUT/env.txt"
 exit "${RC_RC:-0}"
 STUB
 chmod +x "$TMP/stub.sh"
@@ -152,6 +153,35 @@ if grep -q 'printf %s "$payload" | bash' "$MUT"; then
 else
   bad "teeth: could not build the no-normalisation mutant (adapter shape changed?)"
 fi
+
+# ── v0.7 observe-lane forwarding (spectate-emit needs stdin + CLAUDE_HOOK_EVENT) ─
+SS_PAYLOAD='{"session_id":"sess-ss","cwd":"/ws/p","hook_event_name":"SessionStart"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+RC_OUT="$TMP" RC_RC=0 bash "$AD" sessionstart "$TMP/stub.sh" <<<"$SS_PAYLOAD" >/dev/null 2>&1
+if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=SessionStart' "$TMP/env.txt"; then
+  ok "sessionstart forwards payload stdin + CLAUDE_HOOK_EVENT=SessionStart"
+else
+  bad "sessionstart did not forward payload/event"
+fi
+
+POST_PAYLOAD='{"session_id":"sess-post","cwd":"/ws/p","hook_event_name":"AfterTool","tool_name":"write_file","tool_input":{"file_path":"/ws/p/a.txt"},"file_path":"/ws/p/a.txt"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+RC_OUT="$TMP" RC_RC=0 bash "$AD" posttool "$TMP/stub.sh" <<<"$POST_PAYLOAD" >/dev/null 2>&1
+if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=PostToolUse' "$TMP/env.txt"; then
+  # posttool must also normalise tool_name for observe hooks
+  post_tool="$(python3 -c 'import json;print(json.load(open("'"$TMP"'/stdin.json")).get("tool_name"))' 2>/dev/null)"
+  [ "$post_tool" = "Write" ] \
+    && ok "posttool forwards normalised stdin + CLAUDE_HOOK_EVENT=PostToolUse" \
+    || bad "posttool stdin tool_name=$post_tool (want Write)"
+else
+  bad "posttool did not forward payload/event"
+fi
+
+rm -f "$TMP/env.txt"
+RC_OUT="$TMP" RC_RC=0 bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
+grep -q 'HOOK_EVENT=PreToolUse' "$TMP/env.txt" \
+  && ok "pretool sets CLAUDE_HOOK_EVENT=PreToolUse" \
+  || bad "pretool missing CLAUDE_HOOK_EVENT=PreToolUse"
 
 printf '\n  %d pass, %d fail\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1

@@ -137,6 +137,7 @@ case "$mode" in
     # Only `>/dev/null` is correct — a guard may print a JSON verdict on stdout
     # that Gemini does not expect, but stderr IS Gemini's documented reason
     # channel, so it must flow through untouched. Do not "tidy" this back to 2>&1.
+    export CLAUDE_HOOK_EVENT="${CLAUDE_HOOK_EVENT:-PreToolUse}"
     _normalise | bash "$real" "$@" >/dev/null
     rc=$?
     # exit 2 IS Gemini's block. Pass the guard's own code through untouched —
@@ -144,12 +145,18 @@ case "$mode" in
     exit "$rc"
     ;;
   posttool)
+    # Keep path-as-argv for file-shaped PostToolUse hooks; also forward
+    # normalised stdin + CLAUDE_HOOK_EVENT so observe hooks (spectate-emit)
+    # can kind the line (empty stdin previously made emit a silent no-op).
+    export CLAUDE_HOOK_EVENT="${CLAUDE_HOOK_EVENT:-PostToolUse}"
     fp="$(_field file_path)"
-    bash "$real" "$fp" >/dev/null 2>&1 || true
+    _normalise | bash "$real" "$fp" >/dev/null 2>&1 || true
     exit 0
     ;;
   sessionstart)
-    out="$(bash "$real" "$@" 2>/dev/null || true)"
+    # Forward host payload + CLAUDE_HOOK_EVENT for observe hooks (spectate-emit v0.7).
+    export CLAUDE_HOOK_EVENT="${CLAUDE_HOOK_EVENT:-SessionStart}"
+    out="$(printf '%s' "$payload" | bash "$real" "$@" 2>/dev/null || true)"
     if [ -n "$out" ] && command -v jq >/dev/null 2>&1; then
       ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)"
       [ -n "$ctx" ] && printf '%s\n' "$ctx"

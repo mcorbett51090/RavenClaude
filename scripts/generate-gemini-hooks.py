@@ -117,13 +117,6 @@ _SKIP = {
         "deny envelope is not verified for this path; skip is script-keyed. Claude "
         "Code carries the steer path."
     ),
-    "spectate-emit.sh": (
-        "Multi-event observe hook (SessionStart/UserPromptSubmit/PreToolUse/"
-        "PostToolUse/Stop/SubagentStart/PreCompact). Gemini only maps "
-        "PreToolUse/PostToolUse/SessionStart; skip is script-keyed so the "
-        "unmapped events would raise. Claude Code + Copilot carry emit; Gemini "
-        "probe is a follow-up once per-event skip exists."
-    ),
     "emit-permission-denied.sh": (
         "PermissionDenied is Claude Code auto-mode only — Copilot/Gemini have no "
         "equivalent event. Projecting it would ship a silent no-op that reads as "
@@ -194,6 +187,34 @@ _SKIP = {
     ),
 }
 
+# Per-event skip — (script, Claude event) → reason. Multi-event observe hooks
+# (spectate-emit) wire on Gemini's mapped lanes (SessionStart / PreToolUse /
+# PostToolUse) while unmapped lifecycle events stay explicitly skipped.
+_SKIP_EVENT = {
+    ("spectate-emit.sh", "UserPromptSubmit"): (
+        "UserPromptSubmit. Gemini BeforeAgent/BeforeModel payload schemas were "
+        "not published on the verified pages — same unverified lifecycle mapping "
+        "as stream-prompt-attribute.sh. SessionStart / PreToolUse / PostToolUse "
+        "emit lanes wire."
+    ),
+    ("spectate-emit.sh", "Stop"): (
+        "Stop. Gemini AfterAgent/SessionEnd are plausible counterparts but "
+        "unverified — same caution as dod-gate.sh. Other emit lanes wire."
+    ),
+    ("spectate-emit.sh", "SubagentStart"): (
+        "SubagentStart. Gemini exposes no verified subagent hook event on the "
+        "pages checked. Other emit lanes wire."
+    ),
+    ("spectate-emit.sh", "PreCompact"): (
+        "PreCompact. Gemini exposes no verified compaction-hook event on the "
+        "pages checked. Other emit lanes wire."
+    ),
+    ("spectate-emit.sh", "PermissionRequest"): (
+        "PermissionRequest. Gemini has no verified permission-prompt hook lane. "
+        "Claude Code + Copilot carry permission.request emit."
+    ),
+}
+
 
 def _script_of(command: str) -> str:
     m = re.search(r"/(?:hooks|scripts)/([A-Za-z0-9._-]+\.sh)", command)
@@ -246,6 +267,10 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                     continue
                 if script in _SKIP:
                     skipped.append((script, event, _SKIP[script]))
+                    continue
+                skip_ev = _SKIP_EVENT.get((script, event))
+                if skip_ev:
+                    skipped.append((script, event, skip_ev))
                     continue
                 if event not in _EVENT:
                     raise ValueError(
@@ -338,6 +363,21 @@ def main(argv: list) -> int:
         if stale:
             print(
                 f"gemini-hooks: the skip map names hooks that no longer exist: {sorted(stale)}",
+                file=sys.stderr,
+            )
+            return 1
+        manifest_pairs = {
+            (_script_of(e.get("command", "")), ev)
+            for ev, groups in manifest.get("hooks", {}).items()
+            for g in groups
+            for e in g.get("hooks", [])
+            if _script_of(e.get("command", ""))
+        }
+        stale_ev = set(_SKIP_EVENT) - manifest_pairs
+        if stale_ev:
+            print(
+                "gemini-hooks: the per-event skip map names (script, event) pairs "
+                f"that no longer exist: {sorted(stale_ev)}",
                 file=sys.stderr,
             )
             return 1

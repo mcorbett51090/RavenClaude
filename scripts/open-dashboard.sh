@@ -87,9 +87,10 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-# The ROOT server walks range(PORT, PORT+6) = 6 ports; poll/scan the same span so a
-# fallback bind is still found (deletes the old 6-vs-11 poll-range mismatch).
-WALK=5
+# Mirrors serve-dashboards.py `_bind_server(..., span=10)`: candidates are
+# PORT..PORT+WALK inclusive (11 ports when WALK=10, i.e. 8000–8010). Keep in
+# lockstep with the Python span so a fallback bind is still found.
+WALK=10
 
 # ── Mirror serve-dashboards.py's _port_holder_pids / _holder_cwd / _is_our_dashboard ──
 # The launcher is bash, so it shells out to lsof/ps rather than importing them. The
@@ -209,7 +210,7 @@ nohup python3 "$SERVER" --port "$PORT" --no-open ${bind_args[@]+"${bind_args[@]}
 disown 2>/dev/null || true
 
 # Wait until it answers, discovering the ACTUAL bound port. The server reclaims a
-# stale server OF OURS on $PORT, else walks PORT..PORT+5, so never assume $PORT bound.
+# stale server OF OURS on $PORT, else walks PORT..PORT+WALK, so never assume $PORT bound.
 bound_port=""
 for _ in $(seq 1 20); do
   for cand in $(seq "$PORT" $((PORT + WALK))); do

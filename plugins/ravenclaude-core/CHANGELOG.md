@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.338.0 — 2026-10-10
+
+### Added
+- **Spectate v0.7 Cursor/Gemini partial emit** — per-event `_SKIP_EVENT` in `generate-cursor-hooks.py` / `generate-gemini-hooks.py` wires `spectate-emit.sh` on supported lanes (Cursor: SessionStart / UserPromptSubmit / Stop / Bash-PreToolUse; Gemini: SessionStart / PreToolUse / PostToolUse). Unmapped events (PreCompact / SubagentStart / PermissionRequest; Cursor PostToolUse) stay explicitly skipped with reasons.
+- **Adapter observe forwarding** — `cursor-hook-adapter.sh` and `gemini-hook-adapter.sh` forward host stdin + set `CLAUDE_HOOK_EVENT` on those lifecycle lanes so emit is not a silent no-op. Gates 159 / 164 extended.
+
+### Changed
+- `scripts/open-dashboard.sh` `WALK=10` (mirrors `_bind_server` span=10 / 8000–8010).
+- `tool_use_id` capability evidence for cursor / gemini-cli updated (still `unsupported` — adapters do not mint `tool_use_id`).
+- `spectate-emit.sh` maps adapter `THING_HOST=gemini` → harness `gemini-cli` (mirrors codex/copilot short-name aliases).
+
 ## 0.337.0 — 2026-10-10
 
 ### Fixed
