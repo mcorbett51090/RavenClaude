@@ -134,8 +134,14 @@ printf '%s\n' "$listing" | while IFS= read -r cmd; do
   # Split the declared command into script + its literal args. Interpolations
   # ($CLAUDE_*, ${CLAUDE_PLUGIN_ROOT}) resolve to nothing under env -i, which is
   # exactly the empty-arg case the hooks must already survive.
+  # `set -- $cmd` does NOT process shell quotes inside the expanded value, so a
+  # SH-F11-quoted path (`"${CLAUDE_PLUGIN_ROOT}/hooks/foo.sh"`) lands in $1 with
+  # the literal `"` characters — strip them before the file-exists check, or
+  # every hook is skipped and the audit reports "measured nothing".
   set -- $cmd
-  script="$1"; shift
+  case "$1" in bash|sh) shift ;; esac
+  script="$1"; shift || true
+  script="${script#\"}"; script="${script%\"}"
   script="$(printf '%s' "$script" | sed 's|\${CLAUDE_PLUGIN_ROOT}|'"$REPO/plugins/ravenclaude-core"'|; s|\$CLAUDE_PLUGIN_ROOT|'"$REPO/plugins/ravenclaude-core"'|')"
   [ -f "$script" ] || continue
   _audit_one "$(basename "$script")" "$script" "$@"
