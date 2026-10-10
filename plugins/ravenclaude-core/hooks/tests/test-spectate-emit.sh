@@ -77,6 +77,24 @@ else
 fi
 rm -rf "$T2"
 
+echo "── S2b: Cursor Shell tool_name maps to shell family ──────────────────────"
+T2b="$(mktemp -d)"
+payload2b='{"session_id":"s2b","tool_name":"Shell","tool_use_id":"tu-shell","tool_input":{"command":"ls -la"}}'
+out="$(run_hook "$T2b" s2b PreToolUse "$payload2b")"
+log="$T2b/.ravenclaude/runs/s2b/spectate-events.jsonl"
+if [ -f "$log" ]; then
+  fam="$(jq -r '.tool.family // empty' "$log")"
+  tgt="$(jq -r '.tool.target // empty' "$log")"
+  if [ "$fam" = "shell" ] && [ "$tgt" = "ls" ] && [ -z "$out" ]; then
+    pass "S2b: Shell → family=shell target=ls"
+  else
+    fail "S2b: family=$fam target=$tgt"
+  fi
+else
+  fail "S2b: no log"
+fi
+rm -rf "$T2b"
+
 echo "── S3: PostToolUse emits tool.post succeeded ─────────────────────────────"
 T3="$(mktemp -d)"
 payload3='{"session_id":"s3","tool_name":"Read","tool_use_id":"tu-read","tool_input":{"file_path":"plugins/ravenclaude-core/CLAUDE.md"},"tool_response":{"ok":true}}'

@@ -545,13 +545,19 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - [x] `skills/spectate` + `monitors.json` entry `spectate-push-mirror` (`when: on-skill-invoke:spectate`)
 - [x] Gate 297 (`test-watch-spectate.sh` M1–M5); core 0.336.0
 
-## Deferred (v0.10+)
+## Deferred (v0.11+)
 
 - ACP control channel (process ownership)
 - IDE `openExternal` to the same `/spectate` URL (only if alt-tab is the measured failure; not Simple Browser, not a second UI)
 - Cursor/Gemini PermissionRequest emit (host lane still unverified)
-- Cursor `preToolUse` / `postToolUse` enforcement wiring (schemas published; live payload probe still required before replacing beforeShellExecution)
-- Live Cursor/Gemini `tool_use_id` probe to flip `tool_use_id` capability cells from unsupported → supported
+- Cursor `preToolUse` / `postToolUse` **enforcement** wiring (replacing beforeShellExecution) — live payload probe still required; v0.10 only wires observe emit
+- Live Gemini `tool_use_id` probe (docs still publish none on BeforeTool/AfterTool)
+
+## Shipped in v0.10
+
+- Cursor `preToolUse` / `postToolUse` observe emit for `spectate-emit.sh` (adapter modes `tool-pre` / `tool-post`); all tools + docs-verified `tool_use_id`; `preToolUse` always emits `{"permission":"allow"}`; never forwards `tool_output` / `agent_message`
+- Bash enforcement remains on `beforeShellExecution`; file formatters remain on `afterFileEdit`
+- `spectate-emit` treats Cursor `Shell` as shell family; cursor `tool_use_id` capability → `supported` (docs + Gate 159 forward; same bar as copilot-cli)
 
 ## Shipped in v0.9
 

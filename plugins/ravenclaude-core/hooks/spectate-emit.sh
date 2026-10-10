@@ -161,11 +161,12 @@ def detect_event(payload: dict) -> str:
 
 
 def tool_family(name: str) -> str:
-    if name == "Bash":
+    # Cursor preToolUse/postToolUse use "Shell"; Claude Code uses "Bash".
+    if name in {"Bash", "Shell"}:
         return "shell"
     if name == "WebFetch":
         return "url"
-    if name in {"Read", "Write", "Edit", "MultiEdit"}:
+    if name in {"Read", "Write", "Edit", "MultiEdit", "Delete"}:
         return "path"
     return "other"
 

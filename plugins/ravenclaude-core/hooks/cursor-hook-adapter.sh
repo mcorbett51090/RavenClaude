@@ -36,12 +36,12 @@
 # Usage (from a generated .cursor/hooks.json entry):
 #   cursor-hook-adapter.sh <mode> /abs/path/to/real-hook.sh [args...]
 # Modes: shell-pretool | file-posttool | sessionstart | stop | promptsubmit
-#        | precompact | subagentstart
+#        | precompact | subagentstart | tool-pre | tool-post
 #
-# NOT wired for enforcement: Cursor's `preToolUse`/`postToolUse`. Schemas are
-# now published (docs-verified 2026-10-10), but the Bash enforcement lane stays
-# on beforeShellExecution until a live payload probe. Spectate v0.9 wires
-# preCompact + subagentStart for observe-only emit. See knowledge/cursor-customization.md.
+# Enforcement stays on beforeShellExecution (Bash guards). Spectate observe:
+#   v0.9 preCompact + subagentStart; v0.10 preToolUse + postToolUse (tool-pre /
+#   tool-post) — docs-verified tool_use_id; preToolUse always emits allow.
+# See knowledge/cursor-customization.md.
 set -uo pipefail
 
 # The literal deny. Kept as ONE constant so there is exactly one thing to get right,
@@ -122,14 +122,58 @@ export CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$cw}"
 # never an inference from ambient environment.
 export THING_HOST="${THING_HOST:-cursor}"
 
-# Forward host tool_use_id when present. Cursor's published afterFileEdit /
-# beforeShellExecution schemas do not include it — omit rather than mint from
-# generation_id (that id is per-turn, not per-tool; inventing it would lie to
-# corr_id deny join).
+# Forward host tool_use_id when present. Cursor preToolUse/postToolUse publish
+# it `[docs-verified 2026-10-10]`; afterFileEdit / beforeShellExecution do not —
+# omit rather than mint from generation_id (per-turn, not per-tool).
 _tool_use_id() {
   _id="$(_field tool_use_id)"
   [ -z "$_id" ] && _id="$(_field toolUseId)"
   printf '%s' "$_id"
+}
+
+# Cursor preToolUse/postToolUse → Claude-shaped stdin for spectate-emit.
+# Allowlisted tool_input keys only (command / path / url). NEVER tool_output,
+# agent_message, edits[], or other content-bearing fields (Streams Gate 110).
+_claude_generic_tool_stdin() {
+  if command -v python3 >/dev/null 2>&1; then
+    printf '%s' "$payload" | python3 -c '
+import json, sys
+try:
+    raw = json.load(sys.stdin)
+except Exception:
+    sys.exit(1)
+if not isinstance(raw, dict):
+    sys.exit(1)
+name = raw.get("tool_name") or raw.get("toolName") or ""
+if not isinstance(name, str) or not name.strip():
+    sys.exit(1)
+# Cursor Shell ↔ Claude Bash for family/target extraction; keep others as-is.
+if name == "Shell":
+    name = "Bash"
+ti_in = raw.get("tool_input") or raw.get("toolInput") or {}
+if not isinstance(ti_in, dict):
+    ti_in = {}
+allow = ("command", "file_path", "filePath", "path", "url")
+ti = {k: ti_in[k] for k in allow if k in ti_in and isinstance(ti_in[k], str)}
+# Prefer Claude file_path spelling when Cursor only sent path/filePath.
+if "file_path" not in ti:
+    for alt in ("filePath", "path"):
+        if alt in ti:
+            ti["file_path"] = ti[alt]
+            break
+o = {
+    "tool_name": name,
+    "tool_input": ti,
+    "cwd": sys.argv[1],
+    "session_id": sys.argv[2],
+}
+tid = raw.get("tool_use_id") or raw.get("toolUseId") or ""
+if isinstance(tid, str) and tid.strip():
+    o["tool_use_id"] = tid.strip()
+print(json.dumps(o))
+' "$cw" "$sid" 2>/dev/null && return 0
+  fi
+  return 1
 }
 
 # Build the Claude-shaped stdin a guardrail expects. Cursor's beforeShellExecution
@@ -244,6 +288,27 @@ case "$mode" in
       export CLAUDE_HOOK_EVENT=UserPromptSubmit
     fi
     printf '%s' "$payload" | bash "$real" "$@" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  tool-pre)
+    # Cursor preToolUse — permission hook for ALL tools (Spectate v0.10 observe).
+    # Invalid/empty stdout BLOCKS `[docs-verified 2026-10-10]`. Always emit allow
+    # after the observe hook. Allowlisted tool_input only; never agent_message.
+    export CLAUDE_HOOK_EVENT=PreToolUse
+    stdin_json="$(_claude_generic_tool_stdin)" || {
+      printf '%s\n' '{"permission":"allow"}'
+      exit 0
+    }
+    printf '%s' "$stdin_json" | bash "$real" "$@" >/dev/null 2>&1 || true
+    printf '%s\n' '{"permission":"allow"}'
+    exit 0
+    ;;
+  tool-post)
+    # Cursor postToolUse — observational (Spectate v0.10). Never forward
+    # tool_output (content). Allowlisted tool_input + tool_use_id only.
+    export CLAUDE_HOOK_EVENT=PostToolUse
+    stdin_json="$(_claude_generic_tool_stdin)" || exit 0
+    printf '%s' "$stdin_json" | bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0
     ;;
   precompact)

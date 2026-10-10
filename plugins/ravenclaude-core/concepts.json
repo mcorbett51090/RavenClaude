@@ -2859,7 +2859,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:cf755b89be2270856f3e1df812ca1930252ef8122aad5c8aa2cd5df85ecdd182",
+      "covers_digest": "sha256:d60e70abc3b6f48fac66f25de4afb8254703e8f3787e291026c02e85e9f35dac",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3002,7 +3002,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:6ad5d98074c76ef8685b6254bb4ac10e5c028d709a931b262b5f89ce708c9a4e",
+      "covers_digest": "sha256:4b4726c154e4d039f9566c52e1227bc293695ac3d9d6001da4cc24c95ba0bd9f",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3475,7 +3475,7 @@
         "plugins/ravenclaude-core/monitors/watch-spectate.sh",
         "plugins/ravenclaude-core/skills/spectate/SKILL.md"
       ],
-      "covers_digest": "sha256:0508063cbd00927635c5c6245bfe073d204c4d3a8a0c02c064e4920bce31fdfd",
+      "covers_digest": "sha256:991784aa1a3b098bfe8f06ce51deb09da1f94c4ad647066591b3163f417f5cff",
       "nuance": "An empty Spectate stream reduces every node to idle with cause-not-established; a capability cell whose state is unknown never reduces to unavailable-harness.",
       "nuance_evidence": {
         "measured": "2026-10-09",

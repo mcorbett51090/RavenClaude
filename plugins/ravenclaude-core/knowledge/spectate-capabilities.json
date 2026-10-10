@@ -1090,8 +1090,8 @@
         "evidence": "Chat surface; no measured PreToolUse tool_use_id this session"
       },
       "cursor": {
-        "state": "unsupported",
-        "evidence": "v0.8 adapters forward tool_use_id/toolUseId when present (Gates 159); Cursor afterFileEdit/beforeShellExecution docs publish neither — omit, never mint from generation_id — so corr_id join remains unsupported"
+        "state": "supported",
+        "evidence": "v0.10: Cursor preToolUse/postToolUse docs publish tool_use_id [docs-verified 2026-10-10]; adapter tool-pre/tool-post forward it (Gate 159 tool-pre/tool-post cases). afterFileEdit/beforeShellExecution omit — never mint from generation_id."
       },
       "gemini-cli": {
         "state": "unsupported",

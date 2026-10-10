@@ -233,7 +233,17 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                 if skip_ev:
                     skipped.append((script, event, skip_ev))
                     continue
-                if event == "PreToolUse":
+                if event == "PreToolUse" and script == "spectate-emit.sh":
+                    # Spectate v0.10 — docs-verified Cursor preToolUse (all tools +
+                    # tool_use_id). Observe-only; enforcement stays on
+                    # beforeShellExecution for Bash guards.
+                    # `[docs-verified 2026-10-10 — cursor.com/docs/agent/hooks]`
+                    cursor_event, mode = "preToolUse", "tool-pre"
+                elif event == "PostToolUse" and script == "spectate-emit.sh":
+                    # Spectate v0.10 — docs-verified Cursor postToolUse (all tools +
+                    # tool_use_id). File formatters stay on afterFileEdit via _EVENT.
+                    cursor_event, mode = "postToolUse", "tool-post"
+                elif event == "PreToolUse":
                     if "Bash" not in matcher:
                         skipped.append(
                             (
@@ -346,10 +356,9 @@ def main(argv: list) -> int:
                 file=sys.stderr,
             )
             return 1
-        # Spectate v0.9 floor: spectate-emit must ride preCompact + subagentStart
-        # once those Claude events are in _EVENT. A SessionStart-only wire would
-        # still "account" the script via other lanes — catch the new events.
+        # Spectate floors: v0.9 preCompact/subagentStart; v0.10 preToolUse/postToolUse.
         wired_pairs = {(s, e) for s, e, _, _ in wired}
+        wired_cursor = {(s, ce) for s, _, ce, _ in wired}
         for need_ev, cursor_ev in (
             ("PreCompact", "preCompact"),
             ("SubagentStart", "subagentStart"),
@@ -358,6 +367,14 @@ def main(argv: list) -> int:
                 print(
                     f"cursor-hooks: spectate-emit.sh not wired on {need_ev}→{cursor_ev} "
                     f"(Spectate v0.9)",
+                    file=sys.stderr,
+                )
+                return 1
+        for cursor_ev in ("preToolUse", "postToolUse"):
+            if ("spectate-emit.sh", cursor_ev) not in wired_cursor:
+                print(
+                    f"cursor-hooks: spectate-emit.sh not wired on Cursor {cursor_ev} "
+                    f"(Spectate v0.10)",
                     file=sys.stderr,
                 )
                 return 1
