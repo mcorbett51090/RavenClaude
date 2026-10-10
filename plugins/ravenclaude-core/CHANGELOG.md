@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.342.0 — 2026-10-10
+
+### Added
+- **Spectate v0.11 Codex lifecycle observe** — `generate-codex-hooks.py` wires `spectate-emit.sh` on Codex `UserPromptSubmit` / `SubagentStart` / `PreCompact` / `PermissionRequest` (native Claude contract; matchers mirror `hooks.json`). Steer/enforcement stay unwired on those lanes. Codex `tool_use_id` capability → `supported` (docs-verified PreToolUse field list + native forward). Gates: `generate-codex-hooks.py --check` floors.
+
 ## 0.341.0 — 2026-10-10
 
 ### Added

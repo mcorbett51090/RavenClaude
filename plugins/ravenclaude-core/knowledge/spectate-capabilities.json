@@ -1078,8 +1078,8 @@
         "evidence": "hooks/tests/test-spectate-emit.sh S2 (tool_use_id \u2192 corr_id)"
       },
       "codex-cli": {
-        "state": "unknown",
-        "evidence": "No this-session Codex hook payload dump for tool_use_id"
+        "state": "supported",
+        "evidence": "v0.11: Codex PreToolUse stdin docs publish tool_use_id [docs-verified 2026-07-28 \u2014 learn.chatgpt.com/docs/hooks]; native Claude contract (no adapter); spectate-emit wired on PreToolUse (v0.9) + lifecycle lanes (v0.11)."
       },
       "copilot-cli": {
         "state": "supported",
@@ -1091,11 +1091,11 @@
       },
       "cursor": {
         "state": "supported",
-        "evidence": "v0.10: Cursor preToolUse/postToolUse docs publish tool_use_id [docs-verified 2026-10-10]; adapter tool-pre/tool-post forward it (Gate 159 tool-pre/tool-post cases). afterFileEdit/beforeShellExecution omit — never mint from generation_id."
+        "evidence": "v0.10: Cursor preToolUse/postToolUse docs publish tool_use_id [docs-verified 2026-10-10]; adapter tool-pre/tool-post forward it (Gate 159 tool-pre/tool-post cases). afterFileEdit/beforeShellExecution omit \u2014 never mint from generation_id."
       },
       "gemini-cli": {
         "state": "unsupported",
-        "evidence": "v0.8 gemini-hook-adapter normalises toolUseId\u2192tool_use_id when present (Gate 164); Gemini BeforeTool/AfterTool docs publish no per-tool id — do not mint — corr_id join remains unsupported"
+        "evidence": "v0.8 gemini-hook-adapter normalises toolUseId\u2192tool_use_id when present (Gate 164); Gemini BeforeTool/AfterTool docs publish no per-tool id \u2014 do not mint \u2014 corr_id join remains unsupported"
       },
       "grok-build": {
         "state": "unknown",
