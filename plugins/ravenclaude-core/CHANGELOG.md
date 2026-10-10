@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.344.0 — 2026-10-10
+
+### Added
+- **Spectate v0.13 PostCompact / compact.post** — schema gains `compact.post`; `spectate-emit.sh` maps `PostCompact`→`compact.post`. Wired on Claude Code (`hooks.json`) and Codex fixed list (docs-verified). Cursor/Gemini stay explicitly skipped; Copilot projects a fail-safe inert `postcompact` adapter mode. Reducer closes `update-context` on `compact.post`. Gates: spectate-emit S13 / generate-*-hooks floors / Gate 141 hooks 78.
+
 ## 0.343.0 — 2026-10-10
 
 ### Added

@@ -167,6 +167,7 @@
         "subagent.start",
         "subagent.stop",
         "compact.pre",
+        "compact.post",
         "steer.applied",
         "stream.truncated",
         "emitter.truncated",

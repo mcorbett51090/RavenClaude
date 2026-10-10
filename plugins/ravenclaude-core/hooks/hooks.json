@@ -567,6 +567,18 @@
         ]
       }
     ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.13). Appends ONE scrubbed rc.spectate.v1 line (compact.post). DERIVED VALUES ONLY \u2014 never writes prompt text, tool args, or secrets. Fail-safe: always exit 0; empty stdout; never blocks."
+          }
+        ]
+      }
+    ],
     "PermissionDenied": [
       {
         "hooks": [

@@ -1,4 +1,4 @@
-# Harness Spectate (v0.12)
+# Harness Spectate (v0.13)
 
 Observe-only livestream of atlas harness agent loops: see / understand / direct (direct is out of scope for v0.1).
 
@@ -13,8 +13,9 @@ Or, with a dashboard server already running on loopback: open `/spectate`.
 
 On Claude Code, the `spectate` skill opens the UI and arms the push mirror (`monitors/watch-spectate.sh`) for the rest of the session. <!-- delegation-nudge-ok: documents the skill surface, not a hand-back -->
 
-## Honesty (v0.12)
+## Honesty (v0.13)
 
+- **v0.13 PostCompact / compact.post.** Schema adds `compact.post`; Claude Code + Codex wire `spectate-emit` on `PostCompact`→`compact.post` (docs-verified). Cursor/Gemini skipped; Copilot fail-safe inert projection. Reducer closes `update-context` on post.
 - **v0.12 SessionEnd / SubagentStop observe.** Claude Code + Codex + Cursor + Copilot wire `spectate-emit` on `SessionEnd`→`session.end` and `SubagentStop`→`subagent.stop` (Cursor adapter never forwards task/summary/modified_files; docs-verified `[docs-verified 2026-10-10 — cursor.com/docs/agent/hooks]` / Codex hooks / Copilot CLI `sessionEnd` + Chat `SubagentStop`). Gemini SessionEnd/SubagentStop stay skipped.
 - **v0.11 Codex lifecycle observe.** `generate-codex-hooks.py` wires `spectate-emit.sh` on Codex `UserPromptSubmit` / `SubagentStart` / `PreCompact` / `PermissionRequest` (native Claude contract; docs-verified event set `[docs-verified 2026-07-28 — learn.chatgpt.com/docs/hooks]`). Steer stays unwired. Codex `tool_use_id` capability is `supported` (docs PreToolUse field list + native payload forward).
 - **v0.10 Cursor preToolUse/postToolUse observe.** `spectate-emit.sh` wires Cursor `preToolUse` / `postToolUse` (adapter `tool-pre` / `tool-post`) — all tools + docs-verified `tool_use_id` `[docs-verified 2026-10-10 — cursor.com/docs/agent/hooks]`. `tool-pre` always emits `{"permission":"allow"}`; never forwards `tool_output` / `agent_message`. Bash enforcement stays on `beforeShellExecution`; formatters stay on `afterFileEdit`. Cursor `tool_use_id` capability is `supported` (docs + Gate 159 forward; same bar as copilot-cli).

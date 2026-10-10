@@ -90,6 +90,7 @@ _EVENT = {
     "UserPromptSubmit": "UserPromptSubmit",
     "SubagentStart": "SubagentStart",
     "PreCompact": "PreCompact",
+    "PostCompact": "PostCompact",
     "PermissionRequest": "PermissionRequest",
     # Spectate v0.12 — docs-verified Codex SessionEnd / SubagentStop
     # [docs-verified 2026-10-10 — developers.openai.com/codex/hooks].
@@ -159,7 +160,8 @@ _SKIP = {
     "precompact-digest.sh": _EVENT_UNWIRED_REASON,
     # spectate-emit.sh is wired via SessionStart derivation + fixed
     # PreToolUse/PostToolUse/Stop (v0.9) + UserPromptSubmit/SubagentStart/
-    # PreCompact/PermissionRequest (v0.11) + SessionEnd/SubagentStop (v0.12).
+    # PreCompact/PermissionRequest (v0.11) + SessionEnd/SubagentStop (v0.12)
+    # + PostCompact (v0.13).
     # By-basename accounting covers the
     # script once any lane wires it; floors below catch a lane drop.
     "spectate-steer.sh": _EVENT_UNWIRED_REASON,
@@ -225,6 +227,7 @@ _FIXED_STOP = (
 _FIXED_USERPROMPTSUBMIT = ((None, (("spectate-emit.sh", ""),)),)
 _FIXED_SUBAGENTSTART = ((None, (("spectate-emit.sh", ""),)),)
 _FIXED_PRECOMPACT = ((None, (("spectate-emit.sh", ""),)),)
+_FIXED_POSTCOMPACT = ((None, (("spectate-emit.sh", ""),)),)
 _FIXED_PERMISSIONREQUEST = (
     (
         "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
@@ -360,6 +363,7 @@ def build(
     up_groups, up_wired = _fixed_block(shim, hooks_dir, _FIXED_USERPROMPTSUBMIT)
     sa_groups, sa_wired = _fixed_block(shim, hooks_dir, _FIXED_SUBAGENTSTART)
     pc_groups, pc_wired = _fixed_block(shim, hooks_dir, _FIXED_PRECOMPACT)
+    poc_groups, poc_wired = _fixed_block(shim, hooks_dir, _FIXED_POSTCOMPACT)
     pr_groups, pr_wired = _fixed_block(shim, hooks_dir, _FIXED_PERMISSIONREQUEST)
     se_groups, se_wired = _fixed_block(shim, hooks_dir, _FIXED_SESSIONEND)
     ss2_groups, ss2_wired = _fixed_block(shim, hooks_dir, _FIXED_SUBAGENTSTOP)
@@ -372,6 +376,7 @@ def build(
         + [(s, "UserPromptSubmit") for s in up_wired]
         + [(s, "SubagentStart") for s in sa_wired]
         + [(s, "PreCompact") for s in pc_wired]
+        + [(s, "PostCompact") for s in poc_wired]
         + [(s, "PermissionRequest") for s in pr_wired]
         + [(s, "SessionEnd") for s in se_wired]
         + [(s, "SubagentStop") for s in ss2_wired]
@@ -417,6 +422,7 @@ def build(
             "UserPromptSubmit": up_groups,
             "SubagentStart": sa_groups,
             "PreCompact": pc_groups,
+            "PostCompact": poc_groups,
             "PermissionRequest": pr_groups,
             "SessionEnd": se_groups,
             "SubagentStop": ss2_groups,
@@ -483,6 +489,7 @@ def main(argv: list) -> int:
                 "UserPromptSubmit",
                 "SubagentStart",
                 "PreCompact",
+                "PostCompact",
                 "PermissionRequest",
                 "SessionEnd",
                 "SubagentStop",

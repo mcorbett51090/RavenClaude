@@ -204,6 +204,11 @@ _SKIP_EVENT = {
         "PermissionRequest. Cursor has no verified permission-prompt hook lane "
         "on the pages checked. Claude Code + Copilot carry permission.request emit."
     ),
+    ("spectate-emit.sh", "PostCompact"): (
+        "PostCompact. Cursor docs publish preCompact but no verified postCompact "
+        "lane [docs-verified 2026-10-10 — cursor.com/docs/agent/hooks]. Spectate "
+        "v0.13 wires compact.post on Claude Code + Codex only."
+    ),
 }
 
 

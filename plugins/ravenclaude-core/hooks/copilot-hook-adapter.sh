@@ -19,8 +19,8 @@
 # Usage (from a Copilot hooks.json `bash` entry):
 #   copilot-hook-adapter.sh <mode> <real-hook> [real-hook-args...]
 #     mode = bash-pretool | file-pretool | sessionstart | posttool | stop |
-#            userpromptsubmit | precompact | subagentstart | subagentstop |
-#            sessionend | permissionrequest
+#            userpromptsubmit | precompact | postcompact | subagentstart |
+#            subagentstop | sessionend | permissionrequest
 #
 # Fail-open is Copilot's default on hook error; for the PreToolUse command hooks
 # we translate a Claude `exit 2` (block) into a Copilot `deny` so the block still
@@ -342,6 +342,13 @@ case "$mode" in
     # regardless of what the real hook does. The payload's field names
     # (transcript_path, session_id, cwd, timestamp) already match Claude Code's own
     # PreCompact schema, so it is passed straight through as stdin with no reshape.
+    printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  postcompact)
+    # PostCompact observe (Spectate v0.13). Copilot Chat's eight-event set omits
+    # PostCompact; fail-safe discard so Claude-manifest projection stays honest.
+    export CLAUDE_HOOK_EVENT=PostCompact
     printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0
     ;;

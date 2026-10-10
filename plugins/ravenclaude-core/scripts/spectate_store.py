@@ -110,6 +110,7 @@ KIND_ORDER = {
     "tool.pre": 2,
     "subagent.start": 2,
     "compact.pre": 2,
+    "compact.post": 4,
     "permission.request": 3,
     "tool.post": 4,
     "tool.fail": 4,
@@ -768,6 +769,10 @@ def reduce_session(
         if kind == "compact.pre":
             compact_open.add((agent, turn))
             observe(agent, turn, "update-context", "running", ts)
+            continue
+        if kind == "compact.post":
+            compact_open.discard((agent, turn))
+            observe(agent, turn, "update-context", "succeeded", ts)
             continue
         if kind not in NODE_KINDS:
             continue
