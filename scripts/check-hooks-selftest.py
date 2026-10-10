@@ -24,14 +24,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
 _SELFTEST = _REPO / "plugins" / "ravenclaude-core" / "scripts" / "hooks-selftest.py"
 _RC = _REPO / "plugins" / "ravenclaude-core" / "bin" / "rc"
 _COPILOT_ADAPTER = _REPO / "plugins" / "ravenclaude-core" / "hooks" / "copilot-hook-adapter.sh"
+_HOST_SUPPORT = _REPO / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+_SCRUB_SH = _REPO / "plugins" / "ravenclaude-core" / "hooks" / "_scrub.sh"
 
 
 def _run(args: list, **kw) -> subprocess.CompletedProcess:
@@ -88,8 +93,7 @@ def self_test(must_fail: bool = False) -> int:
     )
     tier_a_hosts = [h.get("host") for h in hosts if h.get("declared_tier") == "A"]
     check(
-        "A8.1: at least one Tier-A-declared host present to scope this "
-        "assertion against",
+        "A8.1: at least one Tier-A-declared host present to scope this assertion against",
         len(tier_a_hosts) > 0,
     )
     for h in tier_a_hosts:
@@ -117,8 +121,7 @@ def self_test(must_fail: bool = False) -> int:
     # A8.3 -- --json emits parseable JSON with the documented row shape.
     required_keys = {"host", "declared_tier", "achieved_tier", "wired_set", "runtime", "verdict"}
     check(
-        "A8.3: every row carries {host, declared_tier, achieved_tier, "
-        "wired_set, runtime, verdict}",
+        "A8.3: every row carries {host, declared_tier, achieved_tier, wired_set, runtime, verdict}",
         bool(hosts) and all(required_keys <= set(h.keys()) for h in hosts),
     )
 
@@ -126,19 +129,17 @@ def self_test(must_fail: bool = False) -> int:
     # in HUMAN output (not just --json).
     p5 = _run([sys.executable, str(_SELFTEST), "--tier", "a"])
     check(
-        "A8.5: grok's row prints its own reason in human-readable output "
-        "(not just --json)",
+        "A8.5: grok's row prints its own reason in human-readable output (not just --json)",
         "grok" in p5.stdout and "reason:" in p5.stdout,
     )
 
     # A8.7 -- (closes G5 F2, HIGH) the copilot-cli row's chat annotation is
     # present in BOTH human and --json modes, sourced from host-support.json.
-    copilot_annotation_json = any(
-        h.get("host") == "copilot-cli" for h in hosts
-    ) and "copilot_cli_chat_annotation" in data
+    copilot_annotation_json = (
+        any(h.get("host") == "copilot-cli" for h in hosts) and "copilot_cli_chat_annotation" in data
+    )
     check(
-        "A8.7: --json carries copilot_cli_chat_annotation when copilot-cli "
-        "is a reported host",
+        "A8.7: --json carries copilot_cli_chat_annotation when copilot-cli is a reported host",
         copilot_annotation_json,
     )
     check(
@@ -158,37 +159,53 @@ def self_test(must_fail: bool = False) -> int:
 
     # A8.4, MUST-FAIL -- a stubbed (misbehaving, not merely absent) adapter
     # -> exit 2, NEVER 1 (the fail-open trap this repo has recorded before).
-    # Mutates the REAL copilot-hook-adapter.sh on disk, temporarily, then
-    # restores it byte-for-byte -- verified restored before returning.
+    # PA-14: never mutate the tracked adapter. Copy into a temp CORE tree
+    # (_host-canary.sh honors $CORE) so a crash mid-test cannot leave the
+    # working tree dirty.
     if _COPILOT_ADAPTER.exists():
         original = _COPILOT_ADAPTER.read_text(encoding="utf-8")
-        anchor = '  sessionstart)\n    out="$(CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>/dev/null)"\n'
+        anchor = (
+            '  sessionstart)\n    out="$(CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>/dev/null)"\n'
+        )
         if anchor not in original:
             check("A8.4 setup: mutation anchor found in copilot-hook-adapter.sh", False)
+        elif not _SCRUB_SH.exists() or not _HOST_SUPPORT.exists():
+            check(
+                "A8.4 setup: _scrub.sh + host-support.json present for temp CORE",
+                False,
+            )
         else:
             mutant = original.replace(
                 anchor,
                 '  sessionstart)\n    out=""\n    true "$real" "$@" 2>/dev/null\n',
                 1,
             )
+            tmp = Path(tempfile.mkdtemp(prefix="rc-a84-"))
             try:
-                _COPILOT_ADAPTER.write_text(mutant, encoding="utf-8")
+                hooks = tmp / "hooks"
+                hooks.mkdir()
+                (tmp / "knowledge").mkdir()
+                # Adapter sources sibling _scrub.sh; canary may read host-support.
+                shutil.copy2(_SCRUB_SH, hooks / "_scrub.sh")
+                shutil.copy2(_HOST_SUPPORT, tmp / "knowledge" / "host-support.json")
+                (hooks / "copilot-hook-adapter.sh").write_text(mutant, encoding="utf-8")
+                env = {**os.environ, "CORE": str(tmp)}
                 p4 = _run(
-                    [sys.executable, str(_SELFTEST), "--host", "copilot-cli", "--tier", "a"]
+                    [sys.executable, str(_SELFTEST), "--host", "copilot-cli", "--tier", "a"],
+                    env=env,
                 )
                 check(
                     "A8.4 MUST-FAIL: a misbehaving (stubbed) adapter makes "
                     "`rc hooks selftest` exit 2, never 1",
                     p4.returncode == 2,
                 )
+                check(
+                    "A8.4 isolation (PA-14): tracked copilot-hook-adapter.sh "
+                    "unchanged during the mutant run",
+                    _COPILOT_ADAPTER.read_text(encoding="utf-8") == original,
+                )
             finally:
-                _COPILOT_ADAPTER.write_text(original, encoding="utf-8")
-            restored = _COPILOT_ADAPTER.read_text(encoding="utf-8")
-            check(
-                "A8.4 cleanup verified: copilot-hook-adapter.sh restored "
-                "byte-for-byte after the mutant",
-                restored == original,
-            )
+                shutil.rmtree(tmp, ignore_errors=True)
     else:
         check("A8.4 setup: copilot-hook-adapter.sh found", False)
 

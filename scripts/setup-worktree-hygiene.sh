@@ -17,9 +17,15 @@
 # never done by default. A repo that sets its OWN core.hooksPath still wins (git
 # precedence) — the chain-through hook documents that.
 #
+# SH-F10: if a global core.hooksPath is ALREADY set to a different directory,
+# step 4 installs the pre-commit template into ~/.config/git/hooks but REFUSES
+# to overwrite the existing hooksPath unless --force-hooks-path is also passed.
+# Silent replacement of someone else's global hooksPath was the defect.
+#
 # Usage:
 #   scripts/setup-worktree-hygiene.sh                 # steps 1-3 (safe defaults)
 #   scripts/setup-worktree-hygiene.sh --with-git-hook # + step 4 (global git hook)
+#   … --with-git-hook --force-hooks-path              # overwrite an existing hooksPath
 #
 # Portability: set -euo pipefail. macOS bash 3.2 / BSD-safe (no declare -A /
 # mapfile / grep -P / timeout(1) / sed -i / ${x^^} / globstar).
@@ -27,15 +33,17 @@
 set -euo pipefail
 
 WITH_GIT_HOOK=0
+FORCE_HOOKS_PATH=0
 for arg in "$@"; do
   case "$arg" in
     --with-git-hook) WITH_GIT_HOOK=1 ;;
+    --force-hooks-path) FORCE_HOOKS_PATH=1 ;;
     -h|--help)
-      sed -n '2,20p' "${BASH_SOURCE[0]:-$0}" | sed 's/^# \{0,1\}//'
+      sed -n '2,25p' "${BASH_SOURCE[0]:-$0}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
-      echo "setup-worktree-hygiene.sh: unknown argument '$arg' (try --with-git-hook or --help)" >&2
+      echo "setup-worktree-hygiene.sh: unknown argument '$arg' (try --with-git-hook, --force-hooks-path, or --help)" >&2
       exit 2
       ;;
   esac
@@ -124,8 +132,21 @@ if [ "$WITH_GIT_HOOK" -eq 1 ]; then
       install -m 755 "$HOOK_TEMPLATE" "$hook_dest"
       log "  installed chain-through pre-commit -> $hook_dest"
     fi
-    git config --global core.hooksPath "$HOOKS_DIR"
-    log "  git config --global core.hooksPath=$HOOKS_DIR"
+    # SH-F10: do not silently replace an existing global hooksPath.
+    existing_hooks_path="$(git config --global --get core.hooksPath 2>/dev/null || true)"
+    if [ -n "$existing_hooks_path" ] && [ "$existing_hooks_path" != "$HOOKS_DIR" ]; then
+      if [ "$FORCE_HOOKS_PATH" -eq 1 ]; then
+        git config --global core.hooksPath "$HOOKS_DIR"
+        log "  OVERWROTE git config --global core.hooksPath ($existing_hooks_path -> $HOOKS_DIR) [--force-hooks-path]"
+      else
+        log "  SKIP: global core.hooksPath already set to '$existing_hooks_path' (not $HOOKS_DIR)."
+        log "        Refusing to clobber it (SH-F10). Pass --force-hooks-path to overwrite,"
+        log "        or unset with: git config --global --unset core.hooksPath"
+      fi
+    else
+      git config --global core.hooksPath "$HOOKS_DIR"
+      log "  git config --global core.hooksPath=$HOOKS_DIR"
+    fi
     log "  NOTE: a repo that sets its OWN core.hooksPath still wins (git precedence);"
     log "        the chain-through hook execs a project's .git/hooks/pre-commit first."
   fi
