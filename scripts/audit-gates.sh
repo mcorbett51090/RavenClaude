@@ -1747,7 +1747,9 @@ PY
       ;;
     189)
       echo "── Gate 189: git-protocol nudge (per-gate run) ───────────────────────────"
-      bash plugins/ravenclaude-core/hooks/tests/test-enforce-git-protocol.sh
+      bash plugins/ravenclaude-core/hooks/tests/test-enforce-git-protocol.sh || exit $?
+      echo "── Gate 189b: keep-awake SH-F7 fd-3 close (per-gate run) ─────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-keep-awake-shf7.sh
       exit $?
       ;;
     191)
@@ -8258,6 +8260,10 @@ echo "── Gate 189: git-protocol nudge — default-warn, block-only-on-knob �
 # release while the suite reported green).
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-enforce-git-protocol.sh >/dev/null 2>&1 || rc=$?
 gate "git-protocol: warn/block/off/absent behave per spec, push-to-main never blocks; teeth proven by mutant" must_pass "$rc"
+# SH-F7 companion: keep-awake must close rc_advise's saved stderr (fd 3) on the
+# background caffeinate spawn, or the child holds the terminal open for the session.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-keep-awake-shf7.sh >/dev/null 2>&1 || rc=$?
+gate "keep-awake SH-F7: caffeinate spawn closes advise fd 3 (presence + /proc teeth)" must_pass "$rc"
 
 echo "── Gate 190: premise ledger blast radius — one agent must not gate another ─"
 # The ledger was keyed on (project, session_id). MEASURED 2026-08-12 against a real

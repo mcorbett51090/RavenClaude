@@ -133,7 +133,13 @@ esac
 if pgrep -f "caffeinate -s -w $SESSION_PID" >/dev/null 2>&1; then
   exit 0
 fi
-nohup caffeinate -s -w "$SESSION_PID" >/dev/null 2>&1 &
+# ⛔ SH-F7: close fd 3 on the spawn. rc_advise_init (above) does `exec 3>&2` to
+# save the real stderr before buffering fd 2. A background `caffeinate` would
+# otherwise inherit that saved stderr and hold the terminal/socket open for the
+# whole session lifetime — a classic fd leak. stdout/stderr are already nulled;
+# `3>&-` drops the advise helper's saved copy. Reproduced 2026-10-10: without
+# `3>&-`, /proc/<pid>/fd/3 pointed at the parent's stderr socket; with it, gone.
+nohup caffeinate -s -w "$SESSION_PID" >/dev/null 2>&1 3>&- &
 
 printf '%s\n' "RavenClaude keep-awake: holding PreventSystemSleep (caffeinate -s, bound to pid $SESSION_PID) on AC power. VERIFIED 2026-08-24 by two physical lid closes — a user-space ticker logged 98 of 99 seconds inside a closed-lid window (max gap 2s, same as lid-open), so the session keeps running. ⛔ A 'Clamshell Sleep' line WILL still appear in pmset -g log; it is only the DarkWake transition, NOT a stall — grep for 'Entering Sleep state' if you want the real thing." >&2
 exit 0
