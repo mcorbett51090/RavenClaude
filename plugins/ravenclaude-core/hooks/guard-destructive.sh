@@ -586,20 +586,29 @@ _scan_git_alias_names() {
   done
 }
 
+# Split on ; & | (also && and ||). A token-matching rule must inspect only the
+# segment that token belongs to — same class as _is_dangerous_git_push_delete
+# (SH-F6, 2026-10-06): `cd /tmp/build && rm -rf dist` used to deny because `/tmp`
+# was read as the rm target.
+_cmd_segments() { printf '%s' "$1" | tr ';&|' '\n\n\n'; }
+
 # rm of a dangerous root (/, ~, $HOME — but NOT ./relative) recursively, in any
 # flag order. Force is NOT required: a recursive rm of / or $HOME is fatal on
 # its own. `rm -rf ./tmp/build` is allowed (target is relative, starts with `.`).
+# SH-F6: recursive flag + dangerous target are scored on the `rm` segment only.
 _is_dangerous_rm() {
-  local c="$1"
+  local c="$1" seg
   # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) AND `/` for a
   # path-qualified invocation (`/bin/rm`, `./rm`, `../rm`).
   [[ "$c" =~ ${_CMD_BOUNDARY}rm[[:space:]] ]] || return 1
-  _has_recursive "$c" || return 1
+  while IFS= read -r seg; do
+    [[ "$seg" =~ ${_CMD_BOUNDARY}rm[[:space:]] ]] || continue
+    _has_recursive "$seg" || continue
   # a dangerous target argument: starts with /, ~, $HOME, or a standalone . or *
   # $HOME is boundary-anchored so `$HOME_BACKUP` / `$HOME_DIR` (a *different*
   # variable) is not falsely matched as a prefix — only bare `$HOME`, `$HOME/…`,
   # `$HOME ` etc. count (ERE has no \b, so require a non-identifier char or EOL).
-  [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME([^_[:alnum:]]|$)) ]] && return 0
+  [[ "$seg" =~ (^|[[:space:]])(/|~|\$HOME([^_[:alnum:]]|$)) ]] && return 0
   # standalone current-dir / parent-dir / glob target. Covers `.`, `./`, `*`
   # (trailing slash is the same current-dir delete) AND the wipe-cwd / escape-to-
   # parent globs `.*`, `./*`, `..`, `../`, `../*` — `../*` is the worst case: it
@@ -612,7 +621,10 @@ _is_dangerous_rm() {
   # A single-segment form (`.`, `..`, `./`, `../`, `.*`, `./*`, `../*`) is the `+`=1
   # case, so prior coverage is preserved. Scoped relative paths (`./tmp/build`,
   # `../build`) still fall through — a non-dot path segment breaks the trailing anchor.
-  [[ "$c" =~ (^|[[:space:]])((\.{1,2}/?)+\*?|\*)([[:space:]]|$) ]] && return 0
+    [[ "$seg" =~ (^|[[:space:]])((\.{1,2}/?)+\*?|\*)([[:space:]]|$) ]] && return 0
+  done <<EOF
+$(_cmd_segments "$c")
+EOF
   return 1
 }
 
@@ -642,18 +654,24 @@ _is_dangerous_chmod() {
 # avoid false-positiving the common filtered form (the cwd container is the
 # blast-radius bound for that one, same as the worktree/sandbox posture).
 _is_dangerous_find() {
-  local c="$1"
+  local c="$1" seg
   # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) AND `/` for a
   # path-qualified invocation (`/usr/bin/find`) — the narrower `[;&|space/]` class
   # let `$(find / -delete)` slip past while `$(rm -rf ~)` was caught (2026-07 review).
   [[ "$c" =~ ${_CMD_BOUNDARY}find[[:space:]] ]] || return 1
-  # a destructive action must be present. `-execdir` is the functional twin of
-  # `-exec` (runs the command per-match) — match both spellings.
-  [[ "$c" =~ (^|[[:space:]])-delete${_CMD_END} ]] \
-    || [[ "$c" =~ -exec(dir)?[[:space:]]+(sudo[[:space:]]+)?(rm|unlink|shred|truncate)([[:space:]]|$) ]] \
-    || return 1
-  # dangerous target: absolute path / ~ / $HOME
-  [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
+  # SH-F6: action + target scored on the `find` segment only.
+  while IFS= read -r seg; do
+    [[ "$seg" =~ ${_CMD_BOUNDARY}find[[:space:]] ]] || continue
+    # a destructive action must be present. `-execdir` is the functional twin of
+    # `-exec` (runs the command per-match) — match both spellings.
+    [[ "$seg" =~ (^|[[:space:]])-delete${_CMD_END} ]] \
+      || [[ "$seg" =~ -exec(dir)?[[:space:]]+(sudo[[:space:]]+)?(rm|unlink|shred|truncate)([[:space:]]|$) ]] \
+      || continue
+    # dangerous target: absolute path / ~ / $HOME
+    [[ "$seg" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
+  done <<EOF
+$(_cmd_segments "$c")
+EOF
   return 1
 }
 
@@ -662,13 +680,19 @@ _is_dangerous_find() {
 # -s 0K). A relative target (`truncate -s 0 ./app.log`) is ALLOWED — same
 # dangerous-root philosophy as rm/find.
 _is_dangerous_truncate() {
-  local c="$1"
+  local c="$1" seg
   # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) AND `/` for a
   # path-qualified invocation — see _is_dangerous_find (2026-07 review boundary gap).
   [[ "$c" =~ ${_CMD_BOUNDARY}truncate[[:space:]] ]] || return 1
-  # size 0 in any spelling: -s0 / -s 0 / -s 0K AND the long option --size=0 / --size 0.
-  [[ "$c" =~ (-s[[:space:]]*|--size[[:space:]]*=?[[:space:]]*)0([[:space:]]|$|[bkKMGT]) ]] || return 1
-  [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
+  # SH-F6: size-0 + target scored on the `truncate` segment only.
+  while IFS= read -r seg; do
+    [[ "$seg" =~ ${_CMD_BOUNDARY}truncate[[:space:]] ]] || continue
+    # size 0 in any spelling: -s0 / -s 0 / -s 0K AND the long option --size=0 / --size 0.
+    [[ "$seg" =~ (-s[[:space:]]*|--size[[:space:]]*=?[[:space:]]*)0([[:space:]]|$|[bkKMGT]) ]] || continue
+    [[ "$seg" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
+  done <<EOF
+$(_cmd_segments "$c")
+EOF
   return 1
 }
 

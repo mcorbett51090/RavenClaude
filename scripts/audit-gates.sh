@@ -568,6 +568,11 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       bash plugins/ravenclaude-core/hooks/tests/test-gate52-dispatch-evaluator-floor.sh
       exit $?
       ;;
+    5)
+      echo "── Gate 5: guard-destructive SH-F6 per-segment target (per-gate run) ─────"
+      bash plugins/ravenclaude-core/hooks/tests/test-guard-destructive-shf6.sh
+      exit $?
+      ;;
     53)
       echo "── Gate 53: runaway read-only carve-out (per-gate run) ───────────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-runaway-readonly-carveout.sh || exit $?
@@ -2066,7 +2071,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2314,6 +2319,10 @@ _gd "$_gd_ansi"
 ok=0; [ "$GD_RC" -eq 2 ] || ok=1
 gate "guard-destructive blocks ANSI-C obfuscated destructive (SH-F3 stdin)" must_pass "$ok"
 
+# SH-F6 companion harness (segment-scoped dangerous-target).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-guard-destructive-shf6.sh >/dev/null 2>&1 || rc=$?
+gate "guard-destructive SH-F6 per-segment dangerous-target (allow/deny + teeth)" must_pass "$rc"
+
 gd_block=(
   'rm -fr /' 'rm -r -f /home' 'rm --recursive --force /' 'rm -rf ${HOME}'
   'rm -rf ./' 'rm -fr ./'
@@ -2393,6 +2402,8 @@ gd_block=(
   # pattern caught the bundled `git clean -df` but missed `git clean -d -f` /
   # `git clean -x -f` (force flag preceded by another flag) — now order-independent.
   'git clean -d -f .' 'git clean -x -f' 'git clean -d --force'
+  # SH-F6: a later/earlier clause must not hide a real dangerous rm target.
+  'cd /tmp && rm -rf /' 'true && rm -rf /' 'cd /tmp && rm -rf ~'
 )
 for c in "${gd_block[@]}"; do
   _gd "$c"; ok=0; [ "$GD_RC" -eq 2 ] || ok=1
@@ -2432,11 +2443,34 @@ gd_pass=(
   # git clean without a force flag is a no-op git refuses anyway.
   'git push origin main' 'git push origin main:main' 'git push -u origin main'
   'git push origin main --dry-run' 'git clean -n -d'
+  # SH-F6 (2026-10-06): dangerous-target is scored on the rm/find/truncate
+  # segment only, so an absolute path in a prior `cd`/`&&` clause is not a deny.
+  'cd /tmp/build && rm -rf dist' 'cd /tmp && rm -rf dist'
+  'cd /etc && find . -name "*.tmp" -delete'
+  'cd /tmp && truncate -s 0 app.log' 'rm -rf dist && cd /tmp'
 )
 for c in "${gd_pass[@]}"; do
   _gd "$c"
   gate "guard-destructive allows benign: $c" must_pass "$GD_RC"
 done
+
+# SH-F6 teeth: if _cmd_segments stops splitting, the known-benign
+# `cd /ABS && rm -rf rel` is denied again (whole-string `/` match).
+backup plugins/ravenclaude-core/hooks/guard-destructive.sh
+python3 - <<'PY'
+from pathlib import Path
+p = Path('plugins/ravenclaude-core/hooks/guard-destructive.sh')
+s = p.read_text()
+old = "_cmd_segments() { printf '%s' \"$1\" | tr ';&|' '\\n\\n\\n'; }"
+new = "_cmd_segments() { printf '%s' \"$1\"; }"
+if old not in s:
+    raise SystemExit('SH-F6 teeth: _cmd_segments splitter not found')
+p.write_text(s.replace(old, new, 1))
+PY
+_gd 'cd /tmp/build && rm -rf dist'
+ok=0; [ "$GD_RC" -eq 2 ] || ok=1
+gate "guard-destructive SH-F6 teeth: unsplit segments re-deny cd-abs + rm-rel" must_pass "$ok"
+cp -p "$TMP/plugins_ravenclaude-core_hooks_guard-destructive.sh.bak" plugins/ravenclaude-core/hooks/guard-destructive.sh
 
 # No-jq fail-safe (2026-07 review): the guard read the command ONLY via jq, so a
 # host missing jq silently no-op'd (cmd="" -> exit 0 = allow-all). Prove the
