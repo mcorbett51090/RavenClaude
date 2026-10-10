@@ -126,6 +126,12 @@ def cmd_install(catalog: dict[str, dict], dest: Path, wanted_raw: str) -> int:
             # which already protects hand-tuning this way.
             print(f"  = {name} already configured — left untouched")
             continue
+        if "config" not in catalog[name]:
+            print(
+                f"  catalog entry {name!r} is missing its 'config' key",
+                file=sys.stderr,
+            )
+            return 1
         servers[name] = catalog[name]["config"]
         added.append(name)
     if not added:
