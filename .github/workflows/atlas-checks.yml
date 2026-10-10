@@ -76,7 +76,10 @@ jobs:
 
       # ── ⛔ RE-MEASURE THE RULESET CLAIM (see the header). Inconclusive is not OK.
       # Uses the DETAIL endpoint (list has no check contexts — CI-04).
+      # working-directory overrides the job default (_tools/) so the repo-root
+      # script is found.
       - name: Assert this workflow is NOT a required status check
+        working-directory: ${{ github.workspace }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash scripts/assert-not-required-check.sh 'Atlas data validates'
