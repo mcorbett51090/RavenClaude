@@ -140,10 +140,16 @@ case "$mode" in
     # Mode owns the event name — do not inherit ambient CLAUDE_HOOK_EVENT from a
     # parent session or observe hooks mis-kind the line.
     export CLAUDE_HOOK_EVENT=PreToolUse
-    _normalise | bash "$real" "$@" >/dev/null
+    # Capture stdout (Claude JSON verdicts); let stderr flow for the reason.
+    # exit 2 IS Gemini's block. ALSO honor permissionDecision==deny at exit 0
+    # (tribunal / JSON-deny guards — 2026-10-06 SH-F1).
+    out="$(_normalise | bash "$real" "$@")"
     rc=$?
-    # exit 2 IS Gemini's block. Pass the guard's own code through untouched —
-    # there is nothing to translate, and stderr now genuinely carries the reason.
+    [ "$rc" -eq 2 ] && exit 2
+    if [ -n "$out" ] && command -v jq >/dev/null 2>&1; then
+      dec="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)"
+      [ "$dec" = "deny" ] && exit 2
+    fi
     exit "$rc"
     ;;
   posttool)

@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.338.4 — 2026-10-10
+
+### Fixed
+- **Cursor / Gemini adapters honor Claude JSON `permissionDecision=deny` at exit 0.** Exit-code-only translation left the tribunal (and other JSON-deny guards) inert on both hosts: Cursor stayed silent (fail-open allow) and Gemini passed exit 0. Adapters now capture Claude stdout and translate `permissionDecision=deny` to Cursor's fixed deny literal / Gemini exit 2. Gates 159 / 164 cover the path + teeth.
+
 ## 0.338.3 — 2026-10-10
 
 ### Fixed

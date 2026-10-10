@@ -26,10 +26,11 @@ Gemini CLI ships a **real hooks API** whose contract is closer to Claude Code's 
 | Per-tool matcher | yes | **yes**, and regex (`"read_.*"`) | none in the native format |
 | Tool-name VALUES | `Bash`, `Read`, `Write` | **snake_case** — `run_shell_command`, `read_file`, `write_file` | lowercase `bash`, `edit` |
 
-**So the lane needs a thin shim, not an adapter:** `exit 2` passes straight through, and the stdin
-field names already match. The only genuine translation is the **tool-name vocabulary** — which is
-exactly the defect that made the tribunal a silent no-op under Copilot (MH-01). Getting that wrong
-here would reproduce it on a third host.
+**So the lane needs a thin shim, not a full adapter:** `exit 2` passes straight through, stdin
+field names already match, and the genuine translations are (1) the **tool-name vocabulary** —
+exactly the defect that made the tribunal a silent no-op under Copilot (MH-01) — and (2) Claude
+JSON `permissionDecision=deny` at exit 0 → Gemini exit 2 (SH-F1; the tribunal and several guards
+emit that shape). Getting either wrong leaves a guardrail inert on a third host.
 
 ### Events
 
@@ -94,7 +95,10 @@ file.**
 2. **Normalise tool names** — `run_shell_command` → `Bash`, `read_file` → `Read`,
    `write_file` → `Write`, `replace` → `Edit`. This is the MH-01 lesson; a guardrail that dispatches
    on `Bash` sees `run_shell_command` and falls through to "no decision, proceed".
-3. **Do NOT translate blocking.** `exit 2` is already the contract. Leave it alone.
+3. **Pass `exit 2` through; ALSO honor Claude JSON deny.** Guards that already block with
+   `exit 2` need no translation. Guards that emit `hookSpecificOutput.permissionDecision=deny`
+   at exit 0 (tribunal) must become Gemini exit 2 — SH-F1. Do not invent a Gemini JSON deny
+   path for exit-2 guards.
 4. **`GEMINI.md` imports `AGENTS.md`** — do not generate a copy.
 5. **Claude's `Stop` and `UserPromptSubmit` are NOT wired on Gemini.** The documented
    **`AfterAgent`** hook is the post-turn counterpart for retry/stop semantics: vendor exit code
@@ -106,8 +110,8 @@ file.**
 [verify-at-use · angle release-gemini-cli-0.60.0 · KEEP sandbox/path gates]
 
 These controls ship **in Gemini CLI**. RavenClaude's `hooks/gemini-hook-adapter.sh`
-stays a thin shim (tool-name normalize + `THING_HOST` + exit-2 passthrough). Do
-**not** weaken RC FOREIGN-TREE / Seatbelt-aligned guidance when documenting them.
+stays a thin shim (tool-name normalize + `THING_HOST` + exit-2 passthrough + JSON-deny
+→ exit 2). Do **not** weaken RC FOREIGN-TREE / Seatbelt-aligned guidance when documenting them.
 
 | 0.60 theme | Operator / adapter expectation | RC posture |
 |------------|--------------------------------|------------|

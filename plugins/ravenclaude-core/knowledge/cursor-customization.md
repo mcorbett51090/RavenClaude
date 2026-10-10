@@ -55,6 +55,10 @@ adapter is written the way it is:
    so emitting both is strictly safer than betting on one. **`permission` itself is not in dispute** —
    every source agrees on it, and it is the only field that actually binds.
 3. **Silence means allow, so silence is only ever emitted on a genuine allow.**
+4. **Claude JSON `permissionDecision=deny` at exit 0 becomes Cursor `permission=deny`.**
+   Exit-code-only translation left the tribunal (and any guard that emits that shape) inert
+   on Cursor — SH-F1. The adapter captures Claude stdout, and on `permissionDecision=deny`
+   emits the same fixed deny literal as the exit-2 path.
 
 **Also reported:** `allow` and `ask` may be ignored when a command is already allow-listed, so only
 `deny` reliably binds `[community-reported, not docs-confirmed]`. The adapter therefore treats deny as

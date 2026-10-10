@@ -155,10 +155,17 @@ case "$mode" in
     # verdict would turn a noisy reason into a silently-allowed command. Sending
     # it to the adapter's own stderr keeps the reason visible in logs while the
     # deny path stays byte-fixed. Do not merge the two.
-    printf '%s' "$stdin_json" | bash "$real" "$@" >/dev/null
+    # Capture stdout (Claude JSON verdicts); let stderr flow for the reason.
+    # exit 2 blocks as before. ALSO honor hookSpecificOutput.permissionDecision
+    # == deny at exit 0 — the tribunal + several guards emit that shape
+    # (2026-10-06 SH-F1: exit-code-only translation left the Thing inert here).
+    out="$(printf '%s' "$stdin_json" | bash "$real" "$@")"
     rc=$?
-    # exit 2 is how every guardrail here blocks. Translate it, and ONLY it.
     [ "$rc" -eq 2 ] && _rc_deny
+    if [ -n "$out" ] && command -v jq >/dev/null 2>&1; then
+      dec="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)"
+      [ "$dec" = "deny" ] && _rc_deny
+    fi
     exit 0
     ;;
   file-posttool)
