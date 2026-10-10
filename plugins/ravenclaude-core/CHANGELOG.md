@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.339.4 — 2026-10-10
+
+### Fixed
+- **Artifact self-heal commits only known outputs (CI-05).**
+  `regenerate-artifacts.yml`'s `create-pull-request` step now carries an `add-paths`
+  allowlist for every generator output (claims prose, concepts registry/SVGs,
+  dashboards, BI/feedback reports, Copilot package). Without it, a dirty tree
+  (including npx/mermaid droppings) could be staged and squash-merged at 0
+  approvals. Concept `selfheal-greps-a-sentence` restamped — the grep contract
+  is unchanged by `add-paths`.
+
 ## 0.339.3 — 2026-10-10
 
 ### Fixed
