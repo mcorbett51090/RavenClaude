@@ -556,8 +556,9 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 
 ## Shipped in v0.12
 
-- Claude Code / Codex / Cursor: `spectate-emit.sh` on `SessionEnd`→`session.end` and `SubagentStop`→`subagent.stop`
+- Claude Code / Codex / Cursor / Copilot: `spectate-emit.sh` on `SessionEnd`→`session.end` and `SubagentStop`→`subagent.stop`
 - Cursor adapter modes `sessionend` / `subagentstop` (docs-verified; no task/summary/modified_files forward)
+- Copilot adapter modes `sessionend` / `subagentstop` (+ repair of broken `run_hook` no-op on `subagentstart` / `permissionrequest`)
 - Gemini SessionEnd/SubagentStop remain explicitly skipped
 
 ## Shipped in v0.11

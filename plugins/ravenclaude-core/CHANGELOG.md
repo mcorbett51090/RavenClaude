@@ -5,7 +5,7 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 ## 0.343.0 — 2026-10-10
 
 ### Added
-- **Spectate v0.12 SessionEnd / SubagentStop observe** — `spectate-emit.sh` maps `SessionEnd`→`session.end` and `SubagentStop`→`subagent.stop` (asserted_status from host status). Wired on Claude Code (`hooks.json`), Codex fixed lists, and Cursor adapter modes `sessionend` / `subagentstop` (docs-verified; never forwards task/summary/modified_files). Gemini lanes stay explicitly skipped. Gates 159 / spectate-emit S11–S12 / generate-*-hooks floors.
+- **Spectate v0.12 SessionEnd / SubagentStop observe** — `spectate-emit.sh` maps `SessionEnd`→`session.end` and `SubagentStop`→`subagent.stop` (asserted_status from host status). Wired on Claude Code (`hooks.json`), Codex fixed lists, Cursor adapter modes `sessionend` / `subagentstop` (docs-verified; never forwards task/summary/modified_files), and Copilot adapter modes `sessionend` / `subagentstop` (CLI `sessionEnd` + Chat/CLI `SubagentStop`; fail-safe discard stdout). Also repairs Copilot `subagentstart` / `permissionrequest` which called an undefined helper (silent no-op). Gemini lanes stay explicitly skipped. Gates 159 / 20 / spectate-emit S11–S12 / generate-*-hooks floors.
 
 ## 0.342.0 — 2026-10-10
 
