@@ -1091,11 +1091,11 @@
       },
       "cursor": {
         "state": "unsupported",
-        "evidence": "v0.7 wires spectate-emit on SessionStart/UserPromptSubmit/Stop/Bash-PreToolUse; cursor-hook-adapter.sh shell-pretool synthesizes Claude stdin without tool_use_id, so corr_id join remains unsupported"
+        "evidence": "v0.8 adapters forward tool_use_id/toolUseId when present (Gates 159); Cursor afterFileEdit/beforeShellExecution docs publish neither — omit, never mint from generation_id — so corr_id join remains unsupported"
       },
       "gemini-cli": {
         "state": "unsupported",
-        "evidence": "v0.7 wires spectate-emit on SessionStart/PreToolUse/PostToolUse; gemini-hook-adapter.sh normalises tool_name but does not mint tool_use_id, so corr_id join remains unsupported"
+        "evidence": "v0.8 gemini-hook-adapter normalises toolUseId\u2192tool_use_id when present (Gate 164); Gemini BeforeTool/AfterTool docs publish no per-tool id — do not mint — corr_id join remains unsupported"
       },
       "grok-build": {
         "state": "unknown",

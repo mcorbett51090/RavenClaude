@@ -114,6 +114,12 @@ if isinstance(d, dict):
             d["tool_name"] = MAP.get(raw, raw)
     if "session_id" not in d and sys.argv[2:]:
         d["session_id"] = sys.argv[2]
+    # Spectate v0.8: normalise camelCase toolUseId → tool_use_id when present.
+    # Do not mint an id — Gemini BeforeTool/AfterTool docs publish none.
+    if not d.get("tool_use_id"):
+        alt = d.get("toolUseId")
+        if isinstance(alt, str) and alt:
+            d["tool_use_id"] = alt
 sys.stdout.write(json.dumps(d))
 ' "$payload" "$sid" 2>/dev/null && return 0
   fi

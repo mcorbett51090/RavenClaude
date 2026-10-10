@@ -208,6 +208,25 @@ else
 fi
 rm -rf "$T9"
 
+echo "── S10: toolUseId (camelCase) → corr_id on PostToolUse ───────────────────"
+T10="$(mktemp -d)"
+payload10='{"session_id":"s10","tool_name":"Edit","toolUseId":"tu-camel","tool_input":{"file_path":"a.ts"}}'
+out10="$(run_hook "$T10" s10 PostToolUse "$payload10")"
+rc10=$?
+log10="$T10/.ravenclaude/runs/s10/spectate-events.jsonl"
+if [ "$rc10" -eq 0 ] && [ -z "$out10" ] && [ -f "$log10" ]; then
+  corr10="$(jq -r '.corr_id // empty' "$log10")"
+  kind10="$(jq -r '.kind' "$log10")"
+  if [ "$kind10" = "tool.post" ] && [ "$corr10" = "tu-camel" ]; then
+    pass "S10: toolUseId → corr_id=tu-camel on tool.post"
+  else
+    fail "S10: kind=$kind10 corr_id=$corr10"
+  fi
+else
+  fail "S10: rc=$rc10 out_len=${#out10} log=$( [ -f "$log10" ] && echo y || echo n )"
+fi
+rm -rf "$T10"
+
 if [ "$FAILED" -ne 0 ]; then
   echo "test-spectate-emit: $FAILED failure(s)"
   exit 1

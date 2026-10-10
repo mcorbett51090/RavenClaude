@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.339.0 — 2026-10-10
+
+### Added
+- **Spectate v0.8 Cursor PostToolUse emit** — `cursor-hook-adapter.sh` `file-posttool` builds Claude-shaped stdin (`tool_name=Edit`, `tool_input.file_path` only; never `edits[]` content) and wires `spectate-emit.sh` on Cursor `afterFileEdit` `[docs-verified 2026-10-10]`. Path-as-argv contract for formatters unchanged.
+- **Cursor/Gemini `tool_use_id` forward** — adapters copy host `tool_use_id` / `toolUseId` into Claude stdin when present; they do not mint from `generation_id`. Host docs still publish no per-tool id — capability cells stay `unsupported`. Gates 159 / 164 / spectate-emit S10.
+
 ## 0.338.7 — 2026-10-10
 
 ### Fixed

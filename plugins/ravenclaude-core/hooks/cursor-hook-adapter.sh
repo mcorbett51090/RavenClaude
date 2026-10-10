@@ -121,20 +121,56 @@ export CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$cw}"
 # never an inference from ambient environment.
 export THING_HOST="${THING_HOST:-cursor}"
 
+# Forward host tool_use_id when present. Cursor's published afterFileEdit /
+# beforeShellExecution schemas do not include it — omit rather than mint from
+# generation_id (that id is per-turn, not per-tool; inventing it would lie to
+# corr_id deny join).
+_tool_use_id() {
+  _id="$(_field tool_use_id)"
+  [ -z "$_id" ] && _id="$(_field toolUseId)"
+  printf '%s' "$_id"
+}
+
 # Build the Claude-shaped stdin a guardrail expects. Cursor's beforeShellExecution
 # carries {command, cwd, sandbox}; Claude's hooks read {tool_name, tool_input, ...}.
 _claude_stdin() {
-  _tool="$1"; _cmd="$2"
+  _tool="$1"; _cmd="$2"; _tid="$(_tool_use_id)"
   if command -v jq >/dev/null 2>&1; then
-    jq -cn --arg t "$_tool" --arg c "$_cmd" --arg d "$cw" --arg s "$sid" \
-      '{tool_name:$t,tool_input:{command:$c},cwd:$d,session_id:$s}' 2>/dev/null && return 0
+    jq -cn --arg t "$_tool" --arg c "$_cmd" --arg d "$cw" --arg s "$sid" --arg u "$_tid" \
+      '{tool_name:$t,tool_input:{command:$c},cwd:$d,session_id:$s}
+       | if $u != "" then . + {tool_use_id:$u} else . end' 2>/dev/null && return 0
   fi
   if command -v python3 >/dev/null 2>&1; then
     python3 -c '
 import json, sys
-print(json.dumps({"tool_name": sys.argv[1], "tool_input": {"command": sys.argv[2]},
-                  "cwd": sys.argv[3], "session_id": sys.argv[4]}))
-' "$_tool" "$_cmd" "$cw" "$sid" 2>/dev/null && return 0
+o = {"tool_name": sys.argv[1], "tool_input": {"command": sys.argv[2]},
+     "cwd": sys.argv[3], "session_id": sys.argv[4]}
+if sys.argv[5]:
+    o["tool_use_id"] = sys.argv[5]
+print(json.dumps(o))
+' "$_tool" "$_cmd" "$cw" "$sid" "$_tid" 2>/dev/null && return 0
+  fi
+  return 1
+}
+
+# afterFileEdit → Claude PostToolUse shape. file_path only — NEVER the edits[]
+# old_string/new_string (raw content; Streams Gate 110 / spectate scrub).
+_claude_file_stdin() {
+  _fp="$1"; _tid="$(_tool_use_id)"
+  if command -v jq >/dev/null 2>&1; then
+    jq -cn --arg f "$_fp" --arg d "$cw" --arg s "$sid" --arg u "$_tid" \
+      '{tool_name:"Edit",tool_input:{file_path:$f},cwd:$d,session_id:$s}
+       | if $u != "" then . + {tool_use_id:$u} else . end' 2>/dev/null && return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -c '
+import json, sys
+o = {"tool_name": "Edit", "tool_input": {"file_path": sys.argv[1]},
+     "cwd": sys.argv[2], "session_id": sys.argv[3]}
+if sys.argv[4]:
+    o["tool_use_id"] = sys.argv[4]
+print(json.dumps(o))
+' "$_fp" "$cw" "$sid" "$_tid" 2>/dev/null && return 0
   fi
   return 1
 }
@@ -169,12 +205,20 @@ case "$mode" in
     exit 0
     ;;
   file-posttool)
-    # afterFileEdit: side-effecting hooks (formatters, lints). Path as argv, output
-    # ignored — a PostToolUse hook has no verdict to translate.
-    # Spectate emit stays per-event-skipped on this lane (no Claude-shaped stdin);
-    # path-argv PostToolUse hooks keep the prior contract.
+    # afterFileEdit: side-effecting hooks (formatters, lints) + observe emit.
+    # Path as argv (prior contract); Claude-shaped stdin for spectate-emit /
+    # stdin-reading PostToolUse hooks. No verdict to translate. Never forward
+    # edits[] content — file_path only `[docs-verified 2026-10-10 — cursor.com/docs/hooks afterFileEdit]`.
+    export CLAUDE_HOOK_EVENT=PostToolUse
     fp="$(_field file_path)"; [ -z "$fp" ] && fp="$(_field path)"
-    bash "$real" "$fp" >/dev/null 2>&1 || true
+    [ -z "$fp" ] && exit 0
+    stdin_json="$(_claude_file_stdin "$fp")" || {
+      # Translation failed — keep path-argv fail-open for formatters; observe
+      # hooks without stdin stay silent (same as pre-v0.8).
+      bash "$real" "$fp" >/dev/null 2>&1 || true
+      exit 0
+    }
+    printf '%s' "$stdin_json" | bash "$real" "$fp" >/dev/null 2>&1 || true
     exit 0
     ;;
   sessionstart)

@@ -113,9 +113,9 @@ _COPILOT_HOST_EXEMPT = frozenset({"caveman-route-hook.sh", "routine-reserve-hook
 
 # Same exemption again, independently declared by generate-cursor-hooks.py's
 # own `_SKIP` map (identical reasoning for caveman/routine-reserve).
-# spectate-emit.sh is NOT exempt: v0.7 per-event skip wires SessionStart
-# (plus UserPromptSubmit/Stop/Bash-PreToolUse); PreCompact/SubagentStart/
-# PermissionRequest/PostToolUse stay per-event skipped.
+# spectate-emit.sh is NOT exempt: v0.7/v0.8 per-event skip wires SessionStart
+# (plus UserPromptSubmit/Stop/Bash-PreToolUse/PostToolUse); PreCompact/
+# SubagentStart/PermissionRequest stay per-event skipped.
 _CURSOR_HOST_EXEMPT = frozenset(
     {
         "caveman-route-hook.sh",
