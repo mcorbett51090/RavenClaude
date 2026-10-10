@@ -107,9 +107,7 @@ _VAR_ASSIGN = re.compile(
     re.M,
 )
 # Every assignment, for the transitive pass below.
-_ANY_ASSIGN = re.compile(
-    r"^\s*(?:local\s+|export\s+)?(_?[A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.M
-)
+_ANY_ASSIGN = re.compile(r"^\s*(?:local\s+|export\s+)?(_?[A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.M)
 # The write verbs that turn a path variable into persistent state.
 #
 # ⛔ EVERY BRANCH MUST PUT THE VARIABLE IN THE WRITE TARGET POSITION. A dropped
@@ -190,8 +188,16 @@ class Finding(NamedTuple):
 
 
 def _pretooluse_hooks(repo: Path) -> list[Path]:
-    """Every script registered on PreToolUse, resolved to a real path."""
+    """Every script registered on PreToolUse, resolved to a real path.
+
+    Commands may live under `hooks/` *or* `scripts/` (several PreToolUse
+    guards are `bash "${CLAUDE_PLUGIN_ROOT}/scripts/….sh"` because new
+    `hooks/*.sh` files carry an executable-bit constraint). Resolving only
+    under `hooks/` silently dropped those four (PA-2) — a clean report about
+    a truncated population, not about the real one.
+    """
     data = json.loads((repo / HOOKS_JSON).read_text(encoding="utf-8"))
+    plugin = repo / "plugins/ravenclaude-core"
     out: list[Path] = []
     for entry in data.get("hooks", {}).get("PreToolUse", []):
         for hook in entry.get("hooks", []):
@@ -199,13 +205,42 @@ def _pretooluse_hooks(repo: Path) -> list[Path]:
             # The command may carry arguments ("worktree-guard.sh check"); the
             # script is the first token that ends in .sh.
             for tok in cmd.replace('"', " ").split():
-                if tok.endswith(".sh"):
-                    name = tok.split("/")[-1]
-                    p = repo / "plugins/ravenclaude-core/hooks" / name
+                if not tok.endswith(".sh"):
+                    continue
+                name = tok.split("/")[-1]
+                if "/scripts/" in tok:
+                    candidates = [plugin / "scripts" / name]
+                elif "/hooks/" in tok:
+                    candidates = [plugin / "hooks" / name]
+                else:
+                    # Bare basename — try both roots (hooks first, historical).
+                    candidates = [plugin / "hooks" / name, plugin / "scripts" / name]
+                for p in candidates:
                     if p.is_file() and p not in out:
                         out.append(p)
-                    break
+                        break
+                break
     return out
+
+
+_SELF_TEST_FN = re.compile(r"^_[A-Za-z0-9]+_self_test\(\)\s*\{", re.M)
+
+
+def _strip_self_test(src: str) -> str:
+    """Drop the trailing self-test harness before the statefulness scan.
+
+    Several scripts/-resident PreToolUse guards are PURE in production but keep
+    a fixture harness that writes under `.ravenclaude/` inside `_foo_self_test`
+    (and often a sibling `_foo_must_fail` plus the `--self-test` case arm).
+    Matching those writes as "the guard is stateful" is a claim about the
+    harness, not the hook. Production code always sits *above* the first
+    `_…_self_test() {`, so cutting from that line through EOF is exact.
+    Markers are still parsed from the raw source.
+    """
+    m = _SELF_TEST_FN.search(src)
+    if not m:
+        return src
+    return src[: m.start()]
 
 
 def _strip_comments(src: str) -> str:
@@ -272,8 +307,11 @@ def _is_stateful(src: str) -> bool:
     but never writes it) is correctly out of scope here — the key belongs to whoever
     writes it. If that writer is not itself a PreToolUse hook, no gate currently asks
     it to declare one. Widening discovery past PreToolUse is follow-up work.
+
+    Self-test harnesses (`_foo_self_test() { … }`) are stripped first — fixture
+    writes are not production state (PA-2 companion).
     """
-    src = _strip_comments(src)
+    src = _strip_comments(_strip_self_test(src))
     if STATE_WRITE.search(src):
         return True
 
@@ -474,9 +512,7 @@ def _self_test() -> int:
                 "# rc-state-key: cwd\n"
                 "# rc-state-scope: worktree\n"
                 "# rc-state-rationale: per-worktree files\n"
-                "# rc-state-escape: a control file under the run dir\n"
-                + _W
-                + '\nemit deny "no"\n'
+                "# rc-state-escape: a control file under the run dir\n" + _W + '\nemit deny "no"\n'
             ),
             "uncorroborated-escape",
         ),
@@ -492,6 +528,19 @@ def _self_test() -> int:
         (
             "stateless-hook-is-silent",
             _fixture('echo "no state here"'),
+            None,
+        ),
+        (
+            # Production-pure + self-test harness that writes substrate must stay
+            # silent — otherwise every scripts/-resident PreToolUse guard with a
+            # fixture would force a false declaration (PA-2 companion).
+            "self-test-writes-do-not-count",
+            _fixture(
+                'echo "pure in production"\n'
+                "_demo_self_test() {\n"
+                '  mkdir -p "$cwd/' + _RUNS + '/thing"\n'
+                "}\n"
+            ),
             None,
         ),
     ]
