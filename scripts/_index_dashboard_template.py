@@ -806,6 +806,12 @@ TEMPLATE = r"""<!doctype html>
       const $ = (s, r = document) => r.querySelector(s);
       const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
       const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      /* PA-15: HTML-escape is wrong inside JS string literals in onclick=
+         attributes — &#39; is decoded back to ' before the script runs, so a
+         quote in a repo-controlled name could break out of the JS string.
+         jsStr emits a JSON string literal (double-quoted, escaped) suitable for
+         embedding in a single-quoted onclick='...' attribute. */
+      const jsStr = (s) => JSON.stringify(String(s == null ? "" : s));
       const byName = (n) => D.plugins.find((p) => p.name === n);
 
       /* ---- Lazy detail island — H4 hydration contract (plan §1.4) -------------
@@ -1293,7 +1299,7 @@ TEMPLATE = r"""<!doctype html>
           $("#uc-body").innerHTML = rows.map((u) => `<tr>
             <td class="uc-intent">${esc(u.intent)}</td>
             <td><code>${esc(u.agent)}</code></td>
-            <td><a href="#/discover" onclick="window.__openPlugin('${esc(u.plugin)}');return false">${esc(u.plugin_label)}</a></td>
+            <td><a href="#/discover" onclick='window.__openPlugin(${jsStr(u.plugin)});return false'>${esc(u.plugin_label)}</a></td>
             <td><span class="uc-diff d-${esc(u.difficulty)}">${esc(u.difficulty)}</span></td>
           </tr>`).join("") || `<tr><td colspan="4" style="color:var(--muted);padding:12px">No use case matches “${esc(q)}”.</td></tr>`;
         }
@@ -1307,7 +1313,7 @@ TEMPLATE = r"""<!doctype html>
             <p class="desc">${esc(p.short)}</p>
             <div class="metrics"><span><b>${p.counts.agents}</b> specialists</span><span><b>${p.counts.skills}</b> skills</span><span><b>${p.counts.knowledge}</b> knowledge docs</span>${p.counts.scenarios ? `<span><b>${p.counts.scenarios}</b> scenarios</span>` : ""}${p.counts.tools ? `<span><b>${p.counts.tools}</b> tools</span>` : ""}</div>
             <div class="tags">${p.keywords.slice(0, 5).map((k) => `<span class="chip">${esc(k)}</span>`).join("")} ${reqs}</div>
-            <div class="pc-foot"><button class="btn primary" type="button" onclick="window.__copy('/plugin install ${esc(p.name)}@ravenclaude','Install command')">${svg("plus")} Add to Project</button><button class="btn" type="button" onclick="window.__openPlugin('${esc(p.name)}')">Details</button></div>
+            <div class="pc-foot"><button class="btn primary" type="button" onclick='window.__copy(${jsStr("/plugin install " + p.name + "@ravenclaude")}, ${jsStr("Install command")})'>${svg("plus")} Add to Project</button><button class="btn" type="button" onclick='window.__openPlugin(${jsStr(p.name)})'>Details</button></div>
           </div>`;
         }
         function renderGrid() {
@@ -1433,7 +1439,7 @@ TEMPLATE = r"""<!doctype html>
           <div class="page-head"><span class="eyebrow">${esc(p.category_label)}</span><h1>${esc(p.label)} <span style="font-family:var(--font-mono);font-size:1rem;color:var(--faint)">v${esc(p.version)}</span></h1>
             <p class="lede" style="max-width:none">${esc(p.description)}</p>
             <div class="hero-cta" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-              <button class="btn primary" type="button" onclick="window.__copy('/plugin install ${esc(p.name)}@ravenclaude','Install command')">${svg("plus")} Copy install command</button>
+              <button class="btn primary" type="button" onclick='window.__copy(${jsStr("/plugin install " + p.name + "@ravenclaude")}, ${jsStr("Install command")})'>${svg("plus")} Copy install command</button>
               <a class="btn" href="#/plugin-vars/${esc(p.name)}">${svg("sliders")} Edit variables</a>
               <a class="btn" href="#/configure">${svg("sliders")} Configure agents</a>
             </div></div>
