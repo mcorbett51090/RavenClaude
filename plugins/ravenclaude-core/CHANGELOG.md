@@ -2,7 +2,7 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-## 0.337.0 — 2026-10-10
+## 0.338.0 — 2026-10-10
 
 ### Added
 - **Spectate v0.7 Cursor/Gemini partial emit** — per-event `_SKIP_EVENT` in `generate-cursor-hooks.py` / `generate-gemini-hooks.py` wires `spectate-emit.sh` on supported lanes (Cursor: SessionStart / UserPromptSubmit / Stop / Bash-PreToolUse; Gemini: SessionStart / PreToolUse / PostToolUse). Unmapped events (PreCompact / SubagentStart / PermissionRequest; Cursor PostToolUse) stay explicitly skipped with reasons.
@@ -12,6 +12,13 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 - `scripts/open-dashboard.sh` `WALK=10` (mirrors `_bind_server` span=10 / 8000–8010).
 - `tool_use_id` capability evidence for cursor / gemini-cli updated (still `unsupported` — adapters do not mint `tool_use_id`).
 - `spectate-emit.sh` maps adapter `THING_HOST=gemini` → harness `gemini-cli` (mirrors codex/copilot short-name aliases).
+
+## 0.337.0 — 2026-10-10
+
+### Fixed
+- **Guard-mode consent no longer grants on a missing `tool_use_id`.** `hook_consent` used `if asked and ran and asked != ran`, so an empty/omitted PostToolUse `tool_use_id` skipped the mismatch check and recorded session-wide consent while a concrete pending ask was still open. When the ask recorded an id, only a PostToolUse with that same id grants consent.
+- **`set_override` returned True after `_write_json_atomic` swallowed `OSError`.** The writer now returns a bool; `set_override` returns False / "could not write override" on I/O failure (dashboard 409, CLI exit 1).
+- **`pull()` tar members** — reject absolute paths (pathlib join drops the staging root) and publish the mirror by renaming the old tree aside before replacing it, so a kill mid-swap no longer leaves an empty hole.
 
 ## 0.336.0 — 2026-10-09
 

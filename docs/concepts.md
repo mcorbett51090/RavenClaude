@@ -2448,7 +2448,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-09_
+_Last verified: 2026-10-10_
 
 
 ---
@@ -3733,7 +3733,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh`
 
 **Sources:** [built and measured in the routine token reserve PR 1 session](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/routine-token-reserve.md)
 
-_Last verified: 2026-10-02_
+_Last verified: 2026-10-10_
 
 
 ---

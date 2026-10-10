@@ -171,10 +171,27 @@ assert code == 200 and body["ok"], (code, body)
 assert mod._read_reserve(proj).get("override_pct") == 30.0
 code, body = mod._write_reserve_override(proj, {"action": "clear"})
 assert code == 200 and not (state / "override.json").exists(), (code, body)
+# A failed atomic write after validation must not report success (dashboard 200 /
+# CLI exit 0 with no override.json). Trigger: mkstemp OSError (ENOSPC/EACCES).
+engine = mod._reserve_engine(proj)
+real_mkstemp = engine.tempfile.mkstemp
+def boom(*_a, **_k):
+    raise OSError(28, "No space left on device")
+engine.tempfile.mkstemp = boom
+try:
+    code, body = mod._write_reserve_override(proj, {"action": "set", "pct": 40})
+    assert code == 409 and body.get("ok") is False, (code, body)
+    assert not (state / "override.json").exists(), "failed write still created override.json"
+finally:
+    engine.tempfile.mkstemp = real_mkstemp
+code, body = mod._write_reserve_override(proj, {"action": "set", "pct": 40})
+assert code == 200 and body["ok"] and (state / "override.json").exists(), (code, body)
+code, body = mod._write_reserve_override(proj, {"action": "clear"})
+assert code == 200 and not (state / "override.json").exists(), (code, body)
 print("ok")
 PY
 )"; then
-  pass "read-only GET, 400 on bool/out-of-range/string pct and unknown action, set + clear round-trip"
+  pass "read-only GET, 400 on bool/out-of-range/string pct and unknown action, set + clear round-trip, write-failure is 409"
 else
   fail "server helper check failed:"
   printf '%s\n' "$out" | tail -5 | sed 's/^/      /'
@@ -221,6 +238,12 @@ d="$(guard_payload g1 Agent t2 | run_guard | decision)"
 guard_payload g1 Agent t9 | run_consent
 d="$(guard_payload g1 CronCreate t3 | run_guard | decision)"
 [ "$d" = "deny" ] && pass "a different call running does not count as consent to the one asked about" || fail "foreign tool_use_id granted consent: $d"
+# Empty/missing tool_use_id must NOT match a concrete pending id (pre-fix: `asked and
+# ran and asked != ran` treated empty ran as success and granted session-wide consent).
+printf '{"session_id":"g1","hook_event_name":"PostToolUse","tool_name":"CronCreate","tool_input":{}}' | run_consent
+d="$(guard_payload g1 CronCreate t3b | run_guard | decision)"
+[ "$d" = "deny" ] && pass "a PostToolUse with no tool_use_id does not satisfy a concrete pending ask" \
+  || fail "empty tool_use_id granted consent: $d"
 out="$(guard_payload g1 Workflow t1 | run_consent)"
 [ -z "$out" ] && pass "the consent lane prints nothing" || fail "consent lane printed: $out"
 d="$(guard_payload g1 ScheduleWakeup t4 | run_guard | decision)"

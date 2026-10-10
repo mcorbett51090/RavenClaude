@@ -65,7 +65,8 @@ the weekly percentage with its source and age, the effective reserve and the lin
 - `POST /__reserve-override` takes `{"action": "set", "pct": 0-100}` or `{"action": "clear"}`, and
   requires the dashboard's CSRF token and a same-origin request like every other write. A value that
   is not a real number in range is rejected (400); setting an override without a live weekly reading
-  is refused (409), because an override expires at the reset and there is no reset to expire at.
+  is refused (409), because an override expires at the reset and there is no reset to expire at. A
+  failed write of `override.json` (disk full, permissions) is also 409 — never reported as saved.
 - Both endpoints call the engine's own `set_override` / `clear_override`, so the command and the tab
   cannot drift apart.
 
@@ -85,8 +86,9 @@ Routine (`create_session`, `send_message`, `fire_trigger`, `create_trigger`).
 
 **Consent is recorded only after the asked call actually ran.** A `PreToolUse` hook cannot see the
 answer to its own ask, so the `PostToolUse` half records consent when the guarded tool runs; a
-declined ask never reaches `PostToolUse`. When the payload carries `tool_use_id`, only the call that
-was asked about can grant it. Consent is per session and per week: a new weekly reset asks again.
+declined ask never reaches `PostToolUse`. When the ask recorded a `tool_use_id`, only a
+`PostToolUse` with that same id grants consent — a missing or empty id does not match a concrete
+pending id. Consent is per session and per week: a new weekly reset asks again.
 
 **Escape.** Move the line with `/routine-reserve override <pct>` (or the dashboard Reserve tab), or set
 `routine_reserve: advise`. The guard state lives in `~/.ravenclaude/usage/guard/<session>.json`.
