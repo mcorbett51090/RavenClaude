@@ -72,9 +72,11 @@ def load_generator():
 def registered_hooks(hooks_json_path: Path) -> set:
     """Every hook script basename registered in hooks.json.
 
-    Walks every `command` string for a `hooks/<name>.sh` reference. Sourced
-    helpers (`_`-prefixed) are never registered as hook entries and are dropped
-    defensively.
+    Walks every `command` string for a `hooks/<name>.sh` or `scripts/<name>.sh`
+    reference (PB-8: nine PreToolUse/SessionStart/UserPromptSubmit hooks live
+    under scripts/ because marketplace-dev chmod on new hooks/*.sh is denied).
+    Sourced helpers (`_`-prefixed) are never registered as hook entries and are
+    dropped defensively.
     """
     data = json.loads(hooks_json_path.read_text(encoding="utf-8"))
     found = set()
@@ -83,7 +85,9 @@ def registered_hooks(hooks_json_path: Path) -> set:
         if isinstance(obj, dict):
             cmd = obj.get("command")
             if isinstance(cmd, str):
-                m = re.search(r"hooks/([A-Za-z0-9._-]+\.sh)", cmd)
+                # Same shape as generate-dashboards._PIPE_DTREE_HOOK_BASENAME_RE
+                # (hooks|scripts), but .sh only — this gate reconciles shell hooks.
+                m = re.search(r"(?:hooks|scripts)/([A-Za-z0-9._-]+\.sh)", cmd)
                 if m:
                     found.add(m.group(1))
             for v in obj.values():
@@ -110,7 +114,9 @@ def validate(stage_ids, stage_hooks, excluded, registered) -> list:
     for sid in sorted(map_keys - stage_id_set):
         errors.append(f"_PIPELINE_STAGE_HOOKS names a stage that is not in _PIPELINE_LANES: {sid}")
     for sid in sorted(stage_id_set - map_keys):
-        errors.append(f"pipeline stage has no hook mapping (add it to _PIPELINE_STAGE_HOOKS): {sid}")
+        errors.append(
+            f"pipeline stage has no hook mapping (add it to _PIPELINE_STAGE_HOOKS): {sid}"
+        )
 
     lane_hooks = {h for h in stage_hooks.values() if h}
 
