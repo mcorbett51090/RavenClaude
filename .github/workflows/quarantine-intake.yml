@@ -17,7 +17,9 @@ name: Quarantine external scenario submission
 #    (scripts/process-scenario-submission.py), mirroring hooks/_scrub.sh +
 #    plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py.
 #  * A secret/PII shape => the issue is closed "not staged", no file, no PR.
-#  * A spam cap closes the issue if too many external submissions are already open.
+#  * A spam cap closes the issue if too many quarantine PRs are already open
+#    (the backlog that actually accumulates — staged issues are closed in the
+#    same run, so counting open issues never tripped for sequential submissions).
 
 on:
   issues:
@@ -56,8 +58,11 @@ jobs:
         with:
           python-version: "3.x"
 
-      # --- Spam cap: close with "queue full" if too many external submissions are open. ---
-      # The issue body/title are NOT used here; only counts. gh reads the label.
+      # --- Spam cap: close with "queue full" if too many quarantine PRs are open. ---
+      # CI-06: counting open *issues* never tripped for sequential submissions —
+      # this workflow closes the issue after staging, so the open-issue count
+      # resets every run. The backlog that accumulates is open PRs labeled
+      # scenario-submission. Issue body/title are NOT used here; only counts.
       - name: Enforce open-submission cap
         id: cap
         env:
@@ -66,13 +71,13 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
-          open_count="$(gh issue list \
+          open_count="$(gh pr list \
             --repo "$GITHUB_REPOSITORY" \
             --label scenario-submission \
             --state open \
             --limit 200 \
             --json number --jq 'length')"
-          echo "open scenario-submission issues: $open_count (cap $MAX_OPEN)"
+          echo "open scenario-submission PRs: $open_count (cap $MAX_OPEN)"
           if [ "$open_count" -gt "$MAX_OPEN" ]; then
             echo "over_cap=true" >> "$GITHUB_OUTPUT"
           else
@@ -87,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" \
-            --body "The external-submission queue is currently full. Please try again in a few days — thank you for contributing."
+            --body "The external-submission queue is currently full (too many staged quarantine PRs awaiting review). Please try again in a few days — thank you for contributing."
           gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label "queue-full"
           gh issue close "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY"
 
