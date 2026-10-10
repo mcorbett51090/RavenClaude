@@ -1331,6 +1331,42 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "the Spectate store/UI, not a safety-floor guardrail — same class as "
     "emit-permission-denied.sh and handoff-tax-meter.sh — so deliberately NOT a "
     "Pipeline stage card",
+    # --- scripts/-resident registrations (PB-8) ---
+    # Nine hooks live under scripts/ (marketplace-dev chmod on new hooks/*.sh is denied).
+    # Gate 133 now discovers them; none get a Pipeline stage card without a DOM-budget
+    # owner decision (PA-8).
+    "ask-on-ambiguity.sh": "UserPromptSubmit advisory nudge on under-specified prompts "
+    "(Claim-Grounding complement). Fail-open, never denies a tool call, never inspects "
+    "Bash/Write — deliberately NOT a Pipeline stage card",
+    "caveman-route-hook.sh": "opt-in caveman auto-routing (UserPromptSubmit + SessionStart) "
+    "governed by caveman_routing in comfort-posture.yaml (absent/off => zero file writes). "
+    "shadow records; live applies mode. Fail-open — host/routing hygiene, not a "
+    "safety-floor guardrail, so deliberately NOT a Pipeline stage card",
+    "guard-cause-closure.sh": "cause-taxonomy closure gate (PostToolUse / remediating Write). "
+    "Advisory substrate for knowledge/cause-taxonomy.md — fails open when blind. "
+    "Promoting it to a stage needs an owner DOM-budget call (PA-8); until then "
+    "deliberately excluded",
+    "guard-remediation-cause.sh": "cause-taxonomy remediation gate (PreToolUse Bash). Sibling "
+    "of guard-cause-closure.sh — unsettled-cause brake on remediating commands. Advisory "
+    "substrate, fails open when blind, deliberately NOT a Pipeline stage card until an "
+    "owner promotes it under the DOM budget",
+    "plugin-lifecycle-sweep.sh": "SessionStart marketplace-dev plugin-install durability "
+    "sweep (ensure-plugin-installed companion). Marketplace-internal hygiene — same class "
+    "as regen-on-manifest-change.sh — deliberately NOT a Pipeline stage card",
+    "plugin-lifecycle-telemetry.sh": "SessionStart / Stop / UserPromptSubmit telemetry for "
+    "plugin lifecycle. Observability only — never denies, never inspects a tool call — "
+    "same class as stream-* trackers and handoff-tax-meter.sh",
+    "preflight-command-review.sh": "PreToolUse(Bash) tribunal preflight (command-review). "
+    "Feeds / is gated by the Thing orchestrator already drawn as the thing Pipeline "
+    "stage (thing-orchestrator.sh). A second card would duplicate that lane at DOM-budget "
+    "cost — deliberately NOT its own Pipeline stage card",
+    "prompt-optimizer-gate.sh": "UserPromptSubmit opt-in prompt optimizer governed by "
+    "prompt_optimizer in comfort-posture.yaml. Settings-panel control already; gates "
+    "nothing on the tool-call safety floor — deliberately NOT a Pipeline stage card",
+    "routine-reserve-hook.sh": "routine-token-reserve SessionStart / UserPromptSubmit / "
+    "consent hook. Account-scope usage hygiene (see knowledge/routine-token-reserve.md), "
+    "same class as keep-awake.sh / dashboard-autostart.sh — deliberately NOT a Pipeline "
+    "stage card",
 }
 
 

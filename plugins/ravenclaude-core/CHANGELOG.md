@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.339.5 — 2026-10-10
+
+### Fixed
+- **Pipeline lane gate discovers `scripts/`-resident hooks (PB-8).**
+  Gate 133 (`check-pipeline-lanes.py`) only matched `hooks/*.sh`, so nine
+  registered commands under `scripts/` were invisible to the map↔registry
+  reconciliation — the exact drift class the gate exists to catch. Discovery
+  now matches `(hooks|scripts)/*.sh`; the nine are listed in
+  `_PIPELINE_EXCLUDED_HOOKS` with reasons (no new Pipeline cards / DOM-budget
+  hit — promoting any of them is a PA-8 owner call).
+
 ## 0.339.4 — 2026-10-10
 
 ### Fixed
