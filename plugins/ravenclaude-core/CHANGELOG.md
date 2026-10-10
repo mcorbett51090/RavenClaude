@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.343.0 — 2026-10-10
+
+### Added
+- **Spectate v0.12 SessionEnd / SubagentStop observe** — `spectate-emit.sh` maps `SessionEnd`→`session.end` and `SubagentStop`→`subagent.stop` (asserted_status from host status). Wired on Claude Code (`hooks.json`), Codex fixed lists, and Cursor adapter modes `sessionend` / `subagentstop` (docs-verified; never forwards task/summary/modified_files). Gemini lanes stay explicitly skipped. Gates 159 / spectate-emit S11–S12 / generate-*-hooks floors.
+
 ## 0.342.0 — 2026-10-10
 
 ### Added

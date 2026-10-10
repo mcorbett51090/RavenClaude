@@ -91,6 +91,10 @@ _EVENT = {
     "SubagentStart": "SubagentStart",
     "PreCompact": "PreCompact",
     "PermissionRequest": "PermissionRequest",
+    # Spectate v0.12 — docs-verified Codex SessionEnd / SubagentStop
+    # [docs-verified 2026-10-10 — developers.openai.com/codex/hooks].
+    "SessionEnd": "SessionEnd",
+    "SubagentStop": "SubagentStop",
 }
 
 _LANE_SCOPE_REASON = (
@@ -155,7 +159,8 @@ _SKIP = {
     "precompact-digest.sh": _EVENT_UNWIRED_REASON,
     # spectate-emit.sh is wired via SessionStart derivation + fixed
     # PreToolUse/PostToolUse/Stop (v0.9) + UserPromptSubmit/SubagentStart/
-    # PreCompact/PermissionRequest (v0.11). By-basename accounting covers the
+    # PreCompact/PermissionRequest (v0.11) + SessionEnd/SubagentStop (v0.12).
+    # By-basename accounting covers the
     # script once any lane wires it; floors below catch a lane drop.
     "spectate-steer.sh": _EVENT_UNWIRED_REASON,
     "emit-permission-denied.sh": _EVENT_UNWIRED_REASON,
@@ -226,6 +231,10 @@ _FIXED_PERMISSIONREQUEST = (
         (("spectate-emit.sh", ""),),
     ),
 )
+# Spectate v0.12 — SessionEnd / SubagentStop observe (native contract).
+# Empty stdout on exit 0 is success+continue per Codex common output rules.
+_FIXED_SESSIONEND = ((None, (("spectate-emit.sh", ""),)),)
+_FIXED_SUBAGENTSTOP = ((None, (("spectate-emit.sh", ""),)),)
 
 
 def _script_of(command: str) -> str:
@@ -352,6 +361,8 @@ def build(
     sa_groups, sa_wired = _fixed_block(shim, hooks_dir, _FIXED_SUBAGENTSTART)
     pc_groups, pc_wired = _fixed_block(shim, hooks_dir, _FIXED_PRECOMPACT)
     pr_groups, pr_wired = _fixed_block(shim, hooks_dir, _FIXED_PERMISSIONREQUEST)
+    se_groups, se_wired = _fixed_block(shim, hooks_dir, _FIXED_SESSIONEND)
+    ss2_groups, ss2_wired = _fixed_block(shim, hooks_dir, _FIXED_SUBAGENTSTOP)
 
     wired: list = (
         [(s, "SessionStart") for s in ss_wired]
@@ -362,6 +373,8 @@ def build(
         + [(s, "SubagentStart") for s in sa_wired]
         + [(s, "PreCompact") for s in pc_wired]
         + [(s, "PermissionRequest") for s in pr_wired]
+        + [(s, "SessionEnd") for s in se_wired]
+        + [(s, "SubagentStop") for s in ss2_wired]
     )
     wired_names = {s for s, _ in wired}
 
@@ -405,6 +418,8 @@ def build(
             "SubagentStart": sa_groups,
             "PreCompact": pc_groups,
             "PermissionRequest": pr_groups,
+            "SessionEnd": se_groups,
+            "SubagentStop": ss2_groups,
         },
     }
     return cfg, wired, skipped
@@ -469,6 +484,8 @@ def main(argv: list) -> int:
                 "SubagentStart",
                 "PreCompact",
                 "PermissionRequest",
+                "SessionEnd",
+                "SubagentStop",
             )
             by_event = {e: set() for e in floor_events}
             for script, event in wired:

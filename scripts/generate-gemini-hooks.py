@@ -213,6 +213,14 @@ _SKIP_EVENT = {
         "PermissionRequest. Gemini has no verified permission-prompt hook lane. "
         "Claude Code + Copilot carry permission.request emit."
     ),
+    ("spectate-emit.sh", "SessionEnd"): (
+        "SessionEnd. Gemini SessionEnd payload schema remains unverified on the "
+        "pages checked (same caution as Stop→AfterAgent). Other emit lanes wire."
+    ),
+    ("spectate-emit.sh", "SubagentStop"): (
+        "SubagentStop. Gemini exposes no verified subagent-stop hook event on the "
+        "pages checked. Other emit lanes wire."
+    ),
 }
 
 

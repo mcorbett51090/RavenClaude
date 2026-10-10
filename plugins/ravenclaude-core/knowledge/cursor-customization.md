@@ -91,6 +91,7 @@ hook_event_name · cursor_version · workspace_roots[] · user_email · transcri
 > probe. Spectate **observe** wires them (v0.10 `tool-pre` / `tool-post` — `preToolUse` always emits
 > `{"permission":"allow"}`; never forwards `tool_output` / `agent_message`). v0.9 also wires
 > **`preCompact`** and **`subagentStart`** (always allow; `tool_call_id` → `tool_use_id`; never `task`).
+> v0.12 wires **`sessionEnd`** (fire-and-forget) and **`subagentStop`** (ids/status only; never task/summary/files).
 
 ---
 

@@ -37,6 +37,7 @@
 #   cursor-hook-adapter.sh <mode> /abs/path/to/real-hook.sh [args...]
 # Modes: shell-pretool | file-posttool | sessionstart | stop | promptsubmit
 #        | precompact | subagentstart | tool-pre | tool-post
+#        | sessionend | subagentstop
 #
 # Enforcement stays on beforeShellExecution (Bash guards). Spectate observe:
 #   v0.9 preCompact + subagentStart; v0.10 preToolUse + postToolUse (tool-pre /
@@ -365,6 +366,55 @@ print(json.dumps(o))
     # Fixed allow literal — both spellings not required; permission is the only
     # binding field. Empty stdout would BLOCK; this is the observe-lane safety.
     printf '%s\n' '{"permission":"allow"}'
+    exit 0
+    ;;
+  sessionend)
+    # Cursor sessionEnd — fire-and-forget `[docs-verified 2026-10-10 —
+    # cursor.com/docs/agent/hooks]`. Response unused. Forward payload for
+    # spectate-emit; never invent stdout.
+    export CLAUDE_HOOK_EVENT=SessionEnd
+    printf '%s' "$payload" | bash "$real" "$@" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  subagentstop)
+    # Cursor subagentStop — observational (optional followup_message). Spectate
+    # observe: Claude-shaped stdin with type/status/ids only — never task,
+    # summary, or modified_files `[docs-verified 2026-10-10]`.
+    export CLAUDE_HOOK_EVENT=SubagentStop
+    _aid="$(_field subagent_id)"; [ -z "$_aid" ] && _aid="$(_field agent_id)"
+    _atype="$(_field subagent_type)"; [ -z "$_atype" ] && _atype="$(_field subagentType)"
+    _status="$(_field status)"
+    _tid="$(_field tool_call_id)"
+    [ -z "$_tid" ] && _tid="$(_tool_use_id)"
+    if command -v jq >/dev/null 2>&1; then
+      stdin_json="$(jq -cn --arg d "$cw" --arg s "$sid" --arg u "$_tid" \
+        --arg a "$_aid" --arg t "$_atype" --arg st "$_status" \
+        '{cwd:$d,session_id:$s}
+         | if $u != "" then . + {tool_use_id:$u} else . end
+         | if $a != "" then . + {agent_id:$a,subagent_id:$a} else . end
+         | if $t != "" then . + {subagent_type:$t} else . end
+         | if $st != "" then . + {status:$st} else . end' 2>/dev/null)" || stdin_json=""
+    elif command -v python3 >/dev/null 2>&1; then
+      stdin_json="$(python3 -c '
+import json, sys
+o = {"cwd": sys.argv[1], "session_id": sys.argv[2]}
+if sys.argv[3]:
+    o["tool_use_id"] = sys.argv[3]
+if sys.argv[4]:
+    o["agent_id"] = sys.argv[4]
+    o["subagent_id"] = sys.argv[4]
+if sys.argv[5]:
+    o["subagent_type"] = sys.argv[5]
+if sys.argv[6]:
+    o["status"] = sys.argv[6]
+print(json.dumps(o))
+' "$cw" "$sid" "$_tid" "$_aid" "$_atype" "$_status" 2>/dev/null)" || stdin_json=""
+    else
+      stdin_json=""
+    fi
+    if [ -n "$stdin_json" ]; then
+      printf '%s' "$stdin_json" | bash "$real" "$@" >/dev/null 2>&1 || true
+    fi
     exit 0
     ;;
   *)

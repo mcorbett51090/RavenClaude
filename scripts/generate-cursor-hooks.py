@@ -71,6 +71,12 @@ _EVENT = {
     # mode always emits {"permission":"allow"} after the observe hook.
     "PreCompact": ("preCompact", "precompact"),
     "SubagentStart": ("subagentStart", "subagentstart"),
+    # Spectate v0.12 — schemas docs-verified 2026-10-10 (cursor.com/docs/agent/hooks).
+    # sessionEnd is fire-and-forget (no output fields). subagentStop is observational
+    # (optional followup_message — observe emits empty stdout, never forwards task/
+    # summary/modified_files).
+    "SessionEnd": ("sessionEnd", "sessionend"),
+    "SubagentStop": ("subagentStop", "subagentstop"),
 }
 
 # PreToolUse hooks reach Cursor only through beforeShellExecution, which carries a
@@ -356,17 +362,20 @@ def main(argv: list) -> int:
                 file=sys.stderr,
             )
             return 1
-        # Spectate floors: v0.9 preCompact/subagentStart; v0.10 preToolUse/postToolUse.
+        # Spectate floors: v0.9 preCompact/subagentStart; v0.10 preToolUse/postToolUse;
+        # v0.12 sessionEnd/subagentStop.
         wired_pairs = {(s, e) for s, e, _, _ in wired}
         wired_cursor = {(s, ce) for s, _, ce, _ in wired}
         for need_ev, cursor_ev in (
             ("PreCompact", "preCompact"),
             ("SubagentStart", "subagentStart"),
+            ("SessionEnd", "sessionEnd"),
+            ("SubagentStop", "subagentStop"),
         ):
             if ("spectate-emit.sh", need_ev) not in wired_pairs:
                 print(
                     f"cursor-hooks: spectate-emit.sh not wired on {need_ev}→{cursor_ev} "
-                    f"(Spectate v0.9)",
+                    f"(Spectate v0.9/v0.12)",
                     file=sys.stderr,
                 )
                 return 1

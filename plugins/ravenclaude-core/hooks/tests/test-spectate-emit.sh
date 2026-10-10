@@ -245,6 +245,49 @@ else
 fi
 rm -rf "$T10"
 
+echo "── S11: SessionEnd emits session.end ─────────────────────────────────────"
+T11="$(mktemp -d)"
+out11="$(run_hook "$T11" s11 SessionEnd '{"session_id":"s11","reason":"other"}')"
+rc11=$?
+log11="$T11/.ravenclaude/runs/s11/spectate-events.jsonl"
+if [ "$rc11" -eq 0 ] && [ -z "$out11" ] && [ -f "$log11" ]; then
+  kind11="$(jq -r '.kind' "$log11")"
+  if [ "$kind11" = "session.end" ]; then
+    pass "S11: session.end written; exit 0; empty stdout"
+  else
+    fail "S11: unexpected kind=$kind11"
+  fi
+else
+  fail "S11: rc=$rc11 out_len=${#out11} log=$( [ -f "$log11" ] && echo y || echo n )"
+fi
+rm -rf "$T11"
+
+echo "── S12: SubagentStop emits subagent.stop + asserted succeeded ────────────"
+T12="$(mktemp -d)"
+payload12='{"session_id":"s12","agent_id":"ag-9","subagent_type":"explore","status":"completed"}'
+out12="$(run_hook "$T12" s12 SubagentStop "$payload12")"
+rc12=$?
+log12="$T12/.ravenclaude/runs/s12/spectate-events.jsonl"
+if [ "$rc12" -eq 0 ] && [ -z "$out12" ] && [ -f "$log12" ]; then
+  kind12="$(jq -r '.kind' "$log12")"
+  node12="$(jq -r '.node_id // empty' "$log12")"
+  ass12="$(jq -r '.asserted_status // empty' "$log12")"
+  blob12="$(cat "$log12")"
+  ok12=1
+  [ "$kind12" = "subagent.stop" ] || ok12=0
+  [ "$node12" = "ag-9" ] || ok12=0
+  [ "$ass12" = "succeeded" ] || ok12=0
+  printf '%s' "$blob12" | grep -Fq 'completed' && ok12=0  # status string must not leak as raw field
+  if [ "$ok12" -eq 1 ]; then
+    pass "S12: subagent.stop node_id=ag-9 asserted=succeeded"
+  else
+    fail "S12: kind=$kind12 node=$node12 asserted=$ass12"
+  fi
+else
+  fail "S12: rc=$rc12 out_len=${#out12} log=$( [ -f "$log12" ] && echo y || echo n )"
+fi
+rm -rf "$T12"
+
 if [ "$FAILED" -ne 0 ]; then
   echo "test-spectate-emit: $FAILED failure(s)"
   exit 1

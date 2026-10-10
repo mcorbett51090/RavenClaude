@@ -4,8 +4,9 @@
 # Appends ONE scrubbed rc.spectate.v1 line to
 #   ${CLAUDE_PROJECT_DIR}/.ravenclaude/runs/<session>/spectate-events.jsonl
 # for SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop /
-# SubagentStart / PreCompact. Never blocks; never writes stdout; never carries
-# raw prompts, tool arguments, tool output, or secrets.
+# SubagentStart / SubagentStop / PreCompact / SessionEnd / PermissionRequest.
+# Never blocks; never writes stdout; never carries raw prompts, tool arguments,
+# tool output, task/summary text, or secrets.
 #
 # Input:  hook event JSON on stdin (plus optional CLAUDE_HOOK_EVENT / $1).
 # Output: exit 0 always; empty stdout.
@@ -70,11 +71,13 @@ DOTDOT = re.compile(r"(^|/)\.\.(/|$)")
 
 KIND_BY_EVENT = {
     "sessionstart": "session.start",
+    "sessionend": "session.end",
     "userpromptsubmit": "prompt.submit",
     "pretooluse": "tool.pre",
     "posttooluse": "tool.post",
     "stop": "turn.end",
     "subagentstart": "subagent.start",
+    "subagentstop": "subagent.stop",
     "precompact": "compact.pre",
     "permissionrequest": "permission.request",
 }
@@ -262,6 +265,8 @@ def main() -> None:
 
     if kind == "session.start":
         node_id = "session"
+    elif kind == "session.end":
+        node_id = "session"
     elif kind == "prompt.submit":
         node_id = "prompt"
         prompt = payload.get("prompt")
@@ -297,14 +302,24 @@ def main() -> None:
             asserted = "succeeded"
         else:
             asserted = "waiting-approval"
-    elif kind == "subagent.start":
+    elif kind in {"subagent.start", "subagent.stop"}:
         node_id = sanitize_id(
             payload.get("agent_id")
+            or payload.get("subagent_id")
             or payload.get("subagent_type")
             or payload.get("subagentType")
             or "subagent",
             "subagent",
         )
+        if kind == "subagent.stop":
+            # Cursor status: completed|error|aborted — map to schema asserted_status.
+            st = str(payload.get("status") or "").strip().lower()
+            if st in {"completed", "success", "succeeded", "ok"}:
+                asserted = "succeeded"
+            elif st in {"error", "failed", "aborted", "cancelled", "canceled"}:
+                asserted = "failed"
+            else:
+                asserted = "succeeded"
     elif kind == "compact.pre":
         node_id = "compact"
     elif kind == "turn.end":
