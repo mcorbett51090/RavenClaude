@@ -63,15 +63,32 @@ fi
 [ "$tool" = "WebFetch" ] || exit 0
 [ -n "$url" ] || exit 0
 
-# Host from the URL: strip scheme, userinfo, path, port; lowercase.
+# Host from the URL: strip scheme, then cut authority at the first path /
+# query / fragment / backslash delimiter BEFORE stripping userinfo. Order
+# matters — `${host##*@}` after leaving `#@spoof` or `?@spoof` in the string
+# rewrote the host to the spoof (deny-list bypass / allow-list spoof;
+# 2026-10-06 review SH-F2). Then strip userinfo + port; lowercase; drop a
+# trailing FQDN dot (`evil.com.` ≡ `evil.com`). Reject control chars.
 host="${url#*://}"
-host="${host%%/*}"
+case "$host" in
+  */*) host="${host%%/*}" ;;
+esac
+case "$host" in
+  *\?*) host="${host%%\?*}" ;;
+esac
+case "$host" in
+  *#*) host="${host%%#*}" ;;
+esac
+case "$host" in
+  *\\*) host="${host%%\\*}" ;;
+esac
 host="${host##*@}"
 host="${host%%:*}"
 host="$(printf '%s' "$host" | tr 'A-Z' 'a-z')"
-host="${host%.}"   # strip a trailing FQDN dot: `evil.com.` is DNS-equivalent to
-                   # `evil.com`, but without this it matches neither a deny nor
-                   # an allow rule and slips past the blacklist.
+host="${host%.}"
+case "$host" in
+  "" | *[!a-z0-9._-]*) exit 0 ;;
+esac
 [ -n "$host" ] || exit 0
 
 proj="${CLAUDE_PROJECT_DIR:-$PWD}"
