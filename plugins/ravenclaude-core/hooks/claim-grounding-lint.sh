@@ -28,14 +28,13 @@
 #
 # DIVISION OF LABOUR — the hook does NOT own the grammar. Typing a sentence
 # observation-vs-inference is `scripts/classify_claim.py`'s job and only its job:
-# check 3 pipes its candidate lines through that module's `--lines` batch mode
-# (ONE interpreter start per file) and keeps a line only if the module reports the
-# `causal` family. Re-implementing those five families in bash would guarantee the
-# two drift apart, and the module is the one with a planted canary, fixtures and a
-# must-fail battery. What the HOOK owns is narrower and is a SCOPE decision, not a
-# typing one: which lines are consequential enough to be worth a nudge (the
-# outcome-word prefilter below) and which are already grounded (the evidence and
-# meta suppressions). Do not move family grammar into this file.
+# check 3's candidates are typed in-process by `claim_grounding_scan.py` via
+# `classify_claim.families()` and kept only for the `causal` family. Re-implementing
+# those five families in bash (or a second Python copy) would guarantee drift, and
+# the module is the one with a planted canary, fixtures and a must-fail battery.
+# What the HOOK owns is narrower: path scope, comfort-posture opt-in, and advisory
+# emit. Line skips + check regexes live in the scanner (SH-F9). Do not move family
+# grammar into this file.
 #
 # HONEST SCOPE (read this — it bounds BOTH checks): this hook can only see
 # WRITTEN FILE CONTENT — never the chat answer, which is where the confident
@@ -133,207 +132,46 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do
 done
 [[ "$posture_found" -eq 0 ]] && exit 0
 
-# Specific unhedged-absolute capability phrasings (NOT a generic "cannot").
-phrase='(you can'\''?t|it'\''?s impossible|impossible to|there'\''?s no way|there is no way|cannot be done|isn'\''?t possible|is not possible|not possible to|never works)'
-# A conditional lead earlier on the line makes the phrase legitimate guidance.
-conditional='\b(if|when|whenever|unless|because|since|until)\b'
-
-# ── Check 2: contract-provenance (PR 9 / P15) ────────────────────────────────
-# A SPECIFIC set of capability/contract phrasings, not a generic "supports".
-# Everything below survived a hand-classified dry run over the live tree; the
-# candidates it THREW OUT are the useful part of the record:
-#   "natively" (58 hits, ~all prose), "defaults to"/"the default is" (31 hits,
-#   ~13% precision — mostly our own flags), "(supports|accepts|returns) only"
-#   (32 hits, ~all `grep` result counts), "added/introduced in <version>" (3
-#   hits, all doc-changelog rows). Each was measured, not guessed, and each was
-#   dropped for precision. Do not re-add one without re-running the dry run.
-contract='(does not|doesn'\''?t|do not|don'\''?t) support|(is|are|was|were) (not )?supported|ha(s|ve) no (native|public|documented|official|supported)'
-# Inline provenance markers that make the claim grounded. `[verify-at-…` and a
-# bare ISO date are here because the dry run produced REAL false positives on
-# lines that carried them — this repo already writes provenance in those forms.
-provenance='\[docs-verified|\[verify-at-|\[unverified|\bverified\b|20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
-# Sense disambiguation: "supported BY evidence/sources/documents" is the
-# evidentiary sense of the word, not a capability claim. 4 real hits.
-contract_sense='supported by'
-# Elided-object rule: a genuine contract claim NAMES what is unsupported ("does
-# not support MERGE", "does not support PCRE lookahead"). When the verb ends the
-# clause with no object, the sense is evidentiary/rhetorical ("a count the
-# sources don't support."). Measured: suppresses 3 real false positives and
-# ZERO true findings.
-contract_elided='support(ed)?[[:space:])".,;:]*$'
-
-# ── Check 3: inference-as-observation (causal claim, no this-session check) ───
-# SCOPE prefilter, NOT a typing rule (see the header): a causal sentence only
-# matters here if it attributes an OUTCOME — that is the shape an agent acts on.
-# Without this, every explanatory "X exists because Y" in a design doc would trip,
-# and a lint that fires constantly gets ignored, which protects nothing.
-outcome='fail(s|ed|ing|ure|ures)?|break(s|ing)?|broke(n)?|bug|regress|error|crash|hang|flake|flaky|leak|outage|timed out|timeout|denied|blocked|stale|red|green|pass(es|ed|ing)?|work(s|ing)?|correct|incorrect|wrong|missing|slow|down|exit[[:space:]]+[0-9]|\b[45][0-9][0-9]\b'
-# DIAGNOSTIC prefilter — the second scope narrowing, and the one that MEASUREMENT
-# forced. A first cut used every causal marker classify_claim.py recognises and
-# fired on 92 of 240 sampled live knowledge/docs files (38%). Hand-reading the
-# hits showed the cause: bare `because` and bare `so` are overwhelmingly
-# EXPLANATORY in this repo's prose — design rationale ("the skip is correct
-# because Bash command payloads are small"), purposive ("so they can install it").
-# A lint that fires on a third of the tree gets switched off, which protects
-# nothing.
+# ── Single-process scan (SH-F9) ──────────────────────────────────────────────
+# Patterns + line skips + check-3 typing live in claim_grounding_scan.py so a
+# large doc does not pay a per-line `echo|grep` fork storm (~14–20 s on
+# docs/concepts.md before this change). The hook still owns path scope, opt-in
+# posture, and advisory emit. Typing for check 3 stays classify_claim.py's job
+# (imported in-process by the scanner) — do not re-implement the five families
+# here. Pattern rationale (dry-run precision notes, measured gaps) lives in the
+# scanner module header and CLAUDE.md § Claim Grounding.
 #
-# ⛔ WHAT THIS COSTS, stated rather than hidden: separating an EXPLANATORY
-# "because" from a DIAGNOSTIC one is not mechanically decidable — "the page is
-# green because the check passed" and "the skip is correct because payloads are
-# small" are the same sentence to a regex. So check 3 keeps only the subset that
-# IS separable: attribution ("caused by", "root cause", "due to") and conclusion
-# connectives ("therefore", "which means"). It therefore MISSES a causal claim
-# whose only marker is `because` — including the real "the status page is
-# correctly green because the health check passed". That is a known, measured gap,
-# not an oversight. Do not close it by re-adding bare `because` without re-running
-# the dry run; the last attempt cost 38%.
-#
-# MEASURED END STATE (same 240-file sample, same command): 92 -> 13 -> 9 files
-# (38% -> 5.4% -> 3.75%) across the diagnostic narrowing and the two suppressions
-# below, landing in the same band as check 1 (9/240) and check 2 (4/240). Checks 1
-# and 2 read 9 and 4 on ALL THREE runs, which is the regression proof that adding
-# check 3 did not disturb them.
-diagnostic='caused[[:space:]]+(by|the|it|this|that)|causing|root[[:space:]]+cause[[:space:]]*(is|was|of|:|=)|due[[:space:]]+to|owing[[:space:]]+to|led[[:space:]]+to|leads[[:space:]]+to|resulted[[:space:]]+in|result(s|ing)[[:space:]]+from|stems[[:space:]]+from|that[[:space:]]+is[[:space:]]+why|the[[:space:]]+reason[[:space:]]+(is|was|for|why)|therefore|hence|thus|consequently|as[[:space:]]+a[[:space:]]+result|which[[:space:]]+means|mean(s|ing)[[:space:]]+that|it[[:space:]]+follows[[:space:]]+that|attributable[[:space:]]+to|to[[:space:]]+blame|at[[:space:]]+fault|the[[:space:]]+culprit'
-# GROUNDED — a this-session check cited inline. Deliberately generous: the cost of
-# a missed nudge is one un-nudged line; the cost of nagging a line that DOES cite
-# its evidence is that the whole check gets switched off. Covers this repo's own
-# citation vocabulary (`cmd -> output`, file:line, a dated marker, "control:").
-evidence='\[docs-verified|\[verify-at-|\[unverified|verified this session|verified against|\bverified\b|\bmeasured\b|\breproduced\b|\bcontrol:|20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]|[A-Za-z0-9_./-]+\.(sh|py|mjs|js|ts|json|ya?ml|md|toml|txt):[0-9]+|(->|=>|→)'
-# META — the line DESCRIBES the anti-pattern instead of committing it. This repo
-# has a documented, recurring failure where a source-scan gate flags the prose
-# explaining the very pattern it hunts (nine such blocks in one session), and a
-# doc teaching observation-vs-inference necessarily writes causal example
-# sentences. Quotation marks count: a quoted claim is a specimen, not an
-# assertion. Tested explicitly in both directions by Gate 224.
-# PRESCRIPTIVE — a sentence issuing an instruction is not asserting a diagnosis.
-# "P8 must therefore rebase onto post-#959 main" uses a conclusion connective to
-# derive an ACTION, not a cause. Measured: this class plus the bare-noun "root
-# cause" (a table header, "triaged by root cause") were the two residual
-# false-positive shapes left after the diagnostic narrowing.
-prescriptive='\b(must|should|shall|needs?[[:space:]]+to|ought[[:space:]]+to|have[[:space:]]+to|has[[:space:]]+to|plan[[:space:]]+to|going[[:space:]]+to)\b'
-meta='anti-?pattern|for example|for instance|\be\.g\.|example:|counter-?example|(do not|don'\''?t|never)[[:space:]]+(write|say|claim|assert|state)|would (be )?(get )?flagged|this (hook|lint|check|gate|nudge|rule)|\binference\b|\binferences\b|\bobservation\b|\bobservations\b|\bhypothes|hypothetical|\bsuppose\b|imagine|"[^"]*"|“[^”]*”'
-
+# CLAIM_GROUNDING_SCAN overrides the scanner path (Gate 224 C1 teeth: a temp
+# copy with EVIDENCE/META/PRESCRIPTIVE neutered). Unset in normal use.
 violations=()
 contract_violations=()
-c3_nums=()
-c3_texts=()
-in_fence=0
-in_frontmatter=0
-lineno=0
-first_nonblank_seen=0
-
-while IFS= read -r line || [[ -n "$line" ]]; do
-  lineno=$((lineno + 1))
-
-  # YAML frontmatter: a leading `---` as the very first non-blank line opens it;
-  # the next `---` closes it.
-  if [[ "$first_nonblank_seen" -eq 0 && -n "${line// /}" ]]; then
-    first_nonblank_seen=1
-    if [[ "$line" == "---" ]]; then in_frontmatter=1; continue; fi
-  fi
-  if [[ "$in_frontmatter" -eq 1 ]]; then
-    [[ "$line" == "---" ]] && in_frontmatter=0
-    continue
-  fi
-
-  # Fenced code blocks (``` or ~~~) — toggle and skip their contents.
-  if [[ "$line" =~ ^[[:space:]]*(\`\`\`|~~~) ]]; then
-    in_fence=$((1 - in_fence)); continue
-  fi
-  [[ "$in_fence" -eq 1 ]] && continue
-
-  # Blockquotes often quote bad examples / external text — skip.
-  [[ "$line" =~ ^[[:space:]]*\> ]] && continue
-
-  # Markdown headings are titles, not consequential platform claims (and often
-  # carry idioms like "you can't manage what you don't track") — skip.
-  [[ "$line" =~ ^[[:space:]]*#{1,6}[[:space:]] ]] && continue
-
-  # Inline escape hatch.
-  echo "$line" | grep -qiF 'claim-lint-ok' && continue
-
-  # Check 3 — collect candidates FIRST, deliberately. Checks 1 and 2 below use
-  # bare `continue` for their suppressions, which skips the REST OF THE LINE, not
-  # just their own check (a line suppressed by check 1 already never reaches check
-  # 2). Running check 3 ahead of them keeps checks 1-2 byte-identical in behavior
-  # while giving check 3 every surviving line. Do not move this block downward.
-  if echo "$line" | grep -qiE "$outcome" && echo "$line" | grep -qiE "$diagnostic"; then
-    if ! echo "$line" | grep -qiE "$evidence" &&
-      ! echo "$line" | grep -qiE "$meta" &&
-      ! echo "$line" | grep -qiE "$prescriptive"; then
-      # Typing is classify_claim.py's call, not ours — batched after the loop.
-      c3_nums+=("$lineno")
-      c3_texts+=("$line")
-    fi
-  fi
-
-  # Does the line contain an absolute phrasing?
-  if echo "$line" | grep -qiE "$phrase"; then
-    # Suppress if it's a conditional ("if you can't…").
-    echo "$line" | grep -qiE "$conditional" && continue
-    # Suppress if the claim already carries a provenance marker on the line.
-    echo "$line" | grep -qiE '\[unverified|verified this session|verified against' && continue
-    trimmed="$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-    violations+=("  $file:$lineno: $trimmed")
-  fi
-
-  # Check 2 — contract provenance. Independent of check 1 (a line can trip both
-  # or either). Uses the same $file the stdin/arg parse already resolved above
-  # — no second stdin read (a duplicate parse would desync the two checks).
-  # Ordered cheapest-first: the contract match gates every other subprocess,
-  # so a non-matching line costs exactly one grep.
-  if echo "$line" | grep -qiE "$contract"; then
-    # Same conditional carve-out as check 1 ("when X doesn't support Y" is
-    # guidance, not an asserted contract).
-    echo "$line" | grep -qiE "$conditional" && continue
-    # Already carries an inline provenance marker -> grounded, stay silent.
-    echo "$line" | grep -qiE "$provenance" && continue
-    # "supported by <evidence>" — wrong sense of the word.
-    echo "$line" | grep -qiE "$contract_sense" && continue
-    # Verb ends the clause with no object -> evidentiary/rhetorical sense.
-    echo "$line" | grep -qiE "$contract_elided" && continue
-    trimmed2="$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-    contract_violations+=("  $file:$lineno: $trimmed2")
-  fi
-done < "$file"
-
-# ── Check 3, second pass: type the candidates via classify_claim.py ───────────
-# ONE interpreter start for the whole file. Every failure path here degrades to
-# "check 3 emitted nothing" and leaves checks 1-2 untouched — a missing python3, a
-# missing module, a non-zero exit, garbage on stdout. Check 3 is the newest and
-# least-proven of the three; it must never be able to take the other two down.
 inference_violations=()
-if [[ ${#c3_nums[@]} -gt 0 ]] && command -v python3 >/dev/null 2>&1; then
-  # Resolve the classifier: ${CLAUDE_PLUGIN_ROOT} when installed, else in-repo.
-  cc=""
-  if [[ -n "${CLAUDE_PLUGIN_ROOT:-}" && -f "${CLAUDE_PLUGIN_ROOT}/scripts/classify_claim.py" ]]; then
-    cc="${CLAUDE_PLUGIN_ROOT}/scripts/classify_claim.py"
+
+if command -v python3 >/dev/null 2>&1; then
+  _scan=""
+  if [[ -n "${CLAIM_GROUNDING_SCAN:-}" && -f "${CLAIM_GROUNDING_SCAN}" ]]; then
+    _scan="${CLAIM_GROUNDING_SCAN}"
+  elif [[ -n "${CLAUDE_PLUGIN_ROOT:-}" && -f "${CLAUDE_PLUGIN_ROOT}/scripts/claim_grounding_scan.py" ]]; then
+    _scan="${CLAUDE_PLUGIN_ROOT}/scripts/claim_grounding_scan.py"
   else
     _hookdir="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)"
-    [[ -n "$_hookdir" && -f "$_hookdir/../scripts/classify_claim.py" ]] && cc="$_hookdir/../scripts/classify_claim.py"
+    [[ -n "$_hookdir" && -f "$_hookdir/../scripts/claim_grounding_scan.py" ]] &&
+      _scan="$_hookdir/../scripts/claim_grounding_scan.py"
   fi
-  if [[ -n "$cc" ]]; then
-    c3_in="$(mktemp 2>/dev/null || true)"
-    c3_out="$(mktemp 2>/dev/null || true)"
-    if [[ -n "$c3_in" && -n "$c3_out" ]]; then
-      for t in "${c3_texts[@]}"; do printf '%s\n' "$t"; done >"$c3_in" 2>/dev/null || true
-      if python3 "$cc" --lines <"$c3_in" >"$c3_out" 2>/dev/null; then
-        while IFS=$'\t' read -r idx kind fams || [[ -n "$idx" ]]; do
-          [[ "$kind" == "inference" ]] || continue
-          # ONLY the causal family. An "every"/"all" quantifier or a modal is a
-          # different failure shape and would fire on ordinary doc prose.
-          case ",$fams," in *,causal,*) ;; *) continue ;; esac
-          case "$idx" in ''|*[!0-9]*) continue ;; esac
-          _i=$((idx - 1))
-          [[ "$_i" -ge 0 && "$_i" -lt ${#c3_nums[@]} ]] || continue
-          _trim="$(printf '%s' "${c3_texts[$_i]}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-          inference_violations+=("  $file:${c3_nums[$_i]}: $_trim")
-        done <"$c3_out"
-      fi
-      rm -f "$c3_in" "$c3_out" 2>/dev/null || true
-    fi
+  if [[ -n "$_scan" ]]; then
+    # Fail-safe: any scanner error → no findings (advisory; never block).
+    _scan_out="$(python3 "$_scan" --file "$file" 2>/dev/null || true)"
+    while IFS=$'\t' read -r _chk _ln _txt || [[ -n "${_chk:-}" ]]; do
+      [[ -n "${_chk:-}" ]] || continue
+      case "$_chk" in
+        c1) violations+=("  $file:$_ln: $_txt") ;;
+        c2) contract_violations+=("  $file:$_ln: $_txt") ;;
+        c3) inference_violations+=("  $file:$_ln: $_txt") ;;
+      esac
+    done <<<"$_scan_out"
   fi
 fi
+unset _scan _scan_out _chk _ln _txt _hookdir 2>/dev/null || true
 
 if [[ ${#violations[@]} -gt 0 ]]; then
   cat >&2 <<EOF
