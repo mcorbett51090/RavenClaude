@@ -33,7 +33,8 @@
 #
 # Usage (from a generated .gemini/settings.json entry):
 #   gemini-hook-adapter.sh <mode> /abs/path/to/real-hook.sh [args...]
-# Modes: pretool | posttool | sessionstart
+# Modes: pretool | posttool | sessionstart | sessionend | precompact |
+#        beforeagent | afteragent
 #
 # Gemini CLI 0.60+ host security (DOC pointer — UNVERIFIED):
 # MCP OAuth RFC 9207 issuer strictness · extension consent/env sanitize ·
@@ -175,6 +176,45 @@ case "$mode" in
       ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)"
       [ -n "$ctx" ] && printf '%s\n' "$ctx"
     fi
+    exit 0
+    ;;
+  sessionend)
+    # Gemini SessionEnd — best-effort observe; host ignores continue/decision
+    # `[docs-verified 2026-10-11 — geminicli.com/docs/hooks/reference/]`.
+    # Forward payload (reason) for spectate-emit; never invent stdout.
+    export CLAUDE_HOOK_EVENT=SessionEnd
+    printf '%s' "$payload" | bash "$real" "$@" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  precompact)
+    # Gemini PreCompress → Claude PreCompact. Advisory-only on the host
+    # (trigger: auto|manual); flow-control ignored
+    # `[docs-verified 2026-10-11 — geminicli.com/docs/hooks/reference/]`.
+    export CLAUDE_HOOK_EVENT=PreCompact
+    printf '%s' "$payload" | bash "$real" "$@" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  beforeagent)
+    # Gemini BeforeAgent → Claude UserPromptSubmit. Docs publish `prompt`
+    # `[docs-verified 2026-10-11 — geminicli.com/docs/hooks/reference/]`.
+    # Observe path: forward payload; surface additionalContext only (same as
+    # sessionstart). Discard decision/continue so an observe hook cannot
+    # deny or halt the turn via a stray JSON verdict.
+    export CLAUDE_HOOK_EVENT=UserPromptSubmit
+    out="$(printf '%s' "$payload" | bash "$real" "$@" 2>/dev/null || true)"
+    if [ -n "$out" ] && command -v jq >/dev/null 2>&1; then
+      ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)"
+      [ -n "$ctx" ] && printf '%s\n' "$ctx"
+    fi
+    exit 0
+    ;;
+  afteragent)
+    # Gemini AfterAgent → Claude Stop. Docs publish prompt / prompt_response
+    # `[docs-verified 2026-10-11 — geminicli.com/docs/hooks/reference/]`.
+    # Observe fire-and-forget: discard all stdout so a decision:deny cannot
+    # force a retry loop (AfterAgent's documented retry path).
+    export CLAUDE_HOOK_EVENT=Stop
+    printf '%s' "$payload" | bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0
     ;;
   *)

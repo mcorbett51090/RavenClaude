@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.346.0 — 2026-10-11
+
+### Added
+- **Spectate v0.14 Gemini lifecycle observe** — `generate-gemini-hooks.py` + `gemini-hook-adapter.sh` wire `spectate-emit` on docs-verified Gemini lanes `[docs-verified 2026-10-11 — geminicli.com/docs/hooks/reference/]`: `SessionEnd`→`session.end`, `PreCompress`→`compact.pre`, `BeforeAgent`→`prompt.submit`, `AfterAgent`→`turn.end`. Adapter discards AfterAgent stdout (no retry via `decision:deny`) and strips BeforeAgent `decision`. Enforcement Stop/UPS consumers stay skipped. Cursor PermissionRequest skip cites third-party table `unsupported`. Gates: Gate 164 lifecycle cases / `generate-gemini-hooks.py --check` (40 wired).
+
 ## 0.345.0 — 2026-10-11
 
 ### Added

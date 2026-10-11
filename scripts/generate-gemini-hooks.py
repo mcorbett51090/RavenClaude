@@ -7,18 +7,22 @@ list drifts silently and grows more wrong every release. Three hand-lists would
 have been three of those.
 
 --------------------------------------------------------------------------------
-EVENT MAP (Claude -> Gemini) `[docs-verified 2026-07-29 — geminicli.com/docs/hooks/reference/]`
+EVENT MAP (Claude -> Gemini) `[docs-verified 2026-10-11 — geminicli.com/docs/hooks/reference/]`
 --------------------------------------------------------------------------------
-    PreToolUse   ->  BeforeTool     [ENFORCING — exit 2 blocks, stderr is the reason]
-    PostToolUse  ->  AfterTool      [side-effect]
-    SessionStart ->  SessionStart    [context]
+    PreToolUse         ->  BeforeTool     [ENFORCING — exit 2 blocks, stderr is the reason]
+    PostToolUse        ->  AfterTool      [side-effect]
+    SessionStart       ->  SessionStart   [context]
+    SessionEnd         ->  SessionEnd     [best-effort observe; reason published]
+    PreCompact         ->  PreCompress    [advisory; trigger auto|manual]
+    UserPromptSubmit   ->  BeforeAgent    [prompt published; observe-only consumers]
+    Stop               ->  AfterAgent     [prompt_response published; observe discard stdout]
 
-`Stop` and `UserPromptSubmit` are NOT mapped. Gemini has `AfterAgent`,
-`BeforeAgent` and `SessionEnd`, which are plausible counterparts by name — but
-their payload schemas were not published on the pages verified, and mapping a
-lifecycle event by name-similarity is exactly how a lane comes to assert coverage
-it does not have. Every such hook is skipped EXPLICITLY, with the reason, and
-`--check` fails if anything is dropped silently.
+Enforcement Stop / UserPromptSubmit consumers (dod-gate, ask-on-ambiguity, …)
+stay explicitly skipped — AfterAgent retry / BeforeAgent deny semantics are not
+verified for those gates. Spectate observe emit is the sanctioned consumer on
+the new lanes. SubagentStart/Stop, PostCompact, PermissionRequest remain
+skipped (no verified Gemini counterpart). `--check` fails if anything is
+dropped silently.
 
 Gemini supports `matcher` with regex, so the canonical matcher is projected —
 translated into GEMINI's tool vocabulary, since a matcher written in Claude's
@@ -41,6 +45,10 @@ _EVENT = {
     "PreToolUse": ("BeforeTool", "pretool"),
     "PostToolUse": ("AfterTool", "posttool"),
     "SessionStart": ("SessionStart", "sessionstart"),
+    "SessionEnd": ("SessionEnd", "sessionend"),
+    "PreCompact": ("PreCompress", "precompact"),
+    "UserPromptSubmit": ("BeforeAgent", "beforeagent"),
+    "Stop": ("AfterAgent", "afteragent"),
 }
 
 # _gemini_matcher() translates a Claude TOOL-name matcher (Bash, Read, ...) into
@@ -68,9 +76,9 @@ _TOOL_TO_GEMINI = {
 
 _SKIP = {
     "stream-prompt-attribute.sh": (
-        "UserPromptSubmit. Gemini has BeforeAgent/BeforeModel, but their payload "
-        "schemas were not published on the verified pages — mapping by name "
-        "similarity would assert coverage that may not exist."
+        "UserPromptSubmit → BeforeAgent is docs-verified for observe emit, but "
+        "this hook injects additionalContext that has not been round-tripped on "
+        "Gemini BeforeAgent — skip until that path is measured."
     ),
     # ⛔ NEWLY VISIBLE, NOT NEWLY BROKEN. `ask-on-ambiguity.sh` has been registered
     # since v0.273.0 and was DROPPED SILENTLY by all three host projectors for its
@@ -84,33 +92,41 @@ _SKIP = {
     # script name and 0 are dropped; before it, 4 were dropped and none of the
     # three generators said a word.
     "ask-on-ambiguity.sh": (
-        "UserPromptSubmit — same unverified lifecycle mapping as "
-        "stream-prompt-attribute.sh above. It is an advisory nudge that never "
-        "blocks, so the cost of the gap is one un-nudged prompt, not lost "
-        "enforcement."
+        "UserPromptSubmit → BeforeAgent is docs-verified for observe emit, but "
+        "this advisory nudge's additionalContext path is not round-tripped on "
+        "Gemini — skip; cost is one un-nudged prompt, not lost enforcement."
     ),
     "prompt-optimizer-gate.sh": (
-        "UserPromptSubmit — same unverified lifecycle mapping as "
-        "stream-prompt-attribute.sh above. Ships prompt_optimizer.enabled: false "
-        "by default, is fail-open on every error path, and only ever ADDS "
-        "advisory additionalContext — never blocks — so the cost of the gap is "
-        "one un-augmented prompt on Gemini, not lost enforcement."
+        "UserPromptSubmit → BeforeAgent observe lane exists, but this gate's "
+        "additionalContext injection is not round-tripped on Gemini. Ships "
+        "prompt_optimizer.enabled: false by default and never blocks — cost is "
+        "one un-augmented prompt, not lost enforcement."
     ),
     "plugin-lifecycle-telemetry.sh": (
-        "UserPromptSubmit (slash bumps) has no Gemini lane; PostToolUse matchers "
-        "Skill and Agent|Task have no Gemini tool equivalents in _TOOL_TO_GEMINI — "
-        "Claude Code telemetry only. SessionStart sweep remains wired via "
+        "UserPromptSubmit (slash bumps) stay unwired on Gemini (observe-only "
+        "spectate uses BeforeAgent); PostToolUse matchers Skill and Agent|Task "
+        "have no Gemini tool equivalents in _TOOL_TO_GEMINI — Claude Code "
+        "telemetry only. SessionStart sweep remains wired via "
         "plugin-lifecycle-sweep.sh."
     ),
     "dod-gate.sh": (
-        "Stop. Gemini's AfterAgent/SessionEnd are plausible counterparts but "
-        "unverified; a definition-of-done gate that fires on the wrong lifecycle "
-        "event either never runs or blocks the wrong thing."
+        "Stop → AfterAgent is docs-verified for observe emit, but this gate's "
+        "decision:block / retry semantics on AfterAgent are not verified — a "
+        "wrong lifecycle block either never runs or blocks the wrong thing."
     ),
-    "remind-tests.sh": ("Stop — same unverified lifecycle mapping as dod-gate.sh."),
-    "stream-session-close.sh": ("Stop — same unverified lifecycle mapping."),
-    "thing-denial-kb-sync.sh": ("Stop — same unverified lifecycle mapping."),
-    "handoff-nudge.sh": ("Stop — same unverified lifecycle mapping as dod-gate.sh."),
+    "remind-tests.sh": (
+        "Stop → AfterAgent — same unverified enforcement/advisory path as "
+        "dod-gate.sh (observe emit only wires spectate-emit)."
+    ),
+    "stream-session-close.sh": (
+        "Stop → AfterAgent — same unverified non-observe consumer path as dod-gate.sh."
+    ),
+    "thing-denial-kb-sync.sh": (
+        "Stop → AfterAgent — same unverified non-observe consumer path as dod-gate.sh."
+    ),
+    "handoff-nudge.sh": (
+        "Stop → AfterAgent — same unverified non-observe consumer path as dod-gate.sh."
+    ),
     "spectate-steer.sh": (
         "Opt-in Spectate steer consumer (v0.5; spectate_steer: on). Uses Claude Code "
         "hookSpecificOutput.permissionDecision / additionalContext. Gemini PreToolUse "
@@ -125,8 +141,8 @@ _SKIP = {
     "workaround-exhaustion.sh": (
         "Two lanes, neither reachable here: the PreToolUse lane matches "
         "AskUserQuestion, a Claude Code tool with no Gemini equivalent (same as "
-        "route-decision-review.sh); the Stop lane is the same unverified lifecycle "
-        "mapping as dod-gate.sh AND reads last_assistant_message off Claude Code's "
+        "route-decision-review.sh); the Stop→AfterAgent lane is observe-only for "
+        "spectate and this hook reads last_assistant_message off Claude Code's "
         "Stop payload, without which it is silent by construction. Projecting it "
         "would register a no-op that reads as coverage."
     ),
@@ -150,10 +166,10 @@ _SKIP = {
         "an audit-only shadow that never denies, so the cost is observability."
     ),
     "precompact-digest.sh": (
-        "PreCompact. Gemini exposes no verified compaction-hook event on the pages "
-        "verified, so mapping it by name-similarity would assert coverage that may "
-        "not exist. Archival-only and never denies — the cost of the gap is one "
-        "un-archived digest, not lost enforcement."
+        "PreCompact → PreCompress is docs-verified for observe emit, but this "
+        "archival digest engine (transcript_path + detached worker + egress "
+        "floor) is not round-tripped on Gemini PreCompress — skip; cost is one "
+        "un-archived digest, not lost enforcement. Spectate compact.pre wires."
     ),
     # ⛔ R7 — THE THREE verify-before-assert CELLS SHIP **UNWIRED AND DECLARED**,
     # for the same reason as the Cursor lane: docs-verified only, never
@@ -183,44 +199,27 @@ _SKIP = {
     ),
     "routine-reserve-hook.sh": (
         "protects claude.ai cloud Routines using Claude Code's statusline rate_limits; "
-        "neither exists on this host, and UserPromptSubmit has no Gemini lane."
+        "neither exists on this host (BeforeAgent observe lane is spectate-only)."
     ),
 }
 
 # Per-event skip — (script, Claude event) → reason. Multi-event observe hooks
-# (spectate-emit) wire on Gemini's mapped lanes (SessionStart / PreToolUse /
-# PostToolUse) while unmapped lifecycle events stay explicitly skipped.
+# (spectate-emit) wire on Gemini's mapped lanes; remaining lifecycle gaps stay
+# explicitly skipped.
 _SKIP_EVENT = {
-    ("spectate-emit.sh", "UserPromptSubmit"): (
-        "UserPromptSubmit. Gemini BeforeAgent/BeforeModel payload schemas were "
-        "not published on the verified pages — same unverified lifecycle mapping "
-        "as stream-prompt-attribute.sh. SessionStart / PreToolUse / PostToolUse "
-        "emit lanes wire."
-    ),
-    ("spectate-emit.sh", "Stop"): (
-        "Stop. Gemini AfterAgent/SessionEnd are plausible counterparts but "
-        "unverified — same caution as dod-gate.sh. Other emit lanes wire."
-    ),
     ("spectate-emit.sh", "SubagentStart"): (
         "SubagentStart. Gemini exposes no verified subagent hook event on the "
         "pages checked. Other emit lanes wire."
     ),
-    ("spectate-emit.sh", "PreCompact"): (
-        "PreCompact. Gemini exposes no verified compaction-hook event on the "
-        "pages checked. Other emit lanes wire."
-    ),
     ("spectate-emit.sh", "PostCompact"): (
         "PostCompact. Gemini exposes no verified post-compaction hook event on "
-        "the pages checked. Spectate v0.13 wires compact.post on Claude Code + "
-        "Codex only."
+        "the pages checked (PreCompress maps to PreCompact only). Spectate "
+        "v0.13 wires compact.post on Claude Code + Codex."
     ),
     ("spectate-emit.sh", "PermissionRequest"): (
-        "PermissionRequest. Gemini has no verified permission-prompt hook lane. "
-        "Claude Code + Copilot carry permission.request emit."
-    ),
-    ("spectate-emit.sh", "SessionEnd"): (
-        "SessionEnd. Gemini SessionEnd payload schema remains unverified on the "
-        "pages checked (same caution as Stop→AfterAgent). Other emit lanes wire."
+        "PermissionRequest. Gemini Notification(ToolPermission) is observability "
+        "only and cannot grant/deny — not a permission-prompt lane. Claude Code "
+        "+ Copilot carry permission.request emit."
     ),
     ("spectate-emit.sh", "SubagentStop"): (
         "SubagentStop. Gemini exposes no verified subagent-stop hook event on the "
@@ -305,15 +304,11 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                         )
                         continue
                 else:
-                    # Non-tool-shaped event (SessionStart today). The manifest matcher
-                    # is a SOURCE name, not a Claude tool name — Gemini's SessionStart
-                    # source-filtering semantics are unverified (same unverified-schema
-                    # class as handoff-successor-ack.sh's skip above), so rather than
-                    # guess at a translation, wire unconditionally. This reproduces the
-                    # hook's own prior (matcher-less) behavior on Gemini specifically:
-                    # it may still re-fire on `compact` there until Gemini's SessionStart
-                    # payload is docs-verified, but it is never silently dropped, which
-                    # is the worse failure direction for a session-setup hook.
+                    # Non-tool-shaped lifecycle events (SessionStart / SessionEnd /
+                    # PreCompact / UserPromptSubmit / Stop). Manifest matchers are
+                    # source/trigger names, not Claude tool names — wire
+                    # unconditionally rather than guess a translation that could
+                    # silently drop the hook.
                     gmatch = ""
                 args = _extra_args(command, script)
                 cmd = f'bash "{adapter}" {mode} "{hooks_dir}/{script}"'

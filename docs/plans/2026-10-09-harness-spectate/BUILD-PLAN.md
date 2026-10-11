@@ -545,13 +545,21 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - [x] `skills/spectate` + `monitors.json` entry `spectate-push-mirror` (`when: on-skill-invoke:spectate`)
 - [x] Gate 297 (`test-watch-spectate.sh` M1–M5); core 0.336.0
 
-## Deferred (v0.14+)
+## Deferred (v0.15+)
 
 - ACP control channel (process ownership)
 - IDE `openExternal` to the same `/spectate` URL (only if alt-tab is the measured failure; not Simple Browser, not a second UI)
-- Cursor/Gemini PermissionRequest emit (host lane still unverified)
+- Gemini PermissionRequest emit — Notification(`ToolPermission`) is observability-only (cannot grant/deny); not a decision lane
+- Cursor PermissionRequest emit — third-party hooks table marks `PermissionRequest` **unsupported** `[docs-verified 2026-10-11 — cursor.com/docs/reference/third-party-hooks]`
 - Cursor `preToolUse` / `postToolUse` **enforcement** wiring (replacing beforeShellExecution) — live payload probe still required; v0.10 only wires observe emit
 - Live Gemini `tool_use_id` probe (docs still publish none on BeforeTool/AfterTool)
+- Gemini SubagentStart/Stop + PostCompact (no verified host events)
+
+## Shipped in v0.14
+
+- Gemini: `spectate-emit` on `SessionEnd`→`session.end`, `PreCompress`→`compact.pre`, `BeforeAgent`→`prompt.submit`, `AfterAgent`→`turn.end` (docs-verified 2026-10-11)
+- Adapter modes `sessionend` / `precompact` / `beforeagent` / `afteragent` (AfterAgent discards stdout; BeforeAgent strips `decision`)
+- Enforcement Stop/UPS Gemini consumers remain skipped; Cursor PermissionRequest skip cites unsupported
 
 ## Shipped in v0.13
 
