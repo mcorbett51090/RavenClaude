@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.345.1 — 2026-10-11
+
+### Fixed
+- **Spectate steer RMW is single-winner.** `consume_steer_decision` / `apply_steer` / `consume_steer_interrupt` / `consume_steer_note` flock a per-session `spectate-steer.lock` across the read-modify-write. One browser Approve can no longer grant two concurrent PermissionRequest waits, and a concurrent Pause can no longer clobber an armed Interrupt. Gate 296 S11/S12.
+<!-- premise-ok: concurrent-consume-repro -->
+
 ## 0.345.0 — 2026-10-11
 
 ### Added
