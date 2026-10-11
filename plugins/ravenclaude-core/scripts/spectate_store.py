@@ -24,6 +24,7 @@ What this module enforces (contract: docs/plans/2026-10-09-harness-spectate/BUIL
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import math
@@ -36,6 +37,11 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+try:  # POSIX advisory file locking; absent on non-POSIX hosts.
+    import fcntl
+except ImportError:  # pragma: no cover - non-POSIX
+    fcntl = None  # type: ignore[assignment]
 
 HERE = Path(__file__).resolve().parent
 SCHEMA_PATH = HERE.parent / "knowledge" / "spectate-event-schema-v1.json"
@@ -1504,6 +1510,7 @@ def http_nodes(
 # --------------------------------------------------------------------------------------
 
 STEER_FILE = "spectate-steer.json"
+STEER_LOCK_FILE = "spectate-steer.lock"
 POSTURE_REL = Path(".ravenclaude") / "comfort-posture.yaml"
 MAX_STEER_NOTE = 500
 MAX_SSE_STREAMS = 4
@@ -1612,6 +1619,44 @@ def write_steer_pending(project_root: Path | str, session_id: str, payload: dict
         raise
 
 
+@contextlib.contextmanager
+def _steer_lock(project_root: Path | str, session_id: str):
+    """Serialize read-modify-write of spectate-steer.json for one session.
+
+    consume_steer_decision / apply_steer / consume_steer_interrupt / consume_steer_note
+    each read the pending file, mutate it, then replace(); without a lock two
+    PermissionRequest waiters can both observe one armed approve and both return
+    allow (double-grant), and a concurrent pause can clobber interrupt_pending.
+    Sidecar flock, matching stream-ops._registry_lock.
+
+    FAIL-SAFE: if the session id is invalid, the run dir can't be created, fcntl
+    is unavailable, or the lock can't be taken, proceed without the lock rather
+    than raising — hooks using this store fail-open.
+    """
+    fh = None
+    if not validate_session_id(session_id):
+        yield
+        return
+    try:
+        d = runs_root(project_root) / session_id
+        d.mkdir(parents=True, exist_ok=True)
+        fh = open(d / STEER_LOCK_FILE, "w")
+        if fcntl is not None:
+            with contextlib.suppress(OSError):
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+    except OSError:
+        fh = None
+    try:
+        yield
+    finally:
+        if fh is not None:
+            if fcntl is not None:
+                with contextlib.suppress(OSError):
+                    fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            with contextlib.suppress(OSError):
+                fh.close()
+
+
 def append_spectate_event(project_root: Path | str, event: dict) -> tuple[bool, str | None]:
     """Validate + append one event. Refuses harness mismatch with the stream head."""
     if not isinstance(event, dict):
@@ -1687,65 +1732,72 @@ def apply_steer(
     finally:
         snap.close()
 
-    pending = read_steer_pending(project_root, session_id) or {}
     ts = now_rfc3339()
-    decision = pending.get("decision") if pending.get("decision") in STEER_DECISIONS else None
-    interrupt_pending = bool(pending.get("interrupt_pending"))
-    if action == "pause":
-        pending = {
-            "paused": True,
-            "ts": ts,
-            "note": note_text,
-            "note_chars": len(note_text),
-            "note_pending": bool(note_text),
-            "decision": decision,
-            "interrupt_pending": interrupt_pending,
-        }
-    elif action == "resume":
-        pending = {
-            "paused": False,
-            "ts": ts,
-            "note": pending.get("note") if pending.get("note_pending") else "",
-            "note_chars": int(pending.get("note_chars") or 0) if pending.get("note_pending") else 0,
-            "note_pending": bool(pending.get("note_pending")),
-            "decision": decision,
-            "interrupt_pending": interrupt_pending,
-        }
-    elif action == "note":
-        pending = {
-            "paused": bool(pending.get("paused")),
-            "ts": ts,
-            "note": note_text,
-            "note_chars": len(note_text),
-            "note_pending": True,
-            "decision": decision,
-            "interrupt_pending": interrupt_pending,
-        }
-    elif action == INTERRUPT_ACTION:
-        # v0.5 — arm continue:false on the next PreToolUse/PostToolUse/…
-        pending = {
-            "paused": bool(pending.get("paused")),
-            "ts": ts,
-            "note": pending.get("note") if pending.get("note_pending") else "",
-            "note_chars": int(pending.get("note_chars") or 0) if pending.get("note_pending") else 0,
-            "note_pending": bool(pending.get("note_pending")),
-            "decision": None,
-            "decision_ts": None,
-            "interrupt_pending": True,
-            "interrupt_ts": ts,
-        }
-    else:  # approve / deny — arms PermissionRequest wait (v0.4)
-        pending = {
-            "paused": bool(pending.get("paused")),
-            "ts": ts,
-            "note": pending.get("note") if pending.get("note_pending") else "",
-            "note_chars": int(pending.get("note_chars") or 0) if pending.get("note_pending") else 0,
-            "note_pending": bool(pending.get("note_pending")),
-            "decision": "allow" if action == "approve" else "deny",
-            "decision_ts": ts,
-            "interrupt_pending": interrupt_pending,
-        }
-    write_steer_pending(project_root, session_id, pending)
+    with _steer_lock(project_root, session_id):
+        pending = read_steer_pending(project_root, session_id) or {}
+        decision = pending.get("decision") if pending.get("decision") in STEER_DECISIONS else None
+        interrupt_pending = bool(pending.get("interrupt_pending"))
+        if action == "pause":
+            pending = {
+                "paused": True,
+                "ts": ts,
+                "note": note_text,
+                "note_chars": len(note_text),
+                "note_pending": bool(note_text),
+                "decision": decision,
+                "interrupt_pending": interrupt_pending,
+            }
+        elif action == "resume":
+            pending = {
+                "paused": False,
+                "ts": ts,
+                "note": pending.get("note") if pending.get("note_pending") else "",
+                "note_chars": int(pending.get("note_chars") or 0)
+                if pending.get("note_pending")
+                else 0,
+                "note_pending": bool(pending.get("note_pending")),
+                "decision": decision,
+                "interrupt_pending": interrupt_pending,
+            }
+        elif action == "note":
+            pending = {
+                "paused": bool(pending.get("paused")),
+                "ts": ts,
+                "note": note_text,
+                "note_chars": len(note_text),
+                "note_pending": True,
+                "decision": decision,
+                "interrupt_pending": interrupt_pending,
+            }
+        elif action == INTERRUPT_ACTION:
+            # v0.5 — arm continue:false on the next PreToolUse/PostToolUse/…
+            pending = {
+                "paused": bool(pending.get("paused")),
+                "ts": ts,
+                "note": pending.get("note") if pending.get("note_pending") else "",
+                "note_chars": int(pending.get("note_chars") or 0)
+                if pending.get("note_pending")
+                else 0,
+                "note_pending": bool(pending.get("note_pending")),
+                "decision": None,
+                "decision_ts": None,
+                "interrupt_pending": True,
+                "interrupt_ts": ts,
+            }
+        else:  # approve / deny — arms PermissionRequest wait (v0.4)
+            pending = {
+                "paused": bool(pending.get("paused")),
+                "ts": ts,
+                "note": pending.get("note") if pending.get("note_pending") else "",
+                "note_chars": int(pending.get("note_chars") or 0)
+                if pending.get("note_pending")
+                else 0,
+                "note_pending": bool(pending.get("note_pending")),
+                "decision": "allow" if action == "approve" else "deny",
+                "decision_ts": ts,
+                "interrupt_pending": interrupt_pending,
+            }
+        write_steer_pending(project_root, session_id, pending)
 
     node_id = f"steer-{action}-{ts.replace(':', '').replace('.', '')[-12:]}"
     if not ID_RE.match(node_id):
@@ -1805,30 +1857,35 @@ def steer_status(project_root: Path | str, session_id: str | None = None) -> dic
 
 
 def consume_steer_decision(project_root: Path | str, session_id: str) -> str | None:
-    """Return pending allow/deny and clear it. Pause/note/interrupt state kept."""
-    pending = read_steer_pending(project_root, session_id)
-    if not pending:
-        return None
-    decision = pending.get("decision")
-    if decision not in STEER_DECISIONS:
-        return None
-    pending["decision"] = None
-    pending["decision_ts"] = None
-    write_steer_pending(project_root, session_id, pending)
-    return decision
+    """Return pending allow/deny and clear it. Pause/note/interrupt state kept.
+
+    Single-winner: concurrent waiters cannot both observe the same armed decision.
+    """
+    with _steer_lock(project_root, session_id):
+        pending = read_steer_pending(project_root, session_id)
+        if not pending:
+            return None
+        decision = pending.get("decision")
+        if decision not in STEER_DECISIONS:
+            return None
+        pending["decision"] = None
+        pending["decision_ts"] = None
+        write_steer_pending(project_root, session_id, pending)
+        return decision
 
 
 def consume_steer_interrupt(project_root: Path | str, session_id: str) -> bool:
     """Return True and clear interrupt_pending when armed. Clears armed approve/deny too."""
-    pending = read_steer_pending(project_root, session_id)
-    if not pending or not pending.get("interrupt_pending"):
-        return False
-    pending["interrupt_pending"] = False
-    pending["interrupt_ts"] = None
-    pending["decision"] = None
-    pending["decision_ts"] = None
-    write_steer_pending(project_root, session_id, pending)
-    return True
+    with _steer_lock(project_root, session_id):
+        pending = read_steer_pending(project_root, session_id)
+        if not pending or not pending.get("interrupt_pending"):
+            return False
+        pending["interrupt_pending"] = False
+        pending["interrupt_ts"] = None
+        pending["decision"] = None
+        pending["decision_ts"] = None
+        write_steer_pending(project_root, session_id, pending)
+        return True
 
 
 def wait_for_steer_decision(
@@ -1897,15 +1954,16 @@ def append_permission_resolve(
 
 def consume_steer_note(project_root: Path | str, session_id: str) -> str | None:
     """Return pending note text (capped) and clear note_pending. Pause state kept."""
-    pending = read_steer_pending(project_root, session_id)
-    if not pending or not pending.get("note_pending"):
-        return None
-    note = str(pending.get("note") or "")[:MAX_STEER_NOTE]
-    pending["note_pending"] = False
-    pending["note"] = ""
-    pending["note_chars"] = 0
-    write_steer_pending(project_root, session_id, pending)
-    return note or None
+    with _steer_lock(project_root, session_id):
+        pending = read_steer_pending(project_root, session_id)
+        if not pending or not pending.get("note_pending"):
+            return None
+        note = str(pending.get("note") or "")[:MAX_STEER_NOTE]
+        pending["note_pending"] = False
+        pending["note"] = ""
+        pending["note_chars"] = 0
+        write_steer_pending(project_root, session_id, pending)
+        return note or None
 
 
 def spectate_file_size(project_root: Path | str, session_id: str) -> tuple[str, int]:
