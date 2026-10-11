@@ -239,6 +239,64 @@ grep -q 'HOOK_EVENT=PreToolUse' "$TMP/env.txt" \
   && ok "pretool sets CLAUDE_HOOK_EVENT=PreToolUse" \
   || bad "pretool missing CLAUDE_HOOK_EVENT=PreToolUse"
 
+# ── v0.14 lifecycle observe lanes (SessionEnd / PreCompress / BeforeAgent / AfterAgent) ─
+SE_PAYLOAD='{"session_id":"sess-se","cwd":"/ws/p","hook_event_name":"SessionEnd","reason":"exit"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+se_out="$(RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" sessionend "$TMP/stub.sh" <<<"$SE_PAYLOAD" 2>/dev/null)"
+if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=SessionEnd' "$TMP/env.txt" && [ -z "$se_out" ]; then
+  ok "sessionend forwards payload stdin + CLAUDE_HOOK_EVENT=SessionEnd; empty stdout"
+else
+  bad "sessionend wrong (out=$se_out env=$(cat "$TMP/env.txt" 2>/dev/null))"
+fi
+
+PC_PAYLOAD='{"session_id":"sess-pc","cwd":"/ws/p","hook_event_name":"PreCompress","trigger":"auto"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+pc_out="$(RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" precompact "$TMP/stub.sh" <<<"$PC_PAYLOAD" 2>/dev/null)"
+if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=PreCompact' "$TMP/env.txt" && [ -z "$pc_out" ]; then
+  ok "precompact forwards payload stdin + CLAUDE_HOOK_EVENT=PreCompact; empty stdout"
+else
+  bad "precompact wrong (out=$pc_out env=$(cat "$TMP/env.txt" 2>/dev/null))"
+fi
+
+BA_PAYLOAD='{"session_id":"sess-ba","cwd":"/ws/p","hook_event_name":"BeforeAgent","prompt":"hello"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" beforeagent "$TMP/stub.sh" <<<"$BA_PAYLOAD" >/dev/null 2>&1
+if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=UserPromptSubmit' "$TMP/env.txt"; then
+  ok "beforeagent forwards payload stdin + CLAUDE_HOOK_EVENT=UserPromptSubmit"
+else
+  bad "beforeagent did not forward payload/event"
+fi
+
+# beforeagent must surface additionalContext only — never a decision:deny JSON
+cat >"$TMP/ctx-stub.sh" <<'STUB'
+#!/usr/bin/env bash
+cat >"${RC_OUT}/stdin.json"
+printf '%s\n' '{"hookSpecificOutput":{"additionalContext":"ctx-ok"},"decision":"deny"}'
+exit 0
+STUB
+chmod +x "$TMP/ctx-stub.sh"
+ba_out="$(RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" beforeagent "$TMP/ctx-stub.sh" <<<"$BA_PAYLOAD" 2>/dev/null)"
+printf '%s' "$ba_out" | grep -q 'ctx-ok' && ! printf '%s' "$ba_out" | grep -q 'decision' \
+  && ok "beforeagent surfaces additionalContext only (strips decision)" \
+  || bad "beforeagent stdout leak: $ba_out"
+
+AA_PAYLOAD='{"session_id":"sess-aa","cwd":"/ws/p","hook_event_name":"AfterAgent","prompt":"p","prompt_response":"r"}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+cat >"$TMP/deny-stub.sh" <<'STUB'
+#!/usr/bin/env bash
+cat >"${RC_OUT}/stdin.json"
+printf 'HOOK_EVENT=%s\n' "${CLAUDE_HOOK_EVENT:-}" >"${RC_OUT}/env.txt"
+printf '%s\n' '{"decision":"deny","reason":"retry-me"}'
+exit 0
+STUB
+chmod +x "$TMP/deny-stub.sh"
+aa_out="$(RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" afteragent "$TMP/deny-stub.sh" <<<"$AA_PAYLOAD" 2>/dev/null)"
+if [ -s "$TMP/stdin.json" ] && grep -q 'HOOK_EVENT=Stop' "$TMP/env.txt" && [ -z "$aa_out" ]; then
+  ok "afteragent forwards stdin + CLAUDE_HOOK_EVENT=Stop; discards decision stdout"
+else
+  bad "afteragent wrong (out=$aa_out env=$(cat "$TMP/env.txt" 2>/dev/null))"
+fi
+
 printf '\n  %d pass, %d fail\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1
 exit 0

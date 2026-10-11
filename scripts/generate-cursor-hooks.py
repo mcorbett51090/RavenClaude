@@ -201,8 +201,9 @@ _SKIP = {
 # while PermissionRequest stays explicitly skipped (Spectate v0.9).
 _SKIP_EVENT = {
     ("spectate-emit.sh", "PermissionRequest"): (
-        "PermissionRequest. Cursor has no verified permission-prompt hook lane "
-        "on the pages checked. Claude Code + Copilot carry permission.request emit."
+        "PermissionRequest. Cursor third-party hooks table marks PermissionRequest "
+        "unsupported `[docs-verified 2026-10-11 — cursor.com/docs/reference/third-party-hooks]` "
+        "(no Cursor mapping). Claude Code + Copilot carry permission.request emit."
     ),
     ("spectate-emit.sh", "PostCompact"): (
         "PostCompact. Cursor docs publish preCompact but no verified postCompact "
