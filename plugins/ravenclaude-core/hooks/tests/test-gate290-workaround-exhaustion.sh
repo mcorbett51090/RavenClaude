@@ -79,6 +79,14 @@ run_hook "$HOOK" ask "$(ask_payload "$S1" "$PLAIN_Q")"
 run_hook "$HOOK" stop "$(stop_payload "$S1" "")"
 [ -z "$OUT" ] && pass "A5: Stop payload without last_assistant_message -> silent (host limit, by construction)" || fail "A5: Stop lane fired without the field"
 
+# Inventory hook-benign-passthrough sends a Read payload on ask|stop. Usage
+# exit 2 is the deny ABI for that probe — these lanes must stay rc 0 on it.
+BENIGN_READ="$(jq -cn --arg s "$S1" --arg c "$PROJ" --arg f "$PROJ/README.md" '{tool_name:"Read",tool_input:{file_path:$f},session_id:$s,cwd:$c}')"
+run_hook "$HOOK" ask "$BENIGN_READ"
+[ "$RC" -eq 0 ] && pass "A7: ask lane + inventory Read payload -> rc 0 (not usage/deny)" || fail "A7: ask lane rc=$RC on inventory Read payload"
+run_hook "$HOOK" stop "$BENIGN_READ"
+[ "$RC" -eq 0 ] && pass "A8: stop lane + inventory Read payload -> rc 0 (not usage/deny)" || fail "A8: stop lane rc=$RC on inventory Read payload"
+
 # ── B: fires on a hand-back after a deny ──────────────────────────────────────
 run_hook "$HOOK" ask "$(ask_payload "$S1" "$BLOCKED_Q")"
 if printf '%s' "$OUT" | jq -e '.hookSpecificOutput.additionalContext' >/dev/null 2>&1 \
