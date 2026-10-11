@@ -5,7 +5,7 @@
   "measurement_method": "scripts/skill-description-baseline.py (P0's instrument); token_method = tiktoken cl100k_base [interpretation]",
   "pinned_posture": {
     "note": "the installed-plugin-set population this ceiling was measured against; the drift check (AT-P3.5) fails when the CURRENT skill_count differs from this value, since a changed population makes a raw total-vs-ceiling comparison meaningless (comparing different corpora) -- narrower than full per-plugin version pinning (see description-budget-notes.md for why)",
-    "skill_count": 956
+    "skill_count": 963
   },
   "ceiling": {
     "seeded_2026-09-08": {
@@ -13,8 +13,8 @@
       "tokens": 66608
     },
     "committed": {
-      "chars": 310696,
-      "tokens": 66608
+      "chars": 312943,
+      "tokens": 67085
     },
     "note": "seeded AT today's measured total, per RT-2/RT-5 -- the corpus starts exactly AT its ceiling, not over. 310696/66608 is NOT the original P0 figure (310284/66511) -- it includes two real live YAML-truncation bugs found and fixed in the same PR that seeded this ceiling (choose-statistical-test, spec-reread-ritual -- see check-skill-descriptions.py's charset_violations docstring), which recovered ~412 chars/97 tokens of description text that Claude Code's own plugin loader had been silently dropping. The ceiling moves upward ONLY via a PR explicitly labelled a budget raise, with a written reason (AT-P3.4) -- see description-budget-raises.md in this directory, appended never edited, mirroring artifact-budgets.seed.json's own append-only convention elsewhere in this repo."
   },
