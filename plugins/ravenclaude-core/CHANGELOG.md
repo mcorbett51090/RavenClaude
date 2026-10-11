@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.347.0 — 2026-10-11
+
+### Added
+- **Spectate v0.15 PostToolUseFailure → tool.fail** — `spectate-emit.sh` maps `PostToolUseFailure`→`tool.fail` (asserted_status=`failed`; optional `duration_ms`; never persists error / error_message text). Wired on Claude Code (`hooks.json`), Codex fixed list, and Cursor adapter mode `tool-fail` on docs-verified `postToolUseFailure` `[docs-verified 2026-10-11 — cursor.com/docs/agent/hooks]`. Gemini stays explicitly skipped (no separate failure event); Copilot projects a fail-safe inert `posttoolfailure` adapter mode. Gates: spectate-emit S14 / Gate 159 tool-fail / generate-*-hooks floors / Gate 141 hooks 79.
+
 ## 0.346.0 — 2026-10-11
 
 ### Added

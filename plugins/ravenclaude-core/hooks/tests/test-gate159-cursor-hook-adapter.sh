@@ -315,6 +315,28 @@ else
   bad "tool-post wrong: $(cat "$TMP/stdin.json" 2>/dev/null | head -c 200)"
 fi
 
+# ── v0.15 postToolUseFailure observe (tool.fail; never error_message) ────────
+FAIL_PAYLOAD='{"conversation_id":"conv-fail","hook_event_name":"postToolUseFailure","workspace_roots":["/ws/proj"],"tool_name":"Shell","tool_input":{"command":"false"},"error_message":"SECRET_FAIL_MSG","error":"SECRET_ERR","tool_use_id":"tu-fail-3","cwd":"/ws/proj","duration":99}'
+rm -f "$TMP/stdin.json" "$TMP/env.txt"
+fail_out="$(RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" tool-fail "$TMP/stub.sh" <<<"$FAIL_PAYLOAD" 2>/dev/null)"
+if [ -z "$fail_out" ] \
+  && grep -q 'HOOK_EVENT=PostToolUseFailure' "$TMP/env.txt" \
+  && python3 -c '
+import json
+d=json.load(open("'"$TMP"'/stdin.json"))
+assert d.get("tool_name")=="Bash", d  # Shell→Bash
+assert d.get("tool_use_id")=="tu-fail-3", d
+assert d.get("tool_input",{}).get("command")=="false", d
+assert d.get("duration")==99, d
+blob=json.dumps(d)
+assert "error_message" not in d and "SECRET_FAIL" not in blob
+assert "error" not in d and "SECRET_ERR" not in blob
+' 2>/dev/null; then
+  ok "tool-fail Claude-shaped stdin; Shell→Bash; duration; no error_message leak; empty stdout"
+else
+  bad "tool-fail wrong (out=$fail_out stdin=$(cat "$TMP/stdin.json" 2>/dev/null | head -c 200))"
+fi
+
 # ── v0.9 preCompact observe + subagentStart permission-allow ─────────────────
 PC_PAYLOAD='{"conversation_id":"conv-pc","generation_id":"gen-pc","hook_event_name":"preCompact","workspace_roots":["/ws/proj"],"trigger":"auto","context_usage_percent":85}'
 rm -f "$TMP/stdin.json" "$TMP/env.txt"

@@ -138,6 +138,19 @@
         ]
       }
     ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.15). Maps PostToolUseFailure\u2192tool.fail. DERIVED VALUES ONLY \u2014 never writes error text, tool args, or secrets. Fail-safe: always exit 0; empty stdout; never blocks."
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Agent|Task",

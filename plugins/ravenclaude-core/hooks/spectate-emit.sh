@@ -3,8 +3,9 @@
 #
 # Appends ONE scrubbed rc.spectate.v1 line to
 #   ${CLAUDE_PROJECT_DIR}/.ravenclaude/runs/<session>/spectate-events.jsonl
-# for SessionStart / UserPromptSubmit / PreToolUse / PostToolUse / Stop /
-# SubagentStart / SubagentStop / PreCompact / PostCompact / SessionEnd / PermissionRequest.
+# for SessionStart / UserPromptSubmit / PreToolUse / PostToolUse /
+# PostToolUseFailure / Stop / SubagentStart / SubagentStop / PreCompact /
+# PostCompact / SessionEnd / PermissionRequest.
 # Never blocks; never writes stdout; never carries raw prompts, tool arguments,
 # tool output, task/summary text, or secrets.
 #
@@ -75,6 +76,7 @@ KIND_BY_EVENT = {
     "userpromptsubmit": "prompt.submit",
     "pretooluse": "tool.pre",
     "posttooluse": "tool.post",
+    "posttoolusefailure": "tool.fail",
     "stop": "turn.end",
     "subagentstart": "subagent.start",
     "subagentstop": "subagent.stop",
@@ -273,7 +275,7 @@ def main() -> None:
         prompt = payload.get("prompt")
         if isinstance(prompt, str):
             metrics = {"prompt_chars": min(len(prompt), 1_000_000_000_000)}
-    elif kind in {"tool.pre", "tool.post", "permission.request"}:
+    elif kind in {"tool.pre", "tool.post", "tool.fail", "permission.request"}:
         if not tool_name:
             return
         node_id = corr or sanitize_id(f"tool-{tool_name}", f"tool-{tool_name[:40]}")
@@ -301,6 +303,14 @@ def main() -> None:
             asserted = "running"
         elif kind == "tool.post":
             asserted = "succeeded"
+        elif kind == "tool.fail":
+            # Never persist error / error_message text — derived status only.
+            asserted = "failed"
+            dur = payload.get("duration") or payload.get("duration_ms")
+            if isinstance(dur, (int, float)) and not isinstance(dur, bool):
+                ms = int(dur)
+                if 0 <= ms <= 1_000_000_000_000:
+                    metrics = {"duration_ms": ms}
         else:
             asserted = "waiting-approval"
     elif kind in {"subagent.start", "subagent.stop"}:

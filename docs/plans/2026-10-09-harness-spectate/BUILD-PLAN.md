@@ -545,7 +545,7 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - [x] `skills/spectate` + `monitors.json` entry `spectate-push-mirror` (`when: on-skill-invoke:spectate`)
 - [x] Gate 297 (`test-watch-spectate.sh` M1–M5); core 0.336.0
 
-## Deferred (v0.15+)
+## Deferred (v0.16+)
 
 - ACP control channel (process ownership)
 - IDE `openExternal` to the same `/spectate` URL (only if alt-tab is the measured failure; not Simple Browser, not a second UI)
@@ -554,6 +554,13 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - Cursor `preToolUse` / `postToolUse` **enforcement** wiring (replacing beforeShellExecution) — live payload probe still required; v0.10 only wires observe emit
 - Live Gemini `tool_use_id` probe (docs still publish none on BeforeTool/AfterTool)
 - Gemini SubagentStart/Stop + PostCompact (no verified host events)
+
+## Shipped in v0.15
+
+- `spectate-emit` maps `PostToolUseFailure`→`tool.fail` (asserted `failed`; optional `duration_ms`; never error text)
+- Claude Code `hooks.json` + Codex fixed list + Cursor adapter `tool-fail` on docs-verified `postToolUseFailure`
+- Gemini explicitly skips (AfterTool covers completed tools; no separate failure event); Copilot fail-safe inert `posttoolfailure` mode
+- Gates: spectate-emit S14 / Gate 159 tool-fail / generate-*-hooks floors / Gate 141 hooks 79
 
 ## Shipped in v0.14
 

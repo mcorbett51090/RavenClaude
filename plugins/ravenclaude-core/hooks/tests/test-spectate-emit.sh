@@ -312,6 +312,36 @@ else
 fi
 rm -rf "$T13"
 
+echo "── S14: PostToolUseFailure emits tool.fail; no error text ─────────────────"
+T14="$(mktemp -d)"
+payload14="$(jq -cn \
+  '{session_id:"s14",tool_name:"Bash",tool_use_id:"tu-fail-1",tool_input:{command:"false"},duration:42,error:"SECRET_ERR_MSG",error_message:"SECRET_ERR_MESSAGE"}')"
+out14="$(run_hook "$T14" s14 PostToolUseFailure "$payload14")"
+rc14=$?
+log14="$T14/.ravenclaude/runs/s14/spectate-events.jsonl"
+if [ "$rc14" -eq 0 ] && [ -z "$out14" ] && [ -f "$log14" ]; then
+  kind14="$(jq -r '.kind' "$log14")"
+  ass14="$(jq -r '.asserted_status // empty' "$log14")"
+  corr14="$(jq -r '.corr_id // empty' "$log14")"
+  dur14="$(jq -r '.metrics.duration_ms // empty' "$log14")"
+  blob14="$(cat "$log14")"
+  ok14=1
+  [ "$kind14" = "tool.fail" ] || ok14=0
+  [ "$ass14" = "failed" ] || ok14=0
+  [ "$corr14" = "tu-fail-1" ] || ok14=0
+  [ "$dur14" = "42" ] || ok14=0
+  printf '%s' "$blob14" | grep -Fq 'SECRET_ERR' && ok14=0
+  printf '%s' "$blob14" | grep -Fq 'error_message' && ok14=0
+  if [ "$ok14" -eq 1 ]; then
+    pass "S14: tool.fail asserted=failed corr=tu-fail-1 duration_ms=42; no error text"
+  else
+    fail "S14: kind=$kind14 ass=$ass14 corr=$corr14 dur=$dur14 blob=$(printf '%s' "$blob14" | head -c 200)"
+  fi
+else
+  fail "S14: rc=$rc14 out_len=${#out14} log=$( [ -f "$log14" ] && echo y || echo n )"
+fi
+rm -rf "$T14"
+
 if [ "$FAILED" -ne 0 ]; then
   echo "test-spectate-emit: $FAILED failure(s)"
   exit 1

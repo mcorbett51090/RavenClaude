@@ -96,6 +96,9 @@ _EVENT = {
     # [docs-verified 2026-10-10 — developers.openai.com/codex/hooks].
     "SessionEnd": "SessionEnd",
     "SubagentStop": "SubagentStop",
+    # Spectate v0.15 — PostToolUseFailure → tool.fail (native Claude contract;
+    # same event name on Codex). Never persists error text.
+    "PostToolUseFailure": "PostToolUseFailure",
 }
 
 _LANE_SCOPE_REASON = (
@@ -161,7 +164,7 @@ _SKIP = {
     # spectate-emit.sh is wired via SessionStart derivation + fixed
     # PreToolUse/PostToolUse/Stop (v0.9) + UserPromptSubmit/SubagentStart/
     # PreCompact/PermissionRequest (v0.11) + SessionEnd/SubagentStop (v0.12)
-    # + PostCompact (v0.13).
+    # + PostCompact (v0.13) + PostToolUseFailure (v0.15).
     # By-basename accounting covers the
     # script once any lane wires it; floors below catch a lane drop.
     "spectate-steer.sh": _EVENT_UNWIRED_REASON,
@@ -238,6 +241,14 @@ _FIXED_PERMISSIONREQUEST = (
 # Empty stdout on exit 0 is success+continue per Codex common output rules.
 _FIXED_SESSIONEND = ((None, (("spectate-emit.sh", ""),)),)
 _FIXED_SUBAGENTSTOP = ((None, (("spectate-emit.sh", ""),)),)
+# Spectate v0.15 — PostToolUseFailure → tool.fail (native contract). Matcher
+# mirrors hooks.json; emit asserts failed status only — never error text.
+_FIXED_POSTTOOLUSEFAILURE = (
+    (
+        "Bash|Read|Write|Edit|MultiEdit|WebFetch|WebSearch|Agent|Task|mcp__.*",
+        (("spectate-emit.sh", ""),),
+    ),
+)
 
 
 def _script_of(command: str) -> str:
@@ -367,6 +378,7 @@ def build(
     pr_groups, pr_wired = _fixed_block(shim, hooks_dir, _FIXED_PERMISSIONREQUEST)
     se_groups, se_wired = _fixed_block(shim, hooks_dir, _FIXED_SESSIONEND)
     ss2_groups, ss2_wired = _fixed_block(shim, hooks_dir, _FIXED_SUBAGENTSTOP)
+    ptf_groups, ptf_wired = _fixed_block(shim, hooks_dir, _FIXED_POSTTOOLUSEFAILURE)
 
     wired: list = (
         [(s, "SessionStart") for s in ss_wired]
@@ -380,6 +392,7 @@ def build(
         + [(s, "PermissionRequest") for s in pr_wired]
         + [(s, "SessionEnd") for s in se_wired]
         + [(s, "SubagentStop") for s in ss2_wired]
+        + [(s, "PostToolUseFailure") for s in ptf_wired]
     )
     wired_names = {s for s, _ in wired}
 
@@ -426,6 +439,7 @@ def build(
             "PermissionRequest": pr_groups,
             "SessionEnd": se_groups,
             "SubagentStop": ss2_groups,
+            "PostToolUseFailure": ptf_groups,
         },
     }
     return cfg, wired, skipped
@@ -493,6 +507,7 @@ def main(argv: list) -> int:
                 "PermissionRequest",
                 "SessionEnd",
                 "SubagentStop",
+                "PostToolUseFailure",
             )
             by_event = {e: set() for e in floor_events}
             for script, event in wired:
@@ -504,7 +519,7 @@ def main(argv: list) -> int:
             if missing_emit:
                 print(
                     f"codex-hooks: spectate-emit.sh missing from fixed lanes: "
-                    f"{missing_emit} (Spectate v0.9/v0.11)",
+                    f"{missing_emit} (Spectate v0.9/v0.11/v0.15)",
                     file=sys.stderr,
                 )
                 return 1

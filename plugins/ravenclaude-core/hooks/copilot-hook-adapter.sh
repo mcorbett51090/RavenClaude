@@ -19,8 +19,8 @@
 # Usage (from a Copilot hooks.json `bash` entry):
 #   copilot-hook-adapter.sh <mode> <real-hook> [real-hook-args...]
 #     mode = bash-pretool | file-pretool | sessionstart | posttool | stop |
-#            userpromptsubmit | precompact | postcompact | subagentstart |
-#            subagentstop | sessionend | permissionrequest
+#            userpromptsubmit | precompact | postcompact | posttoolfailure |
+#            subagentstart | subagentstop | sessionend | permissionrequest
 #
 # Fail-open is Copilot's default on hook error; for the PreToolUse command hooks
 # we translate a Claude `exit 2` (block) into a Copilot `deny` so the block still
@@ -349,6 +349,15 @@ case "$mode" in
     # PostCompact observe (Spectate v0.13). Copilot Chat's eight-event set omits
     # PostCompact; fail-safe discard so Claude-manifest projection stays honest.
     export CLAUDE_HOOK_EVENT=PostCompact
+    printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  posttoolfailure)
+    # PostToolUseFailure observe (Spectate v0.15). Copilot's verified event set
+    # omits a separate failure lane; fail-safe discard so Claude-manifest
+    # projection stays honest. spectate-emit asserts failed status only — never
+    # ships error text even if a future host payload carries it.
+    export CLAUDE_HOOK_EVENT=PostToolUseFailure
     printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0
     ;;

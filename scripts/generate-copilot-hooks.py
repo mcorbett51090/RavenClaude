@@ -60,6 +60,7 @@ readable off the canonical command:
     UserPromptSubmit                                =>  userpromptsubmit
     PreCompact                                      =>  precompact
     PostCompact                                     =>  postcompact
+    PostToolUseFailure                              =>  posttoolfailure
     SubagentStart                                   =>  subagentstart
     SubagentStop                                    =>  subagentstop
     SessionEnd                                      =>  sessionend
@@ -112,6 +113,11 @@ _EVENT_MODE = {
     # set omits PostCompact [docs-verified 2026-09-01]. Fail-safe inert projection
     # keeps multi-event spectate-emit accounted (same shape as PermissionRequest).
     "PostCompact": "postcompact",
+    # PostToolUseFailure — Claude Code + Codex + Cursor document it; Copilot's
+    # verified event set omits a separate failure lane [docs-verified 2026-09-01].
+    # Fail-safe inert projection (same shape as PostCompact) so multi-event
+    # spectate-emit stays accounted without a basename skip.
+    "PostToolUseFailure": "posttoolfailure",
     # SubagentStart — observe/audit only. Adapter mode is fail-safe (discards
     # stdout + exit code). Needed so multi-event observe hooks like
     # spectate-emit.sh can register under SubagentStart without a full skip.
@@ -335,6 +341,7 @@ def main(argv: list) -> int:
             "PermissionRequest",
             "PreCompact",
             "PostCompact",
+            "PostToolUseFailure",
         )
         by_event: dict[str, set[str]] = {e: set() for e in floor_events}
         for script, event, *_rest in wired:
@@ -344,7 +351,7 @@ def main(argv: list) -> int:
         if missing_emit:
             print(
                 "copilot-hooks: spectate-emit.sh missing from mapped lanes: "
-                f"{missing_emit} (Spectate v0.12 Copilot observe)",
+                f"{missing_emit} (Spectate v0.12/v0.15 Copilot observe)",
                 file=sys.stderr,
             )
             return 1

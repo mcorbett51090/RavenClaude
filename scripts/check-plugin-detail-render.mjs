@@ -209,7 +209,9 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 78, // 77 -> 78: spectate-emit WIRED on PostCompact (Spectate v0.13)
+  hooks: 79, // 78 -> 79: spectate-emit WIRED on PostToolUseFailure (Spectate v0.15)
+  //   COUNTED, not inferred: hooks.json on this tree holds 79 registrations.
+  //        77 -> 78: spectate-emit WIRED on PostCompact (Spectate v0.13)
   //   COUNTED, not inferred: hooks.json on this tree holds 78 registrations.
   //        75 -> 77: spectate-emit WIRED on SessionEnd + SubagentStop (Spectate v0.12)
   //   COUNTED, not inferred: hooks.json on this tree holds 77 registrations.
