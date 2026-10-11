@@ -620,7 +620,10 @@ def _registered_hook_names(root: Path) -> set[str]:
 # Host lanes for multi-subcommand / CLI-dispatch hooks. hooks.json wires
 # `hook.sh ask` / `hook.sh stop` — not a sandbox path. Closed set: only the
 # lanes the host actually registers (ask|stop). Unknown words stay CLI-loud.
-_CLI_DISPATCH_LANE_RE = re.compile(r"([A-Za-z0-9_.-]+\.sh)\s+(ask|stop)\b")
+# Quoted script paths (SH-F11 form `".../hook.sh" ask`, on-disk JSON bytes
+# `.sh\" ask`) are the same host lane. The optional [\\"']* after `.sh` is
+# so the probe invokes ask|stop rather than sandbox-as-$1.
+_CLI_DISPATCH_LANE_RE = re.compile(r"""([A-Za-z0-9_.-]+\.sh)[\\"']*\s+(ask|stop)\b""")
 
 
 def _cli_dispatch_lanes(root: Path) -> dict[str, list[str]]:
@@ -1048,13 +1051,48 @@ def _control_results(root: Path) -> dict[str, bool | None]:
             _script_selftest(fake, ["scripts/liar.sh"], ctx)["scripts/liar.sh"][0] == FAIL
         )
 
-        # hook-benign-passthrough: a hook that denies everything must be caught.
+        # hook-benign-passthrough: TWO-SIDED. A hook that denies everything must
+        # be caught. A quoted CLI-dispatch hook (`"hook.sh" ask`) must PASS — if
+        # the lane regex does not see the quotes, the probe uses sandbox-as-$1
+        # and usage exit 2 is labelled denies-benign-payload. The live
+        # hooks.json must still resolve workaround-exhaustion.sh to ask+stop.
         hk = fake / "hooks"
         hk.mkdir(parents=True, exist_ok=True)
         (fake / "README.md").write_text("fixture\n", encoding="utf-8")
         (hk / "denies-all.sh").write_text("#!/usr/bin/env bash\nexit 2\n", encoding="utf-8")
+        (hooks_dir / "cli-dispatch.sh").write_text(
+            "#!/usr/bin/env bash\n"
+            'case "${1:-}" in ask|stop) exit 0 ;; *) echo usage >&2; exit 2 ;; esac\n',
+            encoding="utf-8",
+        )
+        (hooks_dir / "hooks.json").write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "PreToolUse": [
+                            {
+                                "hooks": [
+                                    {
+                                        "command": (
+                                            '"${CLAUDE_PLUGIN_ROOT}/hooks/cli-dispatch.sh" ask'
+                                        )
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        cli_rel = f"{PLUGIN}/hooks/cli-dispatch.sh"
+        benign = _hook_benign(fake, ["hooks/denies-all.sh", cli_rel], ctx)
+        live_lanes = _cli_dispatch_lanes(root).get("workaround-exhaustion.sh", [])
         out["hook-benign-passthrough"] = (
-            _hook_benign(fake, ["hooks/denies-all.sh"], ctx)["hooks/denies-all.sh"][0] == FAIL
+            benign["hooks/denies-all.sh"][0] == FAIL
+            and benign[cli_rel][0] == PASS
+            and "ask" in live_lanes
+            and "stop" in live_lanes
         )
 
         cm = fake / "commands"
