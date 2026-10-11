@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.345.0 — 2026-10-11
+
+### Added
+- **`wallet-passes` skill** — official-docs reference for Apple Wallet (PassKit / `pass.json`, styles including iOS 18+ poster event tickets and poster generic, image points, field slots, `changeMessage`, relevance, void/expire, web service + APNs, signing/WWDR, sharing, NFC) and Google Wallet generic class/object (templates, image specs, JWT save links, Smart Tap, notification caps, brand rules). Includes a business-card layout, worked JSON examples, and a common-mistakes checklist.
+
 ## 0.344.0 — 2026-10-10
 
 ### Added

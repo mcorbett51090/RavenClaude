@@ -3002,7 +3002,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:631a5808a5f9af01a019684fa40922cb0f416ad9c169095d9635f9457a968da4",
+      "covers_digest": "sha256:0a98b03200e4b8c72c70cc98c97b6b8345b59f95491f84458e431d3163f9a801",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4313,7 +4313,7 @@
         "plugins/ravenclaude-core/skills/forge-pipeline/agents/openai.yaml",
         "plugins/ravenclaude-core/skills/spawn-team/agents/openai.yaml"
       ],
-      "covers_digest": "sha256:66d9133372a09c02eea6bcdf071b4f0c1d77c8d59c416607a8192574e15a9500",
+      "covers_digest": "sha256:6c85c5eba9859cfd65fa91415d8596a9d9a2ce8408c54def5a1637213a971e2e",
       "nuance": "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count -- a fixed point reached on the second pass, never the first.",
       "nuance_evidence": {
         "measured": "2026-09-08",
@@ -4901,6 +4901,57 @@
         "teeth_exit": 1
       },
       "strength_badge": "Probed"
+    },
+    {
+      "id": "wallet-passes-apple-has-no-slot-char-max",
+      "title": "Apple field slots are counts, not character maxima",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 943,
+      "summary": "How Apple Wallet and Google Wallet document front-field capacity, and what an agent may treat as a contract.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-10-11",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "Apple Wallet Developer Guide — Pass Design and Creation",
+          "url": "https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/PassKit_PG/Creating.html"
+        },
+        {
+          "label": "Google Wallet Brand guidelines — Generic",
+          "url": "https://developers.google.com/wallet/generic/resources/brand-guidelines"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat both wallets publish the same kind of front-field contract, so an agent can\ncopy a per-slot character table from one platform onto the other, or invent Apple\nmaxima to match Google's published English caps.\n\n## The discriminator\n\ncontrol: Apple Creating.html field section lists header/primary/secondary/auxiliary counts and the overflow-hides-fields sentence; the same page has no per-slot char max. Google brand-guidelines Content table lists English caps.\n\nMeasured 2026-10-11: Apple documents how many fields fit a slot and that extra\ntext drops fields from the face. Google documents English character caps on\nnamed surfaces. Those are different contracts.\n\n## Why it matters\n\nA shipping pass that treats a guessed Apple character table as a hard max will\neither underfill the face or hide fields Wallet would have shown. The\nwallet-passes skill keeps that split explicit so a later editor cannot \"helpfully\"\nadd an Apple char-limit table without marking it non-contract.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/skills/wallet-passes/SKILL.md",
+        "plugins/ravenclaude-core/skills/wallet-passes/references/apple.md",
+        "plugins/ravenclaude-core/skills/wallet-passes/references/google.md",
+        "plugins/ravenclaude-core/skills/wallet-passes/references/business-card-layout.md"
+      ],
+      "covers_digest": "sha256:40900d7aa12ef469a1f7bd083fb8725df771f211c97fbdc4619ddffbabceaae0",
+      "nuance": "Apple `PassKit_PG/Creating.html` names `headerFields` counts and says overflow hides fields; it never publishes a per-slot character maximum. Google `generic/resources/brand-guidelines` Content does publish English caps. An invented Apple char-limit table is working guidance, not a contract.",
+      "nuance_evidence": {
+        "measured": "2026-10-11",
+        "control": "Apple Creating.html field section lists header/primary/secondary/auxiliary counts and the overflow-hides-fields sentence; the same page has no per-slot char max. Google brand-guidelines Content table lists English caps (card title < 47, field label < 20, field data < 15).",
+        "falsifier": "an Apple developer page that publishes a per-slot character maximum for headerFields or primaryFields, or a Google brand-guidelines page that withdraws the English Content table",
+        "probe": "unprobed: official Apple/Google HTML is not staged in CI; re-read the cited Creating.html field section and Brand guidelines Content table"
+      },
+      "nuance_source": "plugins/ravenclaude-core/skills/wallet-passes/references/apple.md",
+      "verify": {
+        "tier": "none",
+        "rationale": "This is an official-docs capacity fact, not offline-stageable in CI. Re-verification is re-reading the cited Apple Creating.html field section and Google Brand guidelines Content table, not a staged probe."
+      },
+      "strength_badge": "Unverified"
     }
   ]
 }
