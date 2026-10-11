@@ -1,4 +1,4 @@
-# Harness Spectate (v0.13)
+# Harness Spectate (v0.15)
 
 Observe-only livestream of atlas harness agent loops: see / understand / direct (direct is out of scope for v0.1).
 
@@ -13,8 +13,9 @@ Or, with a dashboard server already running on loopback: open `/spectate`.
 
 On Claude Code, the `spectate` skill opens the UI and arms the push mirror (`monitors/watch-spectate.sh`) for the rest of the session. <!-- delegation-nudge-ok: documents the skill surface, not a hand-back -->
 
-## Honesty (v0.13)
+## Honesty (v0.15)
 
+- **v0.15 PostToolUseFailure → tool.fail.** `spectate-emit.sh` maps `PostToolUseFailure`→`tool.fail` (asserted_status=`failed`; optional `duration_ms`; never persists error text). Wired on Claude Code (`hooks.json`), Codex fixed list, Cursor adapter `tool-fail` on docs-verified `postToolUseFailure` `[docs-verified 2026-10-11 — cursor.com/docs/agent/hooks]`. Gemini skipped (no separate failure event); Copilot fail-safe inert `posttoolfailure` projection.
 - **v0.13 PostCompact / compact.post.** Schema adds `compact.post`; Claude Code + Codex wire `spectate-emit` on `PostCompact`→`compact.post` (docs-verified). Cursor/Gemini skipped; Copilot fail-safe inert projection. Reducer closes `update-context` on post.
 - **v0.14 Gemini lifecycle observe.** `generate-gemini-hooks.py` + `gemini-hook-adapter.sh` wire `spectate-emit` on docs-verified Gemini lanes `[docs-verified 2026-10-11 — geminicli.com/docs/hooks/reference/]`: `SessionEnd`→`session.end`, `PreCompress`→`compact.pre`, `BeforeAgent`→`prompt.submit`, `AfterAgent`→`turn.end`. AfterAgent discards stdout (no retry); BeforeAgent strips `decision`. SubagentStart/Stop, PostCompact, PermissionRequest stay skipped on Gemini.
 - **v0.12 SessionEnd / SubagentStop observe.** Claude Code + Codex + Cursor + Copilot wire `spectate-emit` on `SessionEnd`→`session.end` and `SubagentStop`→`subagent.stop` (Cursor adapter never forwards task/summary/modified_files; docs-verified `[docs-verified 2026-10-10 — cursor.com/docs/agent/hooks]` / Codex hooks / Copilot CLI `sessionEnd` + Chat `SubagentStop`). Gemini SessionEnd ships in v0.14; SubagentStop stays skipped.

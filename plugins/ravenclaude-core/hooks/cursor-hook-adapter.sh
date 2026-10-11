@@ -36,12 +36,13 @@
 # Usage (from a generated .cursor/hooks.json entry):
 #   cursor-hook-adapter.sh <mode> /abs/path/to/real-hook.sh [args...]
 # Modes: shell-pretool | file-posttool | sessionstart | stop | promptsubmit
-#        | precompact | subagentstart | tool-pre | tool-post
+#        | precompact | subagentstart | tool-pre | tool-post | tool-fail
 #        | sessionend | subagentstop
 #
 # Enforcement stays on beforeShellExecution (Bash guards). Spectate observe:
 #   v0.9 preCompact + subagentStart; v0.10 preToolUse + postToolUse (tool-pre /
-#   tool-post) — docs-verified tool_use_id; preToolUse always emits allow.
+#   tool-post); v0.15 postToolUseFailure (tool-fail) — never forwards
+#   error_message; docs-verified tool_use_id; preToolUse always emits allow.
 # See knowledge/cursor-customization.md.
 set -uo pipefail
 
@@ -309,6 +310,34 @@ case "$mode" in
     # tool_output (content). Allowlisted tool_input + tool_use_id only.
     export CLAUDE_HOOK_EVENT=PostToolUse
     stdin_json="$(_claude_generic_tool_stdin)" || exit 0
+    printf '%s' "$stdin_json" | bash "$real" "$@" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  tool-fail)
+    # Cursor postToolUseFailure — observational (Spectate v0.15).
+    # `[docs-verified 2026-10-11 — cursor.com/docs/agent/hooks]`. Never forward
+    # error_message (content). Allowlisted tool_input + tool_use_id + optional
+    # duration only. Discard stdout (additional_context unused for observe).
+    export CLAUDE_HOOK_EVENT=PostToolUseFailure
+    stdin_json="$(_claude_generic_tool_stdin)" || exit 0
+    # Attach duration when present (int ms) — never error_message / failure text.
+    _dur="$(_field duration)"
+    if [ -n "$_dur" ] && command -v python3 >/dev/null 2>&1; then
+      stdin_json="$(printf '%s' "$stdin_json" | python3 -c '
+import json, sys
+try:
+    o = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+try:
+    d = int(float(sys.argv[1]))
+except Exception:
+    d = None
+if d is not None and 0 <= d <= 1_000_000_000_000:
+    o["duration"] = d
+print(json.dumps(o))
+' "$_dur" 2>/dev/null)" || true
+    fi
     printf '%s' "$stdin_json" | bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0
     ;;

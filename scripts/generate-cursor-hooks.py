@@ -255,6 +255,11 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                     # Spectate v0.10 — docs-verified Cursor postToolUse (all tools +
                     # tool_use_id). File formatters stay on afterFileEdit via _EVENT.
                     cursor_event, mode = "postToolUse", "tool-post"
+                elif event == "PostToolUseFailure" and script == "spectate-emit.sh":
+                    # Spectate v0.15 — docs-verified Cursor postToolUseFailure
+                    # `[docs-verified 2026-10-11 — cursor.com/docs/agent/hooks]`.
+                    # Never forwards error_message.
+                    cursor_event, mode = "postToolUseFailure", "tool-fail"
                 elif event == "PreToolUse":
                     if "Bash" not in matcher:
                         skipped.append(
@@ -369,7 +374,7 @@ def main(argv: list) -> int:
             )
             return 1
         # Spectate floors: v0.9 preCompact/subagentStart; v0.10 preToolUse/postToolUse;
-        # v0.12 sessionEnd/subagentStop.
+        # v0.12 sessionEnd/subagentStop; v0.15 postToolUseFailure.
         wired_pairs = {(s, e) for s, e, _, _ in wired}
         wired_cursor = {(s, ce) for s, _, ce, _ in wired}
         for need_ev, cursor_ev in (
@@ -377,19 +382,20 @@ def main(argv: list) -> int:
             ("SubagentStart", "subagentStart"),
             ("SessionEnd", "sessionEnd"),
             ("SubagentStop", "subagentStop"),
+            ("PostToolUseFailure", "postToolUseFailure"),
         ):
             if ("spectate-emit.sh", need_ev) not in wired_pairs:
                 print(
                     f"cursor-hooks: spectate-emit.sh not wired on {need_ev}→{cursor_ev} "
-                    f"(Spectate v0.9/v0.12)",
+                    f"(Spectate v0.9/v0.12/v0.15)",
                     file=sys.stderr,
                 )
                 return 1
-        for cursor_ev in ("preToolUse", "postToolUse"):
+        for cursor_ev in ("preToolUse", "postToolUse", "postToolUseFailure"):
             if ("spectate-emit.sh", cursor_ev) not in wired_cursor:
                 print(
                     f"cursor-hooks: spectate-emit.sh not wired on Cursor {cursor_ev} "
-                    f"(Spectate v0.10)",
+                    f"(Spectate v0.10/v0.15)",
                     file=sys.stderr,
                 )
                 return 1

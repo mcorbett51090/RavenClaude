@@ -216,6 +216,12 @@ _SKIP_EVENT = {
         "the pages checked (PreCompress maps to PreCompact only). Spectate "
         "v0.13 wires compact.post on Claude Code + Codex."
     ),
+    ("spectate-emit.sh", "PostToolUseFailure"): (
+        "PostToolUseFailure. Gemini AfterTool covers completed tools; docs "
+        "publish no separate failure event "
+        "`[docs-verified 2026-10-11 — geminicli.com/docs/hooks/reference/]`. "
+        "Spectate v0.15 wires tool.fail on Claude Code + Cursor + Codex."
+    ),
     ("spectate-emit.sh", "PermissionRequest"): (
         "PermissionRequest. Gemini Notification(ToolPermission) is observability "
         "only and cannot grant/deny — not a permission-prompt lane. Claude Code "
