@@ -111,4 +111,5 @@ failed · `40` auth · `50` pac import failed · `60` PROD guard blocked · `70`
 - Token acquisition ladder: [`../../knowledge/dataverse-token-acquisition.md`](../../knowledge/dataverse-token-acquisition.md)
 - Fresh-import smoke test (the import *before* this one): [`../../best-practices/alm-fresh-import-smoke-test-before-release.md`](../../best-practices/alm-fresh-import-smoke-test-before-release.md)
 - Pipeline architecture context: [`../alm-pipeline-design/SKILL.md`](../alm-pipeline-design/SKILL.md)
+- When an import succeeds but prod still differs (a layer is shadowing your managed component): [`../solution-layering-resolution/SKILL.md`](../solution-layering-resolution/SKILL.md)
 - **Any shipped use of the SPN secret is reviewed by `ravenclaude-core/security-reviewer`.**
