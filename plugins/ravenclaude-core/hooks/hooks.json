@@ -151,6 +151,18 @@
         ]
       }
     ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.16). Maps StopFailure (runs instead of Stop when the turn ends on an API error)\u2192turn.end asserted failed. DERIVED VALUES ONLY \u2014 error, error_details and last_assistant_message (the rendered API error string) are never read or written. Fail-safe: always exit 0; empty stdout; StopFailure output is ignored by the host anyway."
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Agent|Task",
@@ -600,6 +612,12 @@
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/emit-permission-denied.sh\"",
             "timeout": 5,
             "comment": "PermissionDenied substrate (ENH-006). After auto mode (or the permission system) denies a tool call, append ONE derived deny line to hook-events.jsonl via _emit-event.sh (tool name + fixed/sanitized rule token only \u2014 never command text) so Heimdall and workaround-exhaustion.sh anchor on classifier denials, not only RavenClaude PreToolUse guards. Fail-safe: always exit 0; never blocks or alters the denial."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
+            "timeout": 5,
+            "comment": "Spectate observe-only emitter (v0.16). Maps PermissionDenied\u2192permission.resolve (deny by harness, source auto-mode, asserted failed) on the tool_use_id node PreToolUse opened. DERIVED VALUES ONLY \u2014 the denial reason, tool args and secrets are never written; reason only selects a fixed rule token. Fail-safe: always exit 0; empty stdout; never blocks or retries the denial."
           }
         ]
       }

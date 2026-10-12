@@ -7,6 +7,8 @@
 #   M3  steer.applied interrupt → notification with steer action
 #   M4  tool.target / note-shaped fields never appear in output
 #   M5  newest_spectate_log picks spectate-events.jsonl
+#   M6  turn.end: failed (StopFailure) notifies; a clean turn.end is skipped
+#   M7  permission.resolve denied-by-harness notifies with tool name only
 #
 # Run: bash plugins/ravenclaude-core/hooks/tests/test-watch-spectate.sh
 
@@ -80,6 +82,29 @@ if [ "$got" = "$RUNS_DIR/s2/spectate-events.jsonl" ]; then
   pass "newest spectate log is s2"
 else
   fail "newest was '$got'"
+fi
+
+echo "── M6: failed turn.end notifies; clean turn.end is skipped ──────────────"
+out_fail="$(emit_spectate_derived '{"kind":"turn.end","node_id":"turn","asserted_status":"failed","session_id":"secret-session-xyz"}')"
+out_ok="$(emit_spectate_derived '{"kind":"turn.end","node_id":"turn"}')"
+if printf '%s' "$out_fail" | grep -q 'turn.end' \
+  && printf '%s' "$out_fail" | grep -q '\[failed\]' \
+  && ! printf '%s' "$out_fail" | grep -q 'secret-session-xyz' \
+  && [ -z "$out_ok" ]; then
+  pass "failed turn.end line; clean turn.end skipped"
+else
+  fail "M6 bad: fail=[$out_fail] ok=[$out_ok]"
+fi
+
+echo "── M7: permission.resolve (auto-mode denial) notifies; no deny text ─────"
+out="$(emit_spectate_derived '{"kind":"permission.resolve","asserted_status":"failed","tool":{"name":"Bash","family":"shell","target":"rm"},"deny":{"by":"harness","source":"auto-mode","rule":"classifier-verdict"}}')"
+if printf '%s' "$out" | grep -q 'permission.resolve' \
+  && printf '%s' "$out" | grep -q 'Bash' \
+  && ! printf '%s' "$out" | grep -q 'classifier-verdict' \
+  && ! printf '%s' "$out" | grep -Eq '(^| )rm( |$)'; then
+  pass "denial line; tool name only (no target / rule token)"
+else
+  fail "M7 bad: $out"
 fi
 
 if [ "$FAILED" -ne 0 ]; then

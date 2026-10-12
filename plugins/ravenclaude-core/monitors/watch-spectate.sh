@@ -21,8 +21,9 @@
 #   note text, args, prompts, or free-form detail.
 #
 #   Only high-signal kinds are mirrored (permission.*, steer.applied,
-#   tool.fail, session.*, subagent.*, *.truncated). tool.pre/post and
-#   prompt.submit are skipped to avoid notification spam.
+#   tool.fail, session.*, subagent.*, *.truncated, and turn.end ONLY when its
+#   asserted_status is failed — a StopFailure, v0.16). tool.pre/post,
+#   prompt.submit and ordinary turn.end are skipped to avoid notification spam.
 #
 # READ-ONLY / FAIL-SAFE
 #   Same contract as watch-run-state.sh: resolve newest spectate-events.jsonl,
@@ -44,7 +45,7 @@ esac
 # Kinds worth a notification (fixed vocabulary — edit with care).
 _interesting_kind() {
   case "$1" in
-    permission.request | permission.resolve | steer.applied | tool.fail | \
+    permission.request | permission.resolve | steer.applied | tool.fail | turn.end | \
       session.start | session.end | subagent.start | subagent.stop | \
       stream.truncated | emitter.truncated)
       return 0
@@ -97,6 +98,10 @@ emit_spectate_derived() {
 
   [ -n "$kind" ] || return 0
   _interesting_kind "$kind" || return 0
+  # A clean Stop is a turn.end every turn — only the failed ones are signal.
+  if [ "$kind" = "turn.end" ] && [ "$status" != "failed" ]; then
+    return 0
+  fi
 
   local glyph="•"
   case "$kind" in
@@ -115,7 +120,7 @@ emit_spectate_derived() {
         *) glyph="•" ;;
       esac
       ;;
-    tool.fail | stream.truncated | emitter.truncated) glyph="⚠" ;;
+    tool.fail | turn.end | stream.truncated | emitter.truncated) glyph="⚠" ;;
     session.start | subagent.start) glyph="→" ;;
     session.end | subagent.stop) glyph="■" ;;
   esac

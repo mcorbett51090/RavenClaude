@@ -353,10 +353,14 @@ case "$mode" in
     exit 0
     ;;
   posttoolfailure)
-    # PostToolUseFailure observe (Spectate v0.15). Copilot's verified event set
-    # omits a separate failure lane; fail-safe discard so Claude-manifest
-    # projection stays honest. spectate-emit asserts failed status only — never
-    # ships error text even if a future host payload carries it.
+    # PostToolUseFailure observe (Spectate v0.15; comment corrected v0.16).
+    # Copilot DOES document `postToolUseFailure` / `PostToolUseFailure`
+    # `[docs-verified 2026-10-12 — docs.github.com/en/copilot/reference/hooks-reference]`
+    # (v0.15 recorded the opposite). The payload is passed through to the hook
+    # and its stdout/exit are discarded. spectate-emit asserts failed status only
+    # — the documented `error` string is never read. Known limits: no tool-call
+    # id is published and tool names are not normalised here (bash-pretool does),
+    # so the node id is `tool-<rawname>` and does not join tool.pre's node.
     export CLAUDE_HOOK_EVENT=PostToolUseFailure
     printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0

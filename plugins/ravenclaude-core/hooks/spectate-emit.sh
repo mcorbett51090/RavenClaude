@@ -4,8 +4,8 @@
 # Appends ONE scrubbed rc.spectate.v1 line to
 #   ${CLAUDE_PROJECT_DIR}/.ravenclaude/runs/<session>/spectate-events.jsonl
 # for SessionStart / UserPromptSubmit / PreToolUse / PostToolUse /
-# PostToolUseFailure / Stop / SubagentStart / SubagentStop / PreCompact /
-# PostCompact / SessionEnd / PermissionRequest.
+# PostToolUseFailure / Stop / StopFailure / SubagentStart / SubagentStop /
+# PreCompact / PostCompact / SessionEnd / PermissionRequest / PermissionDenied.
 # Never blocks; never writes stdout; never carries raw prompts, tool arguments,
 # tool output, task/summary text, or secrets.
 #
@@ -78,6 +78,12 @@ KIND_BY_EVENT = {
     "posttooluse": "tool.post",
     "posttoolusefailure": "tool.fail",
     "stop": "turn.end",
+    # Spectate v0.16 — Claude Code only `[docs-verified 2026-10-12 —
+    # code.claude.com/docs/en/hooks]`: StopFailure runs INSTEAD of Stop when the
+    # turn ends on an API error; PermissionDenied runs when auto mode denies a
+    # tool call. Codex / Gemini / Cursor / Copilot document neither.
+    "stopfailure": "turn.end",
+    "permissiondenied": "permission.resolve",
     "subagentstart": "subagent.start",
     "subagentstop": "subagent.stop",
     "precompact": "compact.pre",
@@ -177,6 +183,25 @@ def tool_family(name: str) -> str:
     return "other"
 
 
+def denied_rule(reason: object) -> str | None:
+    """Fixed-vocabulary token for the documented PermissionDenied `reason` forms.
+
+    The reason text itself is never copied — it can carry a classifier rule
+    name, and only the SHAPE of the reason is read. Unknown shape → None.
+    `[docs-verified 2026-10-12 — code.claude.com/docs/en/hooks#permissiondenied]`
+    """
+    if not isinstance(reason, str):
+        return None
+    r = reason.strip()
+    if r == "Classifier unavailable":
+        return "classifier-unavailable"
+    if r.startswith("Auto mode could not evaluate this action"):
+        return "no-verdict"
+    if r.startswith("["):
+        return "classifier-verdict"
+    return None
+
+
 def shell_target(command: object) -> str | None:
     if not isinstance(command, str) or not command.strip():
         return None
@@ -265,6 +290,7 @@ def main() -> None:
     tool_obj = None
     metrics = None
     asserted = None
+    deny_obj = None
 
     if kind == "session.start":
         node_id = "session"
@@ -275,7 +301,13 @@ def main() -> None:
         prompt = payload.get("prompt")
         if isinstance(prompt, str):
             metrics = {"prompt_chars": min(len(prompt), 1_000_000_000_000)}
-    elif kind in {"tool.pre", "tool.post", "tool.fail", "permission.request"}:
+    elif kind in {
+        "tool.pre",
+        "tool.post",
+        "tool.fail",
+        "permission.request",
+        "permission.resolve",
+    }:
         if not tool_name:
             return
         node_id = corr or sanitize_id(f"tool-{tool_name}", f"tool-{tool_name[:40]}")
@@ -311,6 +343,17 @@ def main() -> None:
                 ms = int(dur)
                 if 0 <= ms <= 1_000_000_000_000:
                     metrics = {"duration_ms": ms}
+        elif kind == "permission.resolve":
+            # Spectate v0.16 — PermissionDenied (auto mode denied the call). The
+            # node_id is the tool_use_id, so this lands on the node PreToolUse
+            # already opened. Derived labels only: `reason` and `tool_input`
+            # text are never copied (target above is the same argv-0 / basename
+            # / host the tool.pre lane already emits).
+            asserted = "failed"
+            deny_obj = {"by": "harness", "source": "auto-mode"}
+            rule = denied_rule(payload.get("reason"))
+            if rule:
+                deny_obj["rule"] = rule
         else:
             asserted = "waiting-approval"
     elif kind in {"subagent.start", "subagent.stop"}:
@@ -335,6 +378,11 @@ def main() -> None:
         node_id = "compact"
     elif kind == "turn.end":
         node_id = "turn"
+        if event == "stopfailure":
+            # Spectate v0.16 — the turn ended on an API error. Status only:
+            # `error`, `error_details` and `last_assistant_message` (which holds
+            # the rendered API error string) are never read.
+            asserted = "failed"
     else:
         return
 
@@ -354,7 +402,7 @@ def main() -> None:
     }
     if kind not in {"session.start", "session.end", "stream.truncated", "emitter.truncated"}:
         event_out["node_id"] = node_id
-    if kind in {"tool.pre", "tool.post", "tool.fail", "permission.request"}:
+    if kind in {"tool.pre", "tool.post", "tool.fail", "permission.request", "permission.resolve"}:
         event_out["step"] = "execute-tools"
     if kind == "prompt.submit":
         event_out["step"] = "assemble"
@@ -364,6 +412,8 @@ def main() -> None:
         event_out["tool"] = tool_obj
     if asserted:
         event_out["asserted_status"] = asserted
+    if deny_obj:
+        event_out["deny"] = deny_obj
     if metrics:
         event_out["metrics"] = metrics
 

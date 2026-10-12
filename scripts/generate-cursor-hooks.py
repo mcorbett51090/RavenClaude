@@ -205,6 +205,19 @@ _SKIP_EVENT = {
         "unsupported `[docs-verified 2026-10-11 — cursor.com/docs/reference/third-party-hooks]` "
         "(no Cursor mapping). Claude Code + Copilot carry permission.request emit."
     ),
+    ("spectate-emit.sh", "PermissionDenied"): (
+        "PermissionDenied. Claude Code auto-mode event; Cursor's hooks reference "
+        "documents no permission-denial lane (and marks PermissionRequest "
+        "unsupported) `[docs-verified 2026-10-12 — cursor.com/docs/agent/hooks]`. "
+        "Spectate v0.16 wires permission.resolve(deny) on Claude Code only."
+    ),
+    ("spectate-emit.sh", "StopFailure"): (
+        "StopFailure. Claude Code API-error turn end. Cursor's `stop` carries a "
+        "status field but its payload shape is not probed here; wiring it as a "
+        "failed turn would be a guess `[docs-verified 2026-10-12 — "
+        "cursor.com/docs/agent/hooks]`. Spectate v0.16 wires failed turn.end on "
+        "Claude Code only."
+    ),
     ("spectate-emit.sh", "PostCompact"): (
         "PostCompact. Cursor docs publish preCompact but no verified postCompact "
         "lane [docs-verified 2026-10-10 — cursor.com/docs/agent/hooks]. Spectate "
