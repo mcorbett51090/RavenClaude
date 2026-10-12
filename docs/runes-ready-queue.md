@@ -67,3 +67,12 @@ rc runes open "<title>" [--gate matthew|appsec|cos|sage|money] [--kind fix|featu
 
 All Runes behavior ships in **ravenclaude-core** (CLI + hooks + skill) for **any harness** — not CoS-only.
 
+## Software Factory (P0)
+
+The Runes / Oath-hook / Longship machinery above is the substrate for the **Software Factory** ops loop (goal + DoD → Rune → 3-model DONE → Longship land-request → **Sage** merge). It **extends** this machinery — no new CLI, no new product, Longship `auto_merge` stays **false**.
+
+- **Runbook (the ops default path + escalation diet):** [`software-factory-runbook-p0.md`](software-factory-runbook-p0.md)
+- **Intake contract (per-item template, 8 required fields incl. `appsec_in_scope` / `entry_surface`):** [`software-factory-rune-contract.md`](../plugins/ravenclaude-core/templates/software-factory-rune-contract.md)
+
+`entry_surface` ∈ {`grok_bots`, `cursor`, `claude`, `supergrok`} records *how work entered* and is orthogonal to the 3-model review ladder. The runbook §11 records six verified substrate findings (incl. the `money`-gate / `--kind` schema divergences) as Propose→Sage P1 items.
+

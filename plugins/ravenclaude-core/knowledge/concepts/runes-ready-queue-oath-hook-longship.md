@@ -45,6 +45,8 @@ and Longship open/add/land-request. Measured 2026-09-15: `land-request` returns
 `auto_merge: false` with a Sage-facing message and performs no merge; a Rune with
 `human_gate=matthew` prints REFUSED and never sets `hook_owner`.
 
+Software Factory P0 usage: `docs/software-factory-runbook-p0.md` and `plugins/ravenclaude-core/templates/software-factory-rune-contract.md`.
+
 ## Why it matters
 
 Ready-queue UX without an Oath-hook leaves claimed work optional. A Longship that could
