@@ -761,7 +761,14 @@ def reduce_session(
             continue
         if kind == "turn.end":
             closed.add((agent, turn))
-            observe(agent, turn, "package", "succeeded", ts)
+            # StopFailure (v0.16) asserts `failed`; every other turn.end is a clean Stop.
+            observe(
+                agent,
+                turn,
+                "package",
+                "failed" if e.get("asserted_status") == "failed" else "succeeded",
+                ts,
+            )
             if (agent, turn) in compact_open:
                 compact_open.discard((agent, turn))
                 observe(agent, turn, "update-context", "succeeded", ts)

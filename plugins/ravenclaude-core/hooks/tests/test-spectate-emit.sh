@@ -342,6 +342,75 @@ else
 fi
 rm -rf "$T14"
 
+echo "── S15: PermissionDenied emits permission.resolve (deny harness); no reason text ──"
+T15="$(mktemp -d)"
+RSN_SECRET='[Data Exfiltration] SECRET_REASON_TEXT sk-ant-api03-LEAK'
+check_denied() {
+  # $1=label $2=session $3=reason $4=expected rule ("" = no rule key)
+  local lbl="$1" sid="$2" reason="$3" want="$4" body log blob ok=1
+  body="$(jq -cn --arg r "$reason" --arg secret "$SECRET" \
+    '{session_id:"'"$sid"'",hook_event_name:"PermissionDenied",permission_mode:"auto",tool_name:"Bash",tool_use_id:"tu-deny-1",tool_input:{command:("rm -rf /tmp/build " + $secret)},reason:$r}')"
+  out="$(run_hook "$T15" "$sid" PermissionDenied "$body")"
+  rc=$?
+  log="$T15/.ravenclaude/runs/$sid/spectate-events.jsonl"
+  if [ "$rc" -ne 0 ] || [ -n "$out" ] || [ ! -f "$log" ]; then
+    fail "S15 $lbl: rc=$rc out_len=${#out} log=$( [ -f "$log" ] && echo y || echo n )"
+    return
+  fi
+  blob="$(cat "$log")"
+  [ "$(jq -r '.kind' "$log")" = "permission.resolve" ] || ok=0
+  [ "$(jq -r '.asserted_status // empty' "$log")" = "failed" ] || ok=0
+  [ "$(jq -r '.corr_id // empty' "$log")" = "tu-deny-1" ] || ok=0
+  [ "$(jq -r '.node_id' "$log")" = "tu-deny-1" ] || ok=0
+  [ "$(jq -r '.deny.by' "$log")" = "harness" ] || ok=0
+  [ "$(jq -r '.deny.source' "$log")" = "auto-mode" ] || ok=0
+  [ "$(jq -r '.deny.rule // empty' "$log")" = "$want" ] || ok=0
+  [ "$(jq -r '.tool.target // empty' "$log")" = "rm" ] || ok=0
+  printf '%s' "$blob" | grep -Fq 'SECRET_REASON_TEXT' && ok=0
+  printf '%s' "$blob" | grep -Fq 'Data Exfiltration' && ok=0
+  printf '%s' "$blob" | grep -Fq 'sk-ant' && ok=0
+  printf '%s' "$blob" | grep -Fq '/tmp/build' && ok=0
+  if [ "$ok" -eq 1 ]; then
+    pass "S15 $lbl: permission.resolve deny=harness/auto-mode rule=${want:-none}; no reason/args text"
+  else
+    fail "S15 $lbl: blob=$(printf '%s' "$blob" | head -c 300)"
+  fi
+}
+check_denied classifier s15a "$RSN_SECRET" classifier-verdict
+check_denied no-verdict s15b "Auto mode could not evaluate this action and is blocking it for safety SECRET_REASON_TEXT" no-verdict
+check_denied unavailable s15c "Classifier unavailable" classifier-unavailable
+check_denied unknown-shape s15d "free-form SECRET_REASON_TEXT" ""
+rm -rf "$T15"
+
+echo "── S16: StopFailure emits turn.end asserted=failed; no error text ─────────"
+T16="$(mktemp -d)"
+payload16="$(jq -cn \
+  '{session_id:"s16",hook_event_name:"StopFailure",error:"rate_limit",error_details:"SECRET_ERR_DETAILS 429",last_assistant_message:"API Error: SECRET_API_ERROR_STRING"}')"
+out16="$(run_hook "$T16" s16 StopFailure "$payload16")"
+rc16=$?
+log16="$T16/.ravenclaude/runs/s16/spectate-events.jsonl"
+if [ "$rc16" -eq 0 ] && [ -z "$out16" ] && [ -f "$log16" ]; then
+  ok16=1
+  [ "$(jq -r '.kind' "$log16")" = "turn.end" ] || ok16=0
+  [ "$(jq -r '.node_id' "$log16")" = "turn" ] || ok16=0
+  [ "$(jq -r '.asserted_status // empty' "$log16")" = "failed" ] || ok16=0
+  blob16="$(cat "$log16")"
+  for leak in SECRET_ERR_DETAILS SECRET_API_ERROR_STRING rate_limit error_details last_assistant_message; do
+    printf '%s' "$blob16" | grep -Fq "$leak" && ok16=0
+  done
+  # A plain Stop on the same session must stay a CLEAN turn.end (no asserted_status).
+  run_hook "$T16" s16 Stop '{"session_id":"s16"}' >/dev/null
+  [ "$(jq -rs 'map(select(.kind=="turn.end")) | .[1].asserted_status // "clean"' "$log16")" = "clean" ] || ok16=0
+  if [ "$ok16" -eq 1 ]; then
+    pass "S16: StopFailure→turn.end failed (no error text); plain Stop stays clean"
+  else
+    fail "S16: blob=$(printf '%s' "$blob16" | head -c 300)"
+  fi
+else
+  fail "S16: rc=$rc16 out_len=${#out16} log=$( [ -f "$log16" ] && echo y || echo n )"
+fi
+rm -rf "$T16"
+
 if [ "$FAILED" -ne 0 ]; then
   echo "test-spectate-emit: $FAILED failure(s)"
   exit 1

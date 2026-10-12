@@ -523,8 +523,77 @@ def check_http(store, root: Path) -> list[str]:
     return errs
 
 
+def check_v16(store) -> list[str]:
+    """Spectate v0.16 — PermissionDenied → permission.resolve(deny harness) and
+    StopFailure → turn.end(failed). Rows are exactly what `spectate-emit.sh` writes
+    (hooks/tests/test-spectate-emit.sh S15/S16); this proves the reducer reads them."""
+    errs: list[str] = []
+    caps = store.load_capabilities(CAPS)
+
+    def row(ts: str, kind: str, **extra) -> dict:
+        base = {
+            "schema": "rc.spectate.v1",
+            "ts": f"2026-10-12T10:00:{ts}.000Z",
+            "session_id": "v16",
+            "harness": "claude-code",
+            "source": "hook",
+            "kind": kind,
+            "agent_id": "main",
+            "detail": "minimal",
+        }
+        if kind not in ("session.start", "session.end"):
+            base["node_id"] = extra.pop("node_id", "turn")
+        base.update(extra)
+        return base
+
+    tool = {"name": "Bash", "family": "shell", "target": "rm"}
+    denied = [
+        row("00", "prompt.submit", node_id="prompt"),
+        row("01", "tool.pre", node_id="tu-1", corr_id="tu-1", step="execute-tools", tool=tool,
+            asserted_status="running"),
+        row("02", "permission.resolve", node_id="tu-1", corr_id="tu-1", step="execute-tools",
+            tool=tool, asserted_status="failed",
+            deny={"by": "harness", "source": "auto-mode", "rule": "classifier-verdict"}),
+        row("03", "turn.end", asserted_status="failed"),
+    ]
+    for i, r in enumerate(denied):
+        for reason in store.check_event(r):
+            errs.append(f"v16: row {i + 1} ({r['kind']}) rejected: {reason}")
+    got = store.reduce_session(denied, [], caps, harness="claude-code")
+    by_id = {n["node_id"]: n for n in got["nodes"]}
+    node = by_id.get("tu-1")
+    if node is None:
+        errs.append("v16: denied tool node tu-1 missing")
+    else:
+        if node["status"] != "denied-harness":
+            errs.append(f"v16: denied node status is {node['status']!r}, expected denied-harness")
+        d = node.get("deny") or {}
+        if (d.get("by"), d.get("source"), d.get("rule")) != (
+            "harness", "auto-mode", "classifier-verdict",
+        ):
+            errs.append(f"v16: denied node deny is {d!r}")
+    pkg = by_id.get("step:main:0:package")
+    if pkg is None or pkg["status"] != "failed":
+        errs.append(f"v16: failed turn.end must fail the package step (got {pkg and pkg['status']!r})")
+    if got["latest_status"] not in ("failed", "denied-harness"):
+        errs.append(f"v16: session latest_status {got['latest_status']!r} hides the failure")
+
+    # Control: the SAME stream with a clean Stop must keep the package step succeeded
+    # and the unrelated tool must not read as denied (the assertions above can fail).
+    clean = [r for r in denied if r["kind"] not in ("permission.resolve", "turn.end")]
+    clean.append(row("03", "turn.end"))
+    ok = store.reduce_session(clean, [], caps, harness="claude-code")
+    ok_by = {n["node_id"]: n for n in ok["nodes"]}
+    if (ok_by.get("step:main:0:package") or {}).get("status") != "succeeded":
+        errs.append("v16: clean turn.end no longer reduces to a succeeded package step")
+    if (ok_by.get("tu-1") or {}).get("status", "").startswith("denied"):
+        errs.append("v16: tool read as denied without a permission.resolve deny")
+    return errs
+
+
 def check_store(store, demo) -> list[str]:
     errs = check_golden(store)
+    errs.extend(check_v16(store))
     with tempfile.TemporaryDirectory() as d:
         errs.extend(check_gallery(store, demo, Path(d)))
     with tempfile.TemporaryDirectory() as d:

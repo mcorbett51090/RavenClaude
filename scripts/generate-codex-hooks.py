@@ -164,7 +164,11 @@ _SKIP = {
     # spectate-emit.sh is wired via SessionStart derivation + fixed
     # PreToolUse/PostToolUse/Stop (v0.9) + UserPromptSubmit/SubagentStart/
     # PreCompact/PermissionRequest (v0.11) + SessionEnd/SubagentStop (v0.12)
-    # + PostCompact (v0.13) + PostToolUseFailure (v0.15).
+    # + PostCompact (v0.13) + PostToolUseFailure (v0.15). Spectate v0.16's
+    # PermissionDenied / StopFailure are NOT wired here: the Codex hooks reference
+    # documents twelve events and neither exists (denials flow through the
+    # PermissionRequest deny decision; Stop is the only turn-end event)
+    # `[docs-verified 2026-10-12 — learn.chatgpt.com/docs/hooks]`.
     # By-basename accounting covers the
     # script once any lane wires it; floors below catch a lane drop.
     "spectate-steer.sh": _EVENT_UNWIRED_REASON,

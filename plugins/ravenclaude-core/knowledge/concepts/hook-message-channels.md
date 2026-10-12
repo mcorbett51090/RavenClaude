@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 901
 summary: "A hook can write to the terminal or to the model, and only one of those reaches the model."
-last_verified: 2026-10-11
+last_verified: 2026-10-12
 covers:
   - plugins/ravenclaude-core/hooks/_advise.sh
   - plugins/ravenclaude-core/hooks/_emit-event.sh
@@ -58,7 +58,7 @@ covers:
   - plugins/ravenclaude-core/hooks/triage-outcome.sh
   - plugins/ravenclaude-core/hooks/worktree-guard.sh
   - plugins/ravenclaude-core/hooks/emit-permission-denied.sh
-covers_digest: "sha256:4672b9823454d2dae0d4e9aa5fe3234216405a9304a1f392b94efc93350097cc"
+covers_digest: "sha256:3246f1b02c3655c1b598cdfffece27f27cd372dcdd5418e64edcaa4de69928b2"
 nuance: "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life."
 nuance_evidence:
   measured: 2026-08-19

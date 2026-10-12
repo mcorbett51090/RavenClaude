@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.348.0 — 2026-10-12
+
+### Added
+- **Spectate v0.16 PermissionDenied + StopFailure (Claude Code)** — two events found by re-scanning the host docs, both documented with payloads on `[docs-verified 2026-10-12 — code.claude.com/docs/en/hooks]` and in neither the deferred list nor `hooks.json` before this release. `spectate-emit.sh` maps `PermissionDenied`→`permission.resolve` (a node on the `tool_use_id` PreToolUse already opened, `deny: {by: harness, source: auto-mode}`, status `denied-harness`) and `StopFailure`→`turn.end` with `asserted_status: failed` (the reducer now fails the turn's `package` step instead of marking it succeeded). The denial `reason` only selects one of three fixed `deny.rule` tokens (`classifier-verdict` / `no-verdict` / `classifier-unavailable`) — its text is never copied; `StopFailure`'s `error`, `error_details` and `last_assistant_message` (the rendered API error string) are never read. The push mirror now surfaces a failed `turn.end` (a clean one stays silent). Codex, Gemini, Cursor and Copilot document neither event and carry explicit per-event skips (`generate-copilot-hooks.py` gains `_SKIP_EVENT`, mirroring Cursor/Gemini, so Copilot gets no inert config entry). Gates: spectate-emit S15–S16 / watch-spectate M6–M7 / `check-spectate.py` v0.16 reducer check (with a mutation proof) / generate-*-hooks `--check` / Gate 141 hooks 81.
+
+### Fixed
+- **Stale Copilot claim (v0.15)** — v0.15 recorded that Copilot's event set "omits a separate failure lane `[docs-verified 2026-09-01]`". The Copilot hooks reference documents `postToolUseFailure` / `PostToolUseFailure` `[docs-verified 2026-10-12 — docs.github.com/en/copilot/reference/hooks-reference]`; the existing `posttoolfailure` adapter mode already passes that payload to `spectate-emit`, so the lane is live rather than inert. Comments in `generate-copilot-hooks.py` and `copilot-hook-adapter.sh` now say so, with the two open limits (no tool-call id published; tool names not normalised) recorded in the BUILD-PLAN.
+
 ## 0.347.0 — 2026-10-11
 
 ### Added

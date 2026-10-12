@@ -555,6 +555,18 @@ Endpoints (GET, read-only, Host/Origin-checked) — **no write routes in v0.1** 
 - Live Gemini `tool_use_id` probe (docs still publish none on BeforeTool/AfterTool)
 - Gemini SubagentStart/Stop + PostCompact (no verified host events)
 
+## Shipped in v0.16
+
+- `spectate-emit` maps `PermissionDenied`→`permission.resolve` (`deny: {by: harness, source: auto-mode}`, asserted `failed`, node = `tool_use_id`; reason → one of three fixed rule tokens, text never copied) and `StopFailure`→`turn.end` asserted `failed` (reducer fails the `package` step; `error` / `error_details` / `last_assistant_message` never read). Claude Code only `[docs-verified 2026-10-12 — code.claude.com/docs/en/hooks]`.
+- Codex (12-event reference), Gemini (11), Cursor (21), Copilot (14) document neither event — explicit per-event skips; `generate-copilot-hooks.py` gains `_SKIP_EVENT`. Push mirror notifies on a failed `turn.end` only.
+- Gates: spectate-emit S15–S16 / watch-spectate M6–M7 / `check-spectate.py` `check_v16` (mutation-proven) / generate-*-hooks `--check` / Gate 141 hooks 81.
+
+### v0.17 candidates (docs-verified, adapter work — not shipped here)
+
+- **Copilot `postToolUseFailure` correction (v0.15 said Copilot omits it).** The Copilot reference documents it with payload `{sessionId, timestamp, cwd, toolName, toolArgs, error}` / VS Code-compatible `{hook_event_name, session_id, timestamp, cwd, tool_name, tool_input, error}` `[docs-verified 2026-10-12]`. The existing `posttoolfailure` adapter mode passes it through, so the lane is live — but Copilot publishes **no tool-call id** (0 hits for `toolCallId` / `tool_use_id` / `toolUseId` on the page) and the mode does not normalise lowercase tool names the way `bash-pretool` does, so the failure lands on its own `tool-<name>` node instead of joining `tool.pre`. Fix = reuse the `bash-pretool` name map in `posttoolfailure` (and factor it once); a live Copilot payload capture would also settle whether PascalCase config keys deliver the snake_case form.
+- **Copilot `postToolUse` spectate-emit lane is dead.** The shared `posttool` adapter mode (built for formatters) passes only a file path as argv and gives the hook no stdin, so `spectate-emit` sees an empty payload and writes nothing (reproduced 2026-10-12: adapter `posttool` + spectate-emit → no `spectate-events.jsonl`). `tool.post` therefore never closes a Copilot node. Same name-normalisation prerequisite as above.
+- `errorOccurred` (Copilot) is **not** a turn-failure signal (`errorContext` spans model_call / tool_execution / system / user_input) — do not map it to `turn.end` without a payload probe.
+
 ## Shipped in v0.15
 
 - `spectate-emit` maps `PostToolUseFailure`→`tool.fail` (asserted `failed`; optional `duration_ms`; never error text)

@@ -1,4 +1,4 @@
-# Harness Spectate (v0.15)
+# Harness Spectate (v0.16)
 
 Observe-only livestream of atlas harness agent loops: see / understand / direct (direct is out of scope for v0.1).
 
@@ -13,8 +13,10 @@ Or, with a dashboard server already running on loopback: open `/spectate`.
 
 On Claude Code, the `spectate` skill opens the UI and arms the push mirror (`monitors/watch-spectate.sh`) for the rest of the session. <!-- delegation-nudge-ok: documents the skill surface, not a hand-back -->
 
-## Honesty (v0.15)
+## Honesty (v0.16)
 
+- **v0.16 PermissionDenied / StopFailure (Claude Code only).** `spectate-emit.sh` maps `PermissionDenied`→`permission.resolve` (`deny: {by: harness, source: auto-mode}`, node = `tool_use_id`, so it lands on the tool PreToolUse opened and reads `denied-harness`) and `StopFailure`→`turn.end` with `asserted_status: failed` (the reducer fails the turn's `package` step). `[docs-verified 2026-10-12 — code.claude.com/docs/en/hooks]`. The denial `reason` is only classified into a fixed `deny.rule` token (`classifier-verdict` / `no-verdict` / `classifier-unavailable`); `StopFailure`'s `error` / `error_details` / `last_assistant_message` are never read. Codex, Gemini, Cursor and Copilot document neither event — explicit per-event skips, no claim. The push mirror notifies on a failed `turn.end` only.
+- **Copilot correction.** Copilot documents `postToolUseFailure` `[docs-verified 2026-10-12 — docs.github.com/en/copilot/reference/hooks-reference]` (v0.15 said it did not). The `posttoolfailure` adapter lane is live; it publishes no tool-call id and does not normalise tool names, so a failure sits on its own `tool-<name>` node — see BUILD-PLAN § Deferred.
 - **v0.15 PostToolUseFailure → tool.fail.** `spectate-emit.sh` maps `PostToolUseFailure`→`tool.fail` (asserted_status=`failed`; optional `duration_ms`; never persists error text). Wired on Claude Code (`hooks.json`), Codex fixed list, Cursor adapter `tool-fail` on docs-verified `postToolUseFailure` `[docs-verified 2026-10-11 — cursor.com/docs/agent/hooks]`. Gemini skipped (no separate failure event); Copilot fail-safe inert `posttoolfailure` projection.
 - **v0.13 PostCompact / compact.post.** Schema adds `compact.post`; Claude Code + Codex wire `spectate-emit` on `PostCompact`→`compact.post` (docs-verified). Cursor/Gemini skipped; Copilot fail-safe inert projection. Reducer closes `update-context` on post.
 - **v0.14 Gemini lifecycle observe.** `generate-gemini-hooks.py` + `gemini-hook-adapter.sh` wire `spectate-emit` on docs-verified Gemini lanes `[docs-verified 2026-10-11 — geminicli.com/docs/hooks/reference/]`: `SessionEnd`→`session.end`, `PreCompress`→`compact.pre`, `BeforeAgent`→`prompt.submit`, `AfterAgent`→`turn.end`. AfterAgent discards stdout (no retry); BeforeAgent strips `decision`. SubagentStart/Stop, PostCompact, PermissionRequest stay skipped on Gemini.

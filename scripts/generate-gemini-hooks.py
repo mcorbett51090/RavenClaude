@@ -222,6 +222,19 @@ _SKIP_EVENT = {
         "`[docs-verified 2026-10-11 — geminicli.com/docs/hooks/reference/]`. "
         "Spectate v0.15 wires tool.fail on Claude Code + Cursor + Codex."
     ),
+    ("spectate-emit.sh", "PermissionDenied"): (
+        "PermissionDenied. Claude Code auto-mode event; the Gemini hooks reference "
+        "documents no denial-notification lane (Notification is ToolPermission "
+        "observability only) "
+        "`[docs-verified 2026-10-12 — geminicli.com/docs/hooks/reference/]`. "
+        "Spectate v0.16 wires permission.resolve(deny) on Claude Code only."
+    ),
+    ("spectate-emit.sh", "StopFailure"): (
+        "StopFailure. Gemini AfterAgent fires on a completed response; the docs "
+        "publish no turn-failure event "
+        "`[docs-verified 2026-10-12 — geminicli.com/docs/hooks/reference/]`. "
+        "Spectate v0.16 wires failed turn.end on Claude Code only."
+    ),
     ("spectate-emit.sh", "PermissionRequest"): (
         "PermissionRequest. Gemini Notification(ToolPermission) is observability "
         "only and cannot grant/deny — not a permission-prompt lane. Claude Code "

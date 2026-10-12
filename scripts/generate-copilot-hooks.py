@@ -113,10 +113,18 @@ _EVENT_MODE = {
     # set omits PostCompact [docs-verified 2026-09-01]. Fail-safe inert projection
     # keeps multi-event spectate-emit accounted (same shape as PermissionRequest).
     "PostCompact": "postcompact",
-    # PostToolUseFailure — Claude Code + Codex + Cursor document it; Copilot's
-    # verified event set omits a separate failure lane [docs-verified 2026-09-01].
-    # Fail-safe inert projection (same shape as PostCompact) so multi-event
-    # spectate-emit stays accounted without a basename skip.
+    # PostToolUseFailure — Claude Code + Codex + Cursor + Copilot document it.
+    # CORRECTED 2026-10-12: v0.15 recorded that Copilot's event set "omits a
+    # separate failure lane [docs-verified 2026-09-01]". The reference page now
+    # documents `postToolUseFailure` / `PostToolUseFailure` ("After a tool
+    # completes with a failure"; VS Code-compatible input carries hook_event_name,
+    # session_id, cwd, tool_name, tool_input, error)
+    # `[docs-verified 2026-10-12 — docs.github.com/en/copilot/reference/hooks-reference]`.
+    # The adapter's `posttoolfailure` mode already passes that payload through to
+    # spectate-emit, so this lane is LIVE, not inert. Two limits stay open (see
+    # BUILD-PLAN § Deferred): Copilot publishes no tool-call id, and the mode does
+    # not normalise lowercase tool names the way bash-pretool does, so a failure
+    # lands on its own `tool-<name>` node rather than joining tool.pre's.
     "PostToolUseFailure": "posttoolfailure",
     # SubagentStart — observe/audit only. Adapter mode is fail-safe (discards
     # stdout + exit code). Needed so multi-event observe hooks like
@@ -197,6 +205,33 @@ _SKIP = {
 }
 
 
+# Per-event skip — (script, Claude event) -> reason. Used when a multi-event
+# observe hook (spectate-emit.sh) wires on some Copilot lanes but not others.
+# The script-keyed `_SKIP` above would drop EVERY lane of the script; this map
+# drops one. Preferred over an inert adapter mode for an event Copilot does not
+# document: an inert projection ships a config entry Copilot CLI logs as
+# "unrecognised" on every session, for a lane that can never fire.
+_SKIP_EVENT = {
+    ("spectate-emit.sh", "PermissionDenied"): (
+        "PermissionDenied is a Claude Code auto-mode event. The Copilot hooks "
+        "reference documents fourteen events and none is a permission-denial "
+        "lane (permissionRequest fires BEFORE the permission service, and its "
+        "decision control is allow/deny, not a post-denial notification) "
+        "`[docs-verified 2026-10-12 — docs.github.com/en/copilot/reference/hooks-reference]`. "
+        "Spectate v0.16 wires permission.resolve(deny) on Claude Code only."
+    ),
+    ("spectate-emit.sh", "StopFailure"): (
+        "StopFailure is a Claude Code API-error turn end. Copilot documents "
+        "agentStop (stopReason always `end_turn`) and a separate errorOccurred "
+        "event whose errorContext spans model_call / tool_execution / system / "
+        "user_input — it is not a turn-failure signal, and mapping it to a failed "
+        "turn would be a guess `[docs-verified 2026-10-12 — "
+        "docs.github.com/en/copilot/reference/hooks-reference]`. Spectate v0.16 "
+        "wires failed turn.end on Claude Code only."
+    ),
+}
+
+
 def _script_of(command: str) -> str:
     m = re.search(r"/(?:hooks|scripts)/([A-Za-z0-9._-]+\.sh)", command)
     return m.group(1) if m else ""
@@ -228,6 +263,10 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                     continue
                 if script in _SKIP:
                     skipped.append((script, event, _SKIP[script]))
+                    continue
+                skip_ev = _SKIP_EVENT.get((script, event))
+                if skip_ev:
+                    skipped.append((script, event, skip_ev))
                     continue
                 if event == "PreToolUse":
                     mode = "file-pretool" if _ARGV_TOKEN in command else "bash-pretool"
@@ -328,6 +367,21 @@ def main(argv: list) -> int:
         if stale:
             print(
                 f"copilot-hooks: the skip map names hooks that no longer exist: {sorted(stale)}",
+                file=sys.stderr,
+            )
+            return 1
+        manifest_pairs = {
+            (_script_of(e.get("command", "")), ev)
+            for ev, groups in manifest.get("hooks", {}).items()
+            for g in groups
+            for e in g.get("hooks", [])
+            if _script_of(e.get("command", ""))
+        }
+        stale_ev = set(_SKIP_EVENT) - manifest_pairs
+        if stale_ev:
+            print(
+                "copilot-hooks: the per-event skip map names (script, event) pairs "
+                f"that no longer exist: {sorted(stale_ev)}",
                 file=sys.stderr,
             )
             return 1
