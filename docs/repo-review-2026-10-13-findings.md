@@ -37,15 +37,16 @@ green; the one real gate failure (index.html staleness) is fixed below.
 
 ## ✅ FIXED in this PR (confident, low-risk, non-design, non-substrate)
 
-These are applied on the branch and verified. All are root `scripts/`, a CI
-workflow, or a generated artifact — **none** touches a plugin (no version bump)
-or a tribunal-substrate directory.
+Three code fixes (RR-02, RR-03, RR-04) are applied on the branch and verified —
+all root `scripts/` or a CI workflow, **none** touching a plugin (no version
+bump) or a tribunal-substrate directory. RR-01 turned out to be a false positive
+and needed **no change** (kept here for the trace); its underlying footgun is
+routed as RR-23.
 
-### RR-01 · P2 · `generate-index-dashboard.py` counted gitignored `__pycache__/*.pyc`, making `index.html` read falsely stale — the fix is the generator, and `index.html` needs NO change
-- **File (fixed):** `scripts/generate-index-dashboard.py` `_count_dir()`. **`index.html` is left exactly as on `main`.**
-- **The full cause-trace — this one bit me, and the correction is the point:** `ci-preflight` reported `index.html` structurally stale here — `edtech-partner-success` `templates` **38** (committed) vs **40** (regenerated in this environment). I first "fixed" it by regenerating + committing 40. **CI then failed Gate 97** (`✗ COMMITTED index.html is structurally fresh … exit=1`): CI's clean checkout regenerates **38**, so my 40 was wrong for *every* clean tree. Root cause: `_count_dir(…, "files")` used `rglob("*")`, which recurses into nested `__pycache__` dirs and counts `.pyc` bytecode — and this cloud environment had **2 stray `.pyc`** (from running the reference scripts) that are **gitignored repo-wide** and absent from CI's checkout. So main's 38 was correct all along; the "staleness" was an environment artifact, not real drift.
-- **Fix:** `_count_dir` now excludes any `__pycache__` path component. Provably a **no-op on any clean/committed tree** (nothing commits `__pycache__`), so CI/committed output is byte-identical; it only stops a dirty working tree from over-counting — the cross-platform-determinism contract for a committed artifact. Verified: `check-artifact-freshness.py --check --surface index.html` returns **OK even in this dirty env** (with the `.pyc` still present) — exactly what CI's Gate 97 runs — so it passes there too. `index.html` reverted to main's bytes (zero diff vs `origin/main`).
-- **Process note (honest, per this repo's own observation-vs-inference discipline):** my first pass stated "templates is genuinely 38→40" as fact — an *inference* from `find -type f → 40` without checking those 40 were git-**tracked**. The 2 untracked `.pyc` were the uncounted variable. The CI failure is what forced the re-derivation; the gate worked exactly as designed.
+### RR-01 · (no code change — false positive) + a routed generator-hardening recommendation
+- **Outcome:** `index.html` is **unchanged from `main`** (it was correct all along). The `ci-preflight` "staleness" I first saw was an **environment artifact**, not a real finding. The underlying generator footgun is real but narrow and is **routed to you below (RR-23)** rather than fixed here — applying it drags in a concept-restamp I shouldn't do blind in an unattended run (see RR-23).
+- **The full cause-trace — this one bit me, recorded because the correction is the lesson:** `ci-preflight` reported `index.html` structurally stale here — `edtech-partner-success` `templates` **38** (committed) vs **40** (regenerated in this environment). I first "fixed" it by regenerating + committing 40. **CI's Gate 97 correctly rejected it** (`✗ COMMITTED index.html is structurally fresh … exit=1`): CI's clean checkout regenerates **38**. Root cause: `_count_dir(…, "files")` uses `rglob("*")`, which recurses into nested `__pycache__` dirs and counts `.pyc` bytecode — and this cloud environment had **2 stray `.pyc`** (from running the reference scripts) that are **gitignored repo-wide** and absent from CI's checkout. So main's 38 was correct; the staleness was never real. I reverted `index.html` to main's bytes.
+- **Process note (honest, per this repo's own observation-vs-inference discipline):** my first pass stated "templates is genuinely 38→40" as fact — an *inference* from `find -type f → 40` without checking those 40 were git-**tracked**. The 2 untracked `.pyc` were the uncounted variable. The CI failure forced the re-derivation; the gate worked exactly as designed. (A second self-inflicted detour: when I *did* briefly apply the generator fix, the `format-on-write` hook auto-reformatted 425 lines of the file — finding RR-07 demonstrating itself — and the edit tripped the `islanded-panel-costs-two` concept-staleness gate because that concept `covers` the generator. Both are why RR-23 is routed, not applied.)
 
 ### RR-02 · P2 · `validate-marketplace.yml` `detect` filter let a lint-config-only PR merge green, then break `main`
 - **File:** `.github/workflows/validate-marketplace.yml:124` (the `detect` job's `code` filter).
@@ -184,6 +185,12 @@ for your call.)
 | RR-22 | `keep-awake.sh:133` *(substrate; low confidence)* | `pgrep -f "caffeinate -s -w $PID"` is an unanchored substring → pid 432 matches an existing `caffeinate -w 4321` | inference |
 
 ---
+
+#### RR-23 · P3 · `generate-index-dashboard.py` `_count_dir` counts gitignored `__pycache__/*.pyc` → a local-regeneration footgun *(root script; verified patch, NOT applied here)*
+- **File:** `scripts/generate-index-dashboard.py` `_count_dir()` (~line 522): `return sum(1 for p in path.rglob("*") if p.is_file())`.
+- **Finding:** `rglob("*")` recurses into nested `__pycache__` dirs, so a working tree where a plugin's template/reference script has been executed over-counts that plugin's `templates` by the number of `.pyc` present. The committed `index.html` then reads STALE on that machine — **it bit this very run** (RR-01). CI's clean checkout has no `__pycache__` (gitignored repo-wide), so the committed artifact is correct and CI is unaffected — the gate works as designed. A *local* footgun, not a CI bug.
+- **Proposed fix (verified locally, not applied):** `return sum(1 for p in path.rglob("*") if p.is_file() and "__pycache__" not in p.parts)` — provably a no-op on any clean/committed tree (nothing commits `__pycache__`); it only stops a dirty tree from over-counting. Verified: `check-artifact-freshness --check --surface index.html` passes even with the stray `.pyc` present.
+- **Why routed, not fixed:** `generate-index-dashboard.py` is `covered` by the `islanded-panel-costs-two` concept entry, so editing it trips `concepts.py --check` (covers-digest drift) and must be paired with `scripts/concepts.py --restamp-cosmetic islanded-panel-costs-two` in the same change. That's a deliberate, sanctioned step best done attended — I kept this autonomous PR minimal rather than chase the freshness cascade blind.
 
 ## Tie-break notes (Panel 3)
 

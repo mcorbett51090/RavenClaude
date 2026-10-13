@@ -519,15 +519,7 @@ def _count_dir(path: Path, kind: str) -> int:
         return sum(1 for p in path.glob("*.sh"))
     if kind == "md":
         return sum(1 for p in path.glob("*.md"))
-    # Exclude gitignored Python bytecode caches. rglob("*") recurses into any
-    # nested __pycache__ dir, so a working tree where a template/reference script
-    # has been executed over-counts by the .pyc files present — the committed
-    # artifact then reads STALE on that machine while CI's clean checkout (no
-    # __pycache__; it is gitignored repo-wide) counts correctly. Excluding it is a
-    # no-op on any clean/committed tree and keeps the count environment-independent.
-    return sum(
-        1 for p in path.rglob("*") if p.is_file() and "__pycache__" not in p.parts
-    )
+    return sum(1 for p in path.rglob("*") if p.is_file())
 
 
 def _scan_agents(plugin_dir: Path) -> list[dict]:
