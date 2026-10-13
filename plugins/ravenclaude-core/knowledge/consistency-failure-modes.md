@@ -6,7 +6,7 @@
 > any Astro/CSS/SSR site, and the tenth (SSR pages never reaching `dist/`) is a
 > property of every server-rendered route this org ships.
 >
-> Companion to `raven-site-kit/floor.json`, which states the BARS. This states
+> Companion to `RavenPower-website-factory/floor.json`, which states the BARS. This states
 > the ways a bar is met on paper and missed in fact.
 
 Every failure below was found in this codebase by **measurement**, not by review.
@@ -14,7 +14,7 @@ Each one passed `astro check`, passed the full test suite, and produced a clean
 build while being broken in production. That is the defining property: if a
 failure mode announced itself, it would not need a catalogue.
 
-This is the companion to `raven-site-kit/floor.json`, which states the *bars*.
+This is the companion to `RavenPower-website-factory/floor.json`, which states the *bars*.
 This file states the *ways a bar is met on paper and missed in fact*.
 
 **The honesty rule, inherited from `floor.json` and restated because it is the
