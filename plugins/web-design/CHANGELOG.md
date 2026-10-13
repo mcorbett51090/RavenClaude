@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.18.5] — 2026-10-13
+
+### Added
+
+- **`best-practices/ogp-metadata-every-shareable-page.md` § Messages (iMessage) — Apple TN3156.** Apple's own rules for rich link previews, quoted from TN3156 (fetched 2026-10-13): no text in the preview image (Messages draws `og:title` in its caption under the image), a short `og:title` with no site branding (`og:site_name` carries it), metadata in the served HTML (no JS, no meta refresh), the same metadata for every user agent (Messages' measured UA), the 900 px / 150 px / 108 px / 1 MB / 10 MB limits, 1200 × 630 being enough (an Apple engineer's forum answer; "2400 × 1256" is folklore), aspect ratio being undocumented (keep a portrait subject centre-crop-safe), previews built on the sender's device and frozen once sent, and image URLs that must return image bytes. Plus the per-entity image pattern (pixels from visual fields only, text in `og:title`) and a device-test step for validation.
+
+### Changed
+
+- **The OGP image spec no longer says "no tiny text"; it says keep words out of the image** for Messages, and the example `og:title` no longer appends the site name.
+
 ## [0.18.3] — 2026-09-15
 
 ### Fixed

@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.352.1 — 2026-10-13
+
+### Fixed
+- **`wallet-passes`: Messages does not preview a pass by its icon.** `SKILL.md`, `references/apple.md` and `references/business-card-layout.md` said Mail *and Messages* show `icon.png`. Apple documents the icon for **Mail** only; a `.pkpass` in Messages renders the pass **face** (fields, thumbnail or poster artwork, and the barcode — visible to everyone in the thread), and a device screenshot of a poster generic pass (2026-10-13) showed the header wordmark drawn across the artwork. Every place now says so, with the evidence tagged documented / measured / unverified.
+
+### Added
+- **`references/apple.md` §11a — a pass in Messages.** What the bubble shows and that no documented key controls it; the `sharingProhibited` caveat quoted from the Pass reference; sending the card **link** (whose page follows Apple TN3156, see `web-design`) when the preview matters; and the undocumented `"sharing": {"method": "PKPassSharingMethodURL", "url": …}` key — its iOS 10–11 forum evidence, the iOS 12-era private headers, a vendor's 2024 template, and that it is **unverified on iOS 15+** and turns a file handoff into a link handoff.
+
 ## 0.352.0 — 2026-10-13
 
 ### Added
