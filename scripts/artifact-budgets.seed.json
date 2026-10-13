@@ -413,7 +413,11 @@
         9583000,
         "Same PR #1337 wallet-passes skill + inventory concept. Regenerating index.html measures 9,582,388 bytes > prior 9,582,100 by 288 (0.00 MB). Island payload 7,335 <= 7,350 unchanged. Pure content-size raise. Re-measured on this branch head; appended, never edited."
       ],
-      ["advisor checkpoints + Explore agent (core 0.352.0, 2026-10-13)", 9593000, "Owner GO 2026-10-13 1:43 PM ET. Advisor checkpoints docs, agents/explore.md (18th agent), unified-model-matrix Advisor row and runaway-brake advisor advisory regenerate index.html to 9,585,220 bytes, over the prior 9,583,000 ceiling by 2,220. Pure content-size raise, no DOM control. Re-measured on this branch head (base 4f36cf8c); appended, never edited."]
+      [
+        "advisor checkpoints + Explore agent (core 0.352.0, 2026-10-13)",
+        9593000,
+        "Owner GO 2026-10-13 1:43 PM ET. Advisor checkpoints docs, agents/explore.md (18th agent), unified-model-matrix Advisor row and runaway-brake advisor advisory regenerate index.html to 9,585,220 bytes, over the prior 9,583,000 ceiling by 2,220. Pure content-size raise, no DOM control. Re-measured on this branch head (base 4f36cf8c); appended, never edited."
+      ]
     ]
   },
   "measured_against": "4f36cf8ce22c71382dc289823944acb2c35e670c"

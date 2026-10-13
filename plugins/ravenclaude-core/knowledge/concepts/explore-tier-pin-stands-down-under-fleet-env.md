@@ -11,7 +11,8 @@ covers:
   - plugins/ravenclaude-core/hooks/explore-tier-pin.sh
   - plugins/ravenclaude-core/scripts/explore-tier-pin.py
   - plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh
-covers_digest: "sha256:522a05cec00c8233175ed6079a42bba7b48d2e55f4aad7ca63e1e5d2fb4dec94"
+  - plugins/ravenclaude-core/agents/explore.md
+covers_digest: "sha256:cf8411d113d195fc6955c9af7ae895dbf463e596bd43d5eb42493806514f66fd"
 nuance: "Same un-pinned `Explore` payload, same `haiku` knob: env `{}` yields an `updatedInput.model: haiku` envelope; env `{CLAUDE_CODE_SUBAGENT_MODEL: haiku}` yields `None`. Per-invocation `model` outranks the env var in Claude Code's resolution order, so a pin would have silently replaced the consumer's fleet-wide routing — the hook yields instead."
 nuance_evidence:
   measured: 2026-09-14

@@ -3064,7 +3064,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:c8ae65b40ef30f85f16625cd42ff1320e65be3835c86ed1e2a2550d77bef2e78",
+      "covers_digest": "sha256:26de9cf3bdc10b919c38d402719ff0d479d29bf8d047a466a739cd34e27ddf93",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4560,9 +4560,10 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/explore-tier-pin.sh",
         "plugins/ravenclaude-core/scripts/explore-tier-pin.py",
-        "plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh"
+        "plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh",
+        "plugins/ravenclaude-core/agents/explore.md"
       ],
-      "covers_digest": "sha256:522a05cec00c8233175ed6079a42bba7b48d2e55f4aad7ca63e1e5d2fb4dec94",
+      "covers_digest": "sha256:cf8411d113d195fc6955c9af7ae895dbf463e596bd43d5eb42493806514f66fd",
       "nuance": "Same un-pinned `Explore` payload, same `haiku` knob: env `{}` yields an `updatedInput.model: haiku` envelope; env `{CLAUDE_CODE_SUBAGENT_MODEL: haiku}` yields `None`. Per-invocation `model` outranks the env var in Claude Code's resolution order, so a pin would have silently replaced the consumer's fleet-wide routing — the hook yields instead.",
       "nuance_evidence": {
         "measured": "2026-09-14",
