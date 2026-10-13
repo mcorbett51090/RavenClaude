@@ -135,6 +135,14 @@ jobs:
               - '.github/**'
               - 'scripts/**'
               - 'plugins/**'
+              # Root lint-config files: a change to either affects the WHOLE-TREE
+              # ruff / prettier suites, so a PR touching only these is NOT docs-only.
+              # They are already in the push: trigger's paths list above; the two
+              # lists must agree or a lint-config-only PR skips the suites at PR time
+              # and only the post-merge push run catches it (red main). (.prettierrc.json
+              # is already covered by '**/*.json'.)
+              - 'ruff.toml'
+              - '.prettierignore'
 
   # ────────────────────────────────────────────────────────────────────────────────
   # `core` — the always/core suite. NEVER gated on `detect`'s output and
