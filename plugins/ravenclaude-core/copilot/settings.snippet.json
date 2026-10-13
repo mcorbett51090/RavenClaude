@@ -59,8 +59,8 @@
     },
     "prompt-engineer": {
       "model": "<your-plan-picker-id>",
-      "effortLevel": "high",
-      "_canonical_tier": "opus"
+      "effortLevel": "medium",
+      "_canonical_tier": "sonnet"
     },
     "scout": {
       "model": "<your-plan-picker-id>",
