@@ -110,6 +110,18 @@ For "tap a phone to share a card" and "a tap opens a lead form." Full detail + f
 
 Use Apple **`generic`** + Google **`GENERIC_OTHER`** (or a membership `genericType` if it is honestly a membership). Front: person name + role + one QR (vCard or profile URL). Back/details: `tel:`, `mailto:`, website, LinkedIn, address, terms. **Never** put the name in `logo` / `heroImage`. Worked `pass.json` + `GenericObject`: [`references/business-card-layout.md`](references/business-card-layout.md).
 
+### Product decisions (Matthew)
+
+- **Headshot is optional and Apple-only.** Apple `thumbnail` may carry a headshot; never put a photo of a person on a Google pass — Google Wallet policy bans personal images (see [`references/google.md`](references/google.md)).
+- **Card first, info capture second.** Ship the wallet card itself first; the lead-form / info-capture flow ([`references/tap-to-share.md`](references/tap-to-share.md)) comes after.
+- **The iPhone app is owned by Product & Delivery.** App Clip / native-app work is their call, not this skill's.
+
+### Issuer and footer — planned, not shipped
+
+- **RavenPass is the default issuer** (IM-2).
+- **Planned:** per-pass certificate routing (IM-3..IM-7) with encrypted bring-your-own signing keys. Not shipped — do not describe as available.
+- **Pass footer convention:** `Business Name · description`.
+
 ## Common mistakes (read the checklist before shipping)
 
 - Front-field truncation / hidden fields because copy is too long or too many slots filled.
