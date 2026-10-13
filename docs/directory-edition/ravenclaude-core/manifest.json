@@ -1,0 +1,562 @@
+{
+  "schema_version": 1,
+  "plugin": "ravenclaude-core",
+  "source_plugin_dir": "plugins/ravenclaude-core",
+  "target": {
+    "repository": "https://github.com/mcorbett51090/ravenclaude-core",
+    "homepage": "https://github.com/mcorbett51090/ravenclaude-core",
+    "marketplace_name": "ravenclaude-core",
+    "portal_url": "https://mcorbett51090.github.io/RavenClaude/",
+    "support": "https://github.com/mcorbett51090/ravenclaude-core/issues"
+  },
+  "plugin_json": {
+    "displayName": "RavenClaude Core",
+    "description": "A Team Lead plus specialist agents, a gated planning pipeline (/forge), a whole-repo bug sweep (/repo-review) and opt-in, local-only guardrails. Every hook stays off until you create a posture file.",
+    "keywords": [
+      "team-lead",
+      "agents",
+      "orchestration",
+      "planning",
+      "code-review",
+      "guardrails",
+      "skills"
+    ]
+  },
+  "limits": {
+    "max_files": 512,
+    "max_file_bytes_nonimage": 262144,
+    "max_file_bytes": 5242880,
+    "max_total_bytes": 52428800
+  },
+  "closure": {
+    "prose_depth": 1
+  },
+  "components": {
+    "agents": [
+      {
+        "name": "architect",
+        "reason": "Upfront design and phase-boundary consultation; reads and plans, writes no production code."
+      },
+      {
+        "name": "backend-coder",
+        "reason": "Server-side implementation of one focused, testable change."
+      },
+      {
+        "name": "code-reviewer",
+        "reason": "Pre-merge review that returns blockers, suggestions and praise."
+      },
+      {
+        "name": "data-engineer",
+        "reason": "Domain-neutral data pipeline, modeling and query work."
+      },
+      {
+        "name": "deep-researcher",
+        "reason": "Multi-source research with citations, using Claude's own search and fetch tools."
+      },
+      {
+        "name": "designer",
+        "reason": "UX direction, wireframes, flows and accessibility checks."
+      },
+      {
+        "name": "documentarian",
+        "reason": "Stakeholder-facing writing: memos, runbooks, release notes, READMEs."
+      },
+      {
+        "name": "frontend-coder",
+        "reason": "UI implementation with a render-then-look verification discipline."
+      },
+      {
+        "name": "fullstack-coder",
+        "reason": "Changes that genuinely cross the client/server boundary in one unit."
+      },
+      {
+        "name": "partner-success-manager",
+        "reason": "Domain-neutral partner profiles, success plans and QBR material."
+      },
+      {
+        "name": "project-manager",
+        "reason": "RAID log, task list and weekly status hygiene."
+      },
+      {
+        "name": "prompt-engineer",
+        "reason": "Authors and critiques agent, skill and prompt definitions."
+      },
+      {
+        "name": "scout",
+        "reason": "Fast read-a-lot/return-a-little worker for search, grep and inventory."
+      },
+      {
+        "name": "security-reviewer",
+        "reason": "Security review of diffs touching auth, secrets, input parsing, shell or network."
+      },
+      {
+        "name": "tester-qa",
+        "reason": "Test plans, flake hunting and coverage gaps."
+      },
+      {
+        "name": "viz-spec-reviewer",
+        "reason": "Reviews Vega-Lite, Vega and SVG specs for correctness and safety."
+      }
+    ],
+    "skills": [
+      {
+        "name": "agent-quality-rubric",
+        "reason": "Scores an agent file on a six-dimension rubric; prose only."
+      },
+      {
+        "name": "audit-ci-gates",
+        "reason": "Checks that a CI workflow really enforces the property it claims to; prose only."
+      },
+      {
+        "name": "claude-code-parallel-and-modes",
+        "reason": "Guidance on parallel work and Claude Code's permission/plan modes; prose only."
+      },
+      {
+        "name": "cleanup-worktrees",
+        "reason": "Removes finished agent git worktrees and flags unmerged work."
+      },
+      {
+        "name": "create-pr",
+        "reason": "Opens a pull request from the current branch using the project's template."
+      },
+      {
+        "name": "cross-platform-determinism",
+        "reason": "Rules for scripts whose output a repo commits and CI diffs; prose only."
+      },
+      {
+        "name": "declarative-visualization",
+        "reason": "Vega-Lite, Deneb and SVG authoring with a local spec linter."
+      },
+      {
+        "name": "diff-budget",
+        "reason": "Per-PR file-count and line-count budget discipline; prose only."
+      },
+      {
+        "name": "draft-agent-brief",
+        "reason": "Turns a business need into an agent brief; prose only."
+      },
+      {
+        "name": "forge-pipeline",
+        "reason": "The gated planning pipeline behind /forge; local scripts and git worktrees."
+      },
+      {
+        "name": "game-theory-basics",
+        "reason": "Short reference for strategic-interaction reasoning; prose only."
+      },
+      {
+        "name": "new-worktree",
+        "reason": "Creates an isolated git worktree under .claude/worktrees/."
+      },
+      {
+        "name": "permission-hygiene",
+        "reason": "Diagnoses a project's Claude Code permission setup; reads settings, writes nothing."
+      },
+      {
+        "name": "prompt-pattern-library",
+        "reason": "Catalog of applied prompt patterns; prose only."
+      },
+      {
+        "name": "pseudonymize",
+        "reason": "Reversibly pseudonymizes names and entities in text before it is shared; local script."
+      },
+      {
+        "name": "quantitative-problem-solving",
+        "reason": "Structured approach to estimation and quantitative problems; prose only."
+      },
+      {
+        "name": "ravenclaude-core-orchestration",
+        "reason": "How the Team Lead picks a surface and dispatches specialists; prose only."
+      },
+      {
+        "name": "repo-review",
+        "reason": "Whole-repo bug sweep across eight dimensions; chunked, cached, subagent-based."
+      },
+      {
+        "name": "run-full-test-suite",
+        "reason": "Runs the project's full quality gate in order; prose only."
+      },
+      {
+        "name": "set-posture",
+        "reason": "Translates .ravenclaude/comfort-posture.yaml into .claude/settings.json permission rules, when you run /set-posture."
+      },
+      {
+        "name": "spawn-team",
+        "reason": "Team Lead dispatch playbook: surface first, then specialist, then tier."
+      },
+      {
+        "name": "spec-reread-ritual",
+        "reason": "Re-read the spec before each task of a multi-task build; prose only."
+      },
+      {
+        "name": "structured-output",
+        "reason": "Every sub-agent handoff ends with one machine-readable result block; prose only."
+      },
+      {
+        "name": "svg-report-lint",
+        "reason": "Lints a standalone SVG for geometry, legibility and unsafe content; local script."
+      },
+      {
+        "name": "two-panel-plan-review",
+        "reason": "Two independent expert panels review a plan and fill its gaps."
+      },
+      {
+        "name": "visual-feedback-loop",
+        "reason": "Render, look, critique, edit, repeat; merges layout lint with captured console and Lighthouse data."
+      },
+      {
+        "name": "wall-handling",
+        "reason": "What to do when the same tool keeps failing the same way; prose only."
+      },
+      {
+        "name": "webfetch-hardening",
+        "reason": "Documents the local stdlib sanitizer that the architect and prompt-engineer agents tell Claude to run over fetched page bodies; no network."
+      }
+    ],
+    "commands": [
+      {
+        "name": "forge",
+        "reason": "Turns an idea into a gated, two-panel-reviewed, critic-checked plan (runs the forge-pipeline skill)."
+      },
+      {
+        "name": "init-agent-ready",
+        "reason": "Scaffolds AGENTS.md, CLAUDE.md, .repo-layout.json and an optional CI workflow for your repo."
+      },
+      {
+        "name": "repo-review",
+        "reason": "Whole-repo bug sweep across eight dimensions."
+      },
+      {
+        "name": "set-posture",
+        "reason": "Applies .ravenclaude/comfort-posture.yaml to .claude/settings.json permission rules."
+      },
+      {
+        "name": "dashboard",
+        "reason": "Opens the hosted posture editor and saves your pasted posture (edition override; the local dashboard server is not included)."
+      }
+    ],
+    "hooks": [
+      {
+        "id": "dashboard-prompt.sh",
+        "reason": "The one setup prompt; speaks only when no posture file exists.",
+        "summary": "Prints one fixed line when no posture file exists, saying how to open the posture editor. Writes nothing. Silence it with `RC_DASHBOARD_PROMPT=off` or by creating the posture file.",
+        "ungated": true,
+        "ungated_reason": "It exists to run when the posture file is absent; it prints one fixed line and writes nothing."
+      },
+      {
+        "id": "runaway-brake.sh",
+        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "summary": "Blocks a tool call that repeats identically 8 times in a row, or any call once a session passes 1,200; both limits, and `runaway: off`, are set in your posture file. Keeps a per-session counter under `.ravenclaude/runs/`."
+      },
+      {
+        "id": "enforce-git-protocol.sh",
+        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "summary": "Warns on `git commit -m` subjects that are not `type(scope): subject` and on new branch names without a standard prefix; `git_protocol: block` makes those blocks, `off` silences it. Never blocks a push. May append to `.ravenclaude/runs/<session>/hook-events.jsonl`."
+      },
+      {
+        "id": "enforce-layout.sh",
+        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "summary": "Denies a write that matches no `allowed_globs` entry in your project's `.repo-layout.json` (nothing happens if you have none). May append to `hook-events.jsonl`."
+      },
+      {
+        "id": "claim-grounding-lint.sh",
+        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "summary": "Advisory text on stderr when an unhedged absolute or causal claim is written into a `knowledge/` or `docs/` markdown file. Never blocks."
+      },
+      {
+        "id": "delegation-nudge.sh",
+        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "summary": "Advisory text on stderr when a `knowledge/` or `docs/` file tells the reader to 'open the portal and check' something. Never blocks."
+      },
+      {
+        "id": "guard-recursive-spawn.sh",
+        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "summary": "Advisory text when an agent definition (`plugins/*/agents/*.md`) is edited to tell the agent to spawn further sub-agents. Never blocks."
+      },
+      {
+        "id": "ask-on-ambiguity.sh",
+        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "summary": "Adds a one-line hint asking Claude to ask one question when a short prompt names nothing concrete. Never blocks or alters the prompt. `ask_on_ambiguity: off` silences it."
+      },
+      {
+        "id": "remind-tests.sh",
+        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "summary": "Once per session, reminds Claude to run the project's quality gate if source files changed. Leaves a marker file under `.ravenclaude/runs/`."
+      }
+    ]
+  },
+  "overrides": {
+    "commands/dashboard.md": "overrides/commands/dashboard.md"
+  },
+  "deny_globs": [
+    {
+      "glob": "CLAUDE.md",
+      "reason": "Plugin-root constitution; 590 KB and not loaded as project context."
+    },
+    {
+      "glob": "CHANGELOG.md",
+      "reason": "460 KB; history lives in the source repo."
+    },
+    {
+      "glob": "concepts.json",
+      "reason": "448 KB dashboard data."
+    },
+    {
+      "glob": "GEMINI.md",
+      "reason": "Other host."
+    },
+    {
+      "glob": "gemini-extension.json",
+      "reason": "Other host."
+    },
+    {
+      "glob": "pattern-explanations.json",
+      "reason": "Dashboard data."
+    },
+    {
+      "glob": "dashboard-schema.json",
+      "reason": "Dashboard data."
+    },
+    {
+      "glob": "dashboard.html",
+      "reason": "11 MB; hard limit is 5 MiB. Replaced by the hosted portal."
+    },
+    {
+      "glob": "dashboard-assets/**",
+      "reason": "Dashboard assets."
+    },
+    {
+      "glob": "bin/**",
+      "reason": "bin/ makes a listing Claude-Code-only and holds claude-launch-guard, which edits shell rc files."
+    },
+    {
+      "glob": "monitors/**",
+      "reason": "Experimental component; a background watcher."
+    },
+    {
+      "glob": "copilot/**",
+      "reason": "Other host."
+    },
+    {
+      "glob": "codex/**",
+      "reason": "Other host."
+    },
+    {
+      "glob": "vscode-extension/**",
+      "reason": "Other host."
+    },
+    {
+      "glob": "hooks/tests/**",
+      "reason": "Fixtures contain deliberately hostile strings."
+    },
+    {
+      "glob": "**/tests/**",
+      "reason": "Test fixtures; deliberately hostile strings."
+    },
+    {
+      "glob": "**/__pycache__/**",
+      "reason": "Bytecode."
+    },
+    {
+      "glob": "knowledge/tree-visuals/**",
+      "reason": "1,019 dashboard SVGs."
+    },
+    {
+      "glob": "knowledge/concepts/**",
+      "reason": "Dashboard concept cards."
+    },
+    {
+      "glob": "skills/skill-index/**",
+      "reason": "371 KB index of every skill."
+    },
+    {
+      "glob": "hooks/*.sh",
+      "reason": "Hooks not in the manifest do not ship; shipped hooks and _-prefixed helpers are exempt below.",
+      "except": ["hooks/_*.sh"]
+    },
+    {
+      "glob": "scripts/claude-orchestrate.sh",
+      "reason": "Spawns a nested `claude -p`; no shipped component may start another model session."
+    },
+    {
+      "glob": "scripts/thing-decide.py",
+      "reason": "Tribunal engine; spawns nested `claude -p` seats."
+    },
+    {
+      "glob": "knowledge/concerns-catalog.md",
+      "reason": "Tribunal constitution; the tribunal does not ship."
+    },
+    {
+      "glob": "scripts/serve-dashboards.py",
+      "reason": "Local dashboard server; the edition has no dashboard."
+    },
+    {
+      "glob": "scripts/spectate_store.py",
+      "reason": "Spectate livestream store."
+    },
+    {
+      "glob": "scripts/routine-reserve.py",
+      "reason": "Routine token reserve: reads a user-configured private GitHub repo."
+    },
+    {
+      "glob": "knowledge/routine-token-reserve.md",
+      "reason": "Documents the routine token reserve, which does not ship."
+    },
+    {
+      "glob": "templates/routine-reserve/**",
+      "reason": "Routine token reserve prompts."
+    },
+    {
+      "glob": "scripts/conserve-tokens.py",
+      "reason": "Posture-driven parallelism/conserve engine; not part of the edition."
+    },
+    {
+      "glob": "scripts/parallelism-detector.py",
+      "reason": "Posture-driven parallelism detector; not part of the edition."
+    },
+    {
+      "glob": "scripts/archive-branch.sh",
+      "reason": "Deletes a local branch and pushes a tag to origin."
+    },
+    {
+      "glob": "scripts/cleanup-branches.sh",
+      "reason": "Deletes branches."
+    },
+    {
+      "glob": "scripts/branch-hygiene.sh",
+      "reason": "Branch deletion helper."
+    },
+    {
+      "glob": "scripts/handoff-nudge.py",
+      "reason": "Handoff nudge engine; the handoff family is not in the first edition."
+    },
+    {
+      "glob": "scripts/context-handoff.py",
+      "reason": "Writes handoff briefs; its `fill` mode delegates to a nested model."
+    },
+    {
+      "glob": "knowledge/orchestrator-data-egress.md",
+      "reason": "Documents the nested-orchestrator egress path, which does not ship."
+    },
+    {
+      "glob": "knowledge/cross-session-messaging.md",
+      "reason": "Documents peer-session messaging, which does not ship."
+    },
+    {
+      "glob": "knowledge/codex-cli-customization.md",
+      "reason": "Other host."
+    },
+    {
+      "glob": "knowledge/github-gold-standard-repos.md",
+      "reason": "Marketplace-maintenance reference."
+    },
+    {
+      "glob": "scripts/context-usage-meter.py",
+      "reason": "Context meter for the handoff nudge, which is not in the first edition; it reads ~/.claude transcripts."
+    },
+    {
+      "glob": "knowledge/model-catalog.json",
+      "reason": "Model-id catalog used only by the context meter."
+    }
+  ],
+  "closure_allow": [
+    {
+      "from": "scripts/dashboard-prompt.sh",
+      "to": "bin/rc",
+      "reason": "A presence test, not a dependency: the script prints the hosted-page wording precisely because bin/rc is absent from this edition."
+    },
+    {
+      "from": "scripts/apply-comfort-posture.py",
+      "to": "hooks/ensure-default-mode.sh",
+      "reason": "Docstring mention of a hook that does not ship; the script never opens it."
+    },
+    {
+      "from": "scripts/pseudonymize-brief.py",
+      "to": "knowledge/orchestrator-data-egress.md",
+      "reason": "Docstring pointer to a document about the nested-orchestrator path that does not ship; the script never opens it."
+    }
+  ],
+  "network_classification": {
+    "hooks/delegation-nudge.sh": {
+      "kind": "text-only",
+      "reason": "`curl ` is one alternative in a regex that recognises a 'go check it manually' phrase in a document being written; nothing is fetched."
+    },
+    "hooks/runaway-brake.sh": {
+      "kind": "text-only",
+      "reason": "`curl`/`wget` appear in a list of command words that mark a Bash call as mutating; the hook only reads the command string."
+    },
+    "scripts/apply-comfort-posture.py": {
+      "kind": "text-only",
+      "reason": "`Bash(curl:*)` etc. are permission-rule strings written into .claude/settings.json, and the schemastore URL is the `$schema` value written there; nothing is fetched."
+    },
+    "scripts/classify_claim.py": {
+      "kind": "text-only",
+      "reason": "`curl` appears in example sentences used to classify claims; nothing is fetched."
+    },
+    "scripts/forge-publish-session-plan.sh": {
+      "kind": "text-only",
+      "reason": "`urllib.parse.quote` only, to percent-encode a file path in a link it prints; no urllib.request."
+    },
+    "scripts/premise-gate.py": {
+      "kind": "text-only",
+      "reason": "`curl` appears in example rows and prose of the report it prints; nothing is fetched."
+    },
+    "skills/svg-report-lint/lint.py": {
+      "kind": "text-only",
+      "reason": "w3.org URLs are XML namespace identifiers compared against parsed SVG; nothing is fetched."
+    }
+  },
+  "extra_roots": [
+    {
+      "glob": "templates/agent-ready-repo/**",
+      "reason": "The /init-agent-ready command names these templates by family (AGENTS.md, CLAUDE.md, CI workflows, CODEOWNERS); only one is named by path, so closure alone would ship a command with missing templates."
+    }
+  ],
+  "hook_audit": {
+    "allowed_output": ["dashboard-prompt.sh"],
+    "write_dirs": ["ravenclaude"],
+    "allowed_execs": [
+      "awk",
+      "bash",
+      "cat",
+      "cksum",
+      "cut",
+      "date",
+      "dirname",
+      "flock",
+      "git",
+      "grep",
+      "head",
+      "jq",
+      "mkdir",
+      "mktemp",
+      "python3",
+      "rm",
+      "sed",
+      "tr",
+      "wc",
+      "sh",
+      "basename",
+      "env",
+      "ls",
+      "stat",
+      "sort",
+      "uniq",
+      "touch",
+      "sleep",
+      "readlink",
+      "realpath",
+      "find",
+      "xargs",
+      "tee",
+      "expr",
+      "id"
+    ],
+    "reason": "Programs the shipped hooks are allowed to start. The measured set was awk, bash, cat, cksum, cut, date, dirname, flock, git, grep, head, jq, mkdir, mktemp, python3, rm, sed, tr, wc; the rest are ordinary coreutils that a shell may start on another platform. Anything else (curl, wget, nc, ssh, gh, claude, npx, osascript...) fails the build."
+  },
+  "secret_scan_allow": [
+    {
+      "file": "hooks/_scrub.sh",
+      "reason": "The scrubber's own pattern literal for URLs with embedded credentials, and the example in the comment above it; it is the definition of what to redact, not a credential."
+    }
+  ]
+}
