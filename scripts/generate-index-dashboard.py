@@ -55,6 +55,7 @@ def _load_sibling(filename: str, module_name: str):
     spec.loader.exec_module(mod)
     return mod
 
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGINS_DIR = REPO_ROOT / "plugins"
 MARKETPLACE = REPO_ROOT / ".claude-plugin" / "marketplace.json"
@@ -167,8 +168,7 @@ CATEGORIES: list[dict] = [
         "id": "microsoft-enterprise",
         "label": "Microsoft & Enterprise Platforms",
         "icon": "windows",
-        "blurb": "Power Platform, Fabric, Graph, M365 Copilot, and Salesforce "
-        "delivery craft.",
+        "blurb": "Power Platform, Fabric, Graph, M365 Copilot, and Salesforce delivery craft.",
         "plugins": [
             "power-platform",
             "microsoft-fabric",
@@ -400,13 +400,24 @@ POSTURE_PRESETS: list[dict] = [
         "floor is the only thing left blocking. Use with care.",
         "design_checkins": False,
         "global_default": "allow",
-        "levels": dict.fromkeys([
-            "file_read_project", "file_read_global", "file_edit_project",
-            "file_edit_global", "shell_readonly", "shell_local_mutate",
-            "shell_remote_mutate", "shell_code_exec", "shell_package_install",
-            "network_read", "network_write", "mcp_tools",
-            "subagent_dispatch",
-        ], "allow"),
+        "levels": dict.fromkeys(
+            [
+                "file_read_project",
+                "file_read_global",
+                "file_edit_project",
+                "file_edit_global",
+                "shell_readonly",
+                "shell_local_mutate",
+                "shell_remote_mutate",
+                "shell_code_exec",
+                "shell_package_install",
+                "network_read",
+                "network_write",
+                "mcp_tools",
+                "subagent_dispatch",
+            ],
+            "allow",
+        ),
     },
 ]
 
@@ -414,40 +425,67 @@ POSTURE_PRESETS: list[dict] = [
 # .claude/settings.json deny rules; shown read-only in the editor so users see
 # what a preset can never relax.
 SECURITY_FLOOR: list[str] = [
-    "Bash(rm -rf:*)", "Bash(git push --force:*)", "Bash(git push -f:*)",
+    "Bash(rm -rf:*)",
+    "Bash(git push --force:*)",
+    "Bash(git push -f:*)",
     "Bash(git push --mirror:*)",
-    "Bash(git reset --hard:*)", "Bash(git clean -fd:*)", "Bash(npm publish:*)",
-    "Bash(curl * | sh)", "Bash(curl * | bash)", "Bash(sudo:*)",
-    "Bash(mkfs:*)", "Bash(shred:*)", "Bash(git branch -D:*)",
-    "Read(.env)", "Read(.env.*)", "Read(**/*.pem)", "Read(**/*.key)",
-    "Read(**/credentials*)", "Read(**/secrets*)", "Read(~/.ssh/**)",
-    "Read(~/.aws/**)", "Read(~/.azure/**)", "Read(~/.kube/config)",
+    "Bash(git reset --hard:*)",
+    "Bash(git clean -fd:*)",
+    "Bash(npm publish:*)",
+    "Bash(curl * | sh)",
+    "Bash(curl * | bash)",
+    "Bash(sudo:*)",
+    "Bash(mkfs:*)",
+    "Bash(shred:*)",
+    "Bash(git branch -D:*)",
+    "Read(.env)",
+    "Read(.env.*)",
+    "Read(**/*.pem)",
+    "Read(**/*.key)",
+    "Read(**/credentials*)",
+    "Read(**/secrets*)",
+    "Read(~/.ssh/**)",
+    "Read(~/.aws/**)",
+    "Read(~/.azure/**)",
+    "Read(~/.kube/config)",
 ]
 
 # Collaboration / house rules summarized for the Team section.
 COLLAB_RULES: list[dict] = [
-    {"title": "Core stays domain-neutral",
-     "body": "The ravenclaude-core plugin never absorbs domain specifics. "
-     "Power Platform, finance, Salesforce, web, and data each live in their "
-     "own plugin and extend core via skills + knowledge, not parallel agents."},
-    {"title": "Team Lead dispatches, specialists execute",
-     "body": "Requests route through the Team Lead, which selects the "
-     "smaller-blast-radius specialist using the dispatch playbooks rather than "
-     "keyword-matching the task to a method."},
-    {"title": "Structured Output Protocol on every handoff",
-     "body": "Agents hand off with a structured envelope so the next agent — "
-     "or the human — gets a predictable summary, decisions, and open questions."},
-    {"title": "Capability Grounding before 'I can't'",
-     "body": "A command-not-found, a 401/403, or an unloaded MCP tool is "
-     "evidence about one route — never proof a capability is absent. Load the "
-     "sanctioned route and try ≥2 alternatives before reporting blocked."},
-    {"title": "Claim grounding & source honesty",
-     "body": "Consequential claims cite the this-session check that backs them "
-     "or are marked unverified. Confident reasoning errors are treated as as "
-     "dangerous as hallucinations."},
-    {"title": "Gates are the source of truth",
-     "body": "Format, lint, test, layout, and frontmatter gates enforce the "
-     "rules. Agents don't restate what CI / hooks already guarantee."},
+    {
+        "title": "Core stays domain-neutral",
+        "body": "The ravenclaude-core plugin never absorbs domain specifics. "
+        "Power Platform, finance, Salesforce, web, and data each live in their "
+        "own plugin and extend core via skills + knowledge, not parallel agents.",
+    },
+    {
+        "title": "Team Lead dispatches, specialists execute",
+        "body": "Requests route through the Team Lead, which selects the "
+        "smaller-blast-radius specialist using the dispatch playbooks rather than "
+        "keyword-matching the task to a method.",
+    },
+    {
+        "title": "Structured Output Protocol on every handoff",
+        "body": "Agents hand off with a structured envelope so the next agent — "
+        "or the human — gets a predictable summary, decisions, and open questions.",
+    },
+    {
+        "title": "Capability Grounding before 'I can't'",
+        "body": "A command-not-found, a 401/403, or an unloaded MCP tool is "
+        "evidence about one route — never proof a capability is absent. Load the "
+        "sanctioned route and try ≥2 alternatives before reporting blocked.",
+    },
+    {
+        "title": "Claim grounding & source honesty",
+        "body": "Consequential claims cite the this-session check that backs them "
+        "or are marked unverified. Confident reasoning errors are treated as as "
+        "dangerous as hallucinations.",
+    },
+    {
+        "title": "Gates are the source of truth",
+        "body": "Format, lint, test, layout, and frontmatter gates enforce the "
+        "rules. Agents don't restate what CI / hooks already guarantee.",
+    },
 ]
 
 
@@ -519,7 +557,14 @@ def _count_dir(path: Path, kind: str) -> int:
         return sum(1 for p in path.glob("*.sh"))
     if kind == "md":
         return sum(1 for p in path.glob("*.md"))
-    return sum(1 for p in path.rglob("*") if p.is_file())
+    # Exclude gitignored Python bytecode caches. `rglob("*")` recurses into any
+    # nested __pycache__ dir, so a working tree where a template/reference script
+    # has been executed over-counts by the number of .pyc files present — making
+    # the committed artifact read STALE on that machine while CI's clean checkout
+    # (no __pycache__ — it is gitignored repo-wide) counts correctly. Excluding it
+    # is a no-op on any clean/committed tree and keeps the count environment-
+    # independent (the cross-platform-determinism contract for a committed artifact).
+    return sum(1 for p in path.rglob("*") if p.is_file() and "__pycache__" not in p.parts)
 
 
 def _scan_agents(plugin_dir: Path) -> list[dict]:
@@ -544,31 +589,39 @@ def _scan_agents(plugin_dir: Path) -> list[dict]:
                 if sc.get("trigger_phrase"):
                     triggers.append(sc["trigger_phrase"])
                 if sc.get("intent") or sc.get("trigger_phrase"):
-                    scenarios.append({
-                        "intent": sc.get("intent", ""),
-                        "trigger_phrase": sc.get("trigger_phrase", ""),
-                        "outcome": sc.get("outcome", ""),
-                        "difficulty": sc.get("difficulty", "starter"),
-                    })
+                    scenarios.append(
+                        {
+                            "intent": sc.get("intent", ""),
+                            "trigger_phrase": sc.get("trigger_phrase", ""),
+                            "outcome": sc.get("outcome", ""),
+                            "difficulty": sc.get("difficulty", "starter"),
+                        }
+                    )
         quickstart_raw = fm.get("quickstart") or []
-        quickstart = [q for q in quickstart_raw if isinstance(q, str)] if isinstance(quickstart_raw, list) else []
+        quickstart = (
+            [q for q in quickstart_raw if isinstance(q, str)]
+            if isinstance(quickstart_raw, list)
+            else []
+        )
         plugin = plugin_dir.name
         ep = f"plugins/{plugin}/agents/{md.name}"
         host_scope = resolve_platform_dependency(
             kind="agent", plugin=plugin, name=name, evidence_path=ep
         )
-        agents.append({
-            "name": name,
-            "label": _humanize(name),
-            "description": _first_sentence(fm.get("description", "")),
-            "model": fm.get("model", ""),
-            "audience": fm.get("audience", []),
-            "works_with": works,
-            "triggers": triggers[:3],
-            "scenarios": scenarios,
-            "quickstart": quickstart,
-            "host_scope": host_scope,
-        })
+        agents.append(
+            {
+                "name": name,
+                "label": _humanize(name),
+                "description": _first_sentence(fm.get("description", "")),
+                "model": fm.get("model", ""),
+                "audience": fm.get("audience", []),
+                "works_with": works,
+                "triggers": triggers[:3],
+                "scenarios": scenarios,
+                "quickstart": quickstart,
+                "host_scope": host_scope,
+            }
+        )
     return agents
 
 
@@ -615,7 +668,9 @@ def _scan_templates(plugin_dir: Path) -> list[dict]:
         if p.is_dir():
             out.append({"name": p.name + "/", "description": "(template folder)"})
         elif p.is_file():
-            out.append({"name": p.name, "description": _heading_desc(p) if p.suffix == ".md" else ""})
+            out.append(
+                {"name": p.name, "description": _heading_desc(p) if p.suffix == ".md" else ""}
+            )
     return out
 
 
@@ -704,12 +759,14 @@ def _scan_skills(plugin_dir: Path) -> list[dict]:
             host_scope = resolve_platform_dependency(
                 kind="skill", plugin=plugin, name=sdir.name, evidence_path=ep
             )
-        out.append({
-            "name": name,
-            "label": _humanize(name),
-            "description": _first_sentence(fm.get("description", ""), 200),
-            "host_scope": host_scope,
-        })
+        out.append(
+            {
+                "name": name,
+                "label": _humanize(name),
+                "description": _first_sentence(fm.get("description", ""), 200),
+                "host_scope": host_scope,
+            }
+        )
     return out
 
 
@@ -738,11 +795,13 @@ def _scan_hooks(plugin_dir: Path) -> list[dict]:
                 hook_name = Path(cmd).stem if cmd else ""
                 if not hook_name:
                     continue
-                out.append({
-                    "name": hook_name,
-                    "description": hook.get("description", ""),
-                    "event": event_name,
-                })
+                out.append(
+                    {
+                        "name": hook_name,
+                        "description": hook.get("description", ""),
+                        "event": event_name,
+                    }
+                )
     out.sort(key=lambda h: (h["event"], h["name"]))
     return out
 
@@ -798,35 +857,37 @@ def scan_repo() -> dict:
         total_tools += len(scripts_idx)
 
         cat = _category_for(name)
-        plugins.append({
-            "name": name,
-            "label": _humanize(name),
-            "version": entry.get("version") or manifest.get("version", ""),
-            "description": entry.get("description", ""),
-            "short": _first_sentence(entry.get("description", ""), 160),
-            "keywords": (entry.get("keywords") or manifest.get("keywords") or [])[:8],
-            "category": cat["id"],
-            "category_label": cat["label"],
-            "requires": (manifest.get("requires", {}) or {}).get("plugins", []),
-            "agents": agents,
-            "skills_index": skills_idx,
-            "hooks_index": hooks_idx,
-            "rules_index": rules_idx,
-            "templates_index": templates_idx,
-            "best_practices_index": best_practices_idx,
-            "scenarios_index": scenarios_idx,
-            "scripts_index": scripts_idx,
-            "counts": {
-                "agents": len(agents),
-                "skills": skills,
-                "hooks": hooks,
-                "commands": commands,
-                "templates": templates,
-                "knowledge": knowledge,
-                "scenarios": len(scenarios_idx),
-                "tools": len(scripts_idx),
-            },
-        })
+        plugins.append(
+            {
+                "name": name,
+                "label": _humanize(name),
+                "version": entry.get("version") or manifest.get("version", ""),
+                "description": entry.get("description", ""),
+                "short": _first_sentence(entry.get("description", ""), 160),
+                "keywords": (entry.get("keywords") or manifest.get("keywords") or [])[:8],
+                "category": cat["id"],
+                "category_label": cat["label"],
+                "requires": (manifest.get("requires", {}) or {}).get("plugins", []),
+                "agents": agents,
+                "skills_index": skills_idx,
+                "hooks_index": hooks_idx,
+                "rules_index": rules_idx,
+                "templates_index": templates_idx,
+                "best_practices_index": best_practices_idx,
+                "scenarios_index": scenarios_idx,
+                "scripts_index": scripts_idx,
+                "counts": {
+                    "agents": len(agents),
+                    "skills": skills,
+                    "hooks": hooks,
+                    "commands": commands,
+                    "templates": templates,
+                    "knowledge": knowledge,
+                    "scenarios": len(scenarios_idx),
+                    "tools": len(scripts_idx),
+                },
+            }
+        )
 
     # "I want to…" use-case rows — every agent scenario's intent, mapped to the
     # agent + plugin that serves it. Surfaced as a browse-by-intent lookup at the
@@ -839,14 +900,16 @@ def scan_repo() -> dict:
                 intent = (sc.get("intent") or "").strip()
                 if not intent:
                     continue
-                use_cases.append({
-                    "intent": intent,
-                    "agent": a["name"],
-                    "plugin": p["name"],
-                    "plugin_label": p["label"],
-                    "difficulty": sc.get("difficulty", "starter"),
-                    "audience": ", ".join(a.get("audience", []) or []),
-                })
+                use_cases.append(
+                    {
+                        "intent": intent,
+                        "agent": a["name"],
+                        "plugin": p["name"],
+                        "plugin_label": p["label"],
+                        "difficulty": sc.get("difficulty", "starter"),
+                        "audience": ", ".join(a.get("audience", []) or []),
+                    }
+                )
     use_cases.sort(key=lambda r: (r["difficulty"] != "starter", r["intent"].lower()))
 
     # Load comfort-posture category metadata from the live v5 schema.
@@ -855,36 +918,46 @@ def scan_repo() -> dict:
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
         cat_props = schema.get("properties", {}).get("categories", {}).get("properties", {})
         for cid, cdef in cat_props.items():
-            posture_categories.append({
-                "id": cid,
-                "title": cdef.get("title") or _humanize(cid),
-                "group": cdef.get("x-group", "Other"),
-                "description": cdef.get("description", ""),
-                "guidance": cdef.get("x-guidance", ""),
-                "recommended": cdef.get("x-recommended", "ask"),
-                "controls": cdef.get("x-controls", ""),
-                "rec_individual": cdef.get("x-rec-individual", ""),
-                "rec_team": cdef.get("x-rec-team", ""),
-                "examples": cdef.get("x-examples", []),
-            })
+            posture_categories.append(
+                {
+                    "id": cid,
+                    "title": cdef.get("title") or _humanize(cid),
+                    "group": cdef.get("x-group", "Other"),
+                    "description": cdef.get("description", ""),
+                    "guidance": cdef.get("x-guidance", ""),
+                    "recommended": cdef.get("x-recommended", "ask"),
+                    "controls": cdef.get("x-controls", ""),
+                    "rec_individual": cdef.get("x-rec-individual", ""),
+                    "rec_team": cdef.get("x-rec-team", ""),
+                    "examples": cdef.get("x-examples", []),
+                }
+            )
 
     featured = [
-        {"title": "Microsoft delivery stack",
-         "plugins": ["power-platform", "azure-cloud", "microsoft-fabric"],
-         "blurb": "Build, host, and analyze across the Microsoft cloud — "
-         "low-code apps, Azure infra, and Fabric data in one team."},
-        {"title": "Data-driven product",
-         "plugins": ["data-platform", "applied-statistics", "web-design"],
-         "blurb": "Ship embedded analytics that are correct, real, and "
-         "beautifully presented — engineering, statistics, and design."},
-        {"title": "Claude-native application",
-         "plugins": ["claude-app-engineering", "ravenclaude-core"],
-         "blurb": "Architect a production app on the Claude API / Agent SDK "
-         "with the orchestration core underneath."},
-        {"title": "Regulated finance shop",
-         "plugins": ["finance", "regulatory-compliance"],
-         "blurb": "FP&A and financial modeling alongside AML/KYC and "
-         "regulatory-reporting craft."},
+        {
+            "title": "Microsoft delivery stack",
+            "plugins": ["power-platform", "azure-cloud", "microsoft-fabric"],
+            "blurb": "Build, host, and analyze across the Microsoft cloud — "
+            "low-code apps, Azure infra, and Fabric data in one team.",
+        },
+        {
+            "title": "Data-driven product",
+            "plugins": ["data-platform", "applied-statistics", "web-design"],
+            "blurb": "Ship embedded analytics that are correct, real, and "
+            "beautifully presented — engineering, statistics, and design.",
+        },
+        {
+            "title": "Claude-native application",
+            "plugins": ["claude-app-engineering", "ravenclaude-core"],
+            "blurb": "Architect a production app on the Claude API / Agent SDK "
+            "with the orchestration core underneath.",
+        },
+        {
+            "title": "Regulated finance shop",
+            "plugins": ["finance", "regulatory-compliance"],
+            "blurb": "FP&A and financial modeling alongside AML/KYC and "
+            "regulatory-reporting craft.",
+        },
     ]
 
     return {
@@ -911,18 +984,34 @@ def scan_repo() -> dict:
         },
         "collab_rules": COLLAB_RULES,
         "quick_actions": [
-            {"id": "init-team", "label": "Initialize Team",
-             "desc": "Scaffold AGENTS.md, CLAUDE.md & layout via /init-agent-ready",
-             "icon": "rocket", "command": "/init-agent-ready"},
-            {"id": "posture", "label": "Comfort Posture Editor",
-             "desc": "Tune per-category deny / ask / allow permissions",
-             "icon": "sliders", "route": "#/configure"},
-            {"id": "use-cases", "label": "Browse by use case",
-             "desc": "The 'I want to…' lookup — intent → which agent & plugin",
-             "icon": "book", "route": "#/discover"},
-            {"id": "staging", "label": "Contribution Staging Loop",
-             "desc": "Stage a finding into the marketplace via /wrap",
-             "icon": "git", "command": "/wrap"},
+            {
+                "id": "init-team",
+                "label": "Initialize Team",
+                "desc": "Scaffold AGENTS.md, CLAUDE.md & layout via /init-agent-ready",
+                "icon": "rocket",
+                "command": "/init-agent-ready",
+            },
+            {
+                "id": "posture",
+                "label": "Comfort Posture Editor",
+                "desc": "Tune per-category deny / ask / allow permissions",
+                "icon": "sliders",
+                "route": "#/configure",
+            },
+            {
+                "id": "use-cases",
+                "label": "Browse by use case",
+                "desc": "The 'I want to…' lookup — intent → which agent & plugin",
+                "icon": "book",
+                "route": "#/discover",
+            },
+            {
+                "id": "staging",
+                "label": "Contribution Staging Loop",
+                "desc": "Stage a finding into the marketplace via /wrap",
+                "icon": "git",
+                "command": "/wrap",
+            },
         ],
     }
 
@@ -932,14 +1021,21 @@ def scan_repo() -> dict:
 # ----------------------------------------------------------------------------
 _SHARED_TOKENS_PATH = (
     Path(__file__).resolve().parent.parent
-    / "plugins" / "ravenclaude-core" / "dashboard-assets" / "shared-tokens.css"
+    / "plugins"
+    / "ravenclaude-core"
+    / "dashboard-assets"
+    / "shared-tokens.css"
 )
 
 # Brand mark — inlined at generate-time. Drop the real artwork at this path
 # (same filename) and it's picked up automatically on the next build.
 _RAVEN_LOGO_PATH = (
     Path(__file__).resolve().parent.parent
-    / "plugins" / "ravenclaude-core" / "dashboard-assets" / "brand" / "raven-logo.svg"
+    / "plugins"
+    / "ravenclaude-core"
+    / "dashboard-assets"
+    / "brand"
+    / "raven-logo.svg"
 )
 
 
@@ -1123,9 +1219,7 @@ def render_html(data: dict) -> str:
     # round-trips to `<` for the JSON parser and never appears as a raw `<`.
     # The SAME escape is applied to the detail island — it is *more* exposed:
     # agents[].scenarios[].intent / quickstart are the freest text in the payload.
-    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace(
-        "<", "\\u003c"
-    )
+    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     island_payload = json.dumps(island, ensure_ascii=False, separators=(",", ":")).replace(
         "<", "\\u003c"
     )
@@ -1189,10 +1283,16 @@ def render_html(data: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Generate the RavenClaude landing dashboard.")
-    ap.add_argument("-o", "--output", type=Path, default=DEFAULT_OUT,
-                    help="Output HTML path (default: ./index.html)")
-    ap.add_argument("--check", action="store_true",
-                    help="Exit non-zero if the output is missing or stale.")
+    ap.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=DEFAULT_OUT,
+        help="Output HTML path (default: ./index.html)",
+    )
+    ap.add_argument(
+        "--check", action="store_true", help="Exit non-zero if the output is missing or stale."
+    )
     args = ap.parse_args(argv)
 
     data = scan_repo()
@@ -1203,6 +1303,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[stale] {args.output} does not exist", file=sys.stderr)
             return 1
         current = args.output.read_text(encoding="utf-8")
+
         # Compare everything except the volatile generated-timestamp surfaces.
         # THREE surfaces are volatile (forge/index-generator-drift, 2026-06-04):
         #   1. the JSON "generated" field inside window.__RC_DATA__
@@ -1220,18 +1321,20 @@ def main(argv: list[str] | None = None) -> int:
             s = re.sub(r"Updated \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC", "Updated", s)
             s = re.sub(r"(Last updated</span> <code>)[^<]*(</code>)", r"\1\2", s)
             return s
+
         if _strip_ts(current) != _strip_ts(html):
-            print(f"[stale] {args.output} is out of date — re-run the generator",
-                  file=sys.stderr)
+            print(f"[stale] {args.output} is out of date — re-run the generator", file=sys.stderr)
             return 1
         print(f"[ok] {args.output} is up to date")
         return 0
 
     args.output.write_text(html, encoding="utf-8")
     kb = len(html.encode("utf-8")) / 1024
-    print(f"[ok] wrote {args.output} ({kb:.0f} KB) — "
-          f"{data['stats']['plugins']} plugins, "
-          f"{data['stats']['specialists']} specialists")
+    print(
+        f"[ok] wrote {args.output} ({kb:.0f} KB) — "
+        f"{data['stats']['plugins']} plugins, "
+        f"{data['stats']['specialists']} specialists"
+    )
     return 0
 
 
