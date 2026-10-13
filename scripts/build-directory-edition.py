@@ -16,9 +16,16 @@ WHY
 TRANSFORMS (the whole list)
     plugin.json          rebuilt from the source one: `experimental` dropped, homepage/repository set,
                          description replaced, version kept equal to the source (the single source of truth)
-    hooks/hooks.json     filtered to the allow-listed hooks
+    hooks/hooks.json     filtered to the allow-listed hooks, each wrapped in hooks/posture-gate.sh
     commands overrides   a command the manifest overrides is replaced by the override file
+    allowed-tools        removed from every shipped command and skill (see strip_frontmatter_keys): the
+                         field pre-approves tools while the component runs, and these components read
+                         untrusted repositories and web pages
+    plugin paths         `plugins/<plugin>/` in shipped markdown becomes ${CLAUDE_PLUGIN_ROOT}/ (Claude Code
+                         substitutes it inline in skill/command/agent content; the Bash tool's environment
+                         does NOT carry it, so a project-relative path would run the PROJECT's file)
     README / PRIVACY / LICENSE / .claude-plugin/marketplace.json   generated from templates
+    hooks/posture-gate.sh, scripts/edition-trust.sh                generated (the on/off switch and its helper)
 
 USAGE
     build-directory-edition.py --out DIR            build the edition into DIR (must not exist or be empty)
@@ -88,23 +95,106 @@ _NEVER_COPY = ("__pycache__", ".DS_Store", "node_modules", ".pytest_cache")
 
 GATE_PATH = "hooks/posture-gate.sh"
 GATE_PREFIX = 'bash "${CLAUDE_PLUGIN_ROOT}/hooks/posture-gate.sh" '
+TRUST_PATH = "scripts/edition-trust.sh"
+TRUST_FILE = "~/.ravenclaude/edition-trusted-projects"
 
 # The edition's single on/off switch. Every shipped hook except the one-line setup prompt is invoked
-# THROUGH this file, so "does nothing without a posture file" is true by construction: the wrapped hook
-# never starts. Kept to a handful of lines on purpose - a reviewer should be able to read all of it.
+# THROUGH this file, so "does nothing until you opt in" is true by construction: the wrapped hook never
+# starts. A posture file alone is NOT an opt-in - a repository you clone can ship one - so the hooks also
+# need YOUR entry in a file under your home directory, which no repository can write.
+# Kept short on purpose - a reviewer should be able to read all of it.
 POSTURE_GATE_SH = """#!/usr/bin/env bash
 # posture-gate.sh - the on/off switch for this plugin's hooks.
 #
 # hooks.json invokes every hook as:  bash posture-gate.sh <the hook command...>
-# The wrapped hook runs ONLY if .ravenclaude/comfort-posture.yaml exists in the project. Without that
-# file this exits 0 immediately: no output, no files written, no network, and the wrapped hook never
-# starts. Creating the file is how you opt in; deleting it turns everything off again.
+# The wrapped hook runs ONLY when both of these are true:
+#   1. the project has .ravenclaude/comfort-posture.yaml (a regular file; no symlink in the way), AND
+#   2. YOU trusted the project: its real path is a line in ~/.ravenclaude/edition-trusted-projects
+#      (scripts/edition-trust.sh add writes it; /dashboard offers to run it).
+# Condition 2 exists because condition 1 is only a file, and a repository you clone can ship any file.
+# Otherwise this exits 0 at once: no output, no files written, no network, the hook never starts.
 #
-# It reads nothing from the file (the wrapped hook does, if it runs) and fails toward doing nothing.
-[ "$#" -gt 0 ] || exit 0
-[ -f "${CLAUDE_PROJECT_DIR:-$PWD}/.ravenclaude/comfort-posture.yaml" ] || exit 0
+#   posture-gate.sh --status     prints one word and exits 0:  no-posture | untrusted | active
+#
+# It reads nothing from the posture file and fails toward doing nothing.
+rc_state() {
+  proj="${CLAUDE_PROJECT_DIR:-$PWD}"
+  [ -f "$proj/.ravenclaude/comfort-posture.yaml" ] || { echo no-posture; return; }
+  for link in "$proj/.ravenclaude" "$proj/.ravenclaude/comfort-posture.yaml" "$proj/.ravenclaude/runs"; do
+    if [ -L "$link" ]; then echo untrusted; return; fi
+  done
+  real="$(cd "$proj" 2>/dev/null && pwd -P)" || { echo untrusted; return; }
+  [ -n "$real" ] && [ -n "${HOME:-}" ] || { echo untrusted; return; }
+  grep -Fxq -- "$real" "$HOME/.ravenclaude/edition-trusted-projects" 2>/dev/null || { echo untrusted; return; }
+  echo active
+}
+case "${1:-}" in
+  "") exit 0 ;;
+  --status) rc_state; exit 0 ;;
+esac
+[ "$(rc_state)" = active ] || exit 0
 exec "$@"
 """
+
+# The helper that records your trust. It writes ONE file, ~/.ravenclaude/edition-trusted-projects, and
+# nothing else; it refuses a project with no posture file so trust is never granted to nothing.
+EDITION_TRUST_SH = """#!/usr/bin/env bash
+# edition-trust.sh - trust (or stop trusting) a project for this plugin's hooks.
+#
+#   edition-trust.sh add    [DIR]   trust DIR (default: the current directory)
+#   edition-trust.sh remove [DIR]   stop trusting DIR
+#   edition-trust.sh status [DIR]   print: trusted | not-trusted | no-posture
+#   edition-trust.sh list           print every trusted project
+#
+# The ONLY file this writes is ~/.ravenclaude/edition-trusted-projects (one real path per line).
+# `add` refuses a project that has no .ravenclaude/comfort-posture.yaml, or whose .ravenclaude is a
+# symlink, so trust is never granted to nothing or to a redirected directory. No network, no other writes.
+set -eu
+cmd="${1:-}"
+[ -n "$cmd" ] || { echo "usage: edition-trust.sh add|remove|status [DIR] | list" >&2; exit 2; }
+shift || true
+[ -n "${HOME:-}" ] || { echo "edition-trust: HOME is not set" >&2; exit 2; }
+file="$HOME/.ravenclaude/edition-trusted-projects"
+if [ "$cmd" = list ]; then
+  [ -f "$file" ] && cat "$file"
+  exit 0
+fi
+dir="${1:-$PWD}"
+real="$(cd "$dir" 2>/dev/null && pwd -P)" || { echo "edition-trust: not a directory: $dir" >&2; exit 2; }
+has_posture() { [ -f "$real/.ravenclaude/comfort-posture.yaml" ] && [ ! -L "$real/.ravenclaude" ] && [ ! -L "$real/.ravenclaude/comfort-posture.yaml" ]; }
+is_trusted() { [ -f "$file" ] && grep -Fxq -- "$real" "$file"; }
+case "$cmd" in
+  status)
+    if ! has_posture; then echo no-posture; elif is_trusted; then echo trusted; else echo not-trusted; fi
+    ;;
+  add)
+    has_posture || { echo "edition-trust: $real has no regular .ravenclaude/comfort-posture.yaml - save a posture first (/dashboard)" >&2; exit 2; }
+    if is_trusted; then echo "already trusted: $real"; exit 0; fi
+    mkdir -p "$HOME/.ravenclaude"
+    printf '%s\\n' "$real" >> "$file"
+    echo "trusted: $real  (recorded in $file)"
+    ;;
+  remove)
+    if ! is_trusted; then echo "not trusted: $real"; exit 0; fi
+    tmp="$(mktemp "$file.XXXXXX")"
+    grep -Fxv -- "$real" "$file" > "$tmp" || true
+    mv "$tmp" "$file"
+    echo "no longer trusted: $real"
+    ;;
+  *) echo "usage: edition-trust.sh add|remove|status [DIR] | list" >&2; exit 2 ;;
+esac
+"""
+
+# A hook command may take exactly one of two shapes (optionally followed by the injected file path). Anything
+# else - a `;`, a `&&`, a pipe, a variable in the program position - is a build failure, because the gate
+# wraps the command string verbatim and only a command this simple is certain to run entirely inside it.
+HOOK_CMD_FORM = re.compile(
+    r'^(?:bash )?"\$\{CLAUDE_PLUGIN_ROOT\}/(?!\S*\.\.)[A-Za-z0-9_./-]+"(?: "\$CLAUDE_TOOL_FILE_PATH")?$'
+)
+# Only these hooks may skip the gate, whatever a manifest says: they print one fixed line and do nothing else.
+UNGATED_ALLOWED = frozenset({"dashboard-prompt.sh"})
+# Frontmatter keys removed from shipped commands and skills (see strip_frontmatter_keys).
+STRIPPED_KEYS = ("allowed-tools", "allowed_tools", "allowedTools")
 
 
 class BuildError(Exception):
@@ -192,9 +282,22 @@ def validate_manifest(m: dict) -> list[str]:
                 and not str(e.get("ungated_reason", "")).strip()
             ):
                 p.append(f"components.hooks.{key}: ungated needs an ungated_reason")
+            if kind == "hooks" and e.get("ungated") and key not in UNGATED_ALLOWED:
+                p.append(
+                    f"components.hooks.{key}: only {sorted(UNGATED_ALLOWED)} may be ungated - "
+                    "that list is in the builder, not the manifest, so a manifest edit cannot widen it"
+                )
     for i, e in enumerate(m.get("extra_roots", [])):
         if not e.get("glob") or not str(e.get("reason", "")).strip():
             p.append(f"extra_roots[{i}] needs glob and reason")
+    for i, e in enumerate(m.get("text_edits", [])):
+        for k in ("file", "find", "replace", "reason"):
+            if k not in e or (k != "replace" and not str(e[k]).strip()):
+                p.append(f"text_edits[{i}] needs {k}")
+    for key in ("python_isolation_allow", "runnable_path_allow"):
+        for i, e in enumerate(m.get(key, [])):
+            if not e.get("file") or not str(e.get("reason", "")).strip():
+                p.append(f"{key}[{i}] needs file and reason")
     for i, d in enumerate(m.get("deny_globs", [])):
         if not d.get("glob") or not str(d.get("reason", "")).strip():
             p.append(f"deny_globs[{i}] needs glob and reason")
@@ -359,6 +462,12 @@ def plan_build(manifest: dict, repo: Path = REPO, overrides_root: Path | None = 
     for event, matcher, h in registrations(hooks_json):
         hid = hook_id(h["command"])
         if hid in want:
+            if not HOOK_CMD_FORM.match(h["command"]):
+                raise BuildError(
+                    f"{event}: hook {hid} has a command the gate cannot be certain to contain: "
+                    f'{h["command"]!r}. Allowed forms: [bash ]"${{CLAUDE_PLUGIN_ROOT}}/<path>" '
+                    'optionally followed by "$CLAUDE_TOOL_FILE_PATH" (no `;`, `&&`, pipes or variables).'
+                )
             seen_ids.add(hid)
             kept.append((event, matcher, h))
             roots += hook_script_paths(h["command"])
@@ -476,6 +585,7 @@ def plan_build(manifest: dict, repo: Path = REPO, overrides_root: Path | None = 
             filtered["hooks"][event] = ngroups
     plan.generated["hooks/hooks.json"] = json.dumps(filtered, indent=2, ensure_ascii=False) + "\n"
     plan.generated[GATE_PATH] = POSTURE_GATE_SH
+    plan.generated[TRUST_PATH] = EDITION_TRUST_SH
     plan.files.pop("hooks/hooks.json", None)
     for gp in plan.generated:
         plan.files[gp] = "gen:" + gp
@@ -498,7 +608,7 @@ def render_templates(manifest: dict, plan: Plan, repo: Path = REPO) -> dict[str,
         )
         hook_rows.append(f"| `{h['id']}` | {evs} | {h['summary']} |")
     hook_table = (
-        "| Hook | Fires on | What it does (only once a posture file exists, unless stated) |\n|---|---|---|\n"
+        "| Hook | Fires on | What it does (only once a posture file exists and you have trusted the project, unless stated) |\n|---|---|---|\n"
         + "\n".join(hook_rows)
     )
     lists = {
@@ -507,7 +617,9 @@ def render_templates(manifest: dict, plan: Plan, repo: Path = REPO) -> dict[str,
         "COMMAND_LIST": "\n".join(f"- `/{c['name']}` - {c['reason']}" for c in comps["commands"]),
         "HOOK_TABLE": hook_table,
         "VERSION": version,
-        "EXEC_LIST": ", ".join(f"`{x}`" for x in sorted(manifest.get("hook_audit", {}).get("allowed_execs", []))),
+        "EXEC_LIST": ", ".join(
+            f"`{x}`" for x in sorted(manifest.get("hook_audit", {}).get("allowed_execs", []))
+        ),
         "N_AGENTS": str(len(comps["agents"])),
         "N_SKILLS": str(len(comps["skills"])),
         "N_COMMANDS": str(len(comps["commands"])),
@@ -534,11 +646,89 @@ def render_templates(manifest: dict, plan: Plan, repo: Path = REPO) -> dict[str,
 def fill_placeholders(text: str, manifest: dict) -> str:
     """The few manifest values an override file may use."""
     tgt = manifest["target"]
-    for k, v in (("PORTAL", tgt["portal_url"]), ("REPO", tgt["repository"]), ("SUPPORT", tgt["support"])):
+    for k, v in (
+        ("PORTAL", tgt["portal_url"]),
+        ("REPO", tgt["repository"]),
+        ("SUPPORT", tgt["support"]),
+    ):
         text = text.replace("{{" + k + "}}", v)
     left = re.findall(r"\{\{[A-Z_]+\}\}", text)
     if left:
         raise BuildError(f"override has unresolved placeholders {sorted(set(left))}")
+    return text
+
+
+# ── text transforms (the whole list; see the module docstring) ──────────────
+
+# Markdown the transforms touch: instructions Claude reads and may act on. templates/ is excluded on purpose -
+# those files are scaffolds for the USER's repo, where `scripts/...` means the user's own scripts.
+_TRANSFORM_DIRS = ("commands/", "skills/", "agents/", "rules/", "knowledge/")
+# An interpreter run on a plugin-relative script: `python3 scripts/x.py`, `bash ./hooks/y.sh`.
+RUN_REL = re.compile(
+    r"(?P<pre>\b(?:python3?|bash|sh|node)[ \t]+(?:-[A-Za-z]+[ \t]+)*)(?P<path>(?:\./)?(?:scripts|hooks|bin)/[A-Za-z0-9_./-]+)"
+)
+
+
+def _plugin_path_rx(plugin_name: str) -> re.Pattern[str]:
+    return re.compile(r"(?:(?:\.\./)+|\./)?plugins/" + re.escape(plugin_name) + r"/")
+
+
+def strip_frontmatter_keys(text: str, keys: tuple[str, ...] = STRIPPED_KEYS) -> str:
+    """Remove the named keys (inline value, or an indented continuation / list) from a leading YAML
+    frontmatter block. Text with no frontmatter, or with the closing fence missing, is returned unchanged.
+
+    Why `allowed-tools` goes: it pre-approves those tools while the command or skill is active. /repo-review
+    reads every file of a repository that may be hostile, with a bare `Bash` pre-approved, is exactly the
+    shape a prompt injection wants. Without the field, each call goes through the user's own permissions."""
+    if not text.startswith("---\n"):
+        return text
+    end = text.find("\n---", 4)
+    if end == -1:
+        return text
+    head, rest = text[4:end], text[end:]
+    out: list[str] = []
+    skipping = False
+    for line in head.split("\n"):
+        m = re.match(r"^([A-Za-z0-9_-]+)[ \t]*:", line)
+        if m:
+            skipping = m.group(1) in keys
+        elif skipping and line.strip() and not line.startswith((" ", "\t", "-")):
+            skipping = False
+        if not skipping:
+            out.append(line)
+    return "---\n" + "\n".join(out) + rest
+
+
+def transform_text(rel: str, text: str, plugin_name: str, shipped: set[str]) -> str:
+    """The deterministic text edits applied to a shipped markdown file (everything else is byte-identical)."""
+    if not rel.endswith(".md") or not rel.startswith(_TRANSFORM_DIRS):
+        return text
+    if rel.startswith(("commands/", "skills/")):
+        text = strip_frontmatter_keys(text)
+    text = _plugin_path_rx(plugin_name).sub("${CLAUDE_PLUGIN_ROOT}/", text)
+
+    def _abs(m: re.Match[str]) -> str:
+        path = m.group("path")
+        bare = path[2:] if path.startswith("./") else path
+        return m.group("pre") + ("${CLAUDE_PLUGIN_ROOT}/" + bare if bare in shipped else path)
+
+    return RUN_REL.sub(_abs, text)
+
+
+def apply_text_edits(rel: str, text: str, edits: list[dict]) -> str:
+    """Manifest `text_edits`: {file, find, replace, count?, reason}. An edit whose `find` is not present the
+    expected number of times is a BUILD ERROR - the source moved under the edit and the edition would
+    otherwise ship text nobody reviewed. These exist for the few sentences that are true in the source
+    repository and false in the edition (a script that lives in the marketplace repo, not the plugin)."""
+    for e in edits:
+        want = int(e.get("count", 1))
+        got = text.count(e["find"])
+        if got != want:
+            raise BuildError(
+                f"text_edits: {rel}: expected {want} occurrence(s) of the text to replace, found {got} "
+                f"({e['find'][:50]!r}...) - the source changed; re-review this edit"
+            )
+        text = text.replace(e["find"], e["replace"])
     return text
 
 
@@ -550,23 +740,43 @@ def write_dist(manifest: dict, plan: Plan, out: Path, repo: Path = REPO) -> None
     out.mkdir(parents=True, exist_ok=True)
     gen = dict(plan.generated)
     gen.update(render_templates(manifest, plan, repo))
+    shipped = set(plan.files)
+    name = manifest["plugin"]
+    edits: dict[str, list[dict]] = {}
+    for e in manifest.get("text_edits", []):
+        edits.setdefault(e["file"], []).append(e)
+    for f in sorted(set(edits) - shipped):
+        raise BuildError(f"text_edits names {f}, which does not ship (stale entry)")
     for dist_path, how in sorted(plan.files.items()):
         dest = out / dist_path
         dest.parent.mkdir(parents=True, exist_ok=True)
         if how.startswith("gen:"):
             dest.write_text(gen[dist_path])
-            if dist_path.startswith("hooks/") and dist_path.endswith(".sh"):
+            if (dist_path.startswith("hooks/") and dist_path.endswith(".sh")) or dist_path == TRUST_PATH:
                 os.chmod(dest, 0o755)
         elif how.startswith("override:"):
-            dest.write_text(fill_placeholders(overrides[dist_path].read_text(), manifest))
+            text = fill_placeholders(overrides[dist_path].read_text(), manifest)
+            text = apply_text_edits(dist_path, text, edits.get(dist_path, []))
+            dest.write_text(transform_text(dist_path, text, name, shipped))
             os.chmod(dest, 0o644)
         else:
-            shutil.copyfile(src / dist_path, dest)
-            shutil.copymode(src / dist_path, dest)
-    for name, text in gen.items():
-        if name in plan.files:
+            srcfile = src / dist_path
+            if srcfile.is_symlink():
+                # copyfile follows a symlink, so the output-tree symlink check could never see one.
+                raise BuildError(f"{dist_path} is a symlink in the source plugin; refusing to follow it")
+            if dist_path in edits or (
+                dist_path.endswith(".md") and dist_path.startswith(_TRANSFORM_DIRS)
+            ):
+                raw = apply_text_edits(dist_path, srcfile.read_text(), edits.get(dist_path, []))
+                dest.write_text(transform_text(dist_path, raw, name, shipped))
+                shutil.copymode(srcfile, dest)
+            else:
+                shutil.copyfile(srcfile, dest)
+                shutil.copymode(srcfile, dest)
+    for gname, text in gen.items():
+        if gname in plan.files:
             continue
-        dest = out / name
+        dest = out / gname
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(text)
 
@@ -673,6 +883,17 @@ def network_findings(root: Path, manifest: dict) -> list[str]:
                 f"{rel}: network primitive/URL ({', '.join(h['primitives'] + h['hosts'])[:90]}) "
                 "has no network_classification entry with a kind and a reason"
             )
+        elif c.get("primitives") is None or c.get("hosts") is None:
+            problems.append(
+                f"{rel}: the classification must pin what it reviewed: "
+                f"\"primitives\": {h['primitives']}, \"hosts\": {h['hosts']}"
+            )
+        elif sorted(c["primitives"]) != h["primitives"] or sorted(c["hosts"]) != h["hosts"]:
+            problems.append(
+                f"{rel}: network primitives/hosts changed since this classification was reviewed "
+                f"(pinned {sorted(c['primitives'])}/{sorted(c['hosts'])}, now {h['primitives']}/{h['hosts']}) - "
+                "re-review the file and update the pin"
+            )
     for rel in classified:
         if rel not in set(tree_files(root)):
             problems.append(
@@ -733,9 +954,20 @@ def structure_findings(root: Path, manifest: dict) -> list[str]:
         problems.append(f"{GATE_PATH} is missing")
     elif (root / GATE_PATH).read_text() != POSTURE_GATE_SH:
         problems.append(f"{GATE_PATH} differs from the reviewed shim")
+    if not (root / TRUST_PATH).is_file():
+        problems.append(f"{TRUST_PATH} is missing")
+    elif (root / TRUST_PATH).read_text() != EDITION_TRUST_SH:
+        problems.append(f"{TRUST_PATH} differs from the reviewed helper")
+    elif not os.access(root / TRUST_PATH, os.X_OK):
+        problems.append(f"{TRUST_PATH} is not executable")
+    for bad in sorted(ungated - UNGATED_ALLOWED):
+        problems.append(f"{bad} is ungated but is not in the builder's UNGATED_ALLOWED list")
     for event, _matcher, h in registrations(hj):
         gated = h["command"].startswith(GATE_PREFIX)
         hid = hook_id(h["command"])
+        inner = h["command"][len(GATE_PREFIX) :] if gated else h["command"]
+        if not HOOK_CMD_FORM.match(inner):
+            problems.append(f"{event}: {hid} has a command outside the allowed forms: {inner!r}")
         if hid in ungated and gated:
             problems.append(f"{hid} is declared ungated but is wrapped in the gate")
         if hid not in ungated and not gated:
@@ -745,6 +977,123 @@ def structure_findings(root: Path, manifest: dict) -> list[str]:
     for rel in tree_files(root):
         if rel.startswith("hooks/") and rel.endswith(".sh") and not os.access(root / rel, os.X_OK):
             problems.append(f"{rel} is not executable")
+    return problems
+
+
+# ── hygiene: things a stranger's repository could turn against the person who installed this ──
+
+_PY_TOKEN = re.compile(r"(?<![\w./$-])python3?(?:\.\d+)?(?![\w.-])")
+_CLAUDE_CL = "cla" + "ude"
+_SPAWN_PIECES = (
+    r"(^|[|&;(`]|\$\()\s*([A-Za-z_]+=\S+\s+)*" + _CLAUDE_CL + r"\s+(-|auth|plugin|mcp|config)",
+    r"\[\s*['\"]" + _CLAUDE_CL + r"['\"]",
+    r"which\(['\"]" + _CLAUDE_CL,
+    r"command -v " + _CLAUDE_CL,
+    _CLAUDE_CL + r" -p\b",
+)
+_SPAWN = re.compile("|".join(_SPAWN_PIECES))
+
+
+def python_cwd_sensitive(line: str) -> bool:
+    """True when `line` runs python in a form that puts the CURRENT DIRECTORY on sys.path and does not
+    isolate it. `python3 -c`, `python3 -m`, `python3 -` and `python3 <<` all do (a `json.py` in the project
+    root is imported by the snippet); `python3 script.py` puts the SCRIPT's directory there instead. `-I`
+    (isolated mode, Python 3.4+) removes the current directory, PYTHON* variables and the user site."""
+    for m in _PY_TOKEN.finditer(line):
+        tail = line[m.end() :]
+        clusters: list[str] = []
+        pos = 0
+        while True:
+            mm = re.match(r"[ \t]+(-[A-Za-z]*)(?=[ \t]|$)", tail[pos:])
+            if not mm:
+                break
+            clusters.append(mm.group(1))
+            pos += mm.end()
+        heredoc = bool(re.match(r"[ \t]*<<", tail[pos:]))
+        sensitive = heredoc or any(c == "-" or "c" in c[1:] or "m" in c[1:] for c in clusters)
+        isolated = any("I" in c[1:] for c in clusters)
+        if sensitive and not isolated:
+            return True
+    return False
+
+
+def _md_code_lines(text: str):
+    """(lineno, code) for fenced-block lines and inline code spans that START with an interpreter."""
+    fenced = False
+    for i, line in enumerate(text.splitlines(), 1):
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            yield i, line
+            continue
+        for sp in re.finditer(r"`([^`\n]+)`", line):
+            code = sp.group(1).strip()
+            if code.startswith("$ "):
+                code = code[2:]
+            if re.match(r"python3?(?:\.\d+)?\b", code):
+                yield i, code
+
+
+def hygiene_findings(root: Path, manifest: dict) -> list[str]:
+    """Checks that the shipped files cannot be steered by a repository the person opened.
+
+    1. python: no cwd-sensitive interpreter call without `-I` (a project-root json.py/shlex.py would run).
+    2. allowed-tools: no shipped command or skill pre-approves a tool.
+    3. paths: no `plugins/<name>/` left in instructions, and no interpreter run on a plugin-relative script
+       that does not ship (it would resolve inside the PROJECT).
+    4. no shipped executable starts the `claude` CLI (a nested model session is a disclosed-or-absent thing).
+    """
+    problems: list[str] = []
+    name = manifest["plugin"]
+    py_allow = {a["file"]: a for a in manifest.get("python_isolation_allow", [])}
+    run_allow = {a["file"]: a for a in manifest.get("runnable_path_allow", [])}
+    py_seen: set[str] = set()
+    run_seen: set[str] = set()
+    for a in list(py_allow.values()) + list(run_allow.values()):
+        if not str(a.get("reason", "")).strip():
+            problems.append(f"hygiene allow entry for {a.get('file')} needs a reason")
+    for rel in tree_files(root):
+        suffix = Path(rel).suffix
+        text = (root / rel).read_text(errors="replace")
+        if suffix in EXEC_EXT:
+            for line in _scannable(text, rel).splitlines():
+                if python_cwd_sensitive(line):
+                    py_seen.add(rel)
+                    if rel not in py_allow:
+                        problems.append(
+                            f"{rel}: python run without -I ({line.strip()[:70]!r}) - a json.py in the "
+                            "project root would be imported"
+                        )
+                if _SPAWN.search(line):
+                    problems.append(f"{rel}: starts the claude CLI ({line.strip()[:70]!r})")
+        if suffix == ".md" and rel.startswith(_TRANSFORM_DIRS):
+            for i, code in _md_code_lines(text):
+                if python_cwd_sensitive(code):
+                    py_seen.add(rel)
+                    if rel not in py_allow:
+                        problems.append(
+                            f"{rel}:{i}: instruction runs python without -I ({code[:70]!r})"
+                        )
+            if f"plugins/{name}/" in text:
+                problems.append(f"{rel}: still names plugins/{name}/ (should be ${{CLAUDE_PLUGIN_ROOT}}/)")
+            for i, line in enumerate(text.splitlines(), 1):
+                for m in RUN_REL.finditer(line):
+                    run_seen.add(rel)
+                    if rel not in run_allow:
+                        problems.append(
+                            f"{rel}:{i}: runs plugin-relative {m.group('path')!r}, which does not ship "
+                            "(it would resolve inside the project)"
+                        )
+            if rel.startswith(("commands/", "skills/")):
+                fm = text.split("\n---", 1)[0] if text.startswith("---\n") else ""
+                for key in STRIPPED_KEYS:
+                    if re.search(rf"^{re.escape(key)}[ \t]*:", fm, re.M):
+                        problems.append(f"{rel}: frontmatter still carries {key}")
+    for f in sorted(set(py_allow) - py_seen):
+        problems.append(f"python_isolation_allow names {f}, which has no finding (stale entry)")
+    for f in sorted(set(run_allow) - run_seen):
+        problems.append(f"runnable_path_allow names {f}, which has no finding (stale entry)")
     return problems
 
 
@@ -839,7 +1188,14 @@ def secret_findings(root: Path, allow: list[dict] | None = None) -> list[str]:
                     hits.append(f"{i}:{name}")
         if scrub.is_file():
             cp = subprocess.run(
-                ["bash", "-c", 'source "$1"; a="$(cat "$2")"; b="$(_scrub_reason "$a")"; [ "$a" = "$b" ]', "_", str(scrub), str(p)],
+                [
+                    "bash",
+                    "-c",
+                    'source "$1"; a="$(cat "$2")"; b="$(_scrub_reason "$a")"; [ "$a" = "$b" ]',
+                    "_",
+                    str(scrub),
+                    str(p),
+                ],
                 capture_output=True,
                 text=True,
             )
@@ -853,7 +1209,9 @@ def secret_findings(root: Path, allow: list[dict] | None = None) -> list[str]:
         if not str(a.get("reason", "")).strip():
             problems.append(f"secret_scan_allow {a.get('file')}: a reason is required")
         elif a["file"] not in found:
-            problems.append(f"secret_scan_allow names {a['file']}, which has no finding (stale entry)")
+            problems.append(
+                f"secret_scan_allow names {a['file']}, which has no finding (stale entry)"
+            )
     for rel, hits in sorted(found.items()):
         if rel not in allowed:
             problems.append(f"secret-shaped string in {rel}: " + ", ".join(hits[:4]))
@@ -872,6 +1230,7 @@ def check_problems(manifest: dict, repo: Path = REPO) -> tuple[list[str], list[s
             problems.append("two builds from the same source differ (non-deterministic)")
         problems += limits_report(a, manifest["limits"])["violations"]
         problems += structure_findings(a, manifest)
+        problems += hygiene_findings(a, manifest)
         problems += readme_parity(a, manifest)
         problems += network_findings(a, manifest)
         problems += secret_findings(a, manifest.get("secret_scan_allow", []))
@@ -928,7 +1287,7 @@ def cmd_report(manifest: dict, repo: Path = REPO) -> int:
             print("  VIOLATION", v)
         for v in network_findings(out, manifest):
             print("  NETWORK", v)
-        for v in structure_findings(out, manifest) + readme_parity(out, manifest):
+        for v in structure_findings(out, manifest) + hygiene_findings(out, manifest) + readme_parity(out, manifest):
             print("  STRUCTURE", v)
         by_top: dict[str, int] = {}
         for r in tree_files(out):
@@ -1023,8 +1382,8 @@ def _fixture(root: Path) -> dict:
         "plugin_json": {"description": "Demo.", "displayName": "Demo"},
         "limits": {
             "max_files": 40,
-            "max_file_bytes_nonimage": 1024,
-            "max_file_bytes": 4096,
+            "max_file_bytes_nonimage": 4096,
+            "max_file_bytes": 8192,
             "max_total_bytes": 100000,
         },
         "closure": {"prose_depth": 1},
@@ -1204,7 +1563,12 @@ def self_test() -> int:
             "network: an unclassified primitive/URL is a finding", any("helper.py" in x for x in nf)
         )
         m["network_classification"] = {
-            "scripts/helper.py": {"kind": "user-configured", "reason": "demo"}
+            "scripts/helper.py": {
+                "kind": "user-configured",
+                "reason": "demo",
+                "primitives": ["urllib"],
+                "hosts": ["example.invalid"],
+            }
         }
         check(
             "network: a classified entry with a reason clears it",
@@ -1218,19 +1582,32 @@ def self_test() -> int:
 
         planted = root / "o1" / "knowledge" / "planted.md"
         planted.write_text("token = " + "gh" + "p_" + "0123456789abcdef0123456789abcdef0123" + "\n")
-        check("secrets: a planted token is a finding", any("planted.md" in x for x in secret_findings(root / "o1")))
+        check(
+            "secrets: a planted token is a finding",
+            any("planted.md" in x for x in secret_findings(root / "o1")),
+        )
         check(
             "secrets: an allow entry with a reason clears it",
             not secret_findings(root / "o1", [{"file": "knowledge/planted.md", "reason": "test"}]),
         )
         check(
             "secrets: an allow entry without a reason does not",
-            any("reason is required" in x for x in secret_findings(root / "o1", [{"file": "knowledge/planted.md", "reason": ""}])),
+            any(
+                "reason is required" in x
+                for x in secret_findings(
+                    root / "o1", [{"file": "knowledge/planted.md", "reason": ""}]
+                )
+            ),
         )
         planted.unlink()
         check(
             "secrets: an allow entry that matches nothing is stale",
-            any("stale" in x for x in secret_findings(root / "o1", [{"file": "knowledge/planted.md", "reason": "test"}])),
+            any(
+                "stale" in x
+                for x in secret_findings(
+                    root / "o1", [{"file": "knowledge/planted.md", "reason": "test"}]
+                )
+            ),
         )
         check("secrets: a clean tree has no findings", not secret_findings(root / "o1"))
 
@@ -1244,6 +1621,265 @@ def self_test() -> int:
             )["version"]
             == "9.9.9",
         )
+
+        # ── review-driven hardening: each guard below has a half that must fail ──
+        fm = "---\nname: x\nallowed-tools: Bash, Read\ndescription: d\n---\nbody allowed-tools: Bash\n"
+        s = strip_frontmatter_keys(fm)
+        check(
+            "allowed-tools: removed from frontmatter; other keys and the body are untouched",
+            "allowed-tools: Bash, Read" not in s
+            and "name: x" in s
+            and "description: d" in s
+            and s.endswith("body allowed-tools: Bash\n"),
+        )
+        lst = "---\nname: x\nallowed-tools:\n  - Bash\n  - Read\ndescription: d\n---\nb\n"
+        check(
+            "allowed-tools: a multi-line list value is removed with its items",
+            "Bash" not in strip_frontmatter_keys(lst) and "description: d" in strip_frontmatter_keys(lst),
+        )
+        check(
+            "allowed-tools: no frontmatter, or an unterminated one, is returned unchanged",
+            strip_frontmatter_keys("no fm\nallowed-tools: x\n") == "no fm\nallowed-tools: x\n"
+            and strip_frontmatter_keys("---\nallowed-tools: x\n") == "---\nallowed-tools: x\n",
+        )
+        tx = transform_text(
+            "skills/good/SKILL.md",
+            "---\nallowed-tools: Bash\n---\nsee plugins/demo/scripts/a.py, ./plugins/demo/x and "
+            "../../plugins/demo/y\nrun python3 scripts/helper.py and python3 scripts/ghost.py\n",
+            "demo",
+            {"scripts/helper.py"},
+        )
+        check(
+            "paths: plugins/<name>/ becomes ${CLAUDE_PLUGIN_ROOT}/ in every relative spelling",
+            "plugins/demo/" not in tx and tx.count("${CLAUDE_PLUGIN_ROOT}/") >= 4,
+        )
+        check(
+            "paths: a shipped script run by an interpreter gets the plugin root; an unshipped one is left for the lint",
+            "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/helper.py" in tx
+            and "python3 scripts/ghost.py" in tx,
+        )
+        check(
+            "paths: templates/ is never touched (those scripts belong to the user's repo)",
+            transform_text("templates/x.md", "plugins/demo/a python3 scripts/helper.py", "demo", {"scripts/helper.py"})
+            == "plugins/demo/a python3 scripts/helper.py",
+        )
+        table = {
+            "python3 -c 'x'": True,
+            "python3 -m json.tool f": True,
+            "python3 - <<'PY'": True,
+            "python3 <<EOF": True,
+            "x | python3 -": True,
+            "python3 -B -c 'x'": True,
+            "python3 -I -c 'x'": False,
+            "python3 -Ic 'x'": False,
+            "python3 -I -m json.tool": False,
+            "python3 script.py": False,
+            "echo python3": False,
+        }
+        wrong = [k for k, v in table.items() if python_cwd_sensitive(k) != v]
+        check("python isolation: truth table " + (f"[wrong: {wrong}]" if wrong else ""), not wrong)
+        good_cmds = [
+            '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"',
+            'bash "${CLAUDE_PLUGIN_ROOT}/scripts/b.sh"',
+            '"${CLAUDE_PLUGIN_ROOT}/hooks/c.sh" "$CLAUDE_TOOL_FILE_PATH"',
+        ]
+        bad_cmds = [
+            '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"; rm x',
+            '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh" && b',
+            'bash -c "${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"',
+            "${CLAUDE_PLUGIN_ROOT}/hooks/a.sh",
+            '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh" | tee x',
+            'X; bash "${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"',
+            '"${CLAUDE_PLUGIN_ROOT}/../a.sh"',
+            '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh" x',
+        ]
+        check(
+            "hook command form: the shapes in hooks.json pass",
+            all(HOOK_CMD_FORM.match(c) for c in good_cmds),
+        )
+        check(
+            "hook command form: ;, &&, pipes, bash -c, a bare variable, `..` and stray args are refused",
+            not any(HOOK_CMD_FORM.match(c) for c in bad_cmds),
+        )
+        mf = json.loads(json.dumps(m))
+        (root / "plugins" / "demo" / "hooks" / "hooks.json").write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "Stop": [
+                            {
+                                "hooks": [
+                                    {
+                                        "type": "command",
+                                        "command": 'true; bash "${CLAUDE_PLUGIN_ROOT}/hooks/keep.sh"',
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+        expect_error(
+            "hook command form: a source command the gate cannot contain fails the build",
+            lambda: plan_build(mf, root),
+            "cannot be certain",
+        )
+        (root / "plugins" / "demo" / "hooks" / "hooks.json").write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "Stop": [
+                            {
+                                "hooks": [
+                                    {"type": "command", "command": '"${CLAUDE_PLUGIN_ROOT}/hooks/keep.sh"'}
+                                ]
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+        mu2 = json.loads(json.dumps(m))
+        mu2["components"]["hooks"][0].update({"ungated": True, "ungated_reason": "because"})
+        check(
+            "ungated: only the builder's own list may skip the gate, whatever the manifest says",
+            any("may be ungated" in x for x in validate_manifest(mu2)),
+        )
+
+        m5 = json.loads(json.dumps(m))
+        m5["text_edits"] = [{"file": "knowledge/k.md", "find": "knowledge", "replace": "EDITED", "reason": "t"}]
+        o5 = root / "o5"
+        full_build(m5, o5, root)
+        check("text_edits: an edit is applied", (o5 / "knowledge" / "k.md").read_text().startswith("EDITED"))
+        m5["text_edits"][0]["find"] = "text that is not there"
+        expect_error(
+            "text_edits: a find that no longer matches fails the build",
+            lambda: write_dist(m5, plan_build(m5, root), root / "o5b", root),
+            "expected 1",
+        )
+        m5["text_edits"] = [{"file": "knowledge/ghost.md", "find": "x", "replace": "y", "reason": "t"}]
+        expect_error(
+            "text_edits: an edit to a file that does not ship is stale",
+            lambda: write_dist(m5, plan_build(m5, root), root / "o5c", root),
+            "does not ship",
+        )
+
+        m6 = json.loads(json.dumps(m))
+        m6["extra_roots"] = [{"glob": "knowledge/sym.md", "reason": "t"}]
+        (root / "plugins" / "demo" / "knowledge" / "sym.md").symlink_to("k.md")
+        expect_error(
+            "source symlink: copyfile would follow it, so the build refuses",
+            lambda: write_dist(m6, plan_build(m6, root), root / "o6", root),
+            "symlink",
+        )
+        (root / "plugins" / "demo" / "knowledge" / "sym.md").unlink()
+
+        # hygiene lints against a fresh build
+        (root / "plugins" / "demo" / "hooks" / "hooks.json").write_text(
+            json.dumps(
+                {
+                    "hooks": {
+                        "Stop": [
+                            {
+                                "hooks": [
+                                    {"type": "command", "command": '"${CLAUDE_PLUGIN_ROOT}/hooks/keep.sh"'}
+                                ]
+                            }
+                        ]
+                    }
+                }
+            )
+        )
+        o7 = root / "o7"
+        full_build(m, o7, root)
+        check("hygiene: a clean build has no findings", not hygiene_findings(o7, m))
+        keep = o7 / "hooks" / "keep.sh"
+        keep.write_text('#!/usr/bin/env bash\npython3 -c "import json"\n')
+        check(
+            "hygiene: python3 -c without -I in a shipped script is a finding",
+            any("without -I" in x for x in hygiene_findings(o7, m)),
+        )
+        keep.write_text('#!/usr/bin/env bash\npython3 -I -c "import json"\n')
+        check("hygiene: ... and python3 -I -c is clean", not hygiene_findings(o7, m))
+        keep.write_text('#!/usr/bin/env bash\n# python3 -c "import json" is only a comment\nexit 0\n')
+        check("hygiene: a comment line is not a finding", not hygiene_findings(o7, m))
+        keep.write_text('#!/usr/bin/env bash\nexit 0\n')
+        (o7 / "scripts" / "helper.py").write_text('import subprocess\nsubprocess.run(["claude", "-p", "x"])\n')
+        check(
+            "hygiene: a shipped script that starts the claude CLI is a finding",
+            any("claude CLI" in x for x in hygiene_findings(o7, m)),
+        )
+        (o7 / "scripts" / "helper.py").write_text("print('hi')\n")
+        cmd = o7 / "commands" / "c.md"
+        cmd.write_text("---\ndescription: c\nallowed-tools: Bash\n---\nx\n")
+        check(
+            "hygiene: allowed-tools left in a shipped command is a finding",
+            any("allowed-tools" in x for x in hygiene_findings(o7, m)),
+        )
+        cmd.write_text("---\ndescription: c\n---\nx\n")
+        kn = o7 / "knowledge" / "k.md"
+        kn.write_text("see plugins/demo/scripts/a.py\n")
+        check(
+            "hygiene: plugins/<name>/ left in an instruction is a finding",
+            any("plugins/demo/" in x for x in hygiene_findings(o7, m)),
+        )
+        kn.write_text("run `python3 scripts/ghost.py` now\n")
+        check(
+            "hygiene: an interpreter run on an unshipped plugin-relative script is a finding",
+            any("does not ship" in x for x in hygiene_findings(o7, m)),
+        )
+        m7 = json.loads(json.dumps(m))
+        m7["runnable_path_allow"] = [{"file": "knowledge/k.md", "reason": "an example"}]
+        check("hygiene: an allow entry with a reason clears it", not hygiene_findings(o7, m7))
+        kn.write_text("nothing to see\n")
+        check(
+            "hygiene: ... and a stale allow entry is itself a finding",
+            any("stale" in x for x in hygiene_findings(o7, m7)),
+        )
+        kn.write_text("run `python3 -m json.tool f` now\n")
+        check(
+            "hygiene: python3 -m in an instruction is a finding",
+            any("without -I" in x for x in hygiene_findings(o7, m)),
+        )
+        kn.write_text("knowledge\n")
+
+        trust = o7 / TRUST_PATH
+        trust.write_text(trust.read_text() + "# tampered\n")
+        check(
+            "structure: a changed trust helper is a finding",
+            any("differs from the reviewed helper" in x for x in structure_findings(o7, m)),
+        )
+        trust.write_text(EDITION_TRUST_SH)
+        trust.chmod(0o644)
+        check(
+            "structure: a non-executable trust helper is a finding",
+            any("not executable" in x for x in structure_findings(o7, m)),
+        )
+        trust.chmod(0o755)
+        gate = o7 / GATE_PATH
+        gate.write_text(POSTURE_GATE_SH.replace('grep -Fxq', 'grep -Fq'))
+        check(
+            "structure: a changed gate (even one character) is a finding",
+            any("differs from the reviewed shim" in x for x in structure_findings(o7, m)),
+        )
+        gate.write_text(POSTURE_GATE_SH)
+
+        (o7 / "scripts" / "helper.py").write_text("import urllib.request\n")
+        m8 = json.loads(json.dumps(m))
+        m8["network_classification"] = {"scripts/helper.py": {"kind": "text-only", "reason": "demo"}}
+        check(
+            "network: a classification that does not pin primitives/hosts is a finding",
+            any("must pin" in x for x in network_findings(o7, m8)),
+        )
+        m8["network_classification"]["scripts/helper.py"].update({"primitives": ["urllib"], "hosts": []})
+        check("network: a matching pin clears it", not network_findings(o7, m8))
+        (o7 / "scripts" / "helper.py").write_text("import urllib.request\nimport socket\nsocket.socket()\n")
+        check(
+            "network: a NEW primitive in an already-classified file is a finding",
+            any("changed since" in x for x in network_findings(o7, m8)),
+        )
+
     print(f"build-directory-edition self-test: {ok} passed, {bad} failed")
     return 1 if bad else 0
 

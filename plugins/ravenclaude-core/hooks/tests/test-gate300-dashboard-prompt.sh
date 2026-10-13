@@ -17,9 +17,16 @@
 #                                never appears in the output (Gate 19's rule)
 #   P8  registered            -> hooks.json (SessionStart startup|resume|clear|fork)
 #                                AND the dev-mirror .claude/settings.json
+#   E1  directory edition, posture file present but the project NOT trusted
+#                             -> speaks, in fixed words, and says the hooks are off
+#                                (a cloned repository can ship a posture file)
+#   E2  directory edition, project trusted -> silent
+#   E3  the model-facing copy tells the agent never to trust a project itself
 #   T1  teeth: a mutant with the posture gate REMOVED must speak in a configured
 #       project — proving P2 depends on that gate and is not passing vacuously
 #   T2  teeth: a mutant that echoes stdin must be caught by the P7 check
+#   T3  teeth: a mutant that ignores the gate's `--status` must speak in a TRUSTED
+#       project — proving E2 depends on asking the gate
 #
 # Run directly:   bash plugins/ravenclaude-core/hooks/tests/test-gate300-dashboard-prompt.sh
 # Run via gate:   bash scripts/audit-gates.sh --check 300
@@ -42,9 +49,19 @@ command -v python3 >/dev/null 2>&1 || { echo "python3 required to parse hook JSO
 
 TMP="$(mktemp -d 2>/dev/null || mktemp -d -t dp)"
 trap 'rm -rf "$TMP"' EXIT
-mkdir -p "$TMP/empty" "$TMP/cfg/.ravenclaude" "$TMP/home" "$TMP/ed/scripts"
+mkdir -p "$TMP/empty" "$TMP/cfg/.ravenclaude" "$TMP/home" "$TMP/ed/scripts" "$TMP/ed2/scripts" "$TMP/ed2/hooks"
 : > "$TMP/cfg/.ravenclaude/comfort-posture.yaml"
 cp "$SCRIPT" "$TMP/ed/scripts/dashboard-prompt.sh" # no ../bin/rc beside this copy
+# the directory edition: this script plus the REAL posture-gate.sh the builder generates
+cp "$SCRIPT" "$TMP/ed2/scripts/dashboard-prompt.sh"
+python3 -I - "$TMP/ed2/hooks/posture-gate.sh" <<'PY'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("b", "scripts/build-directory-edition.py")
+b = importlib.util.module_from_spec(spec)
+sys.modules["b"] = b
+spec.loader.exec_module(b)
+open(sys.argv[1], "w").write(b.POSTURE_GATE_SH)
+PY
 
 # run <script> <project_dir> [extra env assignments...] -> stdout; stdin is a payload
 run() {
@@ -96,6 +113,22 @@ sysmsg_ed="$(printf '%s' "$out" | json_field systemMessage)"
 case "$sysmsg_ed" in *"save my posture"*) pass "P5a no bin/rc beside it -> hosted-page paste-back wording" ;; *) fail "P5a edition wording missing 'save my posture'" ;; esac
 case "$sysmsg_ed" in *"rc dashboard"* | *"dashboard_autostart"*) fail "P5b edition wording names rc/autostart, which the edition does not ship" ;; *) pass "P5b edition wording does not name rc dashboard or dashboard_autostart" ;; esac
 
+# ── E1 / E2 / E3: the directory edition asks the gate ────────────────────────
+mkdir -p "$TMP/ed-proj/.ravenclaude" "$TMP/ed-home/.ravenclaude"
+: > "$TMP/ed-proj/.ravenclaude/comfort-posture.yaml"
+run_ed() { # script project home -> stdout (a fresh HOME decides the trust list)
+  printf '%s' '{"hook_event_name":"SessionStart","source":"startup"}' |
+    env -i PATH="$PATH" HOME="$3" CLAUDE_PROJECT_DIR="$2" bash "$1" 2>/dev/null
+}
+out="$(run_ed "$TMP/ed2/scripts/dashboard-prompt.sh" "$TMP/ed-proj" "$TMP/ed-home")"
+sysmsg_u="$(printf '%s' "$out" | json_field systemMessage)"
+ctx_u="$(printf '%s' "$out" | json_field hookSpecificOutput.additionalContext)"
+case "$sysmsg_u" in *"hooks stay off until you trust the project"*) pass "E1 edition: posture present, project not trusted -> says the hooks are off" ;; *) fail "E1 edition did not report the untrusted state (out=${out:0:80})" ;; esac
+case "$ctx_u" in *"Never trust a project on your own"*) pass "E3 the model-facing copy forbids the agent from trusting a project itself" ;; *) fail "E3 model-facing copy lacks the never-trust-on-your-own rule" ;; esac
+( cd "$TMP/ed-proj" && pwd -P ) > "$TMP/ed-home/.ravenclaude/edition-trusted-projects"
+out="$(run_ed "$TMP/ed2/scripts/dashboard-prompt.sh" "$TMP/ed-proj" "$TMP/ed-home")"
+[ -z "$out" ] && pass "E2 edition: project trusted -> silent" || fail "E2 edition spoke in a trusted project (${out:0:80})"
+
 # ── P6: fail-safe ────────────────────────────────────────────────────────────
 out="$(run "$SCRIPT" "/nonexistent/zzz-$$")"; rc=$?
 [ "$rc" = 0 ] && [ -z "$out" ] && pass "P6 nonexistent project dir -> exit 0, silent" || fail "P6 rc=$rc bytes=${#out}"
@@ -127,8 +160,8 @@ reg plugins/ravenclaude-core/hooks/hooks.json && pass "P8a registered in hooks.j
 reg .claude/settings.json && pass "P8b registered in the dev-mirror .claude/settings.json" || fail "P8b not registered in .claude/settings.json"
 
 # ── T1: teeth — remove the posture gate, a configured project must now hear it ─
-grep -vF 'comfort-posture.yaml" ] && exit 0' "$SCRIPT" > "$TMP/mut-nogate.sh"
-if [ "$(wc -l < "$TMP/mut-nogate.sh")" -lt "$(wc -l < "$SCRIPT")" ]; then
+sed 's|^if \[ -f "\$project_dir/.ravenclaude/comfort-posture.yaml" \]; then$|if false; then|' "$SCRIPT" > "$TMP/mut-nogate.sh"
+if ! cmp -s "$TMP/mut-nogate.sh" "$SCRIPT"; then
   out="$(run "$TMP/mut-nogate.sh" "$TMP/cfg")"
   [ -n "$out" ] && pass "T1 teeth: with the posture gate removed it speaks in a configured project (P2 depends on the gate)" || fail "T1 teeth: removing the gate did not change behaviour — P2 is vacuous"
 else
@@ -138,6 +171,17 @@ fi
 # ── T2: teeth — a mutant that echoes stdin must trip the P7 check ───────────
 awk '{print} /^project_dir=/{print "cat"}' "$SCRIPT" > "$TMP/mut-echo.sh"
 leak_check "$TMP/mut-echo.sh" && fail "T2 teeth: an echoing mutant passed P7 — the no-egress check is vacuous" || pass "T2 teeth: an echoing mutant is caught by the P7 check"
+
+# ── T3: teeth — ignore the gate's answer, a trusted project must now hear the notice ─
+mkdir -p "$TMP/mut-ed/scripts" "$TMP/mut-ed/hooks"
+cp "$TMP/ed2/hooks/posture-gate.sh" "$TMP/mut-ed/hooks/posture-gate.sh"
+grep -vF '[ "$state" = "untrusted" ] || exit 0' "$SCRIPT" > "$TMP/mut-ed/scripts/dashboard-prompt.sh"
+if ! cmp -s "$TMP/mut-ed/scripts/dashboard-prompt.sh" "$SCRIPT"; then
+  out="$(run_ed "$TMP/mut-ed/scripts/dashboard-prompt.sh" "$TMP/ed-proj" "$TMP/ed-home")"
+  [ -n "$out" ] && pass "T3 teeth: ignoring the gate's status makes it speak in a trusted project (E2 depends on asking the gate)" || fail "T3 teeth: removing the status test did not change behaviour — E2 is vacuous"
+else
+  fail "T3 setup: could not locate the status test to remove"
+fi
 
 echo "dashboard-prompt: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

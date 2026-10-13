@@ -11,15 +11,20 @@ REAL CHECKS (on the freshly built edition)
      `experimental`, no bin/ monitors/ CLAUDE.md dashboard.html, every hook wrapped in the posture gate
      except the declared setup prompt); README lists exactly the shipped hooks; every network primitive
      in an executable is classified; no secret-shaped string; the committed file list is fresh
-  3  every shipped hook, run from the built hooks.json, is INERT with no posture file and SAFE under a
-     hostile posture file (scripts/directory-edition-hook-audit.py), writes only under .ravenclaude/, and
-     starts only programs on the manifest's allow-list
+  3  every shipped hook, run from the built hooks.json, is INERT with no posture file, INERT when a posture
+     file is present but the person has not trusted the project (a cloned repository can ship a posture
+     file, so the file alone must switch nothing on), and SAFE under a hostile posture file in a trusted
+     project (scripts/directory-edition-hook-audit.py), writes only under .ravenclaude/, imports no module
+     from the project root, and starts only programs on the manifest's allow-list
   4  `claude plugin validate --strict` passes (when the claude CLI is present; otherwise reported as NOT RUN,
      which is not a pass)
 
 MUST-FAIL HALVES (a check that cannot fail proves nothing)
   M1  an always-on hook wrapped in the REAL posture gate is inert; the same hook behind a gate with the
-      posture test removed is not - so the property comes from the gate and the harness can see it go
+      posture test removed, and behind a gate with the TRUST test removed, is not - so each property comes
+      from the gate and the harness can see it go
+  M3  a hook that runs `python3 -c` from the project directory is classified unsafe (a planted module in the
+      project root is imported); the same hook with `-I` is safe
   M2  real hooks that ARE unsafe (guard-destructive.sh always on; dod-gate.sh runs a command read from the
       posture file) are classified unsafe by the same audit, so its payloads and seeds reach real triggers
 
@@ -154,7 +159,12 @@ def main() -> int:
                 "; ".join(e["inert_reasons"][:2]),
             )
             check(
-                f"{hid}: safe under a hostile posture file",
+                f"{hid}: inert when a posture file is present but the project is not trusted",
+                e["untrusted_inert"],
+                "; ".join(e["untrusted_reasons"][:2]),
+            )
+            check(
+                f"{hid}: safe under a hostile posture file in a trusted project",
                 e["hostile_safe"],
                 "; ".join(e["hostile_reasons"][:2]),
             )
@@ -177,8 +187,12 @@ def main() -> int:
             else:
                 check(f"{label}: validate --strict", status == "pass", out)
 
+        print("── the trust helper ──")
+        trust_helper_checks(dist)
+
         print("── must-fail halves ──")
         must_fail_gate_shim(dist)
+        must_fail_python_cwd(dist)
         must_fail_real_hooks()
 
     print(f"directory-edition: {PASS} passed, {FAIL} failed")
@@ -226,16 +240,157 @@ def must_fail_gate_shim(dist: Path) -> None:
         hj.write_text(json.dumps(data))
         real = _measure_one(plug, hj, "zz-always-on.sh")
         check(
-            "M1 an always-on hook behind the REAL posture gate is inert",
+            "M1 an always-on hook behind the REAL posture gate is inert with no posture file",
             bool(real.get("inert")),
             "; ".join(real.get("inert_reasons", [])),
         )
-        (plug / "hooks" / "posture-gate.sh").write_text('#!/usr/bin/env bash\nexec "$@"\n')
+        check(
+            "M1 ... and inert when a posture file is present but the project is not trusted",
+            bool(real.get("untrusted_inert")),
+            "; ".join(real.get("untrusted_reasons", [])),
+        )
+        gate_file = plug / "hooks" / "posture-gate.sh"
+        real_text = gate_file.read_text()
+        gate_file.write_text('#!/usr/bin/env bash\nexec "$@"\n')
         mutant = _measure_one(plug, hj, "zz-always-on.sh")
         check(
             "M1 the same hook behind a gate with the posture test removed is NOT inert (the harness can see it)",
             mutant.get("inert") is False,
         )
+        # the trust test is its own line of defence: remove only it, and the no-posture lane stays clean
+        # while the untrusted lane (posture present, nobody trusted it) sees the hook run
+        gate_file.write_text(
+            "\n".join(ln for ln in real_text.splitlines() if "grep -Fxq" not in ln) + "\n"
+        )
+        no_trust = _measure_one(plug, hj, "zz-always-on.sh")
+        check(
+            "M1 a gate with only the TRUST test removed: still inert with no posture file",
+            bool(no_trust.get("inert")),
+        )
+        check(
+            "M1 ... but NOT inert when a posture file is present and untrusted (the harness can see it)",
+            no_trust.get("untrusted_inert") is False,
+        )
+
+
+def must_fail_python_cwd(dist: Path) -> None:
+    """M3: `python3 -c` run from the project directory imports the project's own modules. A hook that does it
+    must be classified unsafe; the same hook with -I must not be. Both sit behind the real gate in a trusted
+    project with a posture file, i.e. exactly where a real hook would run."""
+    with tempfile.TemporaryDirectory(prefix="rc-m3-") as td:
+        plug = Path(td) / "p"
+        shutil.copytree(dist, plug)
+        hj = plug / "hooks" / "hooks.json"
+        data = json.loads(hj.read_text())
+        for name, body in (
+            ("zz-py-cwd.sh", 'python3 -c "import shlex" 2>/dev/null; exit 0'),
+            ("zz-py-iso.sh", 'python3 -I -c "import shlex" 2>/dev/null; exit 0'),
+        ):
+            f = plug / "hooks" / name
+            f.write_text("#!/usr/bin/env bash\n" + body + "\n")
+            f.chmod(0o755)
+            data["hooks"].setdefault("UserPromptSubmit", []).append(
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": _wrap('"${CLAUDE_PLUGIN_ROOT}/hooks/' + name + '"'),
+                        }
+                    ]
+                }
+            )
+        hj.write_text(json.dumps(data))
+        bad = _measure_one(plug, hj, "zz-py-cwd.sh", write_dirs=("ravenclaude",))
+        check(
+            "M3 a hook running python3 -c from the project dir is NOT hostile-safe (H6)",
+            bad.get("hostile_safe") is False
+            and any(r.startswith("H6") for r in bad.get("hostile_reasons", [])),
+            "; ".join(bad.get("hostile_reasons", [])),
+        )
+        good = _measure_one(plug, hj, "zz-py-iso.sh", write_dirs=("ravenclaude",))
+        check(
+            "M3 the same hook with python3 -I is hostile-safe",
+            bool(good.get("hostile_safe")),
+            "; ".join(good.get("hostile_reasons", [])),
+        )
+
+
+def trust_helper_checks(dist: Path) -> None:
+    """scripts/edition-trust.sh and the gate's --status must agree, and the helper must refuse to grant trust
+    to a project with nothing to run or with a redirected .ravenclaude."""
+    helper, gate = dist / "scripts" / "edition-trust.sh", dist / "hooks" / "posture-gate.sh"
+    with tempfile.TemporaryDirectory(prefix="rc-trust-") as td:
+        root = Path(td).resolve()
+        home, proj, other = root / "home", root / "proj", root / "other"
+        for d in (home, proj, other):
+            d.mkdir()
+        env = {"PATH": "/usr/bin:/bin", "HOME": str(home), "CLAUDE_PROJECT_DIR": str(proj)}
+
+        def run(script: Path, *args: str, project: Path = proj) -> subprocess.CompletedProcess:
+            e = dict(env, CLAUDE_PROJECT_DIR=str(project))
+            return subprocess.run(
+                ["bash", str(script), *args], capture_output=True, text=True, env=e, cwd=project
+            )
+
+        def state(project: Path = proj) -> str:
+            return run(gate, "--status", project=project).stdout.strip()
+
+        tf = home / ".ravenclaude" / "edition-trusted-projects"
+        check("trust: no posture file -> the gate says no-posture", state() == "no-posture")
+        check(
+            "trust: status with no posture file says no-posture",
+            run(helper, "status", str(proj)).stdout.strip() == "no-posture",
+        )
+        r = run(helper, "add", str(proj))
+        check(
+            "trust: add refuses a project with no posture file, and writes nothing",
+            r.returncode == 2 and not tf.exists(),
+            r.stderr.strip()[:90],
+        )
+        (proj / ".ravenclaude").mkdir()
+        (proj / ".ravenclaude" / "comfort-posture.yaml").write_text("schema_version: 5\n")
+        check("trust: posture present, nobody trusted it -> untrusted", state() == "untrusted")
+        check(
+            "trust: status says not-trusted",
+            run(helper, "status", str(proj)).stdout.strip() == "not-trusted",
+        )
+        r = run(helper, "add", str(proj))
+        check(
+            "trust: add records the REAL path once",
+            r.returncode == 0 and tf.read_text().splitlines() == [str(proj)],
+            r.stderr.strip()[:90],
+        )
+        run(helper, "add", str(proj))
+        check("trust: add is idempotent", tf.read_text().splitlines() == [str(proj)])
+        check("trust: the gate now says active", state() == "active")
+        link = root / "link"
+        link.symlink_to(proj)
+        check("trust: a symlink to a trusted project resolves to it (pwd -P)", state(link) == "active")
+        check("trust: a different project is not trusted by that entry", state(other) == "no-posture")
+        (other / ".ravenclaude").mkdir()
+        (other / ".ravenclaude" / "comfort-posture.yaml").write_text("x: 1\n")
+        check("trust: ... even with its own posture file", state(other) == "untrusted")
+        mid = proj / ".ravenclaude" / "comfort-posture.yaml"
+        mid.unlink()
+        mid.symlink_to(other / ".ravenclaude" / "comfort-posture.yaml")
+        check("trust: a symlinked posture file is never active", state() == "untrusted")
+        mid.unlink()
+        mid.write_text("schema_version: 5\n")
+        (proj / ".ravenclaude" / "runs").symlink_to(root)
+        check("trust: a symlinked .ravenclaude/runs is never active", state() == "untrusted")
+        (proj / ".ravenclaude" / "runs").unlink()
+        check("trust: ... and active again once the symlink is gone", state() == "active")
+        r = run(helper, "remove", str(proj))
+        check(
+            "trust: remove drops the entry and the gate follows",
+            r.returncode == 0 and state() == "untrusted" and str(proj) not in tf.read_text(),
+        )
+        redirected = root / "redir"
+        (redirected / "real").mkdir(parents=True)
+        (redirected / "real" / "comfort-posture.yaml").write_text("x: 1\n")
+        (redirected / ".ravenclaude").symlink_to(redirected / "real")
+        r = run(helper, "add", str(redirected))
+        check("trust: add refuses a redirected .ravenclaude", r.returncode == 2, r.stderr.strip()[:90])
 
 
 def must_fail_real_hooks() -> None:

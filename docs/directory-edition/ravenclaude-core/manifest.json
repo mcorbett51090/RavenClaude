@@ -112,10 +112,6 @@
         "reason": "Guidance on parallel work and Claude Code's permission/plan modes; prose only."
       },
       {
-        "name": "cleanup-worktrees",
-        "reason": "Removes finished agent git worktrees and flags unmerged work."
-      },
-      {
         "name": "create-pr",
         "reason": "Opens a pull request from the current branch using the project's template."
       },
@@ -134,10 +130,6 @@
       {
         "name": "draft-agent-brief",
         "reason": "Turns a business need into an agent brief; prose only."
-      },
-      {
-        "name": "forge-pipeline",
-        "reason": "The gated planning pipeline behind /forge; local scripts and git worktrees."
       },
       {
         "name": "game-theory-basics",
@@ -176,10 +168,6 @@
         "reason": "Runs the project's full quality gate in order; prose only."
       },
       {
-        "name": "set-posture",
-        "reason": "Translates .ravenclaude/comfort-posture.yaml into .claude/settings.json permission rules, when you run /set-posture."
-      },
-      {
         "name": "spawn-team",
         "reason": "Team Lead dispatch playbook: surface first, then specialist, then tier."
       },
@@ -196,14 +184,6 @@
         "reason": "Lints a standalone SVG for geometry, legibility and unsafe content; local script."
       },
       {
-        "name": "two-panel-plan-review",
-        "reason": "Two independent expert panels review a plan and fill its gaps."
-      },
-      {
-        "name": "visual-feedback-loop",
-        "reason": "Render, look, critique, edit, repeat; merges layout lint with captured console and Lighthouse data."
-      },
-      {
         "name": "wall-handling",
         "reason": "What to do when the same tool keeps failing the same way; prose only."
       },
@@ -214,20 +194,12 @@
     ],
     "commands": [
       {
-        "name": "forge",
-        "reason": "Turns an idea into a gated, two-panel-reviewed, critic-checked plan (runs the forge-pipeline skill)."
-      },
-      {
         "name": "init-agent-ready",
         "reason": "Scaffolds AGENTS.md, CLAUDE.md, .repo-layout.json and an optional CI workflow for your repo."
       },
       {
         "name": "repo-review",
         "reason": "Whole-repo bug sweep across eight dimensions."
-      },
-      {
-        "name": "set-posture",
-        "reason": "Applies .ravenclaude/comfort-posture.yaml to .claude/settings.json permission rules."
       },
       {
         "name": "dashboard",
@@ -238,48 +210,48 @@
       {
         "id": "dashboard-prompt.sh",
         "reason": "The one setup prompt; speaks only when no posture file exists.",
-        "summary": "Prints one fixed line when no posture file exists, saying how to open the posture editor. Writes nothing. Silence it with `RC_DASHBOARD_PROMPT=off` or by creating the posture file.",
+        "summary": "Prints one fixed line when no posture file exists, saying how to open the posture editor, and one when a posture file exists but you have not trusted the project (the hooks are off). Writes nothing. Silence it with `RC_DASHBOARD_PROMPT=off`, or by creating the posture file and trusting the project.",
         "ungated": true,
         "ungated_reason": "It exists to run when the posture file is absent; it prints one fixed line and writes nothing."
       },
       {
         "id": "runaway-brake.sh",
-        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
-        "summary": "Blocks a tool call that repeats identically 8 times in a row, or any call once a session passes 1,200; both limits, and `runaway: off`, are set in your posture file. Keeps a per-session counter under `.ravenclaude/runs/`."
+        "reason": "Opt-in (a posture file AND your trust in the project), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
+        "summary": "Blocks a tool call that repeats identically 8 times in a row, or any call once a session passes 1,200; both limits, and `runaway: off`, are set in your posture file. Keeps a per-session counter under `.ravenclaude/runs/`. On the 2nd identical mutating call in a row it also adds a one-line hint to Claude (once per streak)."
       },
       {
         "id": "enforce-git-protocol.sh",
-        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "reason": "Opt-in (a posture file AND your trust in the project), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
         "summary": "Warns on `git commit -m` subjects that are not `type(scope): subject` and on new branch names without a standard prefix; `git_protocol: block` makes those blocks, `off` silences it. Never blocks a push. May append to `.ravenclaude/runs/<session>/hook-events.jsonl`."
       },
       {
         "id": "enforce-layout.sh",
-        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "reason": "Opt-in (a posture file AND your trust in the project), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
         "summary": "Denies a write that matches no `allowed_globs` entry in your project's `.repo-layout.json` (nothing happens if you have none). May append to `hook-events.jsonl`."
       },
       {
         "id": "claim-grounding-lint.sh",
-        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
-        "summary": "Advisory text on stderr when an unhedged absolute or causal claim is written into a `knowledge/` or `docs/` markdown file. Never blocks."
+        "reason": "Opt-in (a posture file AND your trust in the project), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
+        "summary": "Advisory text (shown to you and passed to Claude as context; it can quote the offending line) when an unhedged absolute or causal claim is written into a `knowledge/` or `docs/` markdown file. Never blocks."
       },
       {
         "id": "delegation-nudge.sh",
-        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
-        "summary": "Advisory text on stderr when a `knowledge/` or `docs/` file tells the reader to 'open the portal and check' something. Never blocks."
+        "reason": "Opt-in (a posture file AND your trust in the project), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
+        "summary": "Advisory text (shown to you and passed to Claude as context; it can quote the offending line) when a `knowledge/` or `docs/` file tells the reader to 'open the portal and check' something. Never blocks."
       },
       {
         "id": "guard-recursive-spawn.sh",
-        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "reason": "Opt-in (a posture file AND your trust in the project), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
         "summary": "Advisory text when an agent definition (`plugins/*/agents/*.md`) is edited to tell the agent to spawn further sub-agents. Never blocks."
       },
       {
         "id": "ask-on-ambiguity.sh",
-        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "reason": "Opt-in (a posture file AND your trust in the project), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
         "summary": "Adds a one-line hint asking Claude to ask one question when a short prompt names nothing concrete. Never blocks or alters the prompt. `ask_on_ambiguity: off` silences it."
       },
       {
         "id": "remind-tests.sh",
-        "reason": "Opt-in, local only, inert until a posture file exists; measured inert and hostile-posture-safe.",
+        "reason": "Opt-in (a posture file AND your trust in the project), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
         "summary": "Once per session, reminds Claude to run the project's quality gate if source files changed. Leaves a marker file under `.ravenclaude/runs/`."
       }
     ]
@@ -456,6 +428,26 @@
     {
       "glob": "knowledge/model-catalog.json",
       "reason": "Model-id catalog used only by the context meter."
+    },
+    {
+      "glob": "scripts/apply-comfort-posture.py",
+      "reason": "Rewrites the user's global ~/.claude/settings.json permissions from a project posture file (replaces, not merges) and probes `claude auth status`; a cloned repo's posture must never reach that path."
+    },
+    {
+      "glob": "scripts/forge-*",
+      "reason": "The /forge family does not ship in the first edition: it writes under ~/.grok, provisions worktrees and falls back to project-relative script paths."
+    },
+    {
+      "glob": "scripts/resolve-plugin-root.sh",
+      "reason": "Searches the project for the plugin root; the edition resolves paths with ${CLAUDE_PLUGIN_ROOT} only."
+    },
+    {
+      "glob": "scripts/premise-gate.py",
+      "reason": "Part of the /forge family, which does not ship in the first edition."
+    },
+    {
+      "glob": "skills/visual-feedback-loop/**",
+      "reason": "driver.py computes the repo root as four directories above itself (the maintainer's repo layout). Installed from a marketplace that is the plugin cache, so every project path is refused and the skill cannot run; fix it at the source first."
     }
   ],
   "closure_allow": [
@@ -473,36 +465,31 @@
       "from": "scripts/pseudonymize-brief.py",
       "to": "knowledge/orchestrator-data-egress.md",
       "reason": "Docstring pointer to a document about the nested-orchestrator path that does not ship; the script never opens it."
+    },
+    {
+      "from": "skills/repo-review/scripts/block_planner.py",
+      "to": "scripts/forge-worktree.sh",
+      "reason": "A docstring names forge-route.py/forge-worktree.sh as examples of self-tested helpers; nothing is imported, read or run."
     }
   ],
   "network_classification": {
     "hooks/delegation-nudge.sh": {
       "kind": "text-only",
-      "reason": "`curl ` is one alternative in a regex that recognises a 'go check it manually' phrase in a document being written; nothing is fetched."
+      "reason": "`curl ` is one alternative in a regex that recognises a 'go check it manually' phrase in a document being written; nothing is fetched.",
+      "primitives": ["curl"],
+      "hosts": []
     },
     "hooks/runaway-brake.sh": {
       "kind": "text-only",
-      "reason": "`curl`/`wget` appear in a list of command words that mark a Bash call as mutating; the hook only reads the command string."
-    },
-    "scripts/apply-comfort-posture.py": {
-      "kind": "text-only",
-      "reason": "`Bash(curl:*)` etc. are permission-rule strings written into .claude/settings.json, and the schemastore URL is the `$schema` value written there; nothing is fetched."
-    },
-    "scripts/classify_claim.py": {
-      "kind": "text-only",
-      "reason": "`curl` appears in example sentences used to classify claims; nothing is fetched."
-    },
-    "scripts/forge-publish-session-plan.sh": {
-      "kind": "text-only",
-      "reason": "`urllib.parse.quote` only, to percent-encode a file path in a link it prints; no urllib.request."
-    },
-    "scripts/premise-gate.py": {
-      "kind": "text-only",
-      "reason": "`curl` appears in example rows and prose of the report it prints; nothing is fetched."
+      "reason": "`curl`/`wget` appear in a list of command words that mark a Bash call as mutating; the hook only reads the command string.",
+      "primitives": ["curl", "wget"],
+      "hosts": []
     },
     "skills/svg-report-lint/lint.py": {
       "kind": "text-only",
-      "reason": "w3.org URLs are XML namespace identifiers compared against parsed SVG; nothing is fetched."
+      "reason": "w3.org URLs are XML namespace identifiers compared against parsed SVG; nothing is fetched.",
+      "primitives": [],
+      "hosts": ["www.w3.org"]
     }
   },
   "extra_roots": [
@@ -557,6 +544,54 @@
     {
       "file": "hooks/_scrub.sh",
       "reason": "The scrubber's own pattern literal for URLs with embedded credentials, and the example in the comment above it; it is the definition of what to redact, not a credential."
+    }
+  ],
+  "python_isolation_allow": [
+    {
+      "file": "knowledge/claude-code-permissions.md",
+      "reason": "Documents the attack a Read deny does NOT stop (a script Claude writes). It is the example being warned about, not an instruction to run it."
+    },
+    {
+      "file": "skills/permission-hygiene/SKILL.md",
+      "reason": "Quotes the shape of permission RULES a user may have (Bash(python3 -m json.tool <path>)) so they can be consolidated; the rule text must match what is in the user's settings."
+    },
+    {
+      "file": "scripts/pseudonymize.py",
+      "reason": "Two error strings tell the USER to run `python -m spacy download ...`; the script never runs python on a project file."
+    }
+  ],
+  "runnable_path_allow": [],
+  "text_edits": [
+    {
+      "file": "agents/code-reviewer.md",
+      "find": "**Use the ledger — do not do this by memory.** `scripts/review-ledger.py` persists findings per round\nand does the comparison for you:\n\n```bash\npython3 scripts/review-ledger.py next-round-brief    # what to re-check FIRST, and the diff to scope to\npython3 scripts/review-ledger.py reopen-check --round N   # exit 2 = something reopened\npython3 scripts/review-ledger.py converge-report     # regression share; says when to stop\n```\n\nIt fingerprints findings so a fix that shifts line numbers does not read as a new finding — the thing\na by-hand comparison gets wrong first.",
+      "replace": "**Keep the ledger by hand.** The RavenClaude marketplace repository has a `review-ledger` script that does this comparison; this edition does not ship it. Write each finding down with a fingerprint that does not depend on line numbers (file, symptom, the line's text), and carry that list into the next round, so a fix that shifts line numbers does not read as a new finding.",
+      "reason": "The ledger script lives in the marketplace repository, not in the plugin. Left as written, the agent would run `python3 scripts/review-ledger.py` inside the user's project - a path the project, not the plugin, controls."
+    },
+    {
+      "file": "skills/cross-platform-determinism/SKILL.md",
+      "find": "python scripts/generate-index-dashboard.py",
+      "replace": "python scripts/<your-generator>.py",
+      "count": 2,
+      "reason": "Names the maintainer's own generator, which the edition does not ship; an example must not read as a command to run in the user's project."
+    },
+    {
+      "file": "rules/git-workflow.md",
+      "find": "That case routes to\n>   [`${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-branches.sh`](../scripts/cleanup-branches.sh), the **one**\n>   sanctioned `-D` escape hatch (house rule 5) — do not add a second force-delete path.",
+      "replace": "In the full plugin that case routes to\n>   `cleanup-branches.sh`, the **one** sanctioned `-D` escape hatch (house rule 5). This edition does not\n>   ship that script: do not force-delete a branch yourself, and ask the user before any `-D`.",
+      "reason": "The rule names a deletion helper this edition does not ship. Left as written, an agent would look for it, not find it, and might improvise a force-delete."
+    },
+    {
+      "file": "rules/git-workflow.md",
+      "find": "**Run it:** [`${CLAUDE_PLUGIN_ROOT}/scripts/branch-hygiene.sh`](../scripts/branch-hygiene.sh) implements\nall four gates,",
+      "replace": "**Run it (full plugin only; this edition does not ship `branch-hygiene.sh`, so apply the four gates by hand with plain `git`, one branch at a time, and never `-D`):** `branch-hygiene.sh` implements\nall four gates,",
+      "reason": "The sweep script is not part of this edition (it deletes branches)."
+    },
+    {
+      "file": "rules/git-workflow.md",
+      "find": "that case needs\n[`${CLAUDE_PLUGIN_ROOT}/scripts/archive-branch.sh`](../scripts/archive-branch.sh), which tags the tip so\nit stays recoverable.",
+      "replace": "that case needs\n`archive-branch.sh` (full plugin only; not in this edition), which tags the tip so\nit stays recoverable. Without it, leave the branch alone and tell the user.",
+      "reason": "The archive script is not part of this edition (it pushes a tag to origin)."
     }
   ]
 }

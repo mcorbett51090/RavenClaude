@@ -408,7 +408,33 @@ def payloads_for(row: dict, proj: Path, home: Path) -> list[dict]:
     return out
 
 
+# A hook that runs `python3 -c ...` (or -m, or -) from the project directory puts that directory FIRST on
+# sys.path, so a cloned repository's own json.py / shlex.py / re.py is imported by the hook instead of the
+# standard library's. Every scratch project carries these decoys; importing one writes a marker file that
+# the lanes report (I3 / H6). `python3 -I` ignores the current directory, so isolated hooks never trip them.
+PLANTED_MODULES = (
+    "json",
+    "shlex",
+    "re",
+    "argparse",
+    "fnmatch",
+    "textwrap",
+    "hashlib",
+    "pathlib",
+    "datetime",
+    "string",
+)
+PLANTED_MARK = "PLANTED-IMPORT-"
+_PLANTED_BODY = (
+    "import os as _o\n"
+    "open(_o.path.join(_o.path.dirname(_o.path.abspath(__file__)), '" + PLANTED_MARK + "{name}'), 'w').write('1')\n"
+    "raise ImportError('module planted in the project root was imported')\n"
+)
+
+
 def _seed_project(proj: Path) -> None:
+    for name in PLANTED_MODULES:
+        (proj / f"{name}.py").write_text(_PLANTED_BODY.format(name=name))
     (proj / "README.md").write_text("# scratch\n")
     (proj / "notes.md").write_text("a\n")
     (proj / "memory").mkdir()
@@ -416,7 +442,7 @@ def _seed_project(proj: Path) -> None:
     turn = {
         "type": "assistant",
         "message": {
-            "model": "claude-opus-5-5",
+            "model": "claude-opus-4-8",
             "usage": {
                 "input_tokens": 900000,
                 "cache_read_input_tokens": 0,
@@ -511,8 +537,11 @@ def run_one(
     use_strace: bool,
     path_extra: str,
     posture: str | None = None,
+    trusted: bool = False,
 ) -> dict:
-    """Run one hook command with one payload in a fresh scratch project. posture: None | 'hostile' | text."""
+    """Run one hook command with one payload in a fresh scratch project. posture: None | 'hostile' | text.
+    trusted: also record the project in the scratch HOME's trust list, which the edition's gate requires
+    (modelling a person who trusted the project)."""
     run = Path(tempfile.mkdtemp(prefix="run-", dir=work))
     try:
         proj, home, tmp, canary = run / "proj", run / "home", run / "tmp", run / "canary"
@@ -531,6 +560,11 @@ def run_one(
             # layout hook does nothing at all without them, so its code path needs them present
             (proj / ".repo-layout.json").write_text('{"allowed_globs": ["docs/**"]}\n')
             (proj / ".ravenclaude" / "task-scope.json").write_text('{"in_scope": ["docs/**"]}\n')
+            if trusted:
+                (home / ".ravenclaude").mkdir()
+                (home / ".ravenclaude" / "edition-trusted-projects").write_text(
+                    os.path.realpath(proj) + "\n"
+                )
         triplog, stracelog = run / "trip.log", run / "strace.log"
         triplog.write_text("")
         env = {
@@ -690,12 +724,26 @@ def classify_inert(runs: list[dict], allowed_output: bool = False) -> list[str]:
             why.append(f"I1 exit {r['rc']}")
         if r["stdout"].strip() and not allowed_output:
             why.append("I2 wrote stdout: " + r["stdout"].strip()[:70].replace("\n", " "))
+        planted = [c for c in r["changed"] if PLANTED_MARK in c]
+        if planted:
+            why.append("I3 imported a module planted in the project root: " + planted[0].split(PLANTED_MARK)[-1])
         if r["changed"]:
             why.append("I3 changed: " + ", ".join(r["changed"][:2]))
         if r["net"]:
             why.append("I4 network: " + r["net"][0][:90])
         if r["tripwires"]:
             why.append("I5 tripwire: " + r["tripwires"][0][:70])
+    return _uniq(why)
+
+
+def classify_untrusted(runs: list[dict], allowed_output: bool = False) -> list[str]:
+    """A posture file is present but the person did NOT trust the project: the hook must behave exactly as
+    it does with no posture file, and nothing the posture says may execute. This is the lane that proves a
+    cloned repository's own posture file cannot switch the hooks on."""
+    why = classify_inert(runs, allowed_output=allowed_output)
+    for r in runs:
+        if r["canaries"]:
+            why.append("U1 executed a posture-supplied command: " + ",".join(r["canaries"]))
     return _uniq(why)
 
 
@@ -727,7 +775,13 @@ def classify_hostile(
         if esc:
             why.append(f"H3 escalating output: {esc}")
         for c in r["changed"]:
-            if "settings.json" in c and ".claude" in c:
+            if PLANTED_MARK in c:
+                why.append(
+                    "H6 imported a Python module planted in the project root: "
+                    + c.split(PLANTED_MARK)[-1]
+                    + " (run python3 with -I)"
+                )
+            elif "settings.json" in c and ".claude" in c:
                 why.append("H4 edited .claude/settings.json (permission rules)")
             elif plugin.name in c or str(plugin) in c:
                 why.append("H4 wrote inside the plugin directory: " + c[:80])
@@ -764,14 +818,20 @@ def measure(
             m = meta.setdefault(hid, {"registrations": [], "runs": 0})
             m["registrations"].append(f"{row['event']}:{row['matcher'] or '*'}")
             for p in payloads_for(row, Path("{proj}"), Path("{home}")):
-                for lane, posture in (("inert", None), ("hostile", "hostile")):
-                    jobs.append((hid, lane, row, p, posture))
+                for lane, posture, trusted in (
+                    ("inert", None, False),
+                    ("untrusted", "hostile", False),
+                    ("hostile", "hostile", True),
+                ):
+                    jobs.append((hid, lane, row, p, posture, trusted))
                     m["runs"] += 1
-        results: dict[str, dict[str, list[dict]]] = {h: {"inert": [], "hostile": []} for h in meta}
+        results: dict[str, dict[str, list[dict]]] = {
+            h: {"inert": [], "untrusted": [], "hostile": []} for h in meta
+        }
 
         def go(job):
-            hid, lane, row, p, posture = job
-            r = run_one(row, p, plugin, work, tripdir, use_strace, path_extra, posture)
+            hid, lane, row, p, posture, trusted = job
+            r = run_one(row, p, plugin, work, tripdir, use_strace, path_extra, posture, trusted)
             return hid, lane, r
 
         with ThreadPoolExecutor(max_workers=workers or min(8, (os.cpu_count() or 2))) as ex:
@@ -781,6 +841,9 @@ def measure(
         for hid, m in meta.items():
             inert_why = classify_inert(results[hid]["inert"], allowed_output=hid in allowed_output)
             host_why = classify_hostile(results[hid]["hostile"], plugin, write_dirs)
+            untrusted_why = classify_untrusted(
+                results[hid]["untrusted"], allowed_output=hid in allowed_output
+            )
             writes: set[str] = set()
             for r in results[hid]["hostile"]:
                 for c in r["changed"]:
@@ -796,6 +859,8 @@ def measure(
                 **m,
                 "inert": not inert_why,
                 "inert_reasons": inert_why,
+                "untrusted_inert": not untrusted_why,
+                "untrusted_reasons": untrusted_why,
                 "hostile_safe": not host_why,
                 "hostile_reasons": host_why,
                 "hostile_writes": sorted(writes),
@@ -838,10 +903,10 @@ def self_test() -> int:
     px = "/usr/bin:/bin"
     try:
 
-        def lane(name: str, body: str, posture):
+        def lane(name: str, body: str, posture, trusted: bool = False):
             row = _mini(plugin, name, body)
             return [
-                run_one(row, p, plugin, work, tripdir, strace, px, posture)
+                run_one(row, p, plugin, work, tripdir, strace, px, posture, trusted)
                 for p in payloads_for(row, Path("{proj}"), Path("{home}"))
             ]
 
@@ -906,6 +971,68 @@ def self_test() -> int:
         check(
             "inert/posture=hostile really creates it (the probe can see 'present')",
             bool(classify_inert(lane("probe1", probe, "hostile"))),
+        )
+
+        # the cwd-import hole: a module planted in the project root is imported by python3 -c / -m / -
+        imp = lane("py-imports-cwd", 'python3 -c "import shlex"', None)
+        check(
+            "inert/python3 -c run from the project dir imports a planted module -> flagged",
+            any("planted" in w for w in classify_inert(imp)),
+        )
+        iso = lane("py-isolated", 'python3 -I -c "import shlex"', None)
+        check(
+            "inert/python3 -I -c ignores the project dir -> clean", not classify_inert(iso)
+        )
+        himp = lane("py-imports-cwd-h", 'python3 -c "import shlex"', "hostile", True)
+        check(
+            "hostile/python3 -c from the project dir -> H6, not safe",
+            any(w.startswith("H6") for w in classify_hostile(himp, plugin)),
+        )
+        hiso = lane("py-isolated-h", 'python3 -I -c "import shlex"', "hostile", True)
+        check(
+            "hostile/python3 -I -c -> no H6", not any(w.startswith("H6") for w in classify_hostile(hiso, plugin))
+        )
+        for mod in PLANTED_MODULES:
+            row = _mini(plugin, f"imp-{mod}", f'python3 -c "import {mod}"')
+            rr = [
+                run_one(row, pl, plugin, work, tripdir, strace, px)
+                for pl in payloads_for(row, Path("{proj}"), Path("{home}"))
+            ][:1]
+            if not any(PLANTED_MARK in c for r in rr for c in r["changed"]):
+                check(f"planted decoy {mod}.py is actually importable by a cwd python", False)
+                break
+        else:
+            check(f"every one of the {len(PLANTED_MODULES)} planted decoys is importable by a cwd python", True)
+
+        # trust plumbing: the scratch HOME's trust list holds the project's REAL path, only when trusted
+        tp = (
+            'real=$(cd "$CLAUDE_PROJECT_DIR" && pwd -P); '
+            'grep -Fxq -- "$real" "$HOME/.ravenclaude/edition-trusted-projects" 2>/dev/null && echo trusted; exit 0'
+        )
+        check(
+            "trust/untrusted run: the project is not in the trust list",
+            not any("trusted" in r["stdout"] for r in lane("tp0", tp, "hostile", False)),
+        )
+        check(
+            "trust/trusted run: the project's real path IS in the trust list",
+            all("trusted" in r["stdout"] for r in lane("tp1", tp, "hostile", True)),
+        )
+        check(
+            "trust/no-posture run is never trusted even when asked",
+            not any("trusted" in r["stdout"] for r in lane("tp2", tp, None, True)),
+        )
+        # the untrusted lane: a hook that obeys a posture-supplied command is caught there too
+        obey = (
+            'f="$CLAUDE_PROJECT_DIR/.ravenclaude/comfort-posture.yaml"; [ -f "$f" ] || exit 0; '
+            'c=$(sed -n \'s/^on_start: *"\\(.*\\)"$/\\1/p\' "$f"); [ -n "$c" ] && eval "$c"; exit 0'
+        )
+        check(
+            "untrusted/a hook that evals a posture-supplied command is caught",
+            any(w.startswith("U1") for w in classify_untrusted(lane("obey-u", obey, "hostile", False))),
+        )
+        check(
+            "untrusted/a silent hook is inert",
+            not classify_untrusted(lane("silent-u", "exit 0", "hostile", False)),
         )
 
         # lane 2 controls
