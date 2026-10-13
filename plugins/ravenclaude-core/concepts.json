@@ -2860,7 +2860,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:c227726d86c43e0bc76ce18d8ce7cffc2c5ee02966465976f283adfbb1cb0e88",
+      "covers_digest": "sha256:fc75e9221b8d3fecc45cf4e9084887d09566be3381d4c01d97706e7b6504fbf3",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3975,7 +3975,7 @@
         "plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py",
         "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js"
       ],
-      "covers_digest": "sha256:aee7bd5d3c4d1486fd21e7c699982709c9e007803fb46bd92fb0d04322495b39",
+      "covers_digest": "sha256:4b111494a4473f98a55ec85d9f0b4b384b2df12aeb32ed4a7ac5cd992e60fff1",
       "nuance": "A dedup key built from each finding's own title tokens misses two models describing one bug in different words at the same line -- keys differ, so exact-key merge misses it. The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the identical line) -- the single most common real shape cross-model review exists to catch.",
       "nuance_evidence": {
         "measured": "2026-09-02",

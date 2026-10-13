@@ -101,57 +101,111 @@ TRUST_FILE = "~/.ravenclaude/edition-trusted-projects"
 # The edition's single on/off switch. Every shipped hook except the one-line setup prompt is invoked
 # THROUGH this file, so "does nothing until you opt in" is true by construction: the wrapped hook never
 # starts. A posture file alone is NOT an opt-in - a repository you clone can ship one - so the hooks also
-# need YOUR entry in a file under your home directory, which no repository can write.
+# need YOUR entry in a file under your home directory, which no repository can write, bound to the CONTENT of
+# the project files the hooks read, so an update that changes them switches the hooks off until you look again.
 # Kept short on purpose - a reviewer should be able to read all of it.
 POSTURE_GATE_SH = """#!/usr/bin/env bash
 # posture-gate.sh - the on/off switch for this plugin's hooks.
 #
 # hooks.json invokes every hook as:  bash posture-gate.sh <the hook command...>
-# The wrapped hook runs ONLY when both of these are true:
-#   1. the project has .ravenclaude/comfort-posture.yaml (a regular file; no symlink in the way), AND
-#   2. YOU trusted the project: its real path is a line in ~/.ravenclaude/edition-trusted-projects
-#      (scripts/edition-trust.sh add writes it; /dashboard offers to run it).
-# Condition 2 exists because condition 1 is only a file, and a repository you clone can ship any file.
+# The wrapped hook runs ONLY when all of these are true:
+#   1. the project has .ravenclaude/comfort-posture.yaml (a regular file), AND
+#   2. nothing under .ravenclaude/ (three levels deep) is a symbolic link, and every directory there can be
+#      read: a repository can ship a link, and the hooks write there, so a link could send a write outside
+#      the project (a directory the check cannot list could be hiding one, so that refuses too), AND
+#   3. YOU trusted the project AS IT NOW IS: ~/.ravenclaude/edition-trusted-projects holds the line
+#      "<real project path><TAB><sha256>" and the digest still matches the three files the hooks read from the
+#      project (the posture, .repo-layout.json, .ravenclaude/task-scope.json; each at most 1 MiB). Change one
+#      and the hooks go off again until you trust the project again.
+# Condition 3 exists because 1 and 2 are only files, and a repository you clone or update can ship any file.
 # Otherwise this exits 0 at once: no output, no files written, no network, the hook never starts.
 #
-#   posture-gate.sh --status     prints one word and exits 0:  no-posture | untrusted | active
+#   posture-gate.sh --status [detail]   prints one word, exits 0:  no-posture | untrusted | changed | active
+#   posture-gate.sh --line              prints this project's trust line (exit 1 and a reason on stderr if none)
 #
-# It reads nothing from the posture file and fails toward doing nothing.
-rc_state() {
+# It reads no VALUE from the posture file and fails toward doing nothing.
+tab="$(printf '\\t')"
+nl="$(printf '\\n_')"; nl="${nl%_}"
+rc_sha() {
+  if command -v sha256sum >/dev/null 2>&1; then sha256sum | cut -d' ' -f1
+  elif command -v shasum >/dev/null 2>&1; then shasum -a 256 | cut -d' ' -f1
+  fi
+}
+rc_line() {
+  why=""; real=""; digest=""
   proj="${CLAUDE_PROJECT_DIR:-$PWD}"
-  [ -f "$proj/.ravenclaude/comfort-posture.yaml" ] || { echo no-posture; return; }
-  for link in "$proj/.ravenclaude" "$proj/.ravenclaude/comfort-posture.yaml" "$proj/.ravenclaude/runs"; do
-    if [ -L "$link" ]; then echo untrusted; return; fi
+  [ -f "$proj/.ravenclaude/comfort-posture.yaml" ] || { why=no-posture; return 1; }
+  real="$(CDPATH= cd -P -- "$proj" 2>/dev/null && pwd -P)" || { why=path; return 1; }
+  case "$real" in ""|*"$nl"*|*"$tab"*) why=path; return 1 ;; esac
+  if [ "${1:-}" = quick ]; then
+    # a project nobody trusted costs one grep, not a hash of its files
+    if [ -z "${HOME:-}" ] || ! grep -Fq -- "$real$tab" "$HOME/.ravenclaude/edition-trusted-projects" 2>/dev/null; then
+      why=untrusted; return 1
+    fi
+  fi
+  links="$(find "$proj/.ravenclaude" -maxdepth 3 -type l -print 2>&1)"; found=$?
+  if [ -L "$proj/.ravenclaude" ] || [ "$found" -ne 0 ] || [ -n "$links" ]; then
+    why=symlink; return 1
+  fi
+  listing=""
+  for f in .ravenclaude/comfort-posture.yaml .repo-layout.json .ravenclaude/task-scope.json; do
+    if [ -f "$proj/$f" ]; then
+      sz="$(wc -c < "$proj/$f" 2>/dev/null | tr -d ' ')"
+      case "$sz" in ""|*[!0-9]*) why=size; return 1 ;; esac
+      [ "$sz" -le 1048576 ] || { why=size; return 1; }
+      h="$(rc_sha < "$proj/$f")"
+    else
+      h=absent
+    fi
+    [ -n "$h" ] || { why=nosha; return 1; }
+    listing="$listing$f $h$nl"
   done
-  real="$(cd "$proj" 2>/dev/null && pwd -P)" || { echo untrusted; return; }
-  [ -n "$real" ] && [ -n "${HOME:-}" ] || { echo untrusted; return; }
-  grep -Fxq -- "$real" "$HOME/.ravenclaude/edition-trusted-projects" 2>/dev/null || { echo untrusted; return; }
-  echo active
+  digest="$(printf '%s' "$listing" | rc_sha)"
+  [ "${#digest}" -eq 64 ] || { why=nosha; return 1; }
+  return 0
+}
+rc_state() {
+  rc_line quick || { if [ "$why" = no-posture ]; then echo no-posture; else echo untrusted; fi; return; }
+  [ -n "${HOME:-}" ] || { echo untrusted; return; }
+  tf="$HOME/.ravenclaude/edition-trusted-projects"
+  if grep -Fxq -- "$real$tab$digest" "$tf" 2>/dev/null; then echo active; return; fi
+  if [ "${1:-}" = detail ] && REAL="$real" awk -F'\\t' '$1 == ENVIRON["REAL"] { f = 1 } END { exit !f }' "$tf" 2>/dev/null; then
+    echo changed; return
+  fi
+  echo untrusted
 }
 case "${1:-}" in
   "") exit 0 ;;
-  --status) rc_state; exit 0 ;;
+  --status) rc_state "${2:-}"; exit 0 ;;
+  --line)
+    if rc_line; then printf '%s\\t%s\\n' "$real" "$digest"; exit 0; fi
+    echo "$why" >&2; exit 1 ;;
 esac
 [ "$(rc_state)" = active ] || exit 0
 exec "$@"
 """
 
 # The helper that records your trust. It writes ONE file, ~/.ravenclaude/edition-trusted-projects, and
-# nothing else; it refuses a project with no posture file so trust is never granted to nothing.
+# nothing else; it refuses a project the gate would refuse, so trust is never granted to nothing.
 EDITION_TRUST_SH = """#!/usr/bin/env bash
 # edition-trust.sh - trust (or stop trusting) a project for this plugin's hooks.
 #
-#   edition-trust.sh add    [DIR]   trust DIR (default: the current directory)
+#   edition-trust.sh add    [DIR]   trust DIR as it is now (default: the current directory)
 #   edition-trust.sh remove [DIR]   stop trusting DIR
-#   edition-trust.sh status [DIR]   print: trusted | not-trusted | no-posture
+#   edition-trust.sh status [DIR]   print: trusted | changed | not-trusted | no-posture
 #   edition-trust.sh list           print every trusted project
 #
-# The ONLY file this writes is ~/.ravenclaude/edition-trusted-projects (one real path per line).
-# `add` refuses a project that has no .ravenclaude/comfort-posture.yaml, or whose .ravenclaude is a
-# symlink, so trust is never granted to nothing or to a redirected directory. No network, no other writes.
+# The ONLY file this writes is ~/.ravenclaude/edition-trusted-projects, one line per project:
+# "<real path><TAB><sha256 of the posture, .repo-layout.json and .ravenclaude/task-scope.json>". The line comes
+# from hooks/posture-gate.sh itself (--line), so the helper and the gate cannot disagree about it. After you
+# review a change to those files, run `add` again. `add` refuses a project with no regular
+# .ravenclaude/comfort-posture.yaml, with a symbolic link (or an unreadable directory) under .ravenclaude/,
+# with a newline or tab in its path, or with one of those files over 1 MiB. Pass the project root explicitly:
+# the default, the current directory, may be a subdirectory. No network, no other writes.
 set -eu
+usage() { echo "usage: edition-trust.sh add|remove|status [DIR] | list" >&2; exit 2; }
 cmd="${1:-}"
-[ -n "$cmd" ] || { echo "usage: edition-trust.sh add|remove|status [DIR] | list" >&2; exit 2; }
+[ -n "$cmd" ] || usage
 shift || true
 [ -n "${HOME:-}" ] || { echo "edition-trust: HOME is not set" >&2; exit 2; }
 file="$HOME/.ravenclaude/edition-trusted-projects"
@@ -159,29 +213,50 @@ if [ "$cmd" = list ]; then
   [ -f "$file" ] && cat "$file"
   exit 0
 fi
+here="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)"
+gate="$here/../hooks/posture-gate.sh"
+[ -f "$gate" ] || { echo "edition-trust: cannot find $gate" >&2; exit 2; }
 dir="${1:-$PWD}"
-real="$(cd "$dir" 2>/dev/null && pwd -P)" || { echo "edition-trust: not a directory: $dir" >&2; exit 2; }
-has_posture() { [ -f "$real/.ravenclaude/comfort-posture.yaml" ] && [ ! -L "$real/.ravenclaude" ] && [ ! -L "$real/.ravenclaude/comfort-posture.yaml" ]; }
-is_trusted() { [ -f "$file" ] && grep -Fxq -- "$real" "$file"; }
+real="$(CDPATH= cd -P -- "$dir" 2>/dev/null && pwd -P)" || { echo "edition-trust: not a directory: $dir" >&2; exit 2; }
+listed() { [ -f "$file" ] && REAL="$real" awk -F'\\t' '$1 == ENVIRON["REAL"] { f = 1 } END { exit !f }' "$file"; }
 case "$cmd" in
   status)
-    if ! has_posture; then echo no-posture; elif is_trusted; then echo trusted; else echo not-trusted; fi
+    case "$(CLAUDE_PROJECT_DIR="$real" bash "$gate" --status detail 2>/dev/null || true)" in
+      active) echo trusted ;;
+      changed) echo changed ;;
+      no-posture) echo no-posture ;;
+      *) echo not-trusted ;;
+    esac
     ;;
   add)
-    has_posture || { echo "edition-trust: $real has no regular .ravenclaude/comfort-posture.yaml - save a posture first (/dashboard)" >&2; exit 2; }
-    if is_trusted; then echo "already trusted: $real"; exit 0; fi
+    line="$(CLAUDE_PROJECT_DIR="$real" bash "$gate" --line 2>/dev/null)" || {
+      why="$(CLAUDE_PROJECT_DIR="$real" bash "$gate" --line 2>&1 >/dev/null || true)"
+      case "$why" in
+        no-posture) msg="has no regular .ravenclaude/comfort-posture.yaml - save a posture first (/dashboard)" ;;
+        symlink) msg="has a symbolic link, or a directory it cannot read, under .ravenclaude/ - fix that first" ;;
+        size) msg="has a posture, .repo-layout.json or task-scope.json file over 1 MiB" ;;
+        path) msg="has a newline or tab in its path" ;;
+        *) msg="could not be fingerprinted (it needs sha256sum or shasum)" ;;
+      esac
+      echo "edition-trust: $real $msg" >&2
+      exit 2
+    }
+    if [ -f "$file" ] && grep -Fxq -- "$line" "$file"; then echo "already trusted: $real"; exit 0; fi
     mkdir -p "$HOME/.ravenclaude"
-    printf '%s\\n' "$real" >> "$file"
-    echo "trusted: $real  (recorded in $file)"
+    tmp="$(mktemp "$file.XXXXXX")"
+    if [ -f "$file" ]; then REAL="$real" awk -F'\\t' '$1 != ENVIRON["REAL"]' "$file" > "$tmp" || true; fi
+    printf '%s\\n' "$line" >> "$tmp"
+    mv "$tmp" "$file"
+    echo "trusted: $real  (recorded in $file with a fingerprint of the files the hooks read; run this again after you change them)"
     ;;
   remove)
-    if ! is_trusted; then echo "not trusted: $real"; exit 0; fi
+    if ! listed; then echo "not trusted: $real"; exit 0; fi
     tmp="$(mktemp "$file.XXXXXX")"
-    grep -Fxv -- "$real" "$file" > "$tmp" || true
+    REAL="$real" awk -F'\\t' '$1 != ENVIRON["REAL"]' "$file" > "$tmp" || true
     mv "$tmp" "$file"
     echo "no longer trusted: $real"
     ;;
-  *) echo "usage: edition-trust.sh add|remove|status [DIR] | list" >&2; exit 2 ;;
+  *) usage ;;
 esac
 """
 
@@ -195,6 +270,10 @@ HOOK_CMD_FORM = re.compile(
 UNGATED_ALLOWED = frozenset({"dashboard-prompt.sh"})
 # Frontmatter keys removed from shipped commands and skills (see strip_frontmatter_keys).
 STRIPPED_KEYS = ("allowed-tools", "allowed_tools", "allowedTools")
+# Frontmatter keys removed from shipped AGENTS. `memory: project` loads .claude/agent-memory/<agent>/MEMORY.md
+# from the PROJECT into the agent's system prompt and gives it Write/Edit to maintain it - a repository can
+# ship that file, so an agent would read a stranger's text as its own standing instructions.
+AGENT_STRIPPED_KEYS = ("memory",)
 
 
 class BuildError(Exception):
@@ -705,6 +784,8 @@ def transform_text(rel: str, text: str, plugin_name: str, shipped: set[str]) -> 
         return text
     if rel.startswith(("commands/", "skills/")):
         text = strip_frontmatter_keys(text)
+    elif rel.startswith("agents/"):
+        text = strip_frontmatter_keys(text, AGENT_STRIPPED_KEYS)
     text = _plugin_path_rx(plugin_name).sub("${CLAUDE_PLUGIN_ROOT}/", text)
 
     def _abs(m: re.Match[str]) -> str:
@@ -992,6 +1073,10 @@ _SPAWN_PIECES = (
     _CLAUDE_CL + r" -p\b",
 )
 _SPAWN = re.compile("|".join(_SPAWN_PIECES))
+# A non-empty default for the plugin root (`${CLAUDE_PLUGIN_ROOT:-plugins/x}`, `:=`, or no colon). Claude Code
+# substitutes only the bare token, so the shell expands the default, which is a path inside the PROJECT.
+# The empty default `${CLAUDE_PLUGIN_ROOT:-}` (a set-or-unset test inside a hook) is fine and not matched.
+_ROOT_FALLBACK = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT:?[-=][^}]")
 
 
 def python_cwd_sensitive(line: str) -> bool:
@@ -1039,10 +1124,12 @@ def hygiene_findings(root: Path, manifest: dict) -> list[str]:
     """Checks that the shipped files cannot be steered by a repository the person opened.
 
     1. python: no cwd-sensitive interpreter call without `-I` (a project-root json.py/shlex.py would run).
-    2. allowed-tools: no shipped command or skill pre-approves a tool.
+    2. allowed-tools: no shipped command or skill pre-approves a tool, and no agent loads repository memory (`memory:`).
     3. paths: no `plugins/<name>/` left in instructions, and no interpreter run on a plugin-relative script
        that does not ship (it would resolve inside the PROJECT).
     4. no shipped executable starts the `claude` CLI (a nested model session is a disclosed-or-absent thing).
+    5. no shipped text file (markdown, script, workflow) falls back to a path inside the project when the plugin
+       root is unset: `${CLAUDE_PLUGIN_ROOT:-plugins/x}` would run a hostile repository's own copy.
     """
     problems: list[str] = []
     name = manifest["plugin"]
@@ -1056,6 +1143,13 @@ def hygiene_findings(root: Path, manifest: dict) -> list[str]:
     for rel in tree_files(root):
         suffix = Path(rel).suffix
         text = (root / rel).read_text(errors="replace")
+        if suffix in TEXT_EXT:
+            for i, line in enumerate(text.splitlines(), 1):
+                if _ROOT_FALLBACK.search(line):
+                    problems.append(
+                        f"{rel}:{i}: falls back to a path inside the project when the plugin root is unset "
+                        f"({line.strip()[:70]!r}); Claude Code substitutes only the bare token"
+                    )
         if suffix in EXEC_EXT:
             for line in _scannable(text, rel).splitlines():
                 if python_cwd_sensitive(line):
@@ -1085,9 +1179,10 @@ def hygiene_findings(root: Path, manifest: dict) -> list[str]:
                             f"{rel}:{i}: runs plugin-relative {m.group('path')!r}, which does not ship "
                             "(it would resolve inside the project)"
                         )
-            if rel.startswith(("commands/", "skills/")):
+            if rel.startswith(("commands/", "skills/", "agents/")):
                 fm = text.split("\n---", 1)[0] if text.startswith("---\n") else ""
-                for key in STRIPPED_KEYS:
+                keys = AGENT_STRIPPED_KEYS if rel.startswith("agents/") else STRIPPED_KEYS
+                for key in keys:
                     if re.search(rf"^{re.escape(key)}[ \t]*:", fm, re.M):
                         problems.append(f"{rel}: frontmatter still carries {key}")
     for f in sorted(set(py_allow) - py_seen):
@@ -1098,20 +1193,28 @@ def hygiene_findings(root: Path, manifest: dict) -> list[str]:
 
 
 def claude_validate(root: Path) -> tuple[str, str]:
+    """`claude plugin validate --strict` on BOTH manifests: the marketplace one at the root (what a directory
+    reviewer's tooling reads first) and the plugin one. A pass needs both; a fail names which one."""
     exe = shutil.which("claude")
     if not exe:
         return "unavailable", "claude CLI not on PATH"
-    try:
-        cp = subprocess.run(
-            [exe, "plugin", "validate", "--strict", str(root)],
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-    except Exception as e:  # noqa: BLE001
-        return "unavailable", f"could not run: {e}"
-    out = (cp.stdout + cp.stderr).strip()
-    return ("pass" if cp.returncode == 0 else "fail"), out[-1500:]
+    out: list[str] = []
+    status = "pass"
+    for target in (root, root / ".claude-plugin" / "plugin.json"):
+        try:
+            cp = subprocess.run(
+                [exe, "plugin", "validate", "--strict", str(target)],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+        except Exception as e:  # noqa: BLE001
+            return "unavailable", f"could not run: {e}"
+        label = "marketplace manifest" if target == root else "plugin manifest"
+        out.append(f"[{label}] " + (cp.stdout + cp.stderr).strip()[-700:])
+        if cp.returncode != 0:
+            status = "fail"
+    return status, "\n".join(out)[-1500:]
 
 
 def file_list_text(paths: list[str]) -> str:
@@ -1658,6 +1761,18 @@ def self_test() -> int:
             "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/helper.py" in tx
             and "python3 scripts/ghost.py" in tx,
         )
+        _agent = transform_text(
+            "agents/a.md", "---\nname: a\nmemory: project\ntools: Read\n---\nbody memory: keep\n", "demo", set()
+        )
+        check(
+            "agents: memory: is removed from the frontmatter and nothing else is touched",
+            "memory: project" not in _agent and "tools: Read" in _agent and "body memory: keep" in _agent,
+        )
+        check(
+            "agents: a COMMAND keeps a memory: line (only agents lose it)",
+            "memory: project"
+            in transform_text("commands/c.md", "---\ndescription: d\nmemory: project\n---\nx\n", "demo", set()),
+        )
         check(
             "paths: templates/ is never touched (those scripts belong to the user's repo)",
             transform_text("templates/x.md", "plugins/demo/a python3 scripts/helper.py", "demo", {"scripts/helper.py"})
@@ -1842,6 +1957,38 @@ def self_test() -> int:
             "hygiene: python3 -m in an instruction is a finding",
             any("without -I" in x for x in hygiene_findings(o7, m)),
         )
+        kn.write_text("run `python3 ${CLAUDE_PLUGIN_ROOT:-plugins/demo}/skills/x/s.py` now\n")
+        check(
+            "hygiene: a ${CLAUDE_PLUGIN_ROOT:-default} in an instruction is a finding",
+            any("falls back" in x for x in hygiene_findings(o7, m)),
+        )
+        keep.write_text('#!/usr/bin/env bash\nroot="${CLAUDE_PLUGIN_ROOT:-./plugins/demo}"\nexit 0\n')
+        check(
+            "hygiene: ... and in a shipped script",
+            any("falls back" in x and "hooks/keep.sh" in x for x in hygiene_findings(o7, m)),
+        )
+        wfjs = o7 / "skills" / "x"
+        wfjs.mkdir(parents=True, exist_ok=True)
+        (wfjs / "w.js").write_text('const R = "${CLAUDE_PLUGIN_ROOT:-plugins/demo}";\n')
+        check(
+            "hygiene: ... and in a shipped workflow .js",
+            any("falls back" in x and "w.js" in x for x in hygiene_findings(o7, m)),
+        )
+        (wfjs / "w.js").unlink()
+        wfjs.rmdir()
+        kn.write_text("knowledge\n")
+        keep.write_text('#!/usr/bin/env bash\n[ -n "${CLAUDE_PLUGIN_ROOT:-}" ] || exit 0\nexit 0\n')
+        check("hygiene: the empty default ${CLAUDE_PLUGIN_ROOT:-} is not a finding", not hygiene_findings(o7, m))
+        keep.write_text("#!/usr/bin/env bash\nexit 0\n")
+        (o7 / "agents").mkdir(exist_ok=True)
+        ag = o7 / "agents" / "a.md"
+        ag.write_text("---\nname: a\nmemory: project\n---\nbody\n")
+        check(
+            "hygiene: memory: left in a shipped agent is a finding (repository memory would load into its prompt)",
+            any("memory" in x for x in hygiene_findings(o7, m)),
+        )
+        ag.unlink()
+        (o7 / "agents").rmdir()
         kn.write_text("knowledge\n")
 
         trust = o7 / TRUST_PATH

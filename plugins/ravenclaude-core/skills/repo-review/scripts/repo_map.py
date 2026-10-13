@@ -78,8 +78,13 @@ class GitError(RuntimeError):
 
 def run_git(args: list[str], cwd: str) -> bytes:
     try:
+        # The repository under review may be one the reader does not trust: its own .git/config can set
+        # core.fsmonitor (a command `git status`/`diff` RUNS) or core.hooksPath. Switch both off.
         result = subprocess.run(
-            ["git", *args], cwd=cwd, capture_output=True, timeout=30
+            ["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", *args],
+            cwd=cwd,
+            capture_output=True,
+            timeout=30,
         )
     except subprocess.TimeoutExpired as exc:
         # A slow/hung git process must degrade the same way a failing git

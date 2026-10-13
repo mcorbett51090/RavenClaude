@@ -32,7 +32,6 @@ hooks/enforce-layout.sh
 hooks/guard-recursive-spawn.sh
 hooks/hooks.json
 hooks/posture-gate.sh
-hooks/remind-tests.sh
 hooks/runaway-brake.sh
 knowledge/agent-pr-identity.md
 knowledge/agent-routing-matrix.json

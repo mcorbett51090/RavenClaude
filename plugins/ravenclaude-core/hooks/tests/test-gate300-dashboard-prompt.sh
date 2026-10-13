@@ -22,6 +22,7 @@
 #                                (a cloned repository can ship a posture file)
 #   E2  directory edition, project trusted -> silent
 #   E3  the model-facing copy tells the agent never to trust a project itself
+#   E4  trust is bound to content: a posture edited after trusting -> says it changed
 #   T1  teeth: a mutant with the posture gate REMOVED must speak in a configured
 #       project — proving P2 depends on that gate and is not passing vacuously
 #   T2  teeth: a mutant that echoes stdin must be caught by the P7 check
@@ -125,9 +126,16 @@ sysmsg_u="$(printf '%s' "$out" | json_field systemMessage)"
 ctx_u="$(printf '%s' "$out" | json_field hookSpecificOutput.additionalContext)"
 case "$sysmsg_u" in *"hooks stay off until you trust the project"*) pass "E1 edition: posture present, project not trusted -> says the hooks are off" ;; *) fail "E1 edition did not report the untrusted state (out=${out:0:80})" ;; esac
 case "$ctx_u" in *"Never trust a project on your own"*) pass "E3 the model-facing copy forbids the agent from trusting a project itself" ;; *) fail "E3 model-facing copy lacks the never-trust-on-your-own rule" ;; esac
-( cd "$TMP/ed-proj" && pwd -P ) > "$TMP/ed-home/.ravenclaude/edition-trusted-projects"
+# the trust line comes from the gate itself ("<real path><TAB><sha256 of the files the hooks read>")
+CLAUDE_PROJECT_DIR="$TMP/ed-proj" bash "$TMP/ed2/hooks/posture-gate.sh" --line > "$TMP/ed-home/.ravenclaude/edition-trusted-projects" 2>/dev/null
 out="$(run_ed "$TMP/ed2/scripts/dashboard-prompt.sh" "$TMP/ed-proj" "$TMP/ed-home")"
 [ -z "$out" ] && pass "E2 edition: project trusted -> silent" || fail "E2 edition spoke in a trusted project (${out:0:80})"
+# E4: trust is bound to content - edit the posture after trusting and it must say the project CHANGED
+printf 'changed: true\n' >> "$TMP/ed-proj/.ravenclaude/comfort-posture.yaml"
+out="$(run_ed "$TMP/ed2/scripts/dashboard-prompt.sh" "$TMP/ed-proj" "$TMP/ed-home")"
+sysmsg_c="$(printf '%s' "$out" | json_field systemMessage)"
+case "$sysmsg_c" in *"changed since you trusted it"*) pass "E4 edition: a trusted project whose posture changed -> says it changed" ;; *) fail "E4 edition did not report the changed state (out=${out:0:80})" ;; esac
+: > "$TMP/ed-proj/.ravenclaude/comfort-posture.yaml"
 
 # ── P6: fail-safe ────────────────────────────────────────────────────────────
 out="$(run "$SCRIPT" "/nonexistent/zzz-$$")"; rc=$?
@@ -175,7 +183,7 @@ leak_check "$TMP/mut-echo.sh" && fail "T2 teeth: an echoing mutant passed P7 —
 # ── T3: teeth — ignore the gate's answer, a trusted project must now hear the notice ─
 mkdir -p "$TMP/mut-ed/scripts" "$TMP/mut-ed/hooks"
 cp "$TMP/ed2/hooks/posture-gate.sh" "$TMP/mut-ed/hooks/posture-gate.sh"
-grep -vF '[ "$state" = "untrusted" ] || exit 0' "$SCRIPT" > "$TMP/mut-ed/scripts/dashboard-prompt.sh"
+sed 's|^    \*) exit 0 ;;$|    *) user_msg=x; model_msg=y ;;|' "$SCRIPT" > "$TMP/mut-ed/scripts/dashboard-prompt.sh"
 if ! cmp -s "$TMP/mut-ed/scripts/dashboard-prompt.sh" "$SCRIPT"; then
   out="$(run_ed "$TMP/mut-ed/scripts/dashboard-prompt.sh" "$TMP/ed-proj" "$TMP/ed-home")"
   [ -n "$out" ] && pass "T3 teeth: ignoring the gate's status makes it speak in a trusted project (E2 depends on asking the gate)" || fail "T3 teeth: removing the status test did not change behaviour — E2 is vacuous"

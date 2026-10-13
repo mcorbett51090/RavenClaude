@@ -4,7 +4,7 @@
 # session, print a reminder to run the full quality gate before reporting
 # the task complete. Fires ONCE per session — see rc-state-key below.
 #
-# rc-state-key: "${cwd}/.ravenclaude/runs/remind-tests/" + session_id
+# rc-state-key: "${CLAUDE_PROJECT_DIR:-cwd}/.ravenclaude/runs/remind-tests/" + session_id
 # rc-state-scope: session — a Stop hook fires on every turn boundary, so a
 #   session that polls (e.g. waiting on a subagent) ends dozens of turns
 #   while the same uncommitted files sit untouched; without a per-session
@@ -38,17 +38,29 @@ if command -v jq >/dev/null 2>&1 && [ -n "$payload" ]; then
 fi
 [ -z "$cwd" ] && cwd="$PWD"
 
-# Only run inside a git repo.
-git -C "$cwd" rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+# The project is the directory the person opened (CLAUDE_PROJECT_DIR), NOT the payload's cwd. cwd is wherever the
+# session last changed directory, which can be inside a cloned repository's vendored directory that is itself a git
+# repository with its own .git/config; `core.fsmonitor` there is a command that `git status` RUNS. A host that sets
+# no CLAUDE_PROJECT_DIR keeps the old cwd behaviour. Git is also told not to run that command or any hook, and not
+# to refresh the index (optional locks), so this check reads the tree and writes nothing outside .ravenclaude/.
+proj="${CLAUDE_PROJECT_DIR:-$cwd}"
+[ -d "$proj" ] || exit 0
+_git() {
+  GIT_OPTIONAL_LOCKS=0 git -c core.fsmonitor=false -c core.hooksPath=/dev/null \
+    -c safe.bareRepository=explicit -C "$proj" "$@"
+}
 
-changed="$(git -C "$cwd" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+# Only run inside a git repo.
+_git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+
+changed="$(_git status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
 [ "$changed" -eq 0 ] && exit 0
 
 # Look for changes in code (not just docs / config). Use awk for both
 # filtering and counting so a "no matches" result doesn't break the
 # pipeline under `set -e -o pipefail` (the previous grep + wc chain did).
 code_changed="$(
-  git -C "$cwd" status --porcelain 2>/dev/null \
+  _git status --porcelain 2>/dev/null \
     | awk '$2 ~ /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|kt|rb|php|cs|swift|scala)$/ {n++} END {print n+0}'
 )"
 
@@ -63,7 +75,7 @@ if command -v jq >/dev/null 2>&1 && [ -n "$payload" ]; then
   if [ -n "$sid" ]; then
     safe_sid="$(printf '%s' "$sid" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
     if [ -n "$safe_sid" ]; then
-      dir="${cwd}/.ravenclaude/runs/remind-tests"
+      dir="${proj}/.ravenclaude/runs/remind-tests"
       marker="${dir}/${safe_sid}.shown"
       if [ -f "$marker" ]; then
         exit 0

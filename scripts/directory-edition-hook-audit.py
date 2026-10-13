@@ -405,6 +405,8 @@ def payloads_for(row: dict, proj: Path, home: Path) -> list[dict]:
         out.append(dict(base, reason="other", error="x"))
     else:
         out.append(base)
+    if out:
+        out.append(dict(out[0], cwd=str(proj.joinpath(*NESTED_REPO))))  # the session drifted into the vendored repo
     return out
 
 
@@ -430,6 +432,32 @@ _PLANTED_BODY = (
     "open(_o.path.join(_o.path.dirname(_o.path.abspath(__file__)), '" + PLANTED_MARK + "{name}'), 'w').write('1')\n"
     "raise ImportError('module planted in the project root was imported')\n"
 )
+
+
+# A cloned repository can vendor a directory that is itself a git repository. Its .git/config may set
+# core.fsmonitor to a command, and `git status` run THERE executes it. The payload's `cwd` is wherever the session
+# last changed directory, so a hook that runs git in it is code execution. Every scratch project carries one such
+# repository; a hook that touches it writes NESTED_CANARY (H7).
+NESTED_REPO = ("vendor", "evil")
+NESTED_CANARY = "NESTED-GIT-FSMONITOR-RAN"
+
+
+# The trust line the edition's gate expects: "<real project path><TAB><sha256>", the digest covering the three
+# project files the shipped hooks read. This is the SPECIFICATION, written independently of the shell
+# implementation in hooks/posture-gate.sh; scripts/check-directory-edition.py asserts the two agree.
+TRUST_FILES = (".ravenclaude/comfort-posture.yaml", ".repo-layout.json", ".ravenclaude/task-scope.json")
+
+
+def trust_digest(proj: Path) -> str:
+    listing = ""
+    for rel in TRUST_FILES:
+        f = proj / rel
+        listing += f"{rel} {hashlib.sha256(f.read_bytes()).hexdigest() if f.is_file() else 'absent'}\n"
+    return hashlib.sha256(listing.encode()).hexdigest()
+
+
+def trust_line(proj: Path) -> str:
+    return os.path.realpath(proj) + "\t" + trust_digest(proj)
 
 
 def _seed_project(proj: Path) -> None:
@@ -474,6 +502,16 @@ def _seed_project(proj: Path) -> None:
         ],
     ):
         subprocess.run(cmd, cwd=proj, env=genv, check=False, capture_output=True)
+    nested = proj.joinpath(*NESTED_REPO)
+    nested.mkdir(parents=True)
+    subprocess.run(["git", "init", "-q", str(nested)], cwd=proj, env=genv, check=False, capture_output=True)
+    with (nested / ".git" / "config").open("a") as f:
+        f.write(f"[core]\n\tfsmonitor = sh -c 'touch {proj.parent / 'canary' / NESTED_CANARY}'\n")
+    (nested / "x.py").write_text("x = 1\n")
+    # ... which also carries its own, never-trusted .ravenclaude/: a hook that walks up from the payload cwd
+    # and honours the first one it finds would read this posture and write its state HERE (H4).
+    (nested / ".ravenclaude").mkdir()
+    (nested / ".ravenclaude" / "comfort-posture.yaml").write_text("runaway:\n  max_consecutive: 1\n  max_total: 3\n")
     # uncommitted source changes: several hooks only act once the session has changed something
     (proj / "src" / "app.py").write_text("def app():\n    return 2\n")
     (proj / "src" / "extra.py").write_text("def extra():\n    return 3\n")
@@ -562,9 +600,7 @@ def run_one(
             (proj / ".ravenclaude" / "task-scope.json").write_text('{"in_scope": ["docs/**"]}\n')
             if trusted:
                 (home / ".ravenclaude").mkdir()
-                (home / ".ravenclaude" / "edition-trusted-projects").write_text(
-                    os.path.realpath(proj) + "\n"
-                )
+                (home / ".ravenclaude" / "edition-trusted-projects").write_text(trust_line(proj) + "\n")
         triplog, stracelog = run / "trip.log", run / "strace.log"
         triplog.write_text("")
         env = {
@@ -718,6 +754,8 @@ def _uniq(why: list[str]) -> list[str]:
 def classify_inert(runs: list[dict], allowed_output: bool = False) -> list[str]:
     why: list[str] = []
     for r in runs:
+        if NESTED_CANARY in r["canaries"]:
+            why.append("I6 ran a command from a git repository nested in the project")
         if r["timed_out"]:
             why.append("I1 timed out")
         elif r["rc"] != 0:
@@ -765,8 +803,14 @@ def classify_hostile(
     allowed_write = _allowed_write_re(write_dirs)
     why: list[str] = []
     for r in runs:
-        if r["canaries"]:
-            why.append("H1 executed a posture-supplied command: " + ",".join(r["canaries"]))
+        other = [c for c in r["canaries"] if c != NESTED_CANARY]
+        if other:
+            why.append("H1 executed a posture-supplied command: " + ",".join(other))
+        if NESTED_CANARY in r["canaries"]:
+            why.append(
+                "H7 ran a command from a git repository nested in the project (its .git/config sets "
+                "core.fsmonitor): run git against the project root with -C and -c core.fsmonitor=false"
+            )
         if r["net"]:
             why.append("H2 network: " + r["net"][0][:90])
         if r["tripwires"]:
@@ -783,7 +827,11 @@ def classify_hostile(
                 )
             elif "settings.json" in c and ".claude" in c:
                 why.append("H4 edited .claude/settings.json (permission rules)")
-            elif plugin.name in c or str(plugin) in c:
+            elif re.search(r"/proj/.+/\.ravenclaude(/|$)", c):
+                why.append(
+                    "H8 honoured a .ravenclaude/ nested inside the project, which nobody trusted: " + c[:80]
+                )
+            elif str(plugin) in c:  # NOT plugin.name: a one-letter directory name matched every /proj/ path
                 why.append("H4 wrote inside the plugin directory: " + c[:80])
             elif not allowed_write.match(c) and not c.endswith("/trip.log"):
                 why.append("H4 wrote outside ." + "/.".join(write_dirs) + ": " + c[:90])
@@ -865,6 +913,7 @@ def measure(
                 "hostile_reasons": host_why,
                 "hostile_writes": sorted(writes),
                 "hostile_execs": sorted({x for r in results[hid]["hostile"] for x in r["execs"]}),
+                "hostile_rcs": sorted({r["rc"] for r in results[hid]["hostile"]}),
             }
         return {"hooks": out, "strace": use_strace}
     finally:
@@ -1004,10 +1053,48 @@ def self_test() -> int:
         else:
             check(f"every one of the {len(PLANTED_MODULES)} planted decoys is importable by a cwd python", True)
 
+        # the nested-repo hole: git run in the payload's cwd executes a vendored repository's core.fsmonitor
+        git_bad = (
+            """c=$(sed -n 's/.*"cwd": *"\\([^"]*\\)".*/\\1/p'); """
+            """git -C "${c:-.}" status --porcelain >/dev/null 2>&1; exit 0"""
+        )
+        git_good = (
+            """git -c core.fsmonitor=false -C "$CLAUDE_PROJECT_DIR" status --porcelain >/dev/null 2>&1; exit 0"""
+        )
+        nest_bad = (
+            'c=$(sed -n \'s/.*"cwd": *"\\([^"]*\\)".*/\\1/p\'); '
+            'mkdir -p "$c/.ravenclaude/runs" && : > "$c/.ravenclaude/runs/x"; exit 0'
+        )
+        check(
+            "hostile/a hook writing under a nested project dir's .ravenclaude -> H8, not safe",
+            any(w.startswith("H8") for w in classify_hostile(lane("nested-state", nest_bad, "hostile", True), plugin)),
+        )
+        nest_good = 'mkdir -p "$CLAUDE_PROJECT_DIR/.ravenclaude/runs" && : > "$CLAUDE_PROJECT_DIR/.ravenclaude/runs/x"; exit 0'
+        check(
+            "hostile/the same write at the project root -> no H8",
+            not any(
+                w.startswith("H8") for w in classify_hostile(lane("root-state", nest_good, "hostile", True), plugin)
+            ),
+        )
+        gbad = lane("git-in-payload-cwd", git_bad, "hostile", True)
+        check(
+            "hostile/git run in the payload cwd executes the vendored repo's fsmonitor -> H7, not safe",
+            any(w.startswith("H7") for w in classify_hostile(gbad, plugin)),
+        )
+        ggood = lane("git-at-project-root", git_good, "hostile", True)
+        check(
+            "hostile/git -C <project root> with core.fsmonitor=false -> no H7",
+            not any(w.startswith("H7") for w in classify_hostile(ggood, plugin)),
+        )
+        check(
+            "inert/the same git-in-cwd hook is flagged even with no posture file (I6)",
+            any(w.startswith("I6") for w in classify_inert(lane("git-in-payload-cwd-i", git_bad, None))),
+        )
+
         # trust plumbing: the scratch HOME's trust list holds the project's REAL path, only when trusted
         tp = (
             'real=$(cd "$CLAUDE_PROJECT_DIR" && pwd -P); '
-            'grep -Fxq -- "$real" "$HOME/.ravenclaude/edition-trusted-projects" 2>/dev/null && echo trusted; exit 0'
+            'grep -Fq -- "$real" "$HOME/.ravenclaude/edition-trusted-projects" 2>/dev/null && echo trusted; exit 0'
         )
         check(
             "trust/untrusted run: the project is not in the trust list",

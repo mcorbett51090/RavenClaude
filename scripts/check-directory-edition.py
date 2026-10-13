@@ -18,6 +18,8 @@ REAL CHECKS (on the freshly built edition)
      from the project root, and starts only programs on the manifest's allow-list
   4  `claude plugin validate --strict` passes (when the claude CLI is present; otherwise reported as NOT RUN,
      which is not a pass)
+  5  the shipped /repo-review workflow refuses to start without an absolute args.pluginRoot (when node is
+     present; otherwise NOT RUN), so its scripts can never resolve inside the project under review
 
 MUST-FAIL HALVES (a check that cannot fail proves nothing)
   M1  an always-on hook wrapped in the REAL posture gate is inert; the same hook behind a gate with the
@@ -25,6 +27,11 @@ MUST-FAIL HALVES (a check that cannot fail proves nothing)
       from the gate and the harness can see it go
   M3  a hook that runs `python3 -c` from the project directory is classified unsafe (a planted module in the
       project root is imported); the same hook with `-I` is safe
+  M4  the same workflow with its pluginRoot validation neutered starts without a root, so check 5 can fail
+  M5  a hook that runs git in the payload's cwd executes a vendored repository's core.fsmonitor and is
+      classified unsafe (H7); the same hook at the project root with core.fsmonitor=false is safe
+  M8  the source plugin's runaway-brake.sh (it walks up from the payload cwd) honours a posture nested in
+      the project and is classified unsafe (H8); the edition's edited copy is safe
   M2  real hooks that ARE unsafe (guard-destructive.sh always on; dod-gate.sh runs a command read from the
       posture file) are classified unsafe by the same audit, so its payloads and seeds reach real triggers
 
@@ -43,6 +50,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -190,9 +198,14 @@ def main() -> int:
         print("── the trust helper ──")
         trust_helper_checks(dist)
 
+        print("── the /repo-review workflow's plugin root ──")
+        workflow_root_checks(dist)
+
         print("── must-fail halves ──")
         must_fail_gate_shim(dist)
         must_fail_python_cwd(dist)
+        must_fail_git_cwd(dist)
+        must_fail_nested_posture(dist)
         must_fail_real_hooks()
 
     print(f"directory-edition: {PASS} passed, {FAIL} failed")
@@ -249,6 +262,11 @@ def must_fail_gate_shim(dist: Path) -> None:
             bool(real.get("untrusted_inert")),
             "; ".join(real.get("untrusted_reasons", [])),
         )
+        check(
+            "M1 ... and it RUNS (exit 2) when the project is trusted under a hostile posture, so the trusted lanes are not vacuous",
+            real.get("hostile_rcs") == [2],
+            f"exit codes in the trusted lane: {real.get('hostile_rcs')}",
+        )
         gate_file = plug / "hooks" / "posture-gate.sh"
         real_text = gate_file.read_text()
         gate_file.write_text('#!/usr/bin/env bash\nexec "$@"\n')
@@ -259,9 +277,13 @@ def must_fail_gate_shim(dist: Path) -> None:
         )
         # the trust test is its own line of defence: remove only it, and the no-posture lane stays clean
         # while the untrusted lane (posture present, nobody trusted it) sees the hook run
-        gate_file.write_text(
-            "\n".join(ln for ln in real_text.splitlines() if "grep -Fxq" not in ln) + "\n"
+        trust_test = 'grep -Fxq -- "$real$tab$digest" "$tf" 2>/dev/null'
+        quick_test = '! grep -Fq -- "$real$tab" "$HOME/.ravenclaude/edition-trusted-projects" 2>/dev/null'
+        check(
+            "M1 the trust tests are where the shim says they are (so removing them is a real mutation)",
+            trust_test in real_text and quick_test in real_text,
         )
+        gate_file.write_text(real_text.replace(trust_test, "true").replace(quick_test, "false"))
         no_trust = _measure_one(plug, hj, "zz-always-on.sh")
         check(
             "M1 a gate with only the TRUST test removed: still inert with no posture file",
@@ -315,9 +337,32 @@ def must_fail_python_cwd(dist: Path) -> None:
         )
 
 
+def _unprivileged_prefix(scratch: Path) -> list[str] | None:
+    """A command prefix that runs as a user without root's permission overrides, or None when that is not
+    possible here. As root, `unshare --user --map-user=1000` drops the capabilities on exec; the probe below
+    PROVES it by failing to list a directory with mode 0300, so a prefix that does not drop anything is never used."""
+    probe = scratch / "probe-dir"
+    probe.mkdir(exist_ok=True)
+    os.chmod(probe, 0o300)
+    candidates: list[list[str]] = [[]] if os.geteuid() != 0 else []
+    if os.geteuid() == 0 and shutil.which("unshare"):
+        candidates.append(["unshare", "--user", "--map-user=1000", "--map-group=1000", "--"])
+    try:
+        for prefix in candidates:
+            try:
+                cp = subprocess.run(prefix + ["ls", str(probe)], capture_output=True, timeout=20)
+            except Exception:  # noqa: BLE001
+                continue
+            if cp.returncode != 0:
+                return prefix
+        return None
+    finally:
+        os.chmod(probe, 0o700)
+
+
 def trust_helper_checks(dist: Path) -> None:
-    """scripts/edition-trust.sh and the gate's --status must agree, and the helper must refuse to grant trust
-    to a project with nothing to run or with a redirected .ravenclaude."""
+    """scripts/edition-trust.sh and the gate must agree; trust is bound to the CONTENT of the project files the
+    hooks read; and the gate refuses any symlink under .ravenclaude/ and any path with a newline or tab."""
     helper, gate = dist / "scripts" / "edition-trust.sh", dist / "hooks" / "posture-gate.sh"
     with tempfile.TemporaryDirectory(prefix="rc-trust-") as td:
         root = Path(td).resolve()
@@ -326,16 +371,28 @@ def trust_helper_checks(dist: Path) -> None:
             d.mkdir()
         env = {"PATH": "/usr/bin:/bin", "HOME": str(home), "CLAUDE_PROJECT_DIR": str(proj)}
 
-        def run(script: Path, *args: str, project: Path = proj) -> subprocess.CompletedProcess:
+        def run(
+            script: Path, *args: str, project: Path = proj, gate_file: Path | None = None
+        ) -> subprocess.CompletedProcess:
             e = dict(env, CLAUDE_PROJECT_DIR=str(project))
             return subprocess.run(
-                ["bash", str(script), *args], capture_output=True, text=True, env=e, cwd=project
+                ["bash", str(gate_file or script), *args],
+                capture_output=True,
+                text=True,
+                env=e,
+                cwd=project,
             )
 
-        def state(project: Path = proj) -> str:
-            return run(gate, "--status", project=project).stdout.strip()
+        def state(project: Path = proj, detail: bool = False, gate_file: Path | None = None) -> str:
+            args = ("--status", "detail") if detail else ("--status",)
+            return run(gate, *args, project=project, gate_file=gate_file).stdout.strip()
+
+        def ran(project: Path = proj) -> bool:
+            """Does a command behind the gate actually run? (the only thing that matters in the end)"""
+            return run(gate, "echo", "ran", project=project).stdout.strip() == "ran"
 
         tf = home / ".ravenclaude" / "edition-trusted-projects"
+        posture = proj / ".ravenclaude" / "comfort-posture.yaml"
         check("trust: no posture file -> the gate says no-posture", state() == "no-posture")
         check(
             "trust: status with no posture file says no-posture",
@@ -348,29 +405,82 @@ def trust_helper_checks(dist: Path) -> None:
             r.stderr.strip()[:90],
         )
         (proj / ".ravenclaude").mkdir()
-        (proj / ".ravenclaude" / "comfort-posture.yaml").write_text("schema_version: 5\n")
+        posture.write_text("schema_version: 5\n")
         check("trust: posture present, nobody trusted it -> untrusted", state() == "untrusted")
+        check("trust: ... and the hook behind the gate does not run", not ran())
         check(
             "trust: status says not-trusted",
             run(helper, "status", str(proj)).stdout.strip() == "not-trusted",
         )
+        spec = audit.trust_line(proj)
+        check(
+            "trust: the gate's --line equals the independent specification (path TAB sha256 of the 3 files)",
+            run(gate, "--line").stdout.rstrip("\n") == spec,
+            f"gate={run(gate, '--line').stdout.strip()!r} spec={spec!r}",
+        )
         r = run(helper, "add", str(proj))
         check(
-            "trust: add records the REAL path once",
-            r.returncode == 0 and tf.read_text().splitlines() == [str(proj)],
+            "trust: add records the REAL path and the content digest, once",
+            r.returncode == 0 and tf.read_text().splitlines() == [spec],
             r.stderr.strip()[:90],
         )
         run(helper, "add", str(proj))
-        check("trust: add is idempotent", tf.read_text().splitlines() == [str(proj)])
-        check("trust: the gate now says active", state() == "active")
+        check("trust: add is idempotent", tf.read_text().splitlines() == [spec])
+        check("trust: the gate now says active, and the hook runs", state() == "active" and ran())
         link = root / "link"
         link.symlink_to(proj)
-        check("trust: a symlink to a trusted project resolves to it (pwd -P)", state(link) == "active")
-        check("trust: a different project is not trusted by that entry", state(other) == "no-posture")
+        check(
+            "trust: a symlink to a trusted project resolves to it (pwd -P)", state(link) == "active"
+        )
+        check(
+            "trust: a different project is not trusted by that entry", state(other) == "no-posture"
+        )
         (other / ".ravenclaude").mkdir()
         (other / ".ravenclaude" / "comfort-posture.yaml").write_text("x: 1\n")
         check("trust: ... even with its own posture file", state(other) == "untrusted")
-        mid = proj / ".ravenclaude" / "comfort-posture.yaml"
+
+        # trust is bound to CONTENT: change any file the hooks read and the hooks go off
+        posture.write_text("schema_version: 5\nrunaway:\n  max_total: 1\n")
+        check(
+            "trust: editing the posture after trusting it -> changed, and the hook stops running",
+            state(detail=True) == "changed" and state() == "untrusted" and not ran(),
+        )
+        check(
+            "trust: status says changed",
+            run(helper, "status", str(proj)).stdout.strip() == "changed",
+        )
+        posture.write_text("schema_version: 5\n")
+        check(
+            "trust: ... and restoring the exact bytes restores trust", state() == "active" and ran()
+        )
+        layout = proj / ".repo-layout.json"
+        layout.write_text('{"allowed_globs": ["**"]}\n')
+        check(
+            "trust: a .repo-layout.json that appears after trusting -> changed",
+            state(detail=True) == "changed" and not ran(),
+        )
+        layout.unlink()
+        scope = proj / ".ravenclaude" / "task-scope.json"
+        scope.write_text('{"in_scope": ["**"]}\n')
+        check(
+            "trust: a task-scope.json that appears after trusting -> changed",
+            state(detail=True) == "changed" and not ran(),
+        )
+        scope.unlink()
+        check("trust: ... and active again once they are gone", state() == "active")
+        posture.write_text("schema_version: 5\n# edited\n")
+        r = run(helper, "add", str(proj))
+        check(
+            "trust: re-running add after a change REPLACES the old line (one line per project)",
+            r.returncode == 0
+            and tf.read_text().splitlines() == [audit.trust_line(proj)]
+            and state() == "active",
+            r.stderr.strip()[:90],
+        )
+        posture.write_text("schema_version: 5\n")
+        run(helper, "add", str(proj))
+
+        mid = posture
         mid.unlink()
         mid.symlink_to(other / ".ravenclaude" / "comfort-posture.yaml")
         check("trust: a symlinked posture file is never active", state() == "untrusted")
@@ -379,7 +489,127 @@ def trust_helper_checks(dist: Path) -> None:
         (proj / ".ravenclaude" / "runs").symlink_to(root)
         check("trust: a symlinked .ravenclaude/runs is never active", state() == "untrusted")
         (proj / ".ravenclaude" / "runs").unlink()
-        check("trust: ... and active again once the symlink is gone", state() == "active")
+        (proj / ".ravenclaude" / "runs").mkdir()
+        (proj / ".ravenclaude" / "runs" / "thing").symlink_to(root)
+        check(
+            "trust: a symlink at .ravenclaude/runs/thing (where hooks write) is never active",
+            state() == "untrusted" and not ran(),
+        )
+        old_gate = dist.parent / "gate-no-deep-symlink-check.sh"
+        text = gate.read_text()
+        needle = '[ "$found" -ne 0 ] || [ -n "$links" ]'
+        old_gate.write_text(text.replace(needle, "false"))
+        check(
+            "trust: M6 a gate that checks only .ravenclaude itself says ACTIVE for that link (the deep check has teeth)",
+            needle in text and state(gate_file=old_gate) == "active",
+        )
+        old_gate.unlink()
+        (proj / ".ravenclaude" / "runs" / "thing").unlink()
+        (proj / ".ravenclaude" / "runs" / "thing").mkdir()
+        (proj / ".ravenclaude" / "runs" / "thing" / "runaway").symlink_to(root)
+        check(
+            "trust: a symlink three levels down (.ravenclaude/runs/thing/runaway) is never active",
+            state() == "untrusted",
+        )
+        (proj / ".ravenclaude" / "runs" / "thing" / "runaway").unlink()
+        (proj / ".ravenclaude" / "runs" / "thing").rmdir()
+        (proj / ".ravenclaude" / "runs").rmdir()
+        check("trust: ... and active again once the links are gone", state() == "active")
+
+        # a newline in the project path would let one trust-file entry stand for two patterns
+        nl_dir = root / "proj\nx"
+        (nl_dir / ".ravenclaude").mkdir(parents=True)
+        (nl_dir / ".ravenclaude" / "comfort-posture.yaml").write_text("schema_version: 5\n")
+        dg = audit.trust_digest(nl_dir)
+        before_weird = tf.read_text()
+        tf.write_text(before_weird + f"{root}/proj\nx\t{dg}\n")
+        check(
+            "trust: a path with a newline is refused even when the trust file seems to list it",
+            state(nl_dir) == "untrusted" and not ran(nl_dir),
+        )
+        text = gate.read_text()
+        nl_gate = dist.parent / "gate-no-newline-check.sh"
+        nl_gate.write_text(
+            text.replace('case "$real" in ""|*"$nl"*|*"$tab"*) why=path; return 1 ;; esac', "")
+        )
+        check(
+            "trust: M7 a gate without the newline check says ACTIVE for it (the check has teeth)",
+            'case "$real" in ""|*"$nl"*' in text and state(nl_dir, gate_file=nl_gate) == "active",
+        )
+        nl_gate.unlink()
+        r = run(helper, "add", str(nl_dir), project=nl_dir)
+        check("trust: add refuses a path with a newline", r.returncode == 2, r.stderr.strip()[:90])
+        tf.write_text(before_weird)
+
+        # an unreadable directory under .ravenclaude/ could be hiding a symlink: fail closed, not open
+        unpriv = _unprivileged_prefix(root)
+        if unpriv is None:
+            print("  NOT RUN  unreadable-directory check: cannot drop privileges here (not a pass)")
+        else:
+            hid, outside, home2 = root / "hid", root / "outside", root / "home2"
+            (hid / ".ravenclaude" / "runs").mkdir(parents=True)
+            outside.mkdir()
+            home2.joinpath(".ravenclaude").mkdir(parents=True)
+            (hid / ".ravenclaude" / "comfort-posture.yaml").write_text("schema_version: 5\n")
+            (hid / ".ravenclaude" / "runs" / "thing").symlink_to(outside)
+            (home2 / ".ravenclaude" / "edition-trusted-projects").write_text(audit.trust_line(hid) + "\n")
+            os.chmod(hid / ".ravenclaude" / "runs", 0o300)
+
+            def hid_state(gate_file: Path) -> str:
+                cp = subprocess.run(
+                    unpriv + ["bash", str(gate_file), "--status"],
+                    capture_output=True,
+                    text=True,
+                    env={"PATH": "/usr/bin:/bin", "HOME": str(home2), "CLAUDE_PROJECT_DIR": str(hid)},
+                    cwd=str(hid),
+                )
+                return cp.stdout.strip()
+
+            check(
+                "trust: a symlink hidden in a directory the check cannot read -> never active (find errors fail closed)",
+                hid_state(gate) == "untrusted",
+                f"gate said {hid_state(gate)!r}",
+            )
+            text = gate.read_text()
+            blind = dist.parent / "gate-ignores-find-errors.sh"
+            old_find = '-print 2>&1)"; found=$?'
+            blind.write_text(text.replace(old_find, '-print 2>/dev/null)"; found=0'))
+            check(
+                "trust: M9 a gate that ignores find's errors says ACTIVE for it (the fail-closed check has teeth)",
+                old_find in text and hid_state(blind) == "active",
+                f"mutant said {hid_state(blind)!r}",
+            )
+            blind.unlink()
+            os.chmod(hid / ".ravenclaude" / "runs", 0o700)
+
+        # work before trust: an untrusted project must not cost a hash of its (huge) files, and a huge file is refused
+        big = root / "big"
+        (big / ".ravenclaude").mkdir(parents=True)
+        (big / ".ravenclaude" / "comfort-posture.yaml").write_text("schema_version: 5\n")
+        try:
+            with open(big / ".repo-layout.json", "wb") as fh:
+                fh.truncate(4 << 30)
+            sparse = True
+        except OSError:
+            sparse = False
+        if not sparse:
+            print("  NOT RUN  huge-file checks: the filesystem refused a sparse 4 GiB file (not a pass)")
+        else:
+            t0 = time.monotonic()
+            untrusted = state(big)
+            check(
+                "trust: an untrusted project with a 4 GiB layout file is refused at once (no hashing before the trust lookup)",
+                untrusted == "untrusted" and time.monotonic() - t0 < 5,
+                f"state={untrusted!r} in {time.monotonic() - t0:.1f}s",
+            )
+            t0 = time.monotonic()
+            r = run(gate, "--line", project=big)
+            check(
+                "trust: a layout file over 1 MiB is refused with a reason, without hashing it",
+                r.returncode == 1 and r.stderr.strip() == "size" and time.monotonic() - t0 < 5,
+                f"rc={r.returncode} stderr={r.stderr.strip()!r} in {time.monotonic() - t0:.1f}s",
+            )
+
         r = run(helper, "remove", str(proj))
         check(
             "trust: remove drops the entry and the gate follows",
@@ -390,7 +620,145 @@ def trust_helper_checks(dist: Path) -> None:
         (redirected / "real" / "comfort-posture.yaml").write_text("x: 1\n")
         (redirected / ".ravenclaude").symlink_to(redirected / "real")
         r = run(helper, "add", str(redirected))
-        check("trust: add refuses a redirected .ravenclaude", r.returncode == 2, r.stderr.strip()[:90])
+        check(
+            "trust: add refuses a redirected .ravenclaude", r.returncode == 2, r.stderr.strip()[:90]
+        )
+
+
+_WF_HARNESS = r"""
+import fs from "node:fs";
+const [, , file, ...cases] = process.argv;
+const src = fs.readFileSync(file, "utf8").replace(/^export const meta/m, "const meta");
+const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+const fn = new AsyncFunction("args", "agent", "log", "pipeline", "parallel", "phase", "budget", src);
+for (const c of cases) {
+  const r = await fn(JSON.parse(c), async () => ({}), () => {}, null, null, () => {}, { spent: () => 0 });
+  console.log(String((r && r.error) || "NO-ERROR").replace(/\s+/g, " ").slice(0, 400));
+}
+"""
+_WF_CASES = (
+    ("no args", {}, True),
+    ("a project-relative root", {"pluginRoot": "plugins/ravenclaude-core"}, True),
+    ("a root with ..", {"pluginRoot": "/a/../b"}, True),
+    ("a root with a space (not shell-safe)", {"pluginRoot": "/a b"}, True),
+    ("an absolute root (reaches the next check)", {"pluginRoot": "/ok/plugin/root"}, False),
+)
+
+
+def _run_workflow(node: str, harness: Path, wf: Path) -> list[str]:
+    cp = subprocess.run(
+        [node, str(harness), str(wf)] + [json.dumps(c[1]) for c in _WF_CASES],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        cwd=str(harness.parent),
+        env={"PATH": os.environ.get("PATH", "")},
+    )
+    return cp.stdout.splitlines() if cp.returncode == 0 else ["NODE-ERROR " + cp.stderr.strip()[-200:]]
+
+
+def workflow_root_checks(dist: Path) -> None:
+    """The edition's /repo-review workflow takes its plugin root from args and has no fallback, so a hostile
+    project can never supply the scripts it runs. Exercised with node when present (NOT RUN is not a pass)."""
+    wf = dist / "skills" / "repo-review" / "workflows" / "repo-sweep.workflow.js"
+    if not wf.is_file():
+        return
+    node = shutil.which("node")
+    if not node:
+        print("  NOT RUN  workflow plugin-root validation: node not on PATH (not a pass)")
+        return
+    with tempfile.TemporaryDirectory(prefix="rc-edition-wf-") as td:
+        h = Path(td) / "harness.mjs"
+        h.write_text(_WF_HARNESS)
+        out = _run_workflow(node, h, wf)
+        for (label, _args, must_refuse), line in zip(_WF_CASES, out + [""] * len(_WF_CASES)):
+            refused = "args.pluginRoot" in line
+            check(f"workflow: {label} -> {'refused' if must_refuse else 'accepted'}", refused == must_refuse, line[:120])
+        src = wf.read_text()
+        mutant = src.replace("if (!/^", "if (false && !/^", 1)
+        check("workflow: the mutant differs from the build (the teeth are real)", mutant != src)
+        mp = Path(td) / "mutant.workflow.js"
+        mp.write_text(mutant)
+        mout = _run_workflow(node, h, mp)
+        check(
+            "workflow: M4 with the validation neutered, no-args is NOT refused (so check 5 can fail)",
+            bool(mout) and "args.pluginRoot" not in mout[0],
+            (mout[0] if mout else "")[:120],
+        )
+
+
+def must_fail_git_cwd(dist: Path) -> None:
+    """M5: every scratch project holds a vendored git repository whose .git/config runs a command on
+    `git status`. A hook that runs git in the payload's cwd (which can drift into it) runs that command."""
+    bodies = (
+        (
+            "zz-git-cwd.sh",
+            """c=$(sed -n 's/.*"cwd": *"\\([^"]*\\)".*/\\1/p'); git -C "${c:-.}" status --porcelain >/dev/null 2>&1; exit 0""",
+        ),
+        (
+            "zz-git-root.sh",
+            """git -c core.fsmonitor=false -C "$CLAUDE_PROJECT_DIR" status --porcelain >/dev/null 2>&1; exit 0""",
+        ),
+    )
+    with tempfile.TemporaryDirectory(prefix="rc-m5-") as td:
+        plug = Path(td) / "p"
+        shutil.copytree(dist, plug)
+        hj = plug / "hooks" / "hooks.json"
+        data = json.loads(hj.read_text())
+        for name, body in bodies:
+            f = plug / "hooks" / name
+            f.write_text("#!/usr/bin/env bash\n" + body + "\n")
+            f.chmod(0o755)
+            data["hooks"].setdefault("UserPromptSubmit", []).append(
+                {
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": _wrap('"${CLAUDE_PLUGIN_ROOT}/hooks/' + name + '"'),
+                        }
+                    ]
+                }
+            )
+        hj.write_text(json.dumps(data))
+        bad = _measure_one(plug, hj, "zz-git-cwd.sh", write_dirs=("ravenclaude",))
+        check(
+            "M5 a hook running git in the payload cwd is NOT hostile-safe (H7)",
+            bad.get("hostile_safe") is False
+            and any(r.startswith("H7") for r in bad.get("hostile_reasons", [])),
+            "; ".join(bad.get("hostile_reasons", [])),
+        )
+        good = _measure_one(plug, hj, "zz-git-root.sh", write_dirs=("ravenclaude",))
+        check(
+            "M5 the same hook at the project root with core.fsmonitor=false is hostile-safe",
+            bool(good.get("hostile_safe")),
+            "; ".join(good.get("hostile_reasons", [])),
+        )
+
+
+def must_fail_nested_posture(dist: Path) -> None:
+    """M8: the source runaway-brake.sh uses the first .ravenclaude/ found walking up from the payload cwd, so a
+    posture inside a vendored directory of a cloned repository is honoured and its state is written there. The
+    edition's copy resolves the root from CLAUDE_PROJECT_DIR only. Both run behind the real gate."""
+    with tempfile.TemporaryDirectory(prefix="rc-m8-") as td:
+        plug = Path(td) / "p"
+        shutil.copytree(dist, plug)
+        good = _measure_one(plug, None, "runaway-brake.sh", write_dirs=("ravenclaude",))
+        check(
+            "M8 the edition's runaway-brake.sh ignores a posture nested in the project",
+            bool(good.get("hostile_safe")),
+            "; ".join(good.get("hostile_reasons", [])),
+        )
+        shutil.copyfile(
+            REPO / "plugins" / "ravenclaude-core" / "hooks" / "runaway-brake.sh",
+            plug / "hooks" / "runaway-brake.sh",
+        )
+        bad = _measure_one(plug, None, "runaway-brake.sh", write_dirs=("ravenclaude",))
+        check(
+            "M8 ... while the source copy (walk-up) honours it: NOT hostile-safe (H8), so the edit is necessary",
+            bad.get("hostile_safe") is False
+            and any(r.startswith("H8") for r in bad.get("hostile_reasons", [])),
+            "; ".join(bad.get("hostile_reasons", [])),
+        )
 
 
 def must_fail_real_hooks() -> None:

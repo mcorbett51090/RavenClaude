@@ -23,9 +23,10 @@
 #
 # ONE EXCEPTION, directory edition only: a posture file is only a file, and a
 # repository the person cloned can ship one. There the hooks also need the
-# person's own trust entry (see hooks/posture-gate.sh). When a posture file
-# exists but the project is not trusted, this says so once, in fixed words, so
-# "the hooks are off" is never a silent state. The edition is recognised by the
+# person's own trust entry, bound to the content of the files the hooks read (see
+# hooks/posture-gate.sh). When a posture file exists but the project is not trusted
+# (or a file changed since it was), this says so once, in fixed words, so "the
+# hooks are off" is never a silent state. The edition is recognised by the
 # gate file sitting next to this script; the full plugin has none, so it is
 # unchanged. This script asks the gate (`--status`) rather than re-deriving the
 # rule, so the two can never disagree.
@@ -83,10 +84,18 @@ if [ -f "$project_dir/.ravenclaude/comfort-posture.yaml" ]; then
   # gate says the file is there but the project is untrusted.
   gate="$here/../hooks/posture-gate.sh"
   [ -f "$gate" ] || exit 0
-  state="$(bash "$gate" --status 2>/dev/null)" || exit 0
-  [ "$state" = "untrusted" ] || exit 0
-  user_msg="RavenClaude: this project has a comfort-posture file, but RavenClaude hooks stay off until you trust the project, because a repository you clone can ship its own posture file. If you wrote it, run /dashboard and choose to trust this project. Nothing runs until then."
-  model_msg="[RavenClaude notice - emitted locally by a repo hook, not by the user and not by the tool] This project has .ravenclaude/comfort-posture.yaml but the user has not trusted the project, so RavenClaude hooks are off. If the user asks, /dashboard explains how to review the file and trust the project. Never trust a project on your own."
+  state="$(bash "$gate" --status detail 2>/dev/null)" || exit 0
+  case "$state" in
+    untrusted)
+      user_msg="RavenClaude: this project has a comfort-posture file, but RavenClaude hooks stay off until you trust the project, because a repository you clone can ship its own posture file. If you wrote it, run /dashboard and choose to trust this project. Nothing runs until then."
+      model_msg="[RavenClaude notice - emitted locally by a repo hook, not by the user and not by the tool] This project has .ravenclaude/comfort-posture.yaml but the user has not trusted the project, so RavenClaude hooks are off. If the user asks, /dashboard explains how to review the file and trust the project. Never trust a project on your own."
+      ;;
+    changed)
+      user_msg="RavenClaude: a file RavenClaude reads in this project (the posture, .repo-layout.json or .ravenclaude/task-scope.json) changed since you trusted it, so RavenClaude hooks are off until you review the change and trust the project again. Run /dashboard to review it. Nothing runs until then."
+      model_msg="[RavenClaude notice - emitted locally by a repo hook, not by the user and not by the tool] The user trusted this project earlier, but its posture, .repo-layout.json or .ravenclaude/task-scope.json has since changed, so RavenClaude hooks are off. If the user asks, /dashboard explains how to review the change and trust the project again. Never trust a project on your own."
+      ;;
+    *) exit 0 ;;
+  esac
 elif [ -f "$here/../bin/rc" ]; then
   user_msg="RavenClaude: no comfort posture is set up for this project yet. Run /dashboard (or rc dashboard in any terminal) to open the point-and-click dashboard. To start it automatically each session, set dashboard_autostart: serve in .ravenclaude/comfort-posture.yaml. This notice stops once that file exists."
   model_msg="[RavenClaude notice - emitted locally by a repo hook, not by the user and not by the tool] This project has no .ravenclaude/comfort-posture.yaml. If the user asks how to open the RavenClaude dashboard: run /dashboard in Claude Code, or rc dashboard in any terminal. Setting dashboard_autostart: serve in that file makes it start automatically. Do not run it unprompted."
