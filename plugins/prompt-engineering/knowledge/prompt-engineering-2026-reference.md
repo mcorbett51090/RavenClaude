@@ -1,20 +1,21 @@
 # Prompt-engineering 2026 reference (dated — verify at use)
 
-> **Retrieval date: 2026-07-15.** The facts here — model capabilities, structured-
+> **Retrieval date: 2026-07-15; currency re-check 2026-10-13** (see §7 for what was
+> re-verified against which source, and what stays UNVERIFIED). The facts here — model capabilities, structured-
 > output support, injection techniques, tooling — move fast. Every figure carries a
 > re-verify-at-use rider per ravenclaude-core's Claim Grounding protocol. The
 > *methods* in [`prompt-decision-trees.md`](prompt-decision-trees.md) are durable;
 > the *facts* below are snapshots. When a claim gates an irreversible action,
 > re-verify against the provider's current docs first.
 
-## 1. Structured-output support (as of 2026-07, verify per model)
+## 1. Structured-output support (as of 2026-07, re-checked 2026-10-13, verify per model)
 
 Three mechanisms, strongest first. Availability is model-specific — check the
 provider's current docs for your exact model.
 
 | Mechanism | What it gives you | Notes |
 | --- | --- | --- |
-| **Native structured / JSON-schema output** | Provider validates the output against a supplied JSON Schema | Strongest when available; still validate business rules yourself |
+| **Native structured / JSON-schema output** | Provider validates the output against a supplied JSON Schema | Strongest when available; still validate business rules yourself. Anthropic example (verified 2026-10-13): JSON outputs via `output_config.format` with `type: "json_schema"`, plus strict tool use (`strict: true`) |
 | **Tool / function calling** | Model emits arguments matching a tool's parameter schema | Universally useful — define the output *as* a tool and force the call |
 | **Constrained decoding / grammars** (e.g. GBNF) | Token-level constraint to a formal grammar | Mostly self-hosted / open-weights runtimes |
 | **Prose + parser** | Nothing enforced | Last resort — always with delimiters + repair retry |
@@ -38,7 +39,7 @@ deliberately — they change per release):
 - **Determinism controls** — temperature, top-p, seed availability. Reproducible
   evals need these pinned.
 
-## 3. Prompt-injection & jailbreak landscape (2026-07 snapshot)
+## 3. Prompt-injection & jailbreak landscape (2026-07 snapshot, re-checked 2026-10-13)
 
 Common technique families to include in a regression/red-team suite (treat as a
 *starting* set — the field evolves):
@@ -47,10 +48,13 @@ Common technique families to include in a regression/red-team suite (treat as a
 - **Indirect / data-borne injection** — malicious instructions embedded in
   retrieved documents, tool outputs, web pages, or file contents the model reads.
   The highest-risk class for RAG and agent systems.
-- **Role-play / hypothetical framing** jailbreaks.
+- **Role-play / hypothetical framing** jailbreaks. *(UNVERIFIED 2026-10-13: not a named
+  scenario on the OWASP LLM01 page; kept as a commonly-cited family.)*
 - **Encoding / obfuscation** (base64, translation, homoglyphs) to slip past
   keyword filters.
 - **Payload splitting** across turns or fields.
+- **Multimodal injection** (instructions hidden in an image) and **adversarial
+  suffixes** — both named LLM01 scenarios (verified 2026-10-13).
 
 **Durable defensive posture (not dated):** fence + label untrusted input as data;
 separate instruction from data; constrain output to an allow-list; require
@@ -94,3 +98,16 @@ choose at build time against current docs and pin the version.)*
 | Adversarial red-teaming of the whole system | `ai-red-teaming` |
 | The app / API / orchestration around the prompt | `claude-app-engineering`, `backend-engineering` |
 | App-layer security (authz, rate limits, moderation) | `security-engineering` |
+
+## 7. Currency check log
+
+**2026-10-13** — this file cites no sources inline; the dated claims were re-checked
+against primary pages:
+
+| Claim | Source re-read 2026-10-13 | Result |
+| --- | --- | --- |
+| Native JSON-schema output exists (Anthropic) | platform.claude.com/docs/en/build-with-claude/structured-outputs | Verified (`output_config.format`, `strict: true` tool use) |
+| Direct, indirect, payload-splitting, encoding/obfuscation injection families | genai.owasp.org/llmrisk/llm01-prompt-injection/ | Verified (scenarios 1, 2, 6, 9); multimodal + adversarial suffix added |
+| Role-play / hypothetical framing | same | UNVERIFIED (not a named scenario there) |
+| Constrained decoding / GBNF "mostly self-hosted" | — | UNVERIFIED (not re-read) |
+| Judge biases (position, verbosity, self-preference) | — | UNVERIFIED this pass; see `llm-evaluation-engineering/knowledge/llm-eval-tooling-2026.md` |
