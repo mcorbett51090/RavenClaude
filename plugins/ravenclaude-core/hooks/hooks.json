@@ -49,7 +49,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/sanitize-webfetch-output.sh\"",
-            "comment": "Deterministic WebFetch result quarantine (v0.267.0). Pipes the PostToolUse tool_response body through sanitize-webfetch-body.py and emits hookSpecificOutput.updatedToolOutput so the model never reads raw injection-shaped blocks. Matcher is WebFetch ONLY (mcp__.* is an accepted-limit this increment). Fail-open: parse/IO/sanitizer errors exit 0 and leave the original body in place. House Rule 3: this rewrites every WebFetch result a consumer's agent sees; fail-open is the default-break mitigator."
+            "comment": "Deterministic WebFetch result quarantine (v0.267.0). Pipes the PostToolUse tool_response body through sanitize-webfetch-body.py and emits hookSpecificOutput.updatedToolOutput so the model never reads raw injection-shaped blocks. Matcher is WebFetch ONLY (mcp__.* is an accepted-limit this increment). Fail-open for parse/IO/sanitizer errors (exit 0, original body left in place); FAIL-CLOSED since 2026-10-13 when python3 or the .py is missing (decision=block + static updatedToolOutput notice, so an unscanned body is never shown). House Rule 3: this rewrites every WebFetch result a consumer's agent sees."
           }
         ]
       },
@@ -87,7 +87,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/sanitize-mcp-output.sh\"",
-            "comment": "Q1/L4 leftover of analog-repos-gap-fill (docs/follow-ups/2026-08-14-analog-repos-leftovers.md): the same deterministic quarantine as sanitize-webfetch-output.sh (F1, #928), extended from WebFetch-only to any mcp__* tool call, closing the accepted-limit that hook's own comment names. Reuses sanitize-webfetch-body.py unchanged. Fail-open: parse/IO/sanitizer errors exit 0 and leave the original result in place. House Rule 3: this rewrites every MCP tool result a consumer's agent sees on every host that projects MCP tool calls through this matcher; fail-open is the default-break mitigator, matching F1's own precedent."
+            "comment": "Q1/L4 leftover of analog-repos-gap-fill (docs/follow-ups/2026-08-14-analog-repos-leftovers.md): the same deterministic quarantine as sanitize-webfetch-output.sh (F1, #928), extended from WebFetch-only to any mcp__* tool call, closing the accepted-limit that hook's own comment names. Reuses sanitize-webfetch-body.py unchanged. Fail-open for parse/IO/sanitizer errors (exit 0, original result left in place); FAIL-CLOSED since 2026-10-13 when python3 or the .py is missing (decision=block + static updatedToolOutput notice). House Rule 3: this rewrites every MCP tool result a consumer's agent sees on every host that projects MCP tool calls through this matcher."
           }
         ]
       },
