@@ -577,7 +577,9 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
       echo "── Gate 53: runaway read-only carve-out (per-gate run) ───────────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-runaway-readonly-carveout.sh || exit $?
       echo "── Gate 53b: runaway SH-F4/SH-F5 (per-gate run) ─────────────────────────"
-      bash plugins/ravenclaude-core/hooks/tests/test-runaway-shf4-shf5.sh
+      bash plugins/ravenclaude-core/hooks/tests/test-runaway-shf4-shf5.sh || exit $?
+      echo "── Gate 53c: runaway advisor nudge (per-gate run) ───────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-runaway-advisor-nudge.sh
       exit $?
       ;;
     54)
@@ -2069,6 +2071,11 @@ PY
     293)
       echo "── Gate 293: nested_dispatch comfort-posture knob (apply + server auth gate; per-gate run) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate293-nested-dispatch-knob.sh
+      exit $?
+      ;;
+    299)
+      echo "── Gate 299: Explore agent override (read-only haiku + agent count) (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate299-explore-agent-override.sh
       exit $?
       ;;
     298)
@@ -6167,6 +6174,9 @@ gate "runaway read-only carve-out (read-only exempt from consec, not from total;
 # open must not permanently silence stderr (trip reason must reach the agent).
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-runaway-shf4-shf5.sh >/dev/null 2>&1 || rc=$?
 gate "runaway SH-F4 project-root walk-up + SH-F5 stderr survives flock" must_pass "$rc"
+echo "── Gate 53c: runaway advisor nudge (2nd identical mutating call → advise, never block) ──"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-runaway-advisor-nudge.sh >/dev/null 2>&1 || rc=$?
+gate "runaway advisor nudge (once per streak, additionalContext only, read-only silent, brake unchanged)" must_pass "$rc"
 
 # ─────────────────────────────────────────────────────────────────────────────
 echo "── Gate 93: Learn-tab step-by-step diagram (stepper) render ──────────────"
@@ -6950,6 +6960,14 @@ rc=0; python3 scripts/check-hook-root-quoted.py >/dev/null 2>&1 || rc=$?
 gate "hook-root-quoted (clean tree)" must_pass "$rc"
 rc=0; rc_mustfail python3 scripts/check-hook-root-quoted.py || rc=$?
 gate "hook-root-quoted (--must-fail teeth exit 3)" must_pass "$rc"
+
+echo "── Gate 299: Explore agent override (read-only haiku + agent count) ──"
+# agents/explore.md overrides the built-in Explore so the haiku pin holds even
+# without a posture file (explore-tier-pin.sh stays as the fallback). The test
+# asserts name/model/tools (exactly Read, Grep, Glob), the 18-agent roster, the
+# README count claim, the codex/copilot projections, and a Write-added teeth mutant.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate299-explore-agent-override.sh >/dev/null 2>&1 || rc=$?
+gate "explore-agent-override: read-only haiku Explore, 18-agent roster, projections, teeth" must_pass "$rc"
 
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"

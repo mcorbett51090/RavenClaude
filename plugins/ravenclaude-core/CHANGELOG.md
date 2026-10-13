@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.352.0 — 2026-10-13
+
+### Added
+- **Advisor checkpoints** (`CLAUDE.md`). When an advisor model is configured, consult it before a plan locks, after the same error happens twice, and after `dod-gate` passes but before declaring done. Skip on tasks under about 10 turns. The advisor never overrides a gate verdict or tool evidence. Timing is model-driven, so this is guidance, not a control.
+- **`agents/explore.md`**: a project override of the built-in `Explore` subagent on `model: haiku` with read-only tools (`Read, Grep, Glob`). The Haiku pin now holds without a posture file; `explore-tier-pin.sh` stays as the fallback. Codex/Copilot projections regenerated. Core roster 17 → 18. New Gate 299 (`test-gate299-explore-agent-override.sh`, fails on 0.351.0) checks name/model/tools, the 18-agent count, the README claim, the projections, and a Write-added teeth mutant.
+- **Runaway-brake advisor nudge.** On the 2nd identical mutating call in a row, `runaway-brake.sh` now returns a PreToolUse `additionalContext` advisory (exit 0, once per streak): re-read the error, then consult the advisor before retrying. The block at `max_consecutive` is unchanged and read-only calls stay transparent. New Gate 53c (`test-runaway-advisor-nudge.sh`, fails on 0.351.0).
+- **`knowledge/unified-model-matrix.md`**: an Advisor row (Sonnet 5.5 main → Opus 5.5 advisor, launcher-owned, Anthropic API only), an Explore-override row, and a "Rejected: JEV per-turn router" note with the reasons.
+
 ## 0.351.0 — 2026-10-13
 
 ### Changed
