@@ -127,3 +127,19 @@ re-dispatches.
 This plugin owns **the prompt, the context, the output contract, and the
 reliability of all three.** The model, the retrieval, the measurement-at-scale, and
 the system attack belong to someone else.
+
+### Scoping note: prompt-engineering vs claude-app-engineering (2026-10-13)
+
+Overlap with `claude-app-engineering/prompt-and-context-engineer` is resolved by
+**layer, not by deletion**:
+
+- **This plugin is the owner** of provider-neutral prompt design: decomposition,
+  pattern choice, the context *plan* (what goes in, in what order, at what budget),
+  the output contract, and the per-prompt regression gate.
+- **`prompt-and-context-engineer` owns the Claude-API mechanics** that implement that
+  plan on Claude: `cache_control` breakpoints/TTL, 1M-window management, thinking/effort
+  config, citations, forced-tool structured output, the Messages-API tool loop.
+- Start here when the question is "what should the prompt/context be?"; hand off to
+  `claude-app-engineering` when it is "how do I make Claude's API do that cheaply?".
+- `ravenclaude-core/prompt-engineer` is a third, separate role: it curates RavenClaude's
+  own agent/skill/rule files, not application prompts.
