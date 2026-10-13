@@ -34,3 +34,8 @@ description: "Turn a fuzzy 'is the AI good enough?' into a concrete measurement 
 - **Never gate on a leaderboard/benchmark score** — it doesn't measure your task.
 - **Decide the threshold before the run** — a bar set after seeing the number is not a gate.
 - **A vibe check is a hypothesis** — fine to start, never to decide.
+
+## See also
+
+- [`prompt-engineering` → `prompt-eval-and-regression`](../../../prompt-engineering/skills/prompt-eval-and-regression/SKILL.md): prompt-level regression sets.
+- [`evals/inject-golden-set/`](../../../../evals/inject-golden-set/README.md): offline injection regression set (zero-tolerance guardrail slice).

@@ -34,3 +34,8 @@ description: "Design, calibrate, and bias-audit an LLM-as-judge so its scores tr
 - **A judge with no rubric and no human calibration is a random-number generator** — do not report its scores as fact.
 - **Never let the judge model be the model under test** without a self-preference audit.
 - **Re-calibrate when you change the judge model or the rubric** — the old baseline no longer applies.
+
+## See also
+
+- [`prompt-engineering` → `prompt-eval-and-regression`](../../../prompt-engineering/skills/prompt-eval-and-regression/SKILL.md): the per-prompt gate that consumes the judge.
+- [`evals/inject-golden-set/`](../../../../evals/inject-golden-set/README.md): offline injection regression set (zero-tolerance guardrail slice).

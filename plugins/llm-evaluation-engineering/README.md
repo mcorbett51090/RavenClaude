@@ -33,6 +33,15 @@ measure*, and *building the machinery* that proves it.
 - **Classical-ML training + metrics (AUC, calibration)** → `ml-engineering`.
 - **Product A/B experiments** → `experimentation-growth-engineering`.
 
+## See also
+
+- [`prompt-engineering`](../prompt-engineering/README.md) — owns the single prompt's regression set
+  and CI gate ([`prompt-eval-and-regression`](../prompt-engineering/skills/prompt-eval-and-regression/SKILL.md)).
+  This plugin takes over when evaluation spans a system, many prompts, or a release.
+- [`evals/inject-golden-set/`](../../evals/inject-golden-set/README.md) — offline prompt-injection
+  regression set; a ready-made zero-tolerance guardrail slice for
+  [`gate-releases-with-evals`](skills/gate-releases-with-evals/SKILL.md).
+
 ## Install
 
 ```

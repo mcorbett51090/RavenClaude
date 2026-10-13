@@ -52,3 +52,11 @@ Prompts carry a version (semver or content hash). Roll changes out shadow → ca
 A regression set + scoring method + threshold, a CI gate with the model pinned,
 injection cases included, an honest coverage statement, and a versioning + canary
 rollout plan.
+
+## See also
+
+- [`llm-evaluation-engineering`](../../../llm-evaluation-engineering/README.md):
+  [`design-eval-suite`](../../../llm-evaluation-engineering/skills/design-eval-suite/SKILL.md),
+  [`build-llm-judge`](../../../llm-evaluation-engineering/skills/build-llm-judge/SKILL.md) (calibrate the
+  judge before trusting it), [`gate-releases-with-evals`](../../../llm-evaluation-engineering/skills/gate-releases-with-evals/SKILL.md).
+- [`evals/inject-golden-set/`](../../../../evals/inject-golden-set/README.md): offline injection regression cases.
