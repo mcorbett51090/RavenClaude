@@ -194,7 +194,9 @@ URI prefixes from [Brand guidelines — Modules](https://developers.google.com/w
 
 Put the vendor app / site in `linksModuleData` so the holder can leave Wallet for the rich profile. Deep links should land in Play Store if the app is missing; deferred deep link after install is preferred.
 
-`appLinkData` is the **front-of-pass** button (object overrides class).
+`appLinkData` is the **front-of-pass** button (`webAppLinkInfo` for a website; `displayText` ≤ 30 chars; object overrides class; `iosAppLinkInfo` is deprecated — "Links to open iOS apps are not supported"). It is the only documented way to put a tappable "Share your details" CTA on the *front* of a Google pass.
+
+> ⚠️ **P1 unverified (#8) — see [`verify.md`](verify.md).** The FAQ says "Applinking requires allowlisting which can be requested here," with **no criteria, eligibility, form content, or timeline** published, and the linked form was not fetched. This gates whether a front-of-pass button is available to RavenPass at all — do not promise it before opening the allowlist form signed into the Google Pay & Wallet Console. Until then, ship the QR + `linksModuleData` (detail-view links) as the CTA.
 
 ### 7.2 Smart Tap (NFC)
 
@@ -236,7 +238,9 @@ From [JWT](https://developers.google.com/wallet/generic/use-cases/jwt) and [Issu
 https://pay.google.com/gp/v/save/<signed_jwt>
 ```
 
-That URL is valid in web, email, SMS, chat. Present it as Google's official **Add to Google Wallet** button (primary or condensed, black only, min height 48 dp, 8 dp clear space, equal-or-larger than sibling buttons). Do not recolor, relocalize, or rebuild the button. Localized assets are listed in the brand guide. RU-only surfaces still use the older "Save to phone" assets.
+That URL is valid in web, email, SMS, chat, and **can only be initiated in the context of a logged-in Google identity**. Present it as Google's official **Add to Google Wallet** button (primary or condensed, black only, min height 48 dp, 8 dp clear space, equal-or-larger than sibling buttons). Do not recolor, relocalize, or rebuild the button. Localized assets are listed in the brand guide. RU-only surfaces still use the older "Save to phone" assets.
+
+> **⚠️ The 1800-character ceiling is the key practical constraint.** "The safe length of an encoded JWT is 1800 characters… If the length is over 1800 characters, the save may not work due to truncation by web browsers" ([Issuing passes for web](https://developers.google.com/wallet/generic/web)). A card with a photo URL, several text modules, links, and a barcode blows past it. **Remedy (the skinny JWT):** pre-create the class and object server-side via REST, then hand out a JWT whose `payload.genericObjects[]` carries only `{ "id": "ISSUER_ID.OBJECT_SUFFIX" }` — the full object already exists at Google, so the link stays short ([FAQ](https://developers.google.com/wallet/generic/resources/faq)). Just-in-time (embedding the whole class/object in the JWT) is fine only when the result stays under 1800 chars.
 
 `origins` should list the HTTPS origins that embed the button.
 
@@ -263,6 +267,8 @@ To save many already-inserted objects (mixed verticals) in one tap, put each typ
 - Google may throttle if they judge the traffic as spam.
 - `UPDATE` / `PATCH` can edit or remove messages.
 
+**Developer-authored arbitrary push is not supported** ("Developer authored push notifications are not currently supported by Google Wallet," [FAQ](https://developers.google.com/wallet/generic/resources/faq)). The only notification surfaces are: the fixed Generic **system reminders** (§9.3), `addmessage` messages (≤10/object), and **field-update notifications** via `notifyPreference: NOTIFY`. The latter "will only be sent to users if the field is part of an **allowlist**" and the setting "is ephemeral and needs to be set with each PATCH or UPDATE." ⚠️ P3 unverified (#24) — the allowlisted field set is not documented. A business card almost never needs any of these.
+
 ### 9.3 Expiry / upcoming
 
 `notifications` supports **one** of ([GenericObject](https://developers.google.com/wallet/reference/rest/v1/genericobject)):
@@ -276,7 +282,7 @@ If both are set, expiry wins and upcoming is ignored.
 
 ### 9.4 Nearby
 
-Add `merchantLocations` (≤ 10 class + ≤ 10 object). Google chooses radius and dwell; Google writes the notification text. Requires notifications **and** precise, always-on location for Wallet. Sticky while the user is at the point; swipe to dismiss; disappears on leave ([Trigger Push Notifications — Nearby](https://developers.google.com/wallet/generic/use-cases/trigger-push-notifications)).
+Add `merchantLocations` (≤ 10 class + ≤ 10 object; extra points are rejected). Google chooses radius and dwell; Google writes the notification text. Requires notifications **and** precise, always-on location for Wallet. Sticky while the user is at the point; swipe to dismiss; disappears on leave ([Trigger Push Notifications — Nearby](https://developers.google.com/wallet/generic/use-cases/trigger-push-notifications)). `merchantLocations` replaces the deprecated `LatLongPoints` / `LoyaltyClass.locations`. ⚠️ P3 unverified (#22) — the "Google-set radius" value is not documented.
 
 ## 10. Branding and naming
 
@@ -303,3 +309,30 @@ From [Brand guidelines](https://developers.google.com/wallet/generic/resources/b
 | NFC (if enrolled) | class Smart Tap + object `smartTapRedemptionValue` |
 
 Worked JSON: [`business-card-layout.md`](business-card-layout.md).
+
+## 12. Operational limits, Demo Mode → publishing, and hard prohibitions
+
+From [FAQ](https://developers.google.com/wallet/generic/resources/faq), [Requesting publishing access](https://developers.google.com/wallet/generic/test-and-go-live/request-publishing-access), and [GenericObject](https://developers.google.com/wallet/reference/rest/v1/genericobject).
+
+### Operational limits to design against
+
+- API is **rate-limited to 20 requests/second**. No official SLA; recommended **10 s timeout** (p99 latency ~5 s).
+- Server **callbacks arrive with `Googlebot` and `Google-Valuables` user agents** — allowlist them in your CDN/WAF or they get blocked.
+- Class review is **automatic** — set `reviewStatus: underReview` and the platform sets it to `approved`; it cannot be set back to `draft`.
+
+### Demo Mode → publishing access (required before real users)
+
+- A new Issuer account starts in **Demo Mode**: you can only issue to accounts with the **Admin/Developer role** on the issuer or added as **test accounts**, and every pass title carries a **`[TEST ONLY]`** prefix.
+- To leave it: complete your **Business Profile** (business info + a payments profile) **and** create **≥1 Passes Class**, then click **"Request publishing access."** Screenshots are **no longer** required. Once granted, the `[TEST ONLY]` prefix disappears on reopen. ⚠️ P3 unverified (#25) — no review turnaround is published. **Start this early; it blocks serving any non-test user.**
+- Multi-tenant note: "If the Issuer account for pass development contains classes for other merchants, you must set up a new account on behalf of the merchant," and an issuer gets exactly **one** Collector ID — an architecture decision with no easy reversal.
+
+### Hard prohibitions (not configurable)
+
+- **No personal images on passes** — "Google Wallet does not support personal images on passes… personal images are not allowed." Use brand art for `logo`/`heroImage`; keep a headshot behind the URL. (Apple publishes no equivalent ban — see [`verify.md`](verify.md) #29.)
+- **Cannot delete a class or object** — users can only de-link. Short, stable, never-reused suffixes are mandatory.
+- `linkedObjectIds[]` cannot be unlinked and cannot cross issuers; ⚠️ P3 unverified (#23) — there is a per-object limit beyond which new links are "ignored silently," value not documented.
+- **Generic Private Pass is the wrong vertical for a business card** — it is scoped to sensitive data (health/government ID) and invites a regulatory-grade review; it is the only path where the whole pass lives in the JWT (no stored object), but the 1800-char ceiling still applies.
+
+### iOS coverage
+
+⚠️ P1 unverified (#4) — whether a Google Wallet pass can be saved/viewed **on iOS** is not stated on any page fetched. Plan Android-first and ship a `.pkpass` for iOS users.

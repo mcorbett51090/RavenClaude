@@ -1,6 +1,6 @@
 ---
 name: wallet-passes
-description: Use when designing, reviewing, or implementing Apple Wallet (.pkpass / PassKit) or Google Wallet (GenericClass / GenericObject) passes — especially digital business cards, membership cards, tickets, coupons, or "Add to Wallet" save links. Reach for this on pass.json field layout, image sizes, truncation, NFC/Smart Tap, web-service updates, JWT save URLs, or branding rules.
+description: Use when designing, reviewing, or implementing Apple Wallet (.pkpass / PassKit) or Google Wallet (GenericClass / GenericObject) passes — digital business cards, tickets, coupons, save links — or tap-to-share / NFC-tag / QR lead capture. Reach for this on pass.json layout, images, truncation, NFC/VAS/Smart Tap, updates, JWT save URLs, appLinkData, or branding.
 ---
 
 # wallet-passes
@@ -9,9 +9,11 @@ Official-docs reference for Apple Wallet (PassKit) and Google Wallet generic pas
 
 | Need | Open |
 |---|---|
-| Apple `pass.json`, styles, images, relevance, signing, web service, NFC | [`references/apple.md`](references/apple.md) |
-| Google Generic class/object, templates, images, JWT save, Smart Tap, notifications | [`references/google.md`](references/google.md) |
+| Apple `pass.json`, styles, images, relevance, signing, web service, NFC, Featured Actions | [`references/apple.md`](references/apple.md) |
+| Google Generic class/object, templates, images, JWT save, Smart Tap, notifications, publishing | [`references/google.md`](references/google.md) |
 | Digital business-card layout, worked examples, common-mistakes checklist | [`references/business-card-layout.md`](references/business-card-layout.md) |
+| Tap-to-share / tap-to-lead-form: what's possible / entitlement-gated / impossible; NFC-tag/QR → HTTPS; workarounds | [`references/tap-to-share.md`](references/tap-to-share.md) |
+| Weak / unverified / absent-evidence claims (the 29-item ledger; P1 = #1–#8) | [`references/verify.md`](references/verify.md) |
 
 ## When to use
 
@@ -21,6 +23,21 @@ Official-docs reference for Apple Wallet (PassKit) and Google Wallet generic pas
 - Diagnosing truncation, dead links, silent updates, cached stale passes, or rejected artwork.
 
 **Not for:** payment cards / Apple Pay / Google Pay checkout, boarding-pass airline integrations beyond PassKit field rules, or native Wallet UI apps (that is PassKit / Wallet API app code, not pass design).
+
+> ## ⚠️ P1 unverified — architecture / promise level (read before you promise)
+>
+> Eight claims the research could not confirm from a primary source would each change an architecture decision or a customer promise. **Do not treat any of these as settled**; the full ledger with how-to-verify steps is [`references/verify.md`](references/verify.md).
+>
+> 1. **`.pkpass` single-pass MIME / Safari Add-to-Wallet sheet** (#1) — `application/vnd.apple.pkpass` was on no current page.
+> 2. **`.pkpass` download in non-Safari/Android browsers** (#2) — undocumented.
+> 3. **`posterGeneric` is a real supported key** (#3) — absent from the `Pass` reference table; ship a `generic` fallback.
+> 4. **Google Wallet passes work on iOS** (#4) — not stated; plan Android-only + `.pkpass` for iOS.
+> 5. **No public NameDrop API** (#5) — argument from absence; you cannot drive NameDrop from an app.
+> 6. **Apple NFC passes invisible to ordinary NDEF readers** (#6) — inferred, not stated.
+> 7. **Apple NFC (VAS) cert has no published SLA** (#7) — the request form is sign-in gated.
+> 8. **Google `appLinkData` needs allowlisting** (#8) — one FAQ sentence, no criteria/timeline; it gates any front-of-pass button.
+>
+> The other 21 items (#9–#29: P2 implementation details and P3 undocumented numbers) are in the same ledger.
 
 ## Hard rules (both platforms)
 
@@ -78,6 +95,16 @@ Two resources: **class** (template / program) + **object** (one person's pass).
 **Notifications:** max **3** `TEXT_AND_NOTIFY` messages per pass per 24h (`QuotaExceededException` after that). Expiry notice = 2 days before; upcoming = 1 day before; only one of those two. Nearby: ≤10 `merchantLocations` on class and ≤10 on object.
 
 Full schema/templates/branding: [`references/google.md`](references/google.md).
+
+## Tap to share / lead capture — 30-second map
+
+For "tap a phone to share a card" and "a tap opens a lead form." Full detail + friction tables + workarounds: [`references/tap-to-share.md`](references/tap-to-share.md).
+
+- **Phone-to-phone NFC "beaming" of a card is NOT available to third parties** on either platform. A pass's `nfc` key (Apple VAS / Google Smart Tap) talks to a **terminal**, not another phone, and both need an entitlement + certified hardware.
+- **What IS available for "tap phones":** Apple **Wallet→Wallet proximity share** (leave `sharingProhibited` false — the one real third-party-controlled primitive), **NameDrop** (system-owned, no API — #5), and an **NFC tag/sticker + QR** any phone reads.
+- **"A tap opens a lead form" is fully doable today, zero approvals:** one stable **HTTPS universal-link/App-Link-ready URL** carried by (a) an NFC tag (NDEF well-known URI, HTTPS, single record), (b) a printed QR, (c) the QR inside the pass. Cost: **2 taps** on both platforms (Android 17 added an "open link" notification step, matching iOS).
+- **Front-of-pass CTA button:** Apple has none before iOS 27 **Featured Actions** (schema unverified — #11); `appLaunchURL` only launches *your* App Store app. Google has **`appLinkData`** but it is **allowlist-gated** (#8). Until both are confirmed, the QR + back/detail links are the CTA.
+- **Keep off the build list:** phone-to-phone card beaming (not available), a NameDrop integration (no API), a headshot on a Google pass (banned), reliance on developer-authored Google push (unsupported), a `.vcf`-download-only primary flow (multi-step on both platforms).
 
 ## Business-card default
 

@@ -36,6 +36,8 @@ Omit Finder metadata (`.DS_Store`). After signing, do not edit any file — a ha
 
 Identity of a pass is `passTypeIdentifier` + `serialNumber`. A replacement with those two keys equal **is** an update; a new serial is a second pass.
 
+**MIME types & size.** A **bundle** of passes is `application/vnd.apple.pkpasses` (zip of `.pkpass` files renamed `.pkpasses`), limited to **10 passes / 150 MB** ([Distributing and updating a pass](https://developer.apple.com/documentation/walletpasses/distributing-and-updating-a-pass)). ⚠️ P1 unverified (#1) — the **single-pass** MIME type `application/vnd.apple.pkpass`, and that serving it over HTTPS triggers Safari's inline Add-to-Wallet sheet, is long-standing in practice but was **not** found on any current Wallet Passes page (see [`verify.md`](verify.md)). ⚠️ P3 unverified (#17) — Apple documents no maximum size for a **single** `.pkpass`. Distribution channels: in-app add, App/App Clip add, a download on a web page, or an email attachment.
+
 ## 2. Required top-level keys
 
 From [Pass Design and Creation](https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/PassKit_PG/Creating.html) and [Pass](https://developer.apple.com/documentation/walletpasses/pass):
@@ -79,13 +81,17 @@ Required for the poster face (omit any → fallback):
 - `semantics.eventStartDate` / `eventEndDate` (ISO 8601)
 - `semantics.eventType` (e.g. `livePerformance`)
 
-Keep `eventTicket.primaryFields` / `secondaryFields` / `auxiliaryFields` so older OS versions still render. Semantic tags may live on the top-level `semantics` object **or** on a field; placement does not change behavior ([Supporting semantic tags](https://developer.apple.com/documentation/walletpasses/supporting-semantic-tags-in-wallet-passes)).
+Keep `eventTicket.primaryFields` / `secondaryFields` / `auxiliaryFields` so older OS versions still render. Semantic tags may live on the top-level `semantics` object **or** on a field; placement does not change behavior ([Supporting semantic tags](https://developer.apple.com/documentation/walletpasses/supporting-semantic-tags-in-wallet-passes)). Poster-event semantic tags are only available for **sports and live performance**; all other events fall back to field-based event tickets ([Defining the metadata](https://developer.apple.com/documentation/walletpasses/defining-the-metadata-of-your-wallet-pass)).
+
+**A poster event ticket cannot carry a scan code:** "Poster event tickets aren't compatible with tickets that require a QR code or barcode for entry" ([Creating a poster event pass](https://developer.apple.com/documentation/walletpasses/creating-an-event-pass-using-semantic-tags)). A card or ticket that needs a QR must use `generic` / `posterGeneric`, not the poster event ticket.
 
 WWDC25 adds `upcomingPassInformation[]` on a poster ticket so one pass can list later events ([WWDC25 What's new in Wallet](https://developer.apple.com/videos/play/wwdc2025/202/)). Each entry follows the same semantic structure; add / update / remove entries via the web-service update path.
 
 ### 3.2 Poster generic (newer devices)
 
-`posterGeneric` is a separate top-level style. Wallet prefers it when present; include a **second** legacy style (`generic`, `storeCard`, `eventTicket`, or `coupon`) on the same `pass.json` for older iOS / watchOS ([Creating a Poster Generic Pass](https://developer.apple.com/documentation/walletpasses/creating-a-poster-generic-pass)). Poster generic slots: `headerFields`, `primaryFields`, `footerFields`, `backFields`, `additionalInfoFields`, plus a square QR when supplied.
+> ⚠️ **P1 unverified (#3) — see [`verify.md`](verify.md).** `posterGeneric` is documented in the **guide** ("Creating a Poster Generic Pass") with a full code sample, but it is **absent from the `Pass` reference property table** as of 2026-10-12 (zero occurrences in the Pass DocC JSON). Treat it as a working belief — could be doc-sync lag, a beta-gated key, or a rename. Verify by installing a `posterGeneric` + `generic`-fallback pass on an iOS 27 device before promising it. Shipping the `generic` fallback (below) means a wrong guess here degrades gracefully rather than failing to add.
+
+`posterGeneric` is documented as a separate top-level style. Wallet is said to prefer it when present; include a **second** legacy style (`generic`, `storeCard`, `eventTicket`, or `coupon`) on the same `pass.json` for older iOS / watchOS ([Creating a Poster Generic Pass](https://developer.apple.com/documentation/walletpasses/creating-a-poster-generic-pass)). Poster generic slots: 1 header, up to 4 primary, 2 footer, back fields, additional-info fields, plus a **square QR** when supplied — and up to **two Featured Action links** (§4.5). Unlike a poster *event* ticket, poster generic **does** support a barcode. Generic/poster-generic passes do not auto-expire on signing date; control expiry with `expirationDate`.
 
 A business card that must run on current **and** older phones should ship `generic` as the fallback (or as the only style). Do not require `posterGeneric` for a card.
 
@@ -147,14 +153,20 @@ When a field `value` changes on update **and** the field has `changeMessage`, Wa
 
 From [Pass Design and Creation](https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/PassKit_PG/Creating.html) and [PassFieldContent](https://developer.apple.com/documentation/walletpasses/passfieldcontent):
 
-- Back-field text is run through **data detectors** (URLs, phone numbers). Tap opens Safari or Phone.
+- Back-field text is run through **data detectors** (URLs, phone numbers). Tap opens Safari or Phone. ⚠️ P2 unverified (#9) — the current Wallet Passes pages do **not** state that a bare URL/phone/email in a `backFields` `value` is auto-linked; it is universally observed in practice but not primary-sourced (see [`verify.md`](verify.md)). `dataDetectorTypes` and `attributedValue` (below) are the **documented** controls, so prefer them when you need a guaranteed tappable link.
 - `dataDetectorTypes` is **back-only**. Default = all detectors. `[]` disables them. Not used on watchOS.
 - `attributedValue` may contain an `<a href="…">` tag (the only supported HTML). It **overrides** `value` on iPhone. **watchOS ignores `attributedValue`** — always ship `value` as well.
 - Front fields are **not** tappable links. A URL on `primaryFields` is just text (and will truncate).
 
-`associatedStoreIdentifiers` (top-level array of iTunes item IDs) is the official "install our app from the pass" hook.
+`associatedStoreIdentifiers` (top-level array of iTunes item IDs) is the official "install our app from the pass" hook. `appLaunchURL` rides on it and launches **your own** App Store app — it is **not** a general "tap the pass to open a web URL" hook ([Pass](https://developer.apple.com/documentation/walletpasses/pass)).
 
 Contact info for the **signing organization** is required on the back ([App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), cited from the Wallet guide).
+
+### 4.5 Featured Actions (iOS/watchOS 27+)
+
+Poster generic passes support up to **two Featured Action links** — the first general way to put a tappable CTA on the *front* of a pass. Apple documents the action **identifiers**: `viewSchedule`, `watchTrailer`, `listenToMusic`, `call`, `place`, `addToBalance`, `order`, `shop`, `membershipBenefits`, `bookAppointment`, `bookCar`, `bookFlight`, `bookStay`, `viewOffersRewards`. For a business card, `call` / `place` / `shop` / `bookAppointment` / `viewOffersRewards` are the plausible ones ([Defining the metadata](https://developer.apple.com/documentation/walletpasses/defining-the-metadata-of-your-wallet-pass)).
+
+> ⚠️ **P2 unverified (#11) — see [`verify.md`](verify.md).** Apple documents only the action *identifiers* and that each has "an icon, string, and action." The exact `pass.json` key, nesting, and any URL field are **not documented** on the pages fetched — treat the JSON schema as unknown and verify against a shipped iOS 27 pass or DTS before building. There is no documented generic "open arbitrary URL" Featured Action.
 
 ## 5. Images and @1x / @2x / @3x
 
@@ -210,14 +222,17 @@ The pass.json key is `nfc` (dictionary). Apple's Value Added Services (VAS) path
 
 NFC-enabled loyalty / membership on Apple Pay terminals: see Apple's "supporting loyalty and membership passes" note on [Getting Started](https://developer.apple.com/wallet/get-started/). Without the NFC entitlement on the certificate, the `nfc` block is ignored and the pass still adds.
 
+**This is a pass→terminal channel, not phone-to-phone.** The `nfc` key is the Value-Added Services (VAS) protocol to an Apple Pay terminal — it is **not** a way to beam a card to another phone, and `message` is capped at 64 bytes. The entitlement is requested via `developer.apple.com/contact/passkit/`, which also requires a VAS-certified Apple Pay terminal and POS "VAS Only"/"Payment and VAS" modes. ⚠️ P1 unverified (#7) — the form is sign-in gated and Apple publishes no SLA. Reading another device's pass needs `NFCVASReaderSession`, whose entitlement request form Apple has **not** published. ⚠️ P1 unverified (#6) — that a Wallet pass is therefore invisible to ordinary NDEF readers is inferred, not stated. For the full tap-to-share / lead-capture picture (proximity share, NameDrop, NFC-tag→URL), see [`tap-to-share.md`](tap-to-share.md).
+
 ## 8. Relevance — lock-screen presentation
 
 Relevance is **passive** (no alert). Update notifications are a different channel ([Pass Design and Creation — Relevance Information](https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/PassKit_PG/Creating.html)).
 
 | Key | Limit | Format |
 |---|---|---|
-| `relevantDate` | 0 or 1 | W3C / ISO 8601 complete date + hours and minutes (seconds optional) |
-| `locations` | ≤ 10 | `{latitude, longitude, altitude?, relevantText?}` |
+| `relevantDates` | array | **iOS 18+** ([Pass.RelevantDates](https://developer.apple.com/documentation/walletpasses/pass/relevantdates-data.dictionary)). Each entry is a single `date` (Wallet derives the interval) **or** a `startDate` + `endDate` (`endDate` required with `startDate`). Prefer this. |
+| `relevantDate` | 0 or 1 | **Deprecated** — "Use `relevantDates` instead" ([Pass](https://developer.apple.com/documentation/walletpasses/pass)). Still honored for older OS; for a living card, skip dates entirely. |
+| `locations` | ≤ 10 | `{latitude, longitude, altitude?, relevantText?}`; optional top-level `maxDistance` (metres) — the system uses the smaller of `maxDistance` or a default distance. ⚠️ P3 unverified (#19) — Apple does not document the default distance. |
 | `beacons` | ≤ 10 UUIDs | `{proximityUUID, major?, minor?, relevantText?, name?}` ([Pass.Beacons](https://developer.apple.com/documentation/walletpasses/pass/beacons-data.dictionary)) |
 
 When you have more than ten stores, pick the user's favorites and **update** the pass; or use one beacon UUID across many stores (that is how you exceed ten GPS points).
@@ -265,7 +280,7 @@ Documented flow in the two sources above; path shape is the long-standing PassKi
 | `GET` | `/v1/passes/{passTypeIdentifier}/{serialNumber}` | `ApplePass {authenticationToken}` | Latest `.pkpass`. Honor `If-Modified-Since` → `304`. |
 | `POST` | `/v1/log` | — | Device-side error log; persist for support |
 
-Push: for each registered device, send APNs to its `pushToken` with **empty JSON `{}`**, using the **same certificate + key that signed the pass**. Extra alert keys are the wrong tool and are lost when APNs coalesces. If APNs reports the token dead, delete that device and its registrations.
+Push: for each registered device, send APNs to its `pushToken` with **empty JSON `{}`**, using the **same certificate + key that signed the pass**. Extra alert keys are the wrong tool and are lost when APNs coalesces. If APNs reports the token dead, delete that device and its registrations. A pass-update push **works only in the production APNs environment** — the Simulator does not register for pushes. ⚠️ P3 unverified (#20) — Apple documents no rate limit on pass-update pushes or web-service calls.
 
 Update tag is opaque but totally ordered — later than every earlier tag (a timestamp string is fine).
 
@@ -280,6 +295,8 @@ Pass-level control: `sharingProhibited` (boolean, default `false`) on the Pass o
 Privacy note: when a managed pass is shared, the device may tell the pass provider that a share happened (e.g. guest-limit counting). Family Sharing may auto-accept a pass shared by a parent to a child account.
 
 NameDrop-style nearby share is an OS feature on eligible devices; there is no separate pass.json "NameDrop" key. Disabling Share (`sharingProhibited: true`, or issuer-side disable) is what turns it off.
+
+⚠️ P2 unverified (#10) — which exact Share-sheet channels (AirDrop / Messages / Mail / third-party apps) Wallet offers is from a search snippet, not fetched page text. ⚠️ P1 unverified (#5) — **NameDrop has no public third-party API**: an app cannot originate, intercept, populate, or receive a NameDrop exchange, and NameDrop shares only name + a chosen phone/email + Contact Poster, and **cannot update an existing contact**. The issuer-gated Wallet→Wallet proximity share (leave `sharingProhibited` false) is the real "tap phones" primitive a third party controls — full picture in [`tap-to-share.md`](tap-to-share.md).
 
 ## 12. Signing checklist
 
