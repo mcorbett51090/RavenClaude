@@ -19,7 +19,7 @@ allowed-tools: Bash, Read
 
 The **read-only diagnosis (M0) is the spine** — always run it first, write a snapshot to disk, and let
 the symptom + the layer query select the method. Everything after M0 is a **ranked fallback chain**:
-try the preferred method (★); on its named failure signal, fall to the next (`→ Mx`). No fix runs
+try the preferred method (★ — M0 and M1 only; M2 is an approval-gated fallback, never a default); on its named failure signal, fall to the next (`→ Mx`). No fix runs
 against TEST/PROD without the matching **HARD GATE** being cleared by a human.
 
 ```
@@ -46,7 +46,7 @@ diagnose (M0, read-only) → pick method by symptom → [HARD GATE if prod/irrev
 
 | Symptom | Diagnose (read-only, M0) | Method (ranked) | Verify |
 |---|---|---|---|
-| Managed import "didn't take" / prod differs from source | `msdyn_componentlayers` query (below); UI *See solution layers* [S4] | **Active** layer present → **M2** RemoveActiveCustomization; else another managed layer on top → **M6** reorder/uninstall | Re-run layer query: no `Active` row; expected solution topmost |
+| Managed import "didn't take" / prod differs from source | `msdyn_componentlayers` query (below); UI *See solution layers* [S4] | **Active** layer present → default **M1** (fix at source + stage-and-upgrade); **M2** RemoveActiveCustomization only as an approval-gated fallback (never default); else another managed layer on top → **M6** reorder/uninstall | Re-run layer query: no `Active` row; expected solution topmost |
 | Ribbon / command-bar button wrong or missing | `&ribbondebug=true` Command checker [S7] | **M3** Command checker remove-layer; else **M4** RibbonDiffXml edit | Command checker shows expected layer wins |
 | A component you deleted in dev is still in target | `pac solution list`; `msdyn_solutionhistories` | **M1** stage-and-upgrade (upgrade deletes absent components) [S3] | Component query returns 404/empty |
 | Stuck `_Upgrade` holding solution | `GET solutions?$filter=endswith(uniquename,'_Upgrade')` | **M1b** `pac solution upgrade --solution-name <base>` / `DeleteAndPromote` | `pac solution list`: single base at new version, no `_Upgrade` |
@@ -133,7 +133,9 @@ deletes are *undesired* → **M1c**; small hotfix only → **M1d**.
 
 ---
 
-## M2 ★ — RemoveActiveCustomization (Web API), per component
+## M2 — RemoveActiveCustomization (Web API), per component — approval-gated fallback, never a default
+
+> **Not a default.** M2 is never chosen automatically. Use it only as a fallback when M0 confirms an Active layer, M1 is not viable, and a human has approved the HARD GATE below.
 
 **When:** M0 confirmed an **`Active` (unmanaged) layer** sitting over a managed **non-merge** component in
 TEST/PROD, and you want the managed layer to win again.
@@ -206,7 +208,7 @@ one solution. Microsoft **discourages** this — it is slow and destructive [S2]
 
 ⚠️ **HARD GATE — human approval required** (force-overwrite import to TEST/PROD; wipes unmanaged work).
 
-**Failure signals:** merge components unaffected → go per-component via **M2** (non-merge) or **M3/M4**
+**Failure signals:** merge components unaffected → go per-component via **M2** (non-merge; approval-gated fallback, never a default) or **M3/M4**
 (merge). **Verify:** re-run M0 across the affected components.
 
 ---
@@ -236,7 +238,7 @@ empty; `pac solution list` shows the expected top solution.
 
 **When:** API/CLI access is denied (403, no app-user role). Use the maker portal: **Solution layers**
 (*See solution layers*) [S4] and **Solution history** [S13] to read the stack and the last operations
-by hand, then route the fix back through M1/M2 once access is restored. Read-only; no gate.
+by hand, then route the fix back through M1 (or M2 only as an approval-gated fallback, never a default) once access is restored. Read-only; no gate.
 
 ---
 
@@ -262,7 +264,7 @@ Stops the next layering incident; does **not** resolve the current one:
 3. **Backup** — export unmanaged **and** managed of the affected solution(s) from the target.
 4. **Dry-run** — `pac solution check`; `StageSolution` (validate-only) [S5]; diff the layer snapshot vs intended.
 5. **Gate** — produce a plan and **await human approval** for every item in *Production HARD gates*.
-6. **Act** — M1 (stage-and-upgrade, `--async`) preferred; M2 per-component only when an Active layer is confirmed.
+6. **Act** — M1 (stage-and-upgrade, `--async`) preferred; M2 per-component only as an approval-gated fallback (never a default) when an Active layer is confirmed and M1 is not viable.
 7. **Verify** — re-run M0; diff against the step-2 snapshot; confirm the version via `pac solution list`;
    monitor `msdyn_solutionhistory` status to completion.
 8. **Log** every command + output to the run directory.
