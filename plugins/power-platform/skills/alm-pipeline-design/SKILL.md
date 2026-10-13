@@ -91,6 +91,8 @@ Connection references are placeholders for connection objects that live per-env,
 
 When customers diverge from a shipped base solution, do **not** customize the base in place. Build a thin customization solution that depends on the base. Base ships unchanged across all customers; customization is per-customer and gets its own ALM pipeline. The customer's PROD has both solutions installed, with the customization solution above the base in the solution layer stack.
 
+When a layer resolves the *wrong* way at runtime — an import "didn't take", an Active layer shadows a managed component, or a competing solution outranks yours — diagnose and resolve it with [`../solution-layering-resolution/SKILL.md`](../solution-layering-resolution/SKILL.md) (read-only diagnosis first, then a gated M0–M8 fallback chain).
+
 ### 7. Patch vs upgrade
 
 - **Patch** — small incremental change against an already-deployed solution. Faster to deploy but stacks layers in PROD over time. Use sparingly for hotfixes between full releases.
