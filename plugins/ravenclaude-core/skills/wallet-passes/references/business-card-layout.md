@@ -14,7 +14,7 @@ Use this with [`apple.md`](apple.md) and [`google.md`](google.md). Official rule
 | One QR (vCard URL or profile) | A second decorative barcode |
 | Tappable `tel:` / `mailto:` / `https:` on the **back / details** | A URL on an Apple **front** field (not tappable) |
 | Share on (Apple `sharingProhibited` omitted/false) | `sharingProhibited: true` on a card you want people to hand off |
-| `icon.png` as a simple 29-pt mark | Using the strip art as the iMessage preview (Mail/Messages use **icon**) |
+| `icon.png` as a simple 29-pt mark (Mail shows it) | Expecting the icon to be the iMessage preview — Messages draws the pass face ([`apple.md`](apple.md) §11a) |
 
 Apple generic is the documented home for "any pass that doesn't fit into one of the other more specific styles" ([Pass Design and Creation](https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/PassKit_PG/Creating.html)). Google generic is the documented home for non-specialized cards ([GenericObject](https://developers.google.com/wallet/reference/rest/v1/genericobject)).
 
@@ -56,7 +56,7 @@ Apple generic is the documented home for "any pass that doesn't fit into one of 
 
 - `logo`: keep the mark inside ~80% of the 160×50 pt box; do not run type to the edge.
 - `thumbnail`: stay inside 2:3–3:2 or Wallet crops.
-- `icon` (29 pt): solid recognizable mark — this is the **iMessage / Mail preview**.
+- `icon` (29 pt): solid recognizable mark — the **Mail** attachment image. Messages draws the pass face instead ([`apple.md`](apple.md) §11a).
 - No strip / background on `generic`. Do not add them "for brand"; they are ignored or illegal for the style.
 
 **Relevance (optional):** office GPS in `locations` (≤10, small radius). `relevantDate` is optional on generic; skip it for an evergreen card. `storeCard`-style "no date" rules do not apply — this is `generic`.
@@ -115,7 +115,7 @@ Apple generic is the documented home for "any pass that doesn't fit into one of 
 1. **Never overlay text on images.** Apple crops and (for background) blurs; Google hero is not localized and explicitly bans embedded text ([Brand guidelines — Hero](https://developers.google.com/wallet/generic/resources/brand-guidelines); [Pass Design and Creation — Images](https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/PassKit_PG/Creating.html)).
 2. **Do not simulate Wallet chrome** (fake barcode wells, fake rounded-rect cards, fake "Add" buttons).
 3. **One QR, one destination.** Same HTTPS URL on both platforms (a hosted `.vcf` or a profile page that serves `text/vcard` to scanners).
-4. **Icon ≠ hero.** Apple `icon` is 29 pt and is what iMessage shows. A cropped hero as icon is unreadable.
+4. **Icon ≠ hero.** Apple `icon` is 29 pt (lock screen, Mail). A cropped hero as icon is unreadable. Messages shows the pass **face**, not the icon ([`apple.md`](apple.md) §11a).
 5. **`logoText` vs wordmark.** Pick one. System `logoText` **or** a `wideLogo` / typeset logo asset — not both saying the same word.
 
 ## 5. Complete Apple `pass.json` (business card)
@@ -411,7 +411,9 @@ Use before review or ship. Each item names the official constraint.
 
 ### iMessage / Mail / list preview
 
-- [ ] `icon.png` is a legible 29-pt mark. That is what Mail and Messages show ([Pass Design and Creation](https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/PassKit_PG/Creating.html)).
+- [ ] `icon.png` is a legible 29-pt mark — what **Mail** shows ([Creating the Source for a Pass](https://developer.apple.com/documentation/walletpasses/creating-the-source-for-a-pass)).
+- [ ] The pass **face** reads at bubble size: Messages draws the face (fields, thumbnail / poster artwork, barcode), not the icon ([`apple.md`](apple.md) §11a). On a poster pass, expect the header logo may be drawn across the artwork in the bubble.
+- [ ] If the iMessage preview has to look a particular way, hand out the **card link** (page meta per Apple TN3156), not the `.pkpass`.
 - [ ] Google list thumbnail is the circular `logo`, not the hero.
 
 ### Links

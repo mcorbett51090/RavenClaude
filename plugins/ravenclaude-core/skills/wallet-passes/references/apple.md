@@ -25,7 +25,7 @@ A pass is a ZIP of a directory ([Pass Design and Creation](https://developer.app
 | File | Role |
 |---|---|
 | `pass.json` | Identity, style dictionary, colors, relevance, barcodes, NFC, web service |
-| `icon.png` (+ `@2x` / `@3x`) | Lock screen + Mail / Messages attachment preview |
+| `icon.png` (+ `@2x` / `@3x`) | Lock screen + **Mail** attachment image. Messages does **not** preview a pass by its icon — it draws the pass face (§11a) |
 | `logo.png` (+ `@2x` / `@3x`) | Top-left of the pass face |
 | style images | `strip.png`, `thumbnail.png`, `background.png`, `footer.png` — see §5 |
 | `en.lproj/pass.strings` (and other `.lproj`) | Localized strings / localized images |
@@ -174,7 +174,7 @@ All official sizes are in **points**. Ship the base PNG and the Retina twins App
 
 | Asset | Points | @1x px | @2x px | @3x px | Used on |
 |---|---|---|---|---|---|
-| `icon.png` | 29×29 | 29×29 | 58×58 | 87×87 | Lock screen, Mail, **iMessage / attachment preview** |
+| `icon.png` | 29×29 | 29×29 | 58×58 | 87×87 | Lock screen, **Mail** attachment image (not the Messages bubble — §11a) |
 | `logo.png` | 160×50 allotted; usually narrower | 160×50 | 320×100 | 480×150 | Top-left, next to `logoText` |
 | `footer.png` | 286×15 | 286×15 | 572×30 | 858×45 | Near barcode (`boardingPass`) |
 | `thumbnail.png` | 90×90; keep aspect 2:3–3:2 | 90×90 | 180×180 | 270×270 | `generic` / `eventTicket` (no strip) |
@@ -294,9 +294,36 @@ Pass-level control: `sharingProhibited` (boolean, default `false`) on the Pass o
 
 Privacy note: when a managed pass is shared, the device may tell the pass provider that a share happened (e.g. guest-limit counting). Family Sharing may auto-accept a pass shared by a parent to a child account.
 
+`sharingProhibited` "has no effect in earlier versions of iOS, nor does it prevent sharing the pass in some other way" ([Pass](https://developer.apple.com/documentation/walletpasses/pass)) — a `.pkpass` is a file; enforce uniqueness server-side.
+
 NameDrop-style nearby share is an OS feature on eligible devices; there is no separate pass.json "NameDrop" key. Disabling Share (`sharingProhibited: true`, or issuer-side disable) is what turns it off.
 
 ⚠️ P2 unverified (#10) — which exact Share-sheet channels (AirDrop / Messages / Mail / third-party apps) Wallet offers is from a search snippet, not fetched page text. ⚠️ P1 unverified (#5) — **NameDrop has no public third-party API**: an app cannot originate, intercept, populate, or receive a NameDrop exchange, and NameDrop shares only name + a chosen phone/email + Contact Poster, and **cannot update an existing contact**. The issuer-gated Wallet→Wallet proximity share (leave `sharingProhibited` false) is the real "tap phones" primitive a third party controls — full picture in [`tap-to-share.md`](tap-to-share.md).
+
+## 11a. A pass in Messages — what the bubble shows, and what you can control
+
+Tags: **DOC** = Apple documents it · **MEAS** = observed on a device by a credible source · **UNVER** = claimed, not proven.
+
+**The bubble is the pass, drawn by iOS.** A `.pkpass` sent in Messages renders as the pass **front** — logo / `logoText`, fields, thumbnail, blurred background and the **barcode** — and tapping it opens a sheet with *Add* (**MEAS**, 2019 device screenshots — [Gadget Hacks](https://ios.gadgethacks.com/how-to/add-passes-tickets-rewards-coupons-gift-cards-ids-more-apple-wallet-for-iphone-0197173/)). Consequences:
+
+- The barcode is visible to anyone who can see the conversation. Do not put a secret in it.
+- Apple documents the icon only for **Mail** ("the image for an email attachment" — [Creating the Source for a Pass](https://developer.apple.com/documentation/walletpasses/creating-the-source-for-a-pass); [HIG — Wallet](https://developer.apple.com/design/human-interface-guidelines/wallet)) and `organizationName` for "apps such as Mail which act as a conduit for passes" ([archived guide](https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/PassKit_PG/Creating.html)). **Messages is never named**, and there is **no documented key that controls the bubble** (**DOC** by absence).
+- **Poster passes (iOS 26+): the header logo can land on the artwork.** An owner's device screenshot of a poster generic pass shared in Messages (2026-10-13, RavenPower; iOS version not recorded) showed the header wordmark scaled across the poster artwork's photo and mark. RavenPower's own history records the same, and that every image arrangement that kept the name off the artwork truncated Wallet's own header (**MEAS**, one device). Treat the bubble as **not designable**; design the pass for Wallet, and send a **link** when the preview matters (below).
+
+**Sending a link instead of the file.** A link to the card page gets a normal rich link preview, which you fully control by following Apple's TN3156 — see `web-design`'s [`ogp-metadata-every-shareable-page.md`](../../../../web-design/best-practices/ogp-metadata-every-shareable-page.md) § Messages. The page then offers *Add to Apple Wallet*; the recipient taps once more to get the pass.
+
+**Undocumented: making Wallet's own Share button send a URL.** A top-level `pass.json` key —
+
+```json
+"sharing": { "method": "PKPassSharingMethodURL", "url": "https://example.com/c/jane" }
+```
+
+— made Wallet's Share send that link instead of the `.pkpass` on iOS 10.3.2 and the iOS 11 beta ([forum thread 79223](https://developer.apple.com/forums/thread/79223)). iOS 12-era private headers carry `sharingMethod`, `sharingURL` and `sharingText` ([PKPass.h dump](https://github.com/nst/iOS-Runtime-Headers/blob/master/PrivateFrameworks/PassKitCore.framework/PKPass.h)), and a pass vendor documented a template `sharing { url, description }` that sends a link from the Share button in October 2024 ([PassKit help](https://help.passkit.com/en/articles/5015804-pass-sharing-settings)) — which suggests it is still honoured. **UNVER on iOS 15+: no direct test found.** If you use it:
+
+- It is a **behaviour change**, not a cosmetic one: recipients get a link, not the pass. A business card whose point is the phone-to-phone handoff may not want that.
+- Ship it on a pass you can test on a real device first, with the link's page already passing TN3156.
+- Keep `sharingProhibited` unset/false — the key redirects sharing, it does not prohibit it.
+- Wallet ignores keys it does not use, so where the key is not honoured the pass shares as a file, exactly as before (RavenPower shipped iOS 27-only keys the same way; older iOS did not reject the pass — **MEAS**, that repo).
 
 ## 12. Signing checklist
 
@@ -317,4 +344,4 @@ From [HIG — Wallet](https://developer.apple.com/design/human-interface-guideli
 - Make the **next action** obvious (code or NFC) and keep the face to the facts the holder needs at the door / desk.
 - Prefer system date / currency formatters so locale is correct.
 - Test Dark / increased contrast / larger text — front slots will shed fields before they wrap.
-- Mail and Messages preview the **icon**, not the strip or thumbnail. A 29-pt mark that is only a cropped photo will look like noise in iMessage.
+- **Mail** shows the **icon** for a pass attachment; **Messages** draws the pass **face** (logo/logoText, fields, thumbnail or poster artwork, barcode) — see §11a. Design the face to read small; do not rely on the icon for the iMessage impression.

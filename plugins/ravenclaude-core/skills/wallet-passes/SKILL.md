@@ -126,7 +126,7 @@ Use Apple **`generic`** + Google **`GENERIC_OTHER`** (or a membership `genericTy
 
 - Front-field truncation / hidden fields because copy is too long or too many slots filled.
 - `logoText` **and** a wordmark inside `logo.png` (Watch drops `logoText` when it does not fit; you get a double brand or a clipped one).
-- Baking text into strip / hero / background (not localized; cropped; Mail/iMessage preview uses **`icon.png`**, not the strip).
+- Baking text into strip / hero / background (not localized; cropped). Messages draws the **pass face** for a shared `.pkpass` (Mail uses `icon.png`) — see [`references/apple.md`](references/apple.md) §11a; when the iMessage preview matters, share a **link** whose page follows Apple TN3156.
 - Putting a URL on an Apple **front** field and expecting it to be tappable.
 - Changing Apple `serialNumber` or `authenticationToken` on "update" (that is a new pass; old devices keep the cached one).
 - APNs payload that is not `{}` — Wallet coalesces pushes; extra keys are lost.
