@@ -139,6 +139,8 @@ Consent lives in `~/.ravenclaude/usage/guard/<session>.json` (session_id sanitiz
 | `refresh` / `compute` / `status` / `hook-warn` / `hook-guard` / `hook-consent` | **0** (refresh still 0 if `pull` failed; hook lanes still 0 on junk stdin) |
 | `pull` | **0** on success, **1** if `home` is unset/malformed or fetch fails |
 | `set-override` / `clear-override` | **0** on success, **1** on refuse / unlink error |
+| `check-sample [PATH\|--dir D]` | **0** clean, **1** if any record carries a field outside the allow-list (names it) |
+| `check-staleness [--dir D] [--max-age-hours N]` | **0** within the window, **1** stale or no samples (default window 3 h) |
 | unknown subcommand | **2** |
 | `self-test --fixtures DIR` | **0** / **1** (Gate 291) |
 | hook script | **always 0** |
@@ -151,6 +153,7 @@ Consent lives in `~/.ravenclaude/usage/guard/<session>.json` (session_id sanitiz
 - Use the served dashboard to Set/Clear only when a weekly reading already exists.
 - When guard asks, answer that ask (or override / drop to `advise`). Do not spawn a second autonomous call while it is pending.
 - Treat under-counted spend as *enlarging* the reserve (`k = weekly % ÷ metered spend`). That is the safe error. See the inventory concept.
+- Read the meter's reply line, not the Routine status: `METER OK: recorded <file>` landed a sample; `METER FAILED: <step>` did not (the run still shows SUCCEEDED). After a firing — or on a schedule — run `check-staleness` to catch a meter that went green but landed nothing, and `check-sample` to verify the allow-list. A `METER FAILED: clone` with a bare `github.com` URL means the home repo was never attached (add_repo + re-fire).
 
 **Don't:**
 

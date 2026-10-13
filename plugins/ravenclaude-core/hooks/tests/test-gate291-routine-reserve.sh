@@ -18,6 +18,13 @@
 #     reading; one ask for parallel calls; consent only after the asked call ran; a new week
 #     asks again; headless / SDK / subagent / estimated -> warn, never ask. Teeth: an
 #     always-interactive mutant must ask headless.
+#   I loud meter: the meter prompt makes a clone/fetch/commit/push failure a non-success
+#     final line (METER FAILED: <step>), success is METER OK, the clone carries its guard,
+#     every bash block parses, and step 7 forwards the marker verbatim.
+#   J allow-list check: check-sample passes an allow-listed sample and rejects one carrying
+#     a forbidden field (naming it). Teeth: a neutered verifier must accept the leak.
+#   K staleness check: check-staleness is quiet within the window, flags a sample older than
+#     the window, and flags an empty dir (a meter that never landed a sample) — not OK.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -317,9 +324,102 @@ else
   printf '%s\n' "$out" | tail -5 | sed 's/^/      /'
 fi
 
+echo "── I: meter prompt fails loudly — a clone/commit/push failure is a non-success final line"
+PROMPT="$PLUGIN/templates/routine-reserve/meter-prompt.md"
+if grep -q 'Fail loudly' "$PROMPT" \
+  && grep -q 'METER OK: recorded' "$PROMPT" \
+  && grep -q 'METER FAILED: clone' "$PROMPT" \
+  && grep -q 'METER FAILED: push' "$PROMPT" \
+  && grep -q 'METER FAILED: fetch' "$PROMPT" \
+  && grep -q 'METER FAILED: commit' "$PROMPT" \
+  && grep -q 'METER FAILED: record' "$PROMPT"; then
+  pass "clone/fetch/commit/push each end in a METER FAILED line; success is METER OK"
+else
+  fail "the meter prompt does not make a clone/fetch/commit/push failure a non-success final line"
+fi
+# The bash blocks must still parse, and the clone must carry a loud-failure guard (that is
+# the exact silent-success defect — a Routine reports SUCCEEDED when the session ends
+# normally). Backslash line-continuations are joined before checking, so a guard on the
+# continuation line counts.
+if python3 - "$PROMPT" <<'PY'
+import re, subprocess, sys
+txt = open(sys.argv[1]).read()
+blocks = re.findall(r"```bash\n(.*?)```", txt, re.S)
+ok = bool(blocks)
+for b in blocks:
+    if subprocess.run(["bash", "-n"], input=b, text=True, capture_output=True).returncode != 0:
+        ok = False
+    logical = re.sub(r"\\\n\s*", " ", b)  # join line-continuations into one logical line
+    for line in logical.splitlines():
+        s = line.strip()
+        if s.startswith("git clone") and "METER FAILED" not in s:
+            ok = False  # a clone with no loud-failure guard is the silent-success defect
+    if "git clone" in b and "METER FAILED: clone" not in b:
+        ok = False
+sys.exit(0 if ok else 1)
+PY
+then
+  pass "every bash block parses and the clone carries its loud-failure guard"
+else
+  fail "a bash block fails to parse or a git clone is left unguarded"
+fi
+# Step 7 must forward the marker verbatim, never paraphrase a failure into success.
+grep -q 'verbatim' "$PROMPT" && grep -q 'Do not paraphrase it into a success sentence' "$PROMPT" \
+  && pass "step 7 forwards the METER OK/FAILED line verbatim" \
+  || fail "step 7 does not require forwarding the marker verbatim"
+
+echo "── J: check-sample rejects a non-allow-listed field; teeth: a neutered verifier must accept it"
+CLEAN="$TMP/samp-clean.jsonl"
+LEAK="$TMP/samp-leak.jsonl"
+printf '%s\n' \
+  '{"kind":"meter","t":100,"schema_version":1,"engine_version":"1","attended":"1","entrypoint":"cli","calls":3}' \
+  '{"kind":"cost","t":100,"session_id":"abc","cost_usd":0.5,"output_tokens":9}' >"$CLEAN"
+printf '%s\n' '{"kind":"cost","t":100,"session_id":"abc","cost_usd":0.5,"title":"LEAKME-TITLE"}' >"$LEAK"
+if python3 "$ENGINE" check-sample "$CLEAN" >/dev/null 2>&1; then
+  pass "an allow-listed sample passes check-sample"
+else
+  fail "a clean sample was rejected by check-sample"
+fi
+if out="$(python3 "$ENGINE" check-sample "$LEAK" 2>&1)"; then
+  fail "check-sample passed a sample carrying a forbidden field"
+else
+  printf '%s' "$out" | grep -q "forbidden field 'title'" \
+    && pass "check-sample rejects the forbidden field and names it" \
+    || fail "check-sample rejected but did not name the forbidden field: $out"
+fi
+MUT="$TMP/rr-allowlist-mutant.py"
+sed 's/^def check_sample_records(\(.*\)) -> list\[str\]:/def check_sample_records(\1) -> list[str]:\n    return []/' "$ENGINE" >"$MUT"
+if cmp -s "$ENGINE" "$MUT"; then
+  fail "teeth: the allow-list mutant is identical (the sed no longer matches)"
+elif python3 "$MUT" check-sample "$LEAK" >/dev/null 2>&1; then
+  pass "teeth: a neutered verifier accepts the leaky sample (so the rejection is load-bearing)"
+else
+  fail "teeth: the neutered verifier still rejected the leaky sample"
+fi
+
+echo "── K: check-staleness fires when no sample landed within the window"
+STALE_DIR="$TMP/stale"
+mkdir -p "$STALE_DIR"
+NOW_T="$(python3 -c 'import time;print(int(time.time()))')"
+printf '{"kind":"meter","t":%s}\n' "$NOW_T" >"$STALE_DIR/fresh.jsonl"
+python3 "$ENGINE" check-staleness --dir "$STALE_DIR" --max-age-hours 3 >/dev/null 2>&1 \
+  && pass "quiet when a sample is within the window" \
+  || fail "flagged a fresh sample as stale"
+printf '{"kind":"meter","t":%s}\n' "$((NOW_T - 4 * 3600))" >"$STALE_DIR/fresh.jsonl"
+if out="$(python3 "$ENGINE" check-staleness --dir "$STALE_DIR" --max-age-hours 3 2>&1)"; then
+  fail "did not flag a 4h-old sample against a 3h window"
+else
+  printf '%s' "$out" | grep -q STALE && pass "flags a 4h-old sample against a 3h window" || fail "no STALE line: $out"
+fi
+EMPTY_DIR="$TMP/stale-empty"
+mkdir -p "$EMPTY_DIR"
+python3 "$ENGINE" check-staleness --dir "$EMPTY_DIR" --max-age-hours 3 >/dev/null 2>&1 \
+  && fail "an empty samples dir was reported OK" \
+  || pass "an empty samples dir (meter never landed one) is flagged, not silently OK"
+
 echo ""
 if [ "$fails" -eq 0 ]; then
-  echo "Gate 291 PASS — routine token reserve: fixtures match, DOW mutant rejected, samples allow-listed, advise hook opt-in + once-per-band, statusline pass-through, guard asks only where a person can answer, far-future resets_at clamped."
+  echo "Gate 291 PASS — routine token reserve: fixtures match, DOW mutant rejected, samples allow-listed, advise hook opt-in + once-per-band, statusline pass-through, guard asks only where a person can answer, far-future resets_at clamped, meter prompt fails loudly, check-sample rejects a leak (teeth), check-staleness flags a dead meter."
   exit 0
 else
   echo "Gate 291 FAIL — $fails subtest(s) failed."

@@ -122,6 +122,35 @@ pending id. Consent is per session and per week: a new weekly reset asks again.
   lacks it (403) and the session proxy allows only repository-scoped API paths. Setup asks the user to
   create the private home repo there.
 
+## Diagnosing a silent meter (added 2026-10-12)
+
+A Routine run reports **SUCCEEDED whenever its session ends normally** — the meter's old
+"stop and report the failing step in one line" produced exactly that, so a clone/commit/push
+failure was invisible: the run went green and no sample landed. Observed on probes 4 and 5
+(trigger `trig_01PD9CQj6ix9uiEac49mx2AF`): both fired, reported SUCCEEDED, and left the data
+branch at `72a7d14` with no sample. **Which step failed is UNVERIFIED** — probe 5's session
+(`session_012den9amp13KVyHyqsQKV2q`) last line was never captured; an unsent draft said only
+"the clone failed." The fixes below do not depend on knowing the exact step.
+
+- **The meter now fails loudly.** Every Bash step in [`../templates/routine-reserve/meter-prompt.md`](../templates/routine-reserve/meter-prompt.md)
+  prints a single final line `METER FAILED: <step> — <reason>` and exits non-zero on failure;
+  success prints `METER OK: recorded <file>`. Step 7 forwards that line verbatim, so a reader
+  can tell a landed sample from a silent clone/commit/push failure even though the Routine
+  status is SUCCEEDED either way.
+- **The clone cause (CONFIRMED from repo evidence).** A fresh meter session starts with no
+  repos attached (`sources: []`, observed), so there is no `127.0.0.1` git-proxy `origin`;
+  the URL derivation then falls back to a direct `https://github.com/<repo>.git`, which a
+  cloud session's proxy cannot reach. The prompt's `add_repo(push)` + one retry is the fix,
+  and a `METER FAILED: clone` whose URL is a bare github.com URL is the tell that the home
+  repo was never attached.
+- **Staleness check.** `python3 routine-reserve.py check-staleness [--dir D] [--max-age-hours N]`
+  (default 3 h — one skipped hourly firing) exits non-zero and prints `STALE:` when the newest
+  sample is older than the window, or when no sample exists at all — so a scheduled or manual
+  check catches a dead meter the Routine status hides.
+- **Allow-list verifier.** `python3 routine-reserve.py check-sample [PATH|--dir D]` exits
+  non-zero and names any field outside `SAMPLE_ALLOWED_KEYS[kind]` — the read-side complement
+  to `meter_records` dropping unlisted fields at write time.
+
 ## Honest limits
 
 | Limit | Effect |

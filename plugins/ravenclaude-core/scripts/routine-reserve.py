@@ -25,6 +25,8 @@ Subcommands:
   ingest-statusline [--wrap CMD]   record rate_limits from statusline stdin; pass through
   meter-plan --raw DIR --out D     print the session ids the meter should get_session
   meter-append --raw DIR --out D   append one allow-listed sample file (meter side)
+  check-sample [PATH] [--dir D]    verify a sample file/dir carries only allow-listed fields
+  check-staleness [--dir D] [--max-age-hours N]  flag no new sample within N hours
   pull                             mirror the home repo's data branch locally
   compute / status [--json]        project the reserve -> reserve.json
   refresh                          pull + compute (SessionStart, backgrounded)
@@ -80,6 +82,23 @@ COST_FIELDS = (
     "cache_read_tokens",
     "cache_write_tokens",
 )
+# The complete set of keys each sample record *kind* may carry, derived from the
+# writer (meter_records) so the verifier (check-sample) and the writer cannot drift.
+# Any key outside its kind's set is a leak, and `check-sample` rejects the file —
+# the enforcement complement to meter_records dropping unlisted fields at write time.
+SAMPLE_ALLOWED_KEYS = {
+    "trigger": frozenset({"kind", "t", "trigger_id", "active", "persistent", *TRIGGER_FIELDS}),
+    "run": frozenset(
+        {"kind", "t", "trigger_id", "session_id", "fired_at", "finished_at", "status"}
+    ),
+    "cost": frozenset(
+        {"kind", "t", "session_id", "origin", "model", "created_at", "updated_at", *COST_FIELDS}
+    ),
+    "meter": frozenset(
+        {"kind", "t", "schema_version", "engine_version", "attended", "entrypoint", "calls"}
+    ),
+}
+STALE_SAMPLE_HOURS = 3.0  # the meter is hourly; flag if the newest sample is older than this
 DEFAULTS = {"margin_pct": 20.0, "warn_points": 5.0, "weekly_budget_usd": 0.0}
 
 
@@ -501,6 +520,88 @@ def write_sample_file(out_dir: Path, recs: list[dict], now: float) -> Path:
         ):
             shutil.rmtree(child, ignore_errors=True)
     return path
+
+
+# ── repo-side checks (allow-list + staleness) ─────────────────────────────────
+
+
+def check_sample_records(recs: list, source: str = "") -> list[str]:
+    """Allow-list violations in one file's records. A record with an unknown `kind`,
+    or carrying any key outside SAMPLE_ALLOWED_KEYS[kind], is a violation — the
+    verifier for the privacy allow-list the meter is supposed to enforce."""
+    out: list[str] = []
+    for i, rec in enumerate(recs):
+        if not isinstance(rec, dict):
+            out.append(f"{source}[{i}]: not an object")
+            continue
+        allowed = SAMPLE_ALLOWED_KEYS.get(rec.get("kind"))
+        if allowed is None:
+            out.append(f"{source}[{i}]: unknown record kind {rec.get('kind')!r}")
+            continue
+        for key in rec:
+            if key not in allowed:
+                out.append(f"{source}[{i}] ({rec['kind']}): forbidden field {key!r}")
+    return out
+
+
+def check_sample_files(target: Path) -> tuple[list[str], int]:
+    """Verify every *.jsonl sample under `target` (a file or a directory) carries only
+    allow-listed fields. Returns (violations, files_checked)."""
+    if target.is_dir():
+        files = sorted(target.rglob("*.jsonl"))
+    elif target.is_file():
+        files = [target]
+    else:
+        return [f"no sample file or directory at {target}"], 0
+    violations: list[str] = []
+    for path in files:
+        recs: list = []
+        for line in _read_text(path).splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                recs.append(json.loads(line))
+            except ValueError:
+                violations.append(f"{path}: unparseable JSON line")
+        violations.extend(check_sample_records(recs, str(path)))
+    return violations, len(files)
+
+
+def newest_sample_t(samples_dir: Path) -> float | None:
+    """The newest record timestamp across all sample files (ignores the retention
+    cutoff load_samples applies — staleness must see even an out-of-window sample)."""
+    newest: float | None = None
+    if not samples_dir.is_dir():
+        return None
+    for path in samples_dir.rglob("*.jsonl"):
+        for line in _read_text(path).splitlines():
+            try:
+                rec = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(rec, dict):
+                continue
+            try:
+                t = float(rec.get("t"))
+            except (TypeError, ValueError):
+                continue
+            if newest is None or t > newest:
+                newest = t
+    return newest
+
+
+def check_staleness(samples_dir: Path, max_age_hours: float, now: float) -> tuple[int, str]:
+    """Flag when no sample has landed within `max_age_hours`. Non-zero exit means stale
+    (or no samples at all) — so a human or a scheduled check can catch a silently dead
+    meter (a clone/push failure the Routine still reported as SUCCEEDED)."""
+    newest = newest_sample_t(samples_dir)
+    if newest is None:
+        return 1, f"STALE: no samples found under {samples_dir}"
+    age_h = (now - newest) / 3600.0
+    if age_h > max_age_hours:
+        return 1, f"STALE: newest sample is {age_h:.1f}h old (> {max_age_hours:g}h)"
+    return 0, f"OK: newest sample is {age_h:.1f}h old (<= {max_age_hours:g}h)"
 
 
 # ── projection ──────────────────────────────────────────────────────────────
@@ -1250,6 +1351,12 @@ def main(argv: list[str] | None = None) -> int:
         s = sub.add_parser(name)
         s.add_argument("--raw", required=True, type=Path)
         s.add_argument("--out", type=Path, default=Path("samples"))
+    s = sub.add_parser("check-sample")
+    s.add_argument("path", nargs="?", type=Path)
+    s.add_argument("--dir", type=Path)
+    s = sub.add_parser("check-staleness")
+    s.add_argument("--dir", type=Path)
+    s.add_argument("--max-age-hours", type=float, default=STALE_SAMPLE_HOURS)
     for name in ("pull", "refresh", "hook-warn", "hook-guard", "hook-consent", "clear-override"):
         sub.add_parser(name)
     for name in ("compute", "status"):
@@ -1282,6 +1389,18 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "meter-append":
         print(write_sample_file(args.out, meter_records(args.raw, now), now))
         return 0
+    if args.cmd == "check-sample":
+        target = args.path or args.dir or (mirror_dir() / "samples")
+        violations, n = check_sample_files(target)
+        for v in violations:
+            print(v, file=sys.stderr)
+        print(f"checked {n} sample file(s); {len(violations)} allow-list violation(s)")
+        return 1 if violations else 0
+    if args.cmd == "check-staleness":
+        target = args.dir or (mirror_dir() / "samples")
+        rc, msg = check_staleness(target, args.max_age_hours, now)
+        print(msg)
+        return rc
     if args.cmd == "self-test":
         return self_test(args.fixtures)
 
