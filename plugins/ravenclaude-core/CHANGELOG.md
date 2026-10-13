@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.350.0 — 2026-10-13
+
+### Fixed
+- **The routine meter failed silently — a clone/fetch/commit/push failure left the data branch untouched while the Routine reported SUCCEEDED.** A Routine run reports SUCCEEDED whenever its session ends normally, and the meter's old "stop and report the failing step in one line" produced exactly that, so no sample landed and nothing said so (observed on probes 4 and 5: both fired, reported SUCCEEDED, left the data branch at `72a7d14`). `templates/routine-reserve/meter-prompt.md` now makes every Bash step print a single final `METER FAILED: <step> — <reason>` line and exit non-zero on failure, with `METER OK: recorded <file>` the only success line; step 7 forwards that line verbatim. Which step failed in probe 5 is **UNVERIFIED** (the session's last line was never captured); the loud-failure fix does not depend on knowing it. The CONFIRMED-from-repo clone cause: a fresh meter session has no `127.0.0.1` git-proxy `origin`, so the URL falls back to a direct `https://github.com/<repo>.git` a cloud session cannot reach — `add_repo(push)` + one retry is the fix, and a `METER FAILED: clone` with a bare github.com URL is the tell.
+
+### Added
+- **`routine-reserve.py check-staleness [--dir D] [--max-age-hours N]`** — flags (exit 1 + `STALE:`) when no sample landed within N hours (default 3, one skipped hourly firing) or when no sample exists at all, so a scheduled or manual check catches a dead meter the Routine status hides.
+- **`routine-reserve.py check-sample [PATH|--dir D]`** — verifies a sample file/dir carries only allow-listed fields (`SAMPLE_ALLOWED_KEYS` per record kind, derived from the writer so they cannot drift), exiting non-zero and naming any forbidden field — the read-side complement to `meter-append` dropping unlisted fields at write time.
+- Gate 291 sections **I/J/K**: the meter prompt fails loudly (every bash block parses, the clone carries its guard, step 7 forwards the marker verbatim); `check-sample` rejects a leaked field (with a neutered-verifier teeth half); `check-staleness` flags an out-of-window or empty samples dir.
+- Setup/ops docs (`skills/routine-reserve/SKILL.md`, `knowledge/routine-token-reserve.md`, `docs/best-practices/routine-token-reserve-setup-and-operations.md`): the loud-failure convention, the two checks, the hourly cadence + Haiku model id (`claude-haiku-4-5-20251001` from `model-catalog.json`; the `update_trigger` model-parameter shape is UNVERIFIED against a live account).
+
 ## 0.349.0 — 2026-10-12
 
 ### Changed

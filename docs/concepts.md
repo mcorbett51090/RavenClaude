@@ -3733,7 +3733,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh`
 
 **Sources:** [built and measured in the routine token reserve PR 1 session](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/routine-token-reserve.md)
 
-_Last verified: 2026-10-10_
+_Last verified: 2026-10-12_
 
 
 ---

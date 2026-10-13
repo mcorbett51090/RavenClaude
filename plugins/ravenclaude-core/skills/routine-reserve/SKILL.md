@@ -28,6 +28,13 @@ The same reading and the same override are also on the dashboard's **Reserve** t
 Activity) when it is served (`bin/rc dashboard`). The tab never recomputes into the stored state; its
 Set/Clear buttons call the same `set-override` / `clear-override` code as the verbs above.
 
+**Repo-side checks (run after a meter firing, or on a schedule):**
+
+| Check | What it catches |
+|---|---|
+| `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/routine-reserve.py check-staleness [--dir D] [--max-age-hours N]` | No new sample within N hours (default 3) — a meter that fired, reported SUCCEEDED, but landed nothing (clone/push failed). Exits non-zero + `STALE:` when stale or when no sample exists. |
+| `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/routine-reserve.py check-sample [PATH\|--dir D]` | A sample carrying a field outside the allow-list. Exits non-zero and names the field. The read-side complement to `meter-append` dropping unlisted fields. |
+
 ## Requirements (say which are missing; never guess past one)
 
 - Claude Code with the claude.ai Remote tools (`list_triggers`, `create_trigger`, …). Load them with
@@ -62,11 +69,18 @@ Set/Clear buttons call the same `set-override` / `clear-override` code as the ve
    reach the home repo (ask the user if more than one could).
 6. **Model — its own explicit question.** `create_trigger` has no model setting, so the meter runs on
    the caller's model until changed. Ask: "Run the meter on Haiku to keep it cheap?" Only on a yes,
-   `update_trigger model: <haiku model id>`, then `get_trigger` to confirm it applied. If it did not,
-   say so and offer to delete the meter rather than leave a frontier-model Routine firing hourly.
-7. **Prove it once.** `fire_trigger`, wait a few minutes, `… pull`, and check that
-   `~/.ravenclaude/usage/mirror/samples/` holds a new file whose meter record shows an `attended`
-   value. Report that value — it is how the guard tells unattended sessions apart.
+   `update_trigger` with the **haiku** tier id from [`../../knowledge/model-catalog.json`](../../knowledge/model-catalog.json)
+   (currently `claude-haiku-4-5-20251001` — verify it is still the current haiku id, and the
+   `update_trigger` model parameter shape is **UNVERIFIED** against a live account), then `get_trigger`
+   to confirm it applied. If it did not, say so and offer to delete the meter rather than leave a
+   frontier-model Routine firing hourly.
+7. **Prove it once.** `fire_trigger`, wait a few minutes. The meter's reply is one line: `METER OK:
+   recorded <file>` on success, or `METER FAILED: <step> — <reason>` if clone/fetch/commit/push failed
+   — a Routine reports SUCCEEDED either way, so read that line, not the run status. On `METER OK`, `…
+   pull` and check `~/.ravenclaude/usage/mirror/samples/` holds a new file whose meter record shows an
+   `attended` value (report it — the guard tells unattended sessions apart by it), then run the two
+   repo-side checks below. On `METER FAILED: clone` whose URL is a bare `github.com` URL, the home repo
+   was never attached — `add_repo(push)` and fire again.
 8. **Statusline (asks first).** A plugin cannot set the main `statusLine`, so copy the engine to
    `~/.ravenclaude/bin/routine-reserve.py` and set `statusLine.command` in `~/.claude/settings.json` to
    `python3 ~/.ravenclaude/bin/routine-reserve.py ingest-statusline --wrap '<their existing command>'`
