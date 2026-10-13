@@ -6,13 +6,15 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 943
 summary: "How Apple Wallet and Google Wallet document front-field capacity, and what an agent may treat as a contract."
-last_verified: 2026-10-11
+last_verified: 2026-10-13
 covers:
   - plugins/ravenclaude-core/skills/wallet-passes/SKILL.md
   - plugins/ravenclaude-core/skills/wallet-passes/references/apple.md
   - plugins/ravenclaude-core/skills/wallet-passes/references/google.md
   - plugins/ravenclaude-core/skills/wallet-passes/references/business-card-layout.md
-covers_digest: "sha256:40900d7aa12ef469a1f7bd083fb8725df771f211c97fbdc4619ddffbabceaae0"
+  - plugins/ravenclaude-core/skills/wallet-passes/references/tap-to-share.md
+  - plugins/ravenclaude-core/skills/wallet-passes/references/verify.md
+covers_digest: "sha256:591e1a47cbfa897dcc30923094270e0240ec0c7eee8d860fbfaf09f7fa0e18ce"
 nuance: "Apple `PassKit_PG/Creating.html` names `headerFields` counts and says overflow hides fields; it never publishes a per-slot character maximum. Google `generic/resources/brand-guidelines` Content does publish English caps. An invented Apple char-limit table is working guidance, not a contract."
 nuance_evidence:
   measured: 2026-10-11

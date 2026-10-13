@@ -3002,7 +3002,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:fc55a9243f8ba8a83bf010e0ff6ef287af95a25992903ed6ee77d0eb288a3ff9",
+      "covers_digest": "sha256:e09daaf3454e93a3ee2d9052b627c22a6e286e66e62d5900e2570db2605ea751",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4313,7 +4313,7 @@
         "plugins/ravenclaude-core/skills/forge-pipeline/agents/openai.yaml",
         "plugins/ravenclaude-core/skills/spawn-team/agents/openai.yaml"
       ],
-      "covers_digest": "sha256:a5aa6a67b8e068eda9ec322b1f677c8a0e090acd19dea4512e6feaf4c8453c97",
+      "covers_digest": "sha256:040d186251c7eb4f2f3325a1b9515274a2c57f41e8bb50e7c0e659509bbc655b",
       "nuance": "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count -- a fixed point reached on the second pass, never the first.",
       "nuance_evidence": {
         "measured": "2026-09-08",
@@ -4913,7 +4913,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-11",
+      "last_verified": "2026-10-13",
       "refresh_when": null,
       "sources": [
         {
@@ -4936,9 +4936,11 @@
         "plugins/ravenclaude-core/skills/wallet-passes/SKILL.md",
         "plugins/ravenclaude-core/skills/wallet-passes/references/apple.md",
         "plugins/ravenclaude-core/skills/wallet-passes/references/google.md",
-        "plugins/ravenclaude-core/skills/wallet-passes/references/business-card-layout.md"
+        "plugins/ravenclaude-core/skills/wallet-passes/references/business-card-layout.md",
+        "plugins/ravenclaude-core/skills/wallet-passes/references/tap-to-share.md",
+        "plugins/ravenclaude-core/skills/wallet-passes/references/verify.md"
       ],
-      "covers_digest": "sha256:40900d7aa12ef469a1f7bd083fb8725df771f211c97fbdc4619ddffbabceaae0",
+      "covers_digest": "sha256:591e1a47cbfa897dcc30923094270e0240ec0c7eee8d860fbfaf09f7fa0e18ce",
       "nuance": "Apple `PassKit_PG/Creating.html` names `headerFields` counts and says overflow hides fields; it never publishes a per-slot character maximum. Google `generic/resources/brand-guidelines` Content does publish English caps. An invented Apple char-limit table is working guidance, not a contract.",
       "nuance_evidence": {
         "measured": "2026-10-11",

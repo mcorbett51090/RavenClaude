@@ -2,7 +2,7 @@
 
 A Wallet pass is a **live, field-driven card**, not a JPEG of a paper business card. Both platforms crop, mask, localize, and restyle artwork. Type that lives in pixels will clip, stay English, and vanish from VoiceOver / TalkBack.
 
-Use this with [`apple.md`](apple.md) and [`google.md`](google.md). Official rules are cited; placement recommendations are the working default for a person-to-person card.
+Use this with [`apple.md`](apple.md) and [`google.md`](google.md). Official rules are cited; placement recommendations are the working default for a person-to-person card. For how the card gets *handed over* (tap-to-share, NFC-tag/QR → lead form, proximity share), see [`tap-to-share.md`](tap-to-share.md); for every weak/unverified claim, [`verify.md`](verify.md).
 
 ## 1. What a card is (and is not)
 
@@ -98,7 +98,7 @@ Apple generic is the documented home for "any pass that doesn't fit into one of 
 | Card rows | Role already in subheader — use rows for city / dept if needed | ≤ 3 rows, prefer 2 items/row |
 | `textModulesData` | Address, one-line bio | Brand guide: ≤ 2 class+object combined |
 | `linksModuleData` | `tel:`, `mailto:`, `https://`, LinkedIn | Brand guide: ≤ 4 URIs total |
-| `appLinkData` | Optional "Open profile" button | Object overrides class |
+| `appLinkData` | Optional "Open profile" / "Share details" front button | Object overrides class; **allowlist-gated** — ⚠️ P1 unverified (#8), see [`verify.md`](verify.md). Ship QR + `linksModuleData` until granted |
 
 **Safe zones**
 

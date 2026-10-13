@@ -3796,7 +3796,7 @@ add an Apple char-limit table without marking it non-contract.
 
 **Sources:** [Apple Wallet Developer Guide — Pass Design and Creation](https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/PassKit_PG/Creating.html) · [Google Wallet Brand guidelines — Generic](https://developers.google.com/wallet/generic/resources/brand-guidelines)
 
-_Last verified: 2026-10-11_
+_Last verified: 2026-10-13_
 
 
 ---
