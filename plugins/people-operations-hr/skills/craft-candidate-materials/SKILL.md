@@ -35,7 +35,7 @@ Default evidence home (Matthew): `/workspace/cli-out/resume-cursor-da-user-ops/`
 ## Hard locks
 - **No fabrication** — no invented metrics, %, $, headcount, CSAT/SLA, or unverified tools
 - **Tense:** Raven / current role = **present**; prior employers = past
-- **Identity:** no BMA / `mcorbett@bma.bm` on fleet, PRs, CODEOWNERS, or packaging
+- **Identity:** never touch the owner's employer accounts or email (work account excluded from fleet, PRs, CODEOWNERS, and packaging; exact value only in the private bot reference, never in repo files)
 - **No push** — write paste packs + browser notes only; LinkedIn/apply = CoS computerUse after READY
 - **No staffing-operations** invoke for this craft
 - **No employer-side TA strategist** roleplay for candidate packaging
@@ -145,7 +145,7 @@ Paste pack path(s): /workspace/...
 DIGEST path: /workspace/.../DIGEST-...
 Sources used: (files + dates)
 Verdict: YES-as-is | IMPROVE | REWRITE
-Honesty locks held: no invented metrics/%/$; tense OK; no BMA on fleet packaging
+Honesty locks held: no invented metrics/%/$; tense OK; no employer identity on fleet packaging
 About QA: A1..A8 PASS|FAIL (required when artifact includes About)
 Summary QA: A1/A3–A6 PASS|FAIL (when resume Summary touched)
 Pitch Summary: PASS|FAIL (required on resume / recruiter-pack)
@@ -175,7 +175,7 @@ Talent materials READY is **not** met by same-model sequential loops (same promp
 - **NEVER** same-model sequential; **NEVER** collapse three lenses into one Cursor cloud call.
 - Cursor cloud / Bot session = **last resort**, **one** lens prompt only if ladder blocked.
 - Claude Max dry → skip to Codex (note skip); backfill Claude when available.
-- Structure HARD + About QA + no-invent + no-BMA still apply; 3-model gate is additive.
+- Structure HARD + About QA + no-invent + no-employer-identity still apply; 3-model gate is additive.
 
 DIGEST must include: `3-model DONE: Claude PASS|SKIP · Codex PASS|SKIP · Grok PASS|SKIP — overall PASS required for READY`
 

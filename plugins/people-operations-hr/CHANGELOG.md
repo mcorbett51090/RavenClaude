@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.6] — 2026-10-13
+
+### Changed
+
+- **`craft-candidate-materials`** — Employer-account guard reworded generically; the exact value lives only in the private bot reference, never in repo files.
+
 ## [0.1.5] — 2026-09-20
 
 ### Changed

@@ -18,6 +18,6 @@ Follow [`../skills/craft-candidate-materials/SKILL.md`](../skills/craft-candidat
 5. Return ≤~2k summary + absolute paths (People Ops → CoS). Raven/current role present tense; past roles past.
 
 ## Guardrails
-- No fabrication; no BMA identity on fleet/PR packaging; no LinkedIn/apply push.
+- No fabrication; no employer identity on fleet/PR packaging; no LinkedIn/apply push.
 - Do not invoke `staffing-operations` or employer-side talent-acquisition funnel skills for this.
 - CoS does not draft — if asked to draft inline in CoS chat, refuse and point here.
