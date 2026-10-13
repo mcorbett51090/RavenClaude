@@ -2,6 +2,12 @@
 
 All notable changes to the RavenClaude marketplace and its plugins. Format loosely follows [Keep a Changelog](https://keepachangelog.com/). The marketplace version (`metadata.version` in `.claude-plugin/marketplace.json`) bumps when the catalog shape or cross-plugin contracts change; individual plugins have their own semver tracked in their `plugin.json`.
 
+## grok-bot-delegation 0.3.0 + grok-bot-creation 0.2.0 — 2026-10-13 (Bot Architect fleet skills upstream)
+
+- grok-bot-delegation: seven new fleet skills — `completion-contract`, `fleet-standing-rules`, `rubric-gate`, `stop-and-reread`, `untrusted-input-step`, `fleet-eval`, `thread-hygiene`.
+- grok-bot-delegation: `delegate-via-expert-bots` (fleet-gated Cloud Agents section replaces the ungated one; approval-card/Auto-review guidance) and `grok-bot-token-spend` (fleet hard rules 3–17, box-run memory admission replaces the 5-concurrent-runs cap, Cursor ≤80% rule) reconciled from the box (3-way merge).
+- grok-bot-creation: `create-grok-bot` reconciled from the box (build deck, DH guards, SCM carve-out, box-run, blocker-first; keeps repo Auto-review Ask-first + private shared library).
+
 ## ravenclaude-core 0.149.0 — 2026-06-10 (repo-review autonomous fixes: guard hardening + portability + doc-count accuracy)
 
 Three-panel repository review (expert fan-out → validation → tie-break) with autonomous fixes. Every objective gate was green going in; the panels surfaced correctness/hardening defects the gates can't see.

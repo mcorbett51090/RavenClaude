@@ -412,8 +412,13 @@
         "wallet-passes skill + inventory concept (core 0.345.0, PR #1337)",
         9583000,
         "Same PR #1337 wallet-passes skill + inventory concept. Regenerating index.html measures 9,582,388 bytes > prior 9,582,100 by 288 (0.00 MB). Island payload 7,335 <= 7,350 unchanged. Pure content-size raise. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "grok-bot-delegation 0.3.0 fleet skills (2026-10-13)",
+        9585000,
+        "Six new grok-bot-delegation skills + three reconciled Grok fleet skills regenerate skill-index/index.html. index.html 9,584,033 bytes > prior 9,583,000 by 1,033 (0.00 MB). Island payload 7,335 <= 7,350 unchanged. Pure content-size raise. Measured on this branch head; appended, never edited."
       ]
     ]
   },
-  "measured_against": "1a2fcfde0f8fda8a18ef401091c3d717373fedce"
+  "measured_against": "8d993c29232ee8f971de28a42f4fc1ca271240f9"
 }
