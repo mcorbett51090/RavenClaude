@@ -3,7 +3,7 @@
 **SSOT** for every model / agent / effort routing decision in ravenclaude-core.
 Machine form: [`unified-model-matrix.json`](unified-model-matrix.json) (+ [`unified-model-matrix.schema.json`](unified-model-matrix.schema.json)).
 
-**Last reviewed:** 2026-09-16 · **Owner:** ravenclaude-core (domain-neutral).
+**Last reviewed:** 2026-10-13 · **Owner:** ravenclaude-core (domain-neutral).
 
 > **NOT `agent-routing-matrix`.** UMM answers *which tier × surface cell* (fast/balanced/top + archival pins + cheap-lane cells). Host/task-shape recommendations live in [`agent-routing-matrix.md`](agent-routing-matrix.md). Nav: [`routing-map.md`](routing-map.md).
 
@@ -46,6 +46,28 @@ Grok cells come from [`substrate-tier-map.json`](substrate-tier-map.json) (same 
 | precompact | claude (fallback) | **fast** / haiku | cheap_lane for cheap path | **true** | summarize/extract → fast |
 | handoff fill | claude detached | **fast** / haiku | — | **true** | extract → fast |
 | explore (unpinned) | claude | **fast** / haiku pin | handoff_tax | **true** (pin) | — |
+| explore (override agent, v0.352.0) | claude | **fast** / haiku via [`agents/explore.md`](../agents/explore.md) (tools: Read, Grep, Glob) | none (holds without a posture file) | **true** | — |
+| advisor (session, v0.352.0) | claude | main `sonnet` (Sonnet 5.5, `claude-sonnet-5-5`) → advisor `opus` (Opus 5.5, `claude-opus-5-5`) | launcher-owned (`advisorModel` / `--advisor`); Anthropic API only | n/a | consult at plan lock / 2nd identical error / after dod-gate; skip < ~10 turns; **never overrides a gate or tool evidence** |
+
+## Advisor (added 2026-10-13, v0.352.0)
+
+`[docs-verified 2026-10-13 — code.claude.com/docs/en/advisor, platform.claude.com/docs/en/about-claude/models/overview]`
+
+- **Pairing:** Sonnet 5.5 main (`claude-sonnet-5-5`) accepts Fable, Opus 5 or later, or Sonnet 5.5 as advisor, so `sonnet` + `opus` (Opus 5.5, `claude-opus-5-5`) is valid. Haiku 5.5 (`claude-haiku-5-5`) as main or advisor needs Claude Code 2.1.293+. Subagents inherit the advisor and run the same pairing check against their own model.
+- **Enablement is outside this plugin.** Set by the fleet launcher (`--advisor opus` or `"advisorModel": "opus"`). Anthropic API only (not Bedrock, Vertex, Foundry). Off when `DISABLE_TELEMETRY` or another flag-fetch kill is set; `CLAUDE_CODE_DISABLE_ADVISOR_TOOL=1` disables it. A background run with a bad pairing starts silently without the advisor.
+- **Cost:** each call re-reads the full transcript **uncached** at Opus rates ($4 / $20 per MTok). About $0.60 input per call at 150k tokens. Cheaper than an Opus main model on long sessions; overhead on short ones. Toggling it does not break the main model's prompt cache.
+- **Timing is model-driven.** No setting forces or caps calls. Steering is the CLAUDE.md "Advisor checkpoints" section plus the runaway-brake advisory on the 2nd identical mutating call. Monitor with `/usage` and the `Advising` transcript lines.
+- **Deterministic gates stay first.** dod-gate, the tribunal, and guard denies are not replaced by an advisory model.
+
+### Rejected: JEV per-turn router
+
+JEV (TypeSafe AI's classifier, run through community proxies such as jevcc / jev-router) was evaluated and **rejected**:
+
+1. **Third-party proxy that sends prompt context to TypeSafe** and needs a `JEV_API_KEY`. That is new egress of task text, which this matrix's non-claims rule out.
+2. **Routes once per human turn, not per micro-fork.** Tool-loop steps and subagents keep the session tier. The "routes tool choice / retry forks in milliseconds" claim is unverified; no source gives a latency or quality benchmark.
+3. **Conflicts with the central model pin and this matrix.** The fleet launcher pins Sonnet / xhigh, and the matrix plus `agent-dispatch-evaluator.sh` own tier decisions. A second router would fight both.
+4. **Savings are unmeasured.** One catalog entry calls the routing defaults "the author's choices, not measured quality or savings".
+5. **Breaks the prompt cache.** Switching the main model mid-session invalidates the cached prefix; the advisor does not.
 
 ## Posture knobs (`model_matrix.surfaces`)
 

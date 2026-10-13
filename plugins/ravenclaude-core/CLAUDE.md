@@ -751,6 +751,20 @@ A third guardrail bounds **exploration breadth** (the runaway brake bounds *dept
 
 - **task-scope gate** (`enforce-layout.sh`, Gap 6) — the **existing** layout hook (`PreToolUse` on `Write`/`Edit`/`MultiEdit`, already wired under both hosts) gained a second, independent policy: an optional `.ravenclaude/task-scope.json` (`{"in_scope": [globs], "spec": "SPEC.md"}`) declaring the **current task's** write blast radius. A write to a path matching no `in_scope` glob is denied with the spec hint. It is independent of `.repo-layout.json` (repo *structure*) — either, both, or neither may be present, and they compose. **Zero new wiring** (the hook was already registered). **Fail-safe:** absent file / empty `in_scope` / unparseable JSON → no-op. Template: [`templates/task-scope.json`](templates/task-scope.json); copy to the consumer repo per task, delete when done. **Migration:** none — default no-op.
 
+## Advisor checkpoints (added 2026-10-13, v0.352.0)
+
+When an advisor model is configured (`advisorModel` setting, `--advisor`, or `/advisor`; box fleet: Sonnet main + Opus advisor), consult it at three checkpoints:
+
+1. **Before a plan locks**: before committing to a multi-file or multi-step plan.
+2. **After the same error happens twice**: re-read the error, then consult before a third attempt. `runaway-brake.sh` adds this reminder when an identical mutating call repeats.
+3. **After `dod-gate` passes, before declaring done**: the deterministic gate runs first and the advisor reviews on top of it. It never replaces the gate.
+
+**Skip** the advisor on tasks under about 10 turns. Each call re-reads the full transcript uncached at the advisor's rates, so on short tasks it is pure overhead.
+
+**The advisor never overrides a gate or tool evidence.** A gate verdict (dod-gate, tribunal, guard deny, test result) and what a tool actually returned outrank advisor guidance. When they conflict, follow the evidence and state the conflict.
+
+Honest limit: advisor timing is model-driven, and Claude Code has no setting to force or cap calls. This section is behavioral guidance, not a control. The advisor works on the Anthropic API only and stays off when `DISABLE_TELEMETRY` (or another variable that stops feature-flag fetching) is set. Fleet enablement is owned by the launcher, not this plugin. See [`knowledge/unified-model-matrix.md`](knowledge/unified-model-matrix.md) (Advisor row).
+
 ## Containment posture — the boundary the tribunal structurally can't provide (added 2026-05-29, v0.57.0, Gap 5)
 
 The runaway brake bounds *depth*, the DoD gate bounds *correctness*, the task-scope gate bounds *breadth* — but all three, like command review itself, are **model-layer** guards: they gate the agent's own tools. None can bound a **subprocess** the agent spawns. A `deny` on `Read(~/.ssh/**)` stops the agent's `Read` tool; it does not stop a script the agent writes and runs. Only the **OS** holds that line — it survives a mislabeled or injection-flipped command because the operating system, not the model, enforces it. Gap 5 ships this as containment **depth, not a new gate** (no hook, no engine change), in three honest layers:

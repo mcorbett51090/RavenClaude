@@ -22,7 +22,7 @@ This is the prerequisite plugin — domain plugins (`power-platform`, `finance`,
 
 | Component | Count | Where |
 |-----------|-------|-------|
-| Specialist agents | 17 | [`agents/`](agents/) |
+| Specialist agents | 18 | [`agents/`](agents/) |
 | Skills | 70 | [`skills/`](skills/) |
 | Hooks | 59 | [`hooks/`](hooks/) |
 | Rule-sets | 5 | [`rules/`](rules/) |

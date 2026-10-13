@@ -54,13 +54,16 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
  * de-hardcode it from scan_repo — that is the forbidden tautology. ────────── */
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
-  // 16 -> 17: agents/scout.md (model-tier delegation build, v0.322.0 — the first
+  // 17 -> 18: agents/explore.md (v0.352.0 — read-only haiku override of the
+  //   built-in Explore subagent). COUNTED, not inferred:
+  //   `ls plugins/ravenclaude-core/agents | wc -l` -> 18 on this tree.
+  //        16 -> 17: agents/scout.md (model-tier delegation build, v0.322.0 — the first
   //   haiku-tier worker: search/grep/classify/extract, returns a small artifact).
   //   COUNTED, not inferred: `ls plugins/ravenclaude-core/agents | wc -l` -> 17 on this tree.
   //        15 -> 16: agents/source-control-coordinator.md (PR #1146 — cross-session
   //   merge/CI-triage handoff via the task ledger). COUNTED, not inferred:
   //   `ls plugins/ravenclaude-core/agents | wc -l` -> 16 on this tree.
-  agents: 17,
+  agents: 18,
   skills: 70, // 69 -> 70: skills/wallet-passes (Apple PassKit + Google Wallet generic
   //   official-docs reference, PR #1337). COUNTED, not inferred:
   //   `ls plugins/ravenclaude-core/skills | wc -l` -> 70 on this tree.

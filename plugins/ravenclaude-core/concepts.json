@@ -2859,7 +2859,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:678351df88ad581d8f1bc67c59522d2ccb261deda22babe98183ba055d42570f",
+      "covers_digest": "sha256:e52cb0c159de688c7fc990663ae0a423f2772d060efde11106cceced22138180",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3002,7 +3002,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:ccb2e3fffab18023b99c8601b4e3f9b09d4b82d083091fdfa410ef392678dfed",
+      "covers_digest": "sha256:43712d3bce4fc92ada94ba7f00c79d09cc22ffc52833fe581e832dc39fdba175",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3064,7 +3064,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:c11a0002e46c1c537a1025474ec9f3589fafb0b25b2a011730ed78b9f42b1b02",
+      "covers_digest": "sha256:26de9cf3bdc10b919c38d402719ff0d479d29bf8d047a466a739cd34e27ddf93",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4560,9 +4560,10 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/explore-tier-pin.sh",
         "plugins/ravenclaude-core/scripts/explore-tier-pin.py",
-        "plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh"
+        "plugins/ravenclaude-core/hooks/tests/test-gate286-explore-tier-pin.sh",
+        "plugins/ravenclaude-core/agents/explore.md"
       ],
-      "covers_digest": "sha256:522a05cec00c8233175ed6079a42bba7b48d2e55f4aad7ca63e1e5d2fb4dec94",
+      "covers_digest": "sha256:cf8411d113d195fc6955c9af7ae895dbf463e596bd43d5eb42493806514f66fd",
       "nuance": "Same un-pinned `Explore` payload, same `haiku` knob: env `{}` yields an `updatedInput.model: haiku` envelope; env `{CLAUDE_CODE_SUBAGENT_MODEL: haiku}` yields `None`. Per-invocation `model` outranks the env var in Claude Code's resolution order, so a pin would have silently replaced the consumer's fleet-wide routing — the hook yields instead.",
       "nuance_evidence": {
         "measured": "2026-09-14",

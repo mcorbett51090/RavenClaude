@@ -226,4 +226,16 @@ if [ -n "$trip" ]; then
   printf '%s\n' "Runaway brake: the agent ${trip}. Paused to prevent a rabbit hole / runaway. Intervene, or raise the limit under \`runaway:\` in .ravenclaude/comfort-posture.yaml (or set \`runaway: off\`)." >&2
   exit 2
 fi
+
+# ── ADVISOR NUDGE (v0.352.0) ─────────────────────────────────────────────────
+# The 2nd byte-identical MUTATING call in a row is almost always a retry after
+# a failure (this PreToolUse hook cannot see the prior result, so the wording
+# says "if it failed"). Advise — never block — once per streak (consec == 2):
+# re-read the error, then consult the advisor before retrying. Read-only calls
+# never reach here with a fresh consec, so the carve-out stays transparent.
+# See CLAUDE.md "Advisor checkpoints". No-op text if no advisor is configured.
+if [ "$read_only" = "0" ] && [ "$consec" -eq 2 ]; then
+  notice="Runaway brake (advisory): this is the 2nd identical call in a row. If the previous attempt failed, re-read the error, then consult the advisor (if one is configured) before retrying. The advisor never overrides tool evidence or a gate verdict."
+  jq -cn --arg c "$notice" '{hookSpecificOutput:{hookEventName:"PreToolUse",additionalContext:$c}}' 2>/dev/null || true
+fi
 exit 0

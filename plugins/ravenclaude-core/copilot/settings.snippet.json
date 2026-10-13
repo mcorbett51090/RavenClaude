@@ -37,6 +37,11 @@
       "effortLevel": "medium",
       "_canonical_tier": "sonnet"
     },
+    "Explore": {
+      "model": "<your-plan-picker-id>",
+      "effortLevel": "low",
+      "_canonical_tier": "haiku"
+    },
     "frontend-coder": {
       "model": "<your-plan-picker-id>",
       "effortLevel": "medium",
