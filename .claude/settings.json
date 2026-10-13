@@ -517,6 +517,12 @@
           },
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/dashboard-prompt.sh\"",
+            "timeout": 5,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Dashboard prompt: speaks only when the project has no .ravenclaude/comfort-posture.yaml, so it is silent in a configured repo. One fixed-text line (systemMessage + additionalContext) pointing at /dashboard and the opt-in dashboard_autostart knob. Writes nothing; fail-safe, always exits 0."
+          },
+          {
+            "type": "command",
             "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/caveman-route-hook.sh\" --event session",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror). Caveman auto-routing (FORGE P3 \u2014 SHADOW ONLY), SessionStart half of the same hook body registered under UserPromptSubmit above. Joins this EXISTING startup|resume|clear|fork matcher group deliberately \u2014 no `compact` entry, no new matcher block. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."

@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.353.0 — 2026-10-13
+
+### Added
+- **`scripts/dashboard-prompt.sh`: a SessionStart prompt for projects with no comfort posture.** A person with no `.ravenclaude/comfort-posture.yaml` was told nothing about the dashboard (`dashboard-autostart.sh` exits at its first test unless that file exists, and the session banner names dashboard tabs but never says "run /dashboard"). The new hook speaks only in that unconfigured state: one fixed-text line through `systemMessage` (what the person sees) and `additionalContext` (so the agent can answer "how do I open the dashboard"), naming `/dashboard` (or `rc dashboard` in any terminal) and the opt-in `dashboard_autostart` knob. It writes nothing, starts nothing, never blocks, and goes silent once the posture file exists; `RC_DASHBOARD_PROMPT=off` silences it. Autostart was deliberately **not** made the default (an undisclosed background server and browser tab per session). Wording switches on whether `bin/rc` ships beside the script, so one unmodified file also serves an edition without `bin/`. Wired in `hooks.json` and the dev-mirror; all four cross-host projectors derive it with no per-host skip. New Gate 300 (`test-gate300-dashboard-prompt.sh`, 17 assertions incl. two teeth mutants).
+
+### Migration
+- Consumer-visible and advisory: a project with **no** `.ravenclaude/comfort-posture.yaml` now shows one line at session start. Nothing is blocked or written. Create that file (or set `RC_DASHBOARD_PROMPT=off`) to silence it.
+
 ## 0.352.0 — 2026-10-13
 
 ### Added

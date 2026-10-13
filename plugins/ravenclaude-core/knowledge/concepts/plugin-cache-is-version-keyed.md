@@ -11,7 +11,7 @@ covers:
   - plugins/ravenclaude-core/.claude-plugin/plugin.json
   - scripts/sync-plugin-versions.py
   - scripts/generate-copilot-plugin.py
-covers_digest: "sha256:43712d3bce4fc92ada94ba7f00c79d09cc22ffc52833fe581e832dc39fdba175"
+covers_digest: "sha256:bb117cdf294343c23d2da2bb4b633b358958841f80b4d5ea35b6c20f3f3211e4"
 nuance: "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code."
 nuance_evidence:
   measured: 2026-08-19

@@ -5373,6 +5373,26 @@ autonomous work (`Workflow`, `ScheduleWakeup`, `CronCreate`, a background `Agent
 Gate 291 section G covers each row of the knowledge file's guard table, with a mutant whose
 interactivity check always passes as the teeth.
 
+## The dashboard was undiscoverable, and the fix is a prompt, not a server (added 2026-10-13, v0.353.0)
+
+The owner's ask: the dashboard must either start automatically or the person must be prompted to run `/dashboard`. v0.216.0 had already added the opt-in `dashboard_autostart: off | serve | open` knob, but a person who had never created a posture file got nothing at all.
+
+Why a new user saw nothing: `hooks/dashboard-autostart.sh` stops before doing anything unless a posture file exists, and the session banner never tells anyone to run `/dashboard`.
+control: Read `hooks/dashboard-autostart.sh:47` -> `[ -f "$CFG" ] || exit 0`; Grep `dashboard` in `scripts/capability-orientation.py` -> 3 hits (lines 986, 1009, 1069), every one a mention of dashboard tabs, none a run-`/dashboard` prompt (2026-10-13).
+
+**Decision: prompt, not autostart.** Autostarting a local server and a browser tab for every session is an undisclosed background process, steals focus across concurrent sessions, and widens the loopback `/__save` write surface for every consumer. The opt-in knob is unchanged and the prompt names it.
+
+**Mechanism.** `scripts/dashboard-prompt.sh` (SessionStart, `startup|resume|clear|fork`) speaks only when `.ravenclaude/comfort-posture.yaml` is absent, so it keeps no state and writes nothing; creating that file, or `RC_DASHBOARD_PROMPT=off`, silences it. It emits through **both** channels: `systemMessage` for the person and `additionalContext` for the agent. `hooks/_advise.sh` records the measured reason: stderr at exit 0 does not reach the model, and an unlabelled advisory is discounted as possible injection, so the model-facing copy is self-identifying. Every emitted byte is a fixed string (Gate 19's rule). The wording switches on whether `bin/rc` sits beside the script, so a directory edition that ships no `bin/` (and no 11 MB `dashboard.html`) points at the hosted page and the paste-back save flow with the same unmodified file.
+
+**Wiring.** The text is host-neutral (`/dashboard`, or `rc dashboard` in any terminal), so all four projectors derive the hook from `hooks.json` and none needs a `_SKIP` entry.
+control: `generate-{gemini,codex,copilot,cursor}-hooks.py --check` -> all four OK (58 canonical hooks all accounted for); `check-sessionstart-matcher-regression.py` -> OK; `check-crosshost-hook-coverage.py` -> PASS, 82 registrations, 0 silent drops (2026-10-13). One name was added to `_SOURCE_HOOKS`.
+
+**Honest limit.** Whether the terminal RENDERS `systemMessage` cannot be observed from a headless run; the model channel is the measured one. Check it by eye once.
+
+Proven by **Gate 300** (`hooks/tests/test-gate300-dashboard-prompt.sh`): prompt on both channels, silent when configured, off-switch, writes nothing, edition wording, fail-safe, no echo of payload or environment, registered in both manifests, and two teeth mutants (posture gate removed -> speaks when configured; stdin echo -> caught). Registered in the `--check` dispatcher, the main sequence, the `Supported:` string and the `hooks` suite, and verified by Gates 195 and 267.
+
+**Migration:** consumer-visible and advisory. A project with no posture file now sees one line per session; nothing is blocked or written.
+
 ## Project instructions dual-file (UNVERIFIED adapt)
 - Claude Code: `CLAUDE.md` primary; if absent → `AGENTS.md` (API path; not Bedrock/Vertex/Foundry yet).
 - Copilot / Cursor / Codex / Grok bots / SuperGrok: honor host-native instruction files; RavenClaude Copilot bridge projects root discipline into `copilot/AGENTS.md`.
