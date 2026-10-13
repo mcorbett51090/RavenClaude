@@ -33,3 +33,8 @@ description: "Wire an offline eval suite into a CI ship-gate so a prompt/model c
 - **Never move the baseline silently** to make a regression pass — the baseline changes only on a deliberate, recorded promotion.
 - **Guardrail failures are zero-tolerance** — they block regardless of the quality delta.
 - **A flaky gate is worse than none** — pin determinism or the team learns to ignore red.
+
+## See also
+
+- [`prompt-engineering` → `prompt-eval-and-regression`](../../../prompt-engineering/skills/prompt-eval-and-regression/SKILL.md): the per-prompt CI gate.
+- [`evals/inject-golden-set/`](../../../../evals/inject-golden-set/README.md): offline injection regression set (zero-tolerance guardrail slice).

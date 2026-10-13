@@ -61,3 +61,16 @@ and Structured Output protocols, and the security/review seams).
 
 This plugin owns **the prompt, the context, the output contract, and the
 reliability of all three.** Everything else around the model belongs to someone else.
+
+## See also
+
+- [`llm-evaluation-engineering`](../llm-evaluation-engineering/README.md) — the eval *program*
+  (suite design, LLM-as-judge, release gates). This plugin's
+  [`prompt-eval-and-regression`](skills/prompt-eval-and-regression/SKILL.md) is the per-prompt
+  regression gate; hand off to `llm-evaluation-engineering` once the eval spans more than one prompt.
+- [`evals/inject-golden-set/`](../../evals/inject-golden-set/README.md) — the repo's offline
+  prompt-injection regression set (fixtures-only, fails closed). Use it as a starting fixture for
+  the untrusted-input section of a prompt spec.
+- [`claude-app-engineering`](../claude-app-engineering/README.md) — Claude-API-specific prompt and
+  context work (caching, 1M context, forced-tool structured output). See the scoping note in
+  [`CLAUDE.md`](CLAUDE.md) for who owns what.

@@ -70,6 +70,7 @@ Cache check: <expected hit-rate behavior; usage fields to monitor>
 > *A better-written prompt or a reusable agent/skill definition → `ravenclaude-core/prompt-engineer`. The caching strategy, context budget, thinking config, or token economics of a running Claude app → here.*
 
 - **Improve a prompt/agent-file as an artifact** → `ravenclaude-core/prompt-engineer`.
+- **Provider-neutral prompt design** (task decomposition, pattern choice, the context *plan*, the output contract, the per-prompt regression gate) → the `prompt-engineering` plugin, which owns that layer. You implement its plan on the Claude API; you do not re-derive it. Scoping note: [`prompt-engineering/CLAUDE.md`](../../prompt-engineering/CLAUDE.md) §7.
 - **A tool should be a reusable MCP server / a hosted server tool** → `mcp-and-server-tools-engineer`.
 - **Measure a prompt/model change** → `eval-engineer`. **Cost/latency dashboards** → `claude-app-ops-engineer`.
 - **Injection / secrets / PII** → `ravenclaude-core/security-reviewer`.

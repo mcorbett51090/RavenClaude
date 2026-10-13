@@ -2,6 +2,13 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.9.22 — 2026-10-13
+
+### Fixed
+
+- `knowledge/context-engineering-2026.md` re-checked 2026-10-13 against platform.claude.com: 1M-context list updated to the current lineup; cache-read rate on Sonnet 5.5 (5%) added; manual extended thinking is not accepted after Opus 4.6/Sonnet 4.6; sampling-param 400s on newer models; effort changes break the cache. One claim (Agent SDK compaction) marked UNVERIFIED.
+- `prompt-and-context-engineer`: hand-off to the `prompt-engineering` plugin for provider-neutral prompt design.
+
 ## 0.9.21 — 2026-09-23
 
 ### Fixed

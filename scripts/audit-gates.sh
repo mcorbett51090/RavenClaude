@@ -5818,6 +5818,11 @@ gate "sanitize-mcp-output --self-test (all envelope + boundary checks OK)" must_
 rc=0; grep -q "^FAIL" "$MCP_SELFTEST_OUT" && rc=1 || rc=0
 gate "sanitize-mcp-output --self-test (zero FAIL lines)" must_pass "$rc"
 
+# 2026-10-13: both PostToolUse sanitizer wrappers FAIL CLOSED when python3 is
+# missing (block + withhold the unscanned body) instead of silently allowing.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-sanitizer-fail-closed.sh > "$TMP/sanitizer-fail-closed.txt" 2>&1 || rc=$?
+gate "sanitize-{mcp,webfetch}-output.sh fail closed when python3 is missing" must_pass "$rc"
+
 echo "── Gate 54: R-PRIV run-context bundler allowlist (never-capture) ─────────"
 # The run-context bundler (scripts/capture-run-context.py) attaches a minimal,
 # safe bundle to a /wrap scenario. Scenario files SHIP to every installer, so an

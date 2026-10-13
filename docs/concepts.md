@@ -2352,7 +2352,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-12_
+_Last verified: 2026-10-13_
 
 
 ---
@@ -2474,7 +2474,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-10_
+_Last verified: 2026-10-13_
 
 
 ---
@@ -2930,7 +2930,7 @@ Probe: `plugins/ravenclaude-core/hooks/sanitize-mcp-output.py` (`--self-test`)
 
 **Sources:** [Q1/L4 of the analog-repos-gap-fill leftovers, unparked on owner request](https://github.com/mcorbett51090/RavenClaude/pull/928)
 
-_Last verified: 2026-08-30_
+_Last verified: 2026-10-13_
 
 
 ---

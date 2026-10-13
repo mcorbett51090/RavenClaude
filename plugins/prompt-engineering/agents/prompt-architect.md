@@ -89,6 +89,9 @@ about the *shape* of the prompt, not which vendor's model runs it.
   injection-*resistant* prompts; they try to break them.
 - **The application, API, and orchestration around the prompt** →
   `claude-app-engineering` / `backend-engineering`.
+- **Claude-API implementation of your context plan** (cache breakpoints, 1M-window
+  management, thinking/effort, forced-tool output) → `claude-app-engineering/prompt-and-context-engineer`.
+  You own the provider-neutral plan; they own the Claude-specific mechanics.
 
 You own **the prompt architecture, the pattern, the context plan, and the output
 contract.** The words go to `prompt-implementation-engineer`; the model goes to model-guidance;

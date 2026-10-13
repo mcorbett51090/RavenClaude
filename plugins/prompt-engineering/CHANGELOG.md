@@ -3,6 +3,14 @@
 All notable changes to this plugin are documented here. Versioning is semver, bumped
 on every user-visible change and mirrored in `.claude-plugin/marketplace.json`.
 
+## 0.1.3 — 2026-10-13
+
+### Changed
+
+- Scoping note vs `claude-app-engineering/prompt-and-context-engineer` (CLAUDE.md §7, `prompt-architect` seams): this plugin owns provider-neutral prompt design; the Claude-API mechanics belong there. Nothing removed.
+- See-also cross-links to `llm-evaluation-engineering` and `evals/inject-golden-set/` (README, `prompt-eval-and-regression`).
+- `knowledge/prompt-engineering-2026-reference.md`: currency re-check 2026-10-13 (new §7 log); multimodal and adversarial-suffix injection families added; role-play framing marked UNVERIFIED.
+
 ## 0.1.2 — 2026-09-14
 
 ### Changed

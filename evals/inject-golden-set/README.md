@@ -41,3 +41,10 @@ Reports (gitignored): `evals/reports/golden-set-light.{json,md,junit.xml}`
 - Light green ≠ AT-INJ re-lock
 - No live model in v1
 - Never echo attack stubs into PR comments / CoS digests (case_id + class only)
+
+## See also
+
+- [`plugins/prompt-engineering`](../../plugins/prompt-engineering/README.md) — prompt-layer injection
+  defence (`untrusted-input-is-not-instructions`, `prompt-reliability-engineer`).
+- [`plugins/llm-evaluation-engineering`](../../plugins/llm-evaluation-engineering/README.md) — wiring a
+  set like this into a release gate as a zero-tolerance guardrail check.

@@ -6,11 +6,11 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 914
 summary: "sanitize-mcp-output.py extends F1's WebFetch quarantine to mcp__* tool results — but the tool-name match has to be a prefix check, and a substring match had to be deliberately excluded."
-last_verified: 2026-08-30
+last_verified: 2026-10-13
 covers:
   - plugins/ravenclaude-core/hooks/sanitize-mcp-output.sh
   - plugins/ravenclaude-core/hooks/sanitize-mcp-output.py
-covers_digest: "sha256:3b6351ebcadda447559e44fb8339c4aaf39d8eb45c143a20414a4c329c9602e7"
+covers_digest: "sha256:4ac6a0c2680638d4e9d8e5f4bf84db7876ffbb5f35fc4a13b625d8a2f7506b21"
 nuance: "F1's WebFetch hook matches one exact tool name. This one must be a PREFIX check (mcp__ names are dynamic) — and a tool name merely CONTAINING 'mcp__' without starting with it must NOT match."
 nuance_evidence:
   measured: 2026-08-30

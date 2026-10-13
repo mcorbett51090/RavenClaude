@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.351.0 — 2026-10-13
+
+### Changed
+- **`prompt-engineer` repinned to `model: sonnet`, `effort: xhigh`** (approved 2026-10-13). Its "Pick the model" guidance no longer lists itself as an opus agent. Copilot/Codex projections regenerated.
+
+### Fixed
+- **Output-sanitizer hooks fail closed when python3 is missing.** `sanitize-mcp-output.sh` and `sanitize-webfetch-output.sh` previously exited 0 with no output when python3 (or the sibling `.py`) was absent, so an unscanned MCP/WebFetch result reached the model. They now emit `decision: "block"` with a clear reason, replace the output with a static notice via `updatedToolOutput`, and print the reason to stderr. Sanitizer-internal parse/IO errors stay fail-open as before. New test `hooks/tests/test-sanitizer-fail-closed.sh` (fails on 0.348.0, passes now), wired next to the existing sanitizer gates in `audit-gates.sh`.
+- **`prompt-engineer` stale references** — the forward reference to `docs/ai-curation/agent-revision-log.md` ("create if missing") now points at the real file, created with a header and no back-filled history; flat `skills/*.md` paths corrected to `skills/*/SKILL.md`.
+
 ## 0.350.0 — 2026-10-13
 
 ### Fixed
