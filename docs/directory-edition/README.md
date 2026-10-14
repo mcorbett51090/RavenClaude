@@ -4,17 +4,19 @@ A smaller, reviewable build of [`plugins/ravenclaude-core`](../../plugins/ravenc
 
 ## Why a separate edition
 
-The full plugin cannot be submitted as it is. Measured against the Directory's documented checks (2026-10-13):
+The full plugin cannot be submitted as it is. Measured against the Directory's [pre-submission checklist](https://claude.com/docs/plugins/pre-submission-checklist), re-read 2026-10-14. These numbers drift: `python3 scripts/check-repo-file-budget.py --report` re-measures the repository rows, `build-directory-edition.py --report` the edition rows.
 
 | Directory rule | Full plugin | Edition |
 |---|---|---|
-| Repo under 10,000 files | the monorepo has 10,872 | its own repo |
-| Plugin at most 512 files (more is a reviewer hold on every version) | 1,871 | 147 |
-| No file over 5 MiB (blocks) | `dashboard.html` is 10,992,418 bytes | largest file 69 KB |
-| No non-image file over 256 KiB (hold) | five (`CLAUDE.md`, `CHANGELOG.md`, `concepts.json`, `skill-index/SKILL.md`, `dashboard.html`) | none |
+| Repository "under 50 MiB as GitHub archives it and under 256 MiB unpacked, with fewer than 10,000 files and folders" (validation stops) | the monorepo has 9,907 files and 3,042 folders, 12,949 together, which is over if the portal adds them (unverified); 41.2 MiB as a zip, 140.8 MiB unpacked | its own repo: 144 files, 41 folders, 1.3 MiB |
+| Plugin at most 512 files (more is a reviewer hold on every version) | 895 | 144 |
+| Every file in the plugin folder under 5 MiB (validation stops) | `dashboard.html` is 10,992,418 bytes | largest file 69 KB |
+| No non-image file over 256 KiB (hold) | 46: `dashboard.html`, `CLAUDE.md`, `CHANGELOG.md`, `concepts.json`, `skill-index/SKILL.md` and the 41 diagram packs | none |
 | `experimental` must not declare components | `experimental.monitors` | absent |
 | `claude plugin validate --strict` | fails on the root `CLAUDE.md` | passes |
 | Security scan: undisclosed behaviour | 57 registered hooks, several always on; nested `claude -p`; `bin/` that edits shell startup files | 9 hooks, all measured, all disclosed; no nested `claude`; no `allowed-tools` |
+
+The 41 diagram packs (`knowledge/tree-visuals/pack-NN.js`, `knowledge/concepts/visuals/visuals.pack.json`) trade the monorepo's file count for larger files, which is why the 256 KiB row went from 5 to 46. The edition's manifest denies both directories, so it is unaffected (Gate 301).
 
 ## What the edition is
 
