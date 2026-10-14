@@ -211,16 +211,29 @@ disown 2>/dev/null || true
 
 # Wait until it answers, discovering the ACTUAL bound port. The server reclaims a
 # stale server OF OURS on $PORT, else walks PORT..PORT+WALK, so never assume $PORT bound.
+# Prefer a port POSITIVELY identified as THIS checkout's own server: another
+# worktree's dashboard may already hold an earlier port in the 8000..8010 walk
+# range, and accepting it would announce + open the wrong checkout (posture edits
+# would land in the wrong .ravenclaude/). Mirror find_our_live_port()'s two-part
+# _is_our_dashboard check. Fall back to the first answering port only when
+# ownership can't be verified (e.g. lsof absent) so a no-lsof host still launches.
 bound_port=""
+fallback_port=""
 for _ in $(seq 1 20); do
   for cand in $(seq "$PORT" $((PORT + WALK))); do
     if curl -fsS -o /dev/null "http://127.0.0.1:${cand}/index.html" 2>/dev/null; then
-      bound_port="$cand"
-      break 2
+      [ -n "$fallback_port" ] || fallback_port="$cand"
+      for pid in $(_holder_pids "$cand"); do
+        if _is_our_dashboard "$pid"; then
+          bound_port="$cand"
+          break 3
+        fi
+      done
     fi
   done
   sleep 0.5
 done
+[ -n "$bound_port" ] || bound_port="$fallback_port"
 if [ -z "$bound_port" ]; then
   echo "dashboard server did not come up — see $LOG" >&2
   exit 1
