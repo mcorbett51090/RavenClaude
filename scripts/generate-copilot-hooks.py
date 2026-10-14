@@ -242,7 +242,20 @@ def _extra_args(command: str, script: str) -> str:
     marker = "/hooks/" + script
     if marker not in command:
         marker = "/scripts/" + script
-    tail = command.split(marker, 1)[1].strip() if marker in command else ""
+    if marker in command:
+        tail = command.split(marker, 1)[1]
+        # PR #1316 double-quoted the script path in the manifest, so the path's
+        # own CLOSING quote is the first char of the split tail (`" check`, or a
+        # lone `"`). Strip it BEFORE .strip() — a legacy unquoted path's tail
+        # starts with whitespace, not a quote, so it is left untouched. Without
+        # this every emitted command ends in a stray unterminated quote and
+        # fails `bash -n` (the whole projection was broken; see the round-trip
+        # validation gate).
+        if tail.startswith('"'):
+            tail = tail[1:]
+        tail = tail.strip()
+    else:
+        tail = ""
     # The tool-file-path placeholder is supplied by the adapter in file/post modes.
     return tail.replace(_ARGV_TOKEN, "").strip()
 
@@ -409,6 +422,51 @@ def main(argv: list) -> int:
                 file=sys.stderr,
             )
             return 1
+        # Command-syntax floor (added after the PR #1316 regression): the emitted
+        # command STRING must be valid shell. This --check accounted only for
+        # basenames, so it stayed GREEN while _extra_args left a stray closing
+        # quote on every command and `bash -n` rejected all of them. Validate the
+        # real strings so a manifest-quoting change can never silently break the
+        # projection again.
+        import shutil as _sh
+        import subprocess as _sp
+
+        def _emitted(obj):
+            acc = []
+            if isinstance(obj, dict):
+                for _k, _v in obj.items():
+                    if _k in ("bash", "command") and isinstance(_v, str):
+                        acc.append(_v)
+                    else:
+                        acc.extend(_emitted(_v))
+            elif isinstance(obj, (list, tuple)):
+                for _v in obj:
+                    acc.extend(_emitted(_v))
+            return acc
+
+        _bash = _sh.which("bash")
+        if _bash is None:
+            print(
+                "copilot-hooks: bash not found — emitted-command syntax check "
+                "SKIPPED (a SKIP, not a pass).",
+                file=sys.stderr,
+            )
+        else:
+            _bad = [
+                _cmd
+                for _cmd in _emitted(cfg)
+                if _cmd.strip()
+                and _sp.run([_bash, "-n", "-c", _cmd], capture_output=True).returncode != 0
+            ]
+            if _bad:
+                print(
+                    f"copilot-hooks: {len(_bad)} emitted command(s) are NOT valid "
+                    "shell (a stray quote / bad _extra_args?); e.g.:",
+                    file=sys.stderr,
+                )
+                for _c in _bad[:5]:
+                    print(f"  {_c!r}", file=sys.stderr)
+                return 1
         print(
             f"Copilot hooks OK — {len(wired)} wired, {len(skipped)} explicitly "
             f"skipped, {len(canonical)} canonical hooks all accounted for."

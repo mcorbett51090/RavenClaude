@@ -2352,7 +2352,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-13_
+_Last verified: 2026-10-14_
 
 
 ---
@@ -2448,7 +2448,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-12_
+_Last verified: 2026-10-14_
 
 
 ---
@@ -2474,7 +2474,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-13_
+_Last verified: 2026-10-14_
 
 
 ---
@@ -3614,7 +3614,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh`.
 
 **Sources:** [PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml) · [knowledge/thing-harden-transforms.yaml](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml)
 
-_Last verified: 2026-10-10_
+_Last verified: 2026-10-14_
 
 
 ---
@@ -3733,7 +3733,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh`
 
 **Sources:** [built and measured in the routine token reserve PR 1 session](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/routine-token-reserve.md)
 
-_Last verified: 2026-10-12_
+_Last verified: 2026-10-14_
 
 
 ---

@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.352.2 — 2026-10-14
+
+### Fixed
+- **Host-hook projectors emitted shell-syntax-invalid commands (P0).** Since #1316 double-quoted the script path in `hooks.json`, `_extra_args` left a stray closing quote on every emitted Copilot/Cursor/Gemini/Codex hook command (`bash -n` rejected copilot 67/67, cursor 50/50, gemini 40/40, codex 15/36), silently disarming guardrails on fail-open lanes and blocking every matched tool call on fail-closed ones. Fixed the split in all four generators, added a `bash -n` command-syntax floor to each `--check`, and repaired the hollow Gate 158/160/165 teeth (a `$TMP`-located mutant died with `FileNotFoundError` before the mutation ran) that let it ship.
+- **A commented `# context_handoff:` block shadowed the real one (P1).** `context-usage-meter.py`'s `read_posture` matched a commented key as the block start, so the handoff nudge read `mode: off` and stayed inert whenever a real block followed a commented one. Dropped the leading-`#` match; default the block to empty when absent.
+- **The project-root walk-up loop hung on a relative cwd (P1).** `runaway-brake.sh`, `dod-gate.sh`, `guard-probe-validity.sh` and `thing-orchestrator.sh` spun forever when the payload cwd was relative (e.g. `.`, which the Copilot adapter can emit — `copilot-hook-adapter.sh:162` falls back to `"."`). Resolve a relative cwd to absolute and break on a fixed point.
+- **`routine-reserve.py` crashed on a malformed sample (P2).** A non-numeric `t` in a sample crashed `compute` and left the warn/guard hooks serving a stale `reserve.json`; coerce `t` in a try at the load boundary and drop the record.
+
 ## 0.352.1 — 2026-10-13
 
 ### Fixed
