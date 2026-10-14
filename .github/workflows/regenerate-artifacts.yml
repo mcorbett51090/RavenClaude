@@ -57,6 +57,7 @@ on:
       - "scripts/concepts.py"
       - "scripts/render-concepts.py"
       - "scripts/render-trees.py"
+      - "scripts/visual_pack.py"
       - "scripts/generate-bi-report.py"
       - "scripts/generate-copilot-plugin.py"
       - "scripts/generate-feedback-report.py"
