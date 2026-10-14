@@ -219,6 +219,32 @@ RavenClaude/
 
 The container at `.devcontainer/` auto-installs the Claude Code CLI on rebuild, so a fresh Codespace is ready to work on plugins without setup.
 
+### Claude plugin Directory limits — keep the repo submittable
+
+Anthropic's developer portal checks a plugin before listing it in the Claude plugin directory. The size limits are the ones this repo can break just by growing. **Source of truth:** the [pre-submission checklist](https://claude.com/docs/plugins/pre-submission-checklist), re-read 2026-10-14. Re-read it before trusting any number below; they drift.
+
+| Limit (the checklist's wording) | If exceeded | Monorepo / full plugin now | Edition now | Checked by |
+|---|---|---|---|---|
+| Repository: "fewer than 10,000 files and folders" | Validation stops | 9,907 files + 3,042 folders = 12,949 | 144 + 41 = 185 | Gate 302 counts files only; `--report` shows folders |
+| Repository: under 50 MiB "as GitHub archives it", 256 MiB unpacked | Validation stops | 41.2 MiB zip, 140.8 MiB unpacked | 1.3 MiB | `--report` (not gated) |
+| Every file in the plugin folder under 5 MiB | Validation stops | `dashboard.html`, 10.5 MiB | largest 68 KiB | Gate 301 |
+| Plugin folder at most 512 files | Held for a reviewer | 895 | 144 | Gate 301 |
+| Non-image, non-font file under 256 KiB; only text, SVG, PNG/JPEG/GIF/WebP and fonts | Held for a reviewer | 46 files over | none | Gate 301 |
+| File and folder names valid on Windows and macOS; no symlinks, submodules, LFS pointers or system files | Validation stops / blocks | clean (checked 2026-10-14) | clean | not gated |
+| README of at least 40 words outside code blocks, and a LICENSE | Blocks | — | both present | Gate 301 |
+
+**What is not settled.** Two readings are unverified, and only the portal's **Validate** answers either. First, whether the portal adds files and folders together; the wording reads that way, and on that reading the monorepo is 2,950 over. Second, whether the `text eol=lf` lines in the root `.gitattributes` count as the "attributes that rewrite file contents" the checklist says to keep out (the edition ships no `.gitattributes`). So the plan of record is to submit the **directory edition from its own repo** ([`docs/directory-edition/`](docs/directory-edition/README.md)), which is well inside every limit. The monorepo's file count is kept down as insurance, not as the submission path.
+
+**Keeping it that way.** Before adding many files or a large artifact, run:
+
+```shell
+python3 scripts/check-repo-file-budget.py --report   # files, folders and sizes against every limit (informational)
+python3 scripts/check-repo-file-budget.py            # Gate 302: fails at 9,990 tracked files
+python3 scripts/check-directory-edition.py           # Gate 301: the edition against the plugin limits (about 60 s)
+```
+
+If Gate 302 fails, pack generated per-file artifacts into a few files (the pattern is [`scripts/visual_pack.py`](scripts/visual_pack.py)) or prune dead files. Don't raise `FAIL_AT` without a reason in the PR. `scripts/audit-gates.sh` runs both gates, so the normal pre-PR check covers them.
+
 ---
 
 ## Roadmap
