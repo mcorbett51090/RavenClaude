@@ -82,7 +82,7 @@ From [GenericClass](https://developers.google.com/wallet/reference/rest/v1/gener
 | `redemptionIssuers[]` | Issuer IDs allowed to redeem over Smart Tap; each needs a Smart Tap key |
 | `textModulesData` / `linksModuleData` / `imageModulesData` | Shared program copy / links / image |
 | `callbackOptions` | Server callbacks on save / delete |
-| `multipleDevicesAndHoldersAllowedStatus` | One holder vs many |
+| `multipleDevicesAndHoldersAllowedStatus` | One holder vs many — **on the class**. `MULTIPLE_HOLDERS`: "can be saved by any number of different users"; `ONE_USER_ALL_DEVICES`: "Once the first user saves the object, no other user will be allowed to view or save it." A card saved by its owner **and** everyone they hand it to must be `MULTIPLE_HOLDERS` (unset default undocumented — [`verify.md`](verify.md) #34). See [`tap-to-share.md`](tap-to-share.md) § Google: the second person to save the card. |
 | `viewUnlockRequirement` | Screen-lock to view |
 | `merchantLocations[]` | ≤ 10 class-level nearby points |
 | `securityAnimation` | Official animation overlay |

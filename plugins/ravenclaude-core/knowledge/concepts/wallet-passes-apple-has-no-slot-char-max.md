@@ -14,7 +14,7 @@ covers:
   - plugins/ravenclaude-core/skills/wallet-passes/references/business-card-layout.md
   - plugins/ravenclaude-core/skills/wallet-passes/references/tap-to-share.md
   - plugins/ravenclaude-core/skills/wallet-passes/references/verify.md
-covers_digest: "sha256:0932241e86a064444e88282162946c7080ab1e2b07281ef9289b687d5c5bbfce"
+covers_digest: "sha256:978a0f5a5ded4c04535c42fddfa2f58b6c1626e6e3f62bd7c41c8a651114ab33"
 nuance: "Apple `PassKit_PG/Creating.html` names `headerFields` counts and says overflow hides fields; it never publishes a per-slot character maximum. Google `generic/resources/brand-guidelines` Content does publish English caps. An invented Apple char-limit table is working guidance, not a contract."
 nuance_evidence:
   measured: 2026-10-11

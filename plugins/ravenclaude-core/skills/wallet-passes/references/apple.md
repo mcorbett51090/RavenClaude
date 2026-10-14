@@ -288,7 +288,7 @@ Update tag is opaque but totally ordered — later than every earlier tag (a tim
 
 ## 11. Sharing, AirDrop, NameDrop
 
-Wallet can share a pass via the Share sheet (AirDrop, iMessage, Mail, third-party apps) and, on current iOS, by holding two iPhones near each other ([Apple Support 111112](https://support.apple.com/en-us/111112), [Wallet & Privacy](https://www.apple.com/legal/privacy/data/en/wallet/)). If Share is missing, the **issuer disabled sharing**.
+Wallet can share a pass via the Share sheet — DOC, [Wallet & Privacy](https://www.apple.com/legal/privacy/data/en/wallet/): "Wallet allows you to share passes by AirDrop, iMessage, Mail, or with third-party mail, messaging, or other communication apps" — and, for "eligible passes" (iOS 17.2+), by holding two iPhones near each other ([Apple Support 111112](https://support.apple.com/en-us/111112)). If Share is missing, the **issuer disabled sharing**. The recipient gets the **same pass** ("Two passes of the same type with the same serial number represent the same pass") and registers for your updates ("a single pass can be registered by multiple devices"). Apple never defines "eligible" ([`verify.md`](verify.md) #30), proximity AirDrop is documented for "someone in your contacts", and since iOS 26.2 AirDrop to a non-contact needs an **AirDrop code** — so for strangers the QR or Messages is the fast path. Full hand-off playbook: [`tap-to-share.md`](tap-to-share.md) § Pushing a card to another person.
 
 Pass-level control: `sharingProhibited` (boolean, default `false`) on the Pass object ([Pass](https://developer.apple.com/documentation/walletpasses/pass)). `true` removes the Share control. A business card you *want* people to hand off should leave this false. A single-use ticket should set `true` and enforce server-side (a shared `.pkpass` is just a file).
 
@@ -298,7 +298,7 @@ Privacy note: when a managed pass is shared, the device may tell the pass provid
 
 NameDrop-style nearby share is an OS feature on eligible devices; there is no separate pass.json "NameDrop" key. Disabling Share (`sharingProhibited: true`, or issuer-side disable) is what turns it off.
 
-⚠️ P2 unverified (#10) — which exact Share-sheet channels (AirDrop / Messages / Mail / third-party apps) Wallet offers is from a search snippet, not fetched page text. ⚠️ P1 unverified (#5) — **NameDrop has no public third-party API**: an app cannot originate, intercept, populate, or receive a NameDrop exchange, and NameDrop shares only name + a chosen phone/email + Contact Poster, and **cannot update an existing contact**. The issuer-gated Wallet→Wallet proximity share (leave `sharingProhibited` false) is the real "tap phones" primitive a third party controls — full picture in [`tap-to-share.md`](tap-to-share.md).
+The Share-sheet channels above are now quoted from Apple (#10 resolved 2026-10-14). ⚠️ P1 unverified (#5) — **NameDrop has no public third-party API**: an app cannot originate, intercept, populate, or receive a NameDrop exchange, and NameDrop shares only name + a chosen phone/email + Contact Poster, and **cannot update an existing contact**. The issuer-gated Wallet→Wallet proximity share (leave `sharingProhibited` false) is the real "tap phones" primitive a third party controls — full picture in [`tap-to-share.md`](tap-to-share.md).
 
 ## 11a. A pass in Messages — what the bubble shows, and what you can control
 
