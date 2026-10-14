@@ -2,6 +2,24 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.354.0 — 2026-10-14
+
+### Changed
+- **The generated diagram SVGs are committed as packs, not as 1,019 files.** The Claude Code Directory stops validating a repository at 10,000 files and this one held 10,883; the 799 decision-tree SVGs (`knowledge/tree-visuals/<id>.svg`) became 40 shards (`knowledge/tree-visuals/pack-NN.js`, grouped by owning plugin) and the 220 concept SVGs (`knowledge/concepts/visuals/*.svg`) became one `visuals.pack.json`. Nothing is lost: every packed member was checked byte-identical (sha256) to its file, `dashboard.html` is the old file plus the new `<img>` attributes and the loader (proved by transforming the old file and comparing), and 9 diagrams rendered in headless Chromium are pixel-identical before and after. `scripts/visual_pack.py` is the single reader/writer; `render-trees.py`, `render-concepts.py`, both dashboard generators and the audit gates use it.
+- The Guidance tab and each plugin page now load a diagram's shard the first time its `<details>` is opened (one `<script>`, works on `file://`), then show it from a `data:` URI. Opening a plugin group does not load the diagrams nested inside it.
+
+### Added
+- **Gate 302 `scripts/check-repo-file-budget.py`**: fails at 9,990 tracked files, warns at 9,950, with a must-fail half (`--simulate-extra`). Without it the count drifts back over the Directory limit one PR at a time.
+- Gates for the packs: `visual_pack.py --self-test` (formats, shard stability, the page-side loader driven under node) and `--verify` (tree packs vs. their manifest, with a must-fail half that removes a member).
+
+### Fixed
+- **The portal's Guidance tab diagrams never loaded.** `index.html` rendered them from a path relative to `dashboard.html`, so every one 404'd (0 of 6 sampled loaded). The page now sets `window.__rcTreeBase`, and the same 6 load.
+
+### Migration
+- Anything that read `knowledge/tree-visuals/<id>.svg` or `knowledge/concepts/visuals/<name>.svg` as files must read the packs through `scripts/visual_pack.py` (`read_tree_svgs`, `read_concept_pack`). `concepts.json` keeps its `svg` strings; they are now keys into the concept pack.
+- Diagrams in `dashboard.html` / `index.html` now need JavaScript to appear (they were a plain lazy `<img>`). A saved copy of an old `dashboard.html` points at `.svg` files that no longer exist; regenerate the dashboards together with the packs.
+- The portal's per-plugin "knowledge" count is unchanged: the packed members are counted, not the pack files.
+
 ## 0.353.0 — 2026-10-13
 
 ### Added

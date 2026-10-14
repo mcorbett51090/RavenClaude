@@ -3003,7 +3003,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:bb117cdf294343c23d2da2bb4b633b358958841f80b4d5ea35b6c20f3f3211e4",
+      "covers_digest": "sha256:7be4b5e8da43feb2db85632a7912241170429c9150a4dc208288651cc978b737",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3065,7 +3065,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:5f3c93c57a8c72d6e9449e991118dd350bc769a9d1b9292cd143362a1f21cfa5",
+      "covers_digest": "sha256:95894f1389c1b966428e435ba2476f3194cf8da8539161e5b9cae7facf185c60",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3325,7 +3325,7 @@
         "scripts/concepts.py",
         "scripts/spike-selfheal-contract.sh"
       ],
-      "covers_digest": "sha256:3e59db309dd91ecfe3e1963bb60e3eb01b3e10b010b6922d6456226cc92e216a",
+      "covers_digest": "sha256:1468732331aa8002f11e726689694ad8f5423a26f3370e13228d7a5263c9d09e",
       "nuance": "`regenerate-artifacts.yml` greps `RC-CONCEPTS-CLASS: human-reverify-required` (plus a one-release prose OR-fallback); an unmarked class runs `exit '$_crc'` and every later self-heal step is skipped.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3526,7 +3526,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:80bfe9c39745d3d266c76c5908e8dd8ece3337ec43a59d747aa73fe47d2869f3",
+      "covers_digest": "sha256:04e0cf2a13022888dc2fcbec6d0844cdea0c8af8ca4f90b23587125e51dad8fa",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",

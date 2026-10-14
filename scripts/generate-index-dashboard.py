@@ -36,6 +36,7 @@ import re
 import sys
 from pathlib import Path
 
+import visual_pack as vp
 from _host_scope import resolve_platform_dependency
 
 # Sibling module holding the self-contained HTML/CSS/JS shell. Importable because
@@ -522,6 +523,21 @@ def _count_dir(path: Path, kind: str) -> int:
     return sum(1 for p in path.rglob("*") if p.is_file())
 
 
+def _packed_knowledge_extra(knowledge_dir: Path) -> int:
+    """The portal's "knowledge" count has always counted every committed file under knowledge/, diagram SVGs
+    included. Those SVGs are now packed (scripts/visual_pack.py): N diagrams live in a handful of pack files.
+    Add the members back and drop the pack files themselves so packing is invisible in the headline number."""
+    extra = 0
+    tdir = knowledge_dir / "tree-visuals"
+    if tdir.is_dir():
+        shards = [q for q in tdir.iterdir() if q.name.startswith("pack-") and q.suffix == ".js"]
+        extra += len(vp.read_tree_manifest(tdir).get("trees", {})) - len(shards)
+    cdir = knowledge_dir / "concepts" / "visuals"
+    if (cdir / vp.CONCEPT_PACK_NAME).is_file():
+        extra += len(vp.read_concept_pack(cdir)) - 1
+    return extra
+
+
 def _scan_agents(plugin_dir: Path) -> list[dict]:
     agents: list[dict] = []
     adir = plugin_dir / "agents"
@@ -789,7 +805,7 @@ def scan_repo() -> dict:
         hooks = _count_dir(pdir / "hooks", "sh")
         commands = _count_dir(pdir / "commands", "md")
         templates = _count_dir(pdir / "templates", "files")
-        knowledge = _count_dir(pdir / "knowledge", "files")
+        knowledge = _count_dir(pdir / "knowledge", "files") + _packed_knowledge_extra(pdir / "knowledge")
 
         total_agents += len(agents)
         total_skills += skills
@@ -1003,26 +1019,28 @@ def _render_dt_store(gd) -> str:
     them as collapsible dropdowns — the trees' home in the portal (moved here from
     the dashboard Guidance tab so each sits next to the plugin it guides).
 
-    Each item carries owner/title/when + the SVG's ROOT-RELATIVE PATH (data-svg).
-    The SVG is NOT inlined — __openPlugin lazy-loads it as an <img> when the tree's
-    <details> is opened. Inlining all 600+ trees doubled index.html (~14MB→27MB);
-    referencing the committed file keeps the portal light and only fetches a
-    diagram on demand. The SVGs self-theme via the render-trees fallback palette
-    (page CSS vars don't reach an <img>)."""
+    Each item carries owner/title/when + the tree id (data-tree) and the ROOT-RELATIVE
+    NAME of the packed shard that holds its SVG (data-pack; the loader prefixes window.__rcTreeBase). The SVG is NOT inlined —
+    __openPlugin renders an <img> with no src, and the loader (visual_pack.CLIENT_JS, which
+    ships inside the dashboard fragment's JS at /*__DASH_JS__*/) loads the shard and sets the
+    image when the tree's <details> is opened. Inlining all 600+ trees doubled index.html
+    (~14MB→27MB); the shard keeps the portal light and only fetches on demand. The SVGs
+    self-theme via the render-trees fallback palette (page CSS vars don't reach an <img>)."""
     import html as _h
 
     parts: list[str] = []
     for t in gd._decision_trees_inventory():
-        if not (gd.TREE_VISUALS_DIR / f"{t['id']}.svg").is_file():
+        shard = gd._tree_shard(t["id"])
+        if not shard:
             continue
-        rel = f"plugins/ravenclaude-core/knowledge/tree-visuals/{t['id']}.svg"
         parts.append(
             '<div class="dt-item" data-plugin="{owner}" data-title="{title}" '
-            'data-when="{when}" data-svg="{svg}"></div>'.format(
+            'data-when="{when}" data-tree="{tid}" data-pack="{pack}"></div>'.format(
                 owner=_h.escape(t["owner"], quote=True),
                 title=_h.escape(t["title"], quote=True),
                 when=_h.escape(t["when"], quote=True),
-                svg=_h.escape(rel, quote=True),
+                tid=_h.escape(t["id"], quote=True),
+                pack=_h.escape(shard, quote=True),
             )
         )
     return "".join(parts)

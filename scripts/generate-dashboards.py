@@ -41,6 +41,7 @@ import re
 import sys
 from pathlib import Path
 
+import visual_pack as vp
 from _host_scope import (
     render_filter_strip as _render_host_scope_filter,
 )
@@ -2501,10 +2502,9 @@ _CONCEPT_ICONS = {
 
 
 def _inline_concept_svg(plugin_dir: Path, rel: str | None) -> str:
-    if not rel:
-        return ""
-    p = plugin_dir / rel
-    return p.read_text(encoding="utf-8").strip() if p.is_file() else ""
+    """The pre-rendered concept SVG for a `concepts.json` path. The path is a stable KEY into
+    knowledge/concepts/visuals/visuals.pack.json (scripts/visual_pack.py), not a file on disk."""
+    return vp.concept_svg(plugin_dir, rel or "")
 
 
 # Named interactive widgets a concept can embed via its `widget:` frontmatter.
@@ -3277,24 +3277,20 @@ def _best_practices_inventory() -> list[dict]:
     return out
 
 
-# Pre-rendered decision-tree SVGs (scripts/render-trees.py). Loaded lazily + cached
-# so the generator stays fast when the dir is absent (graceful: no diagram, just
-# the source link). Path mirrors render-trees.py VISUALS_DIR.
+# Pre-rendered decision-tree SVGs (scripts/render-trees.py), committed as packed shards
+# (knowledge/tree-visuals/pack-NN.js, scripts/visual_pack.py). The page never embeds them: a
+# diagram's <details> loads its shard on first open. Only the manifest is read here, so the
+# generator stays fast and degrades gracefully (no diagram, just the source link) for a tree
+# that has not been rendered yet. Path mirrors render-trees.py VISUALS_DIR.
 TREE_VISUALS_DIR = PLUGINS_DIR / "ravenclaude-core" / "knowledge" / "tree-visuals"
-_TREE_SVG_CACHE: dict[str, str] = {}
+_TREE_MANIFEST_CACHE: dict = {}
 
 
-def _load_tree_svg(tree_id: str) -> str:
-    """Return the committed, themed SVG for a tree id, or '' if not rendered yet."""
-    if tree_id in _TREE_SVG_CACHE:
-        return _TREE_SVG_CACHE[tree_id]
-    svg_path = TREE_VISUALS_DIR / f"{tree_id}.svg"
-    try:
-        svg = svg_path.read_text(encoding="utf-8")
-    except OSError:
-        svg = ""
-    _TREE_SVG_CACHE[tree_id] = svg
-    return svg
+def _tree_shard(tree_id: str) -> str | None:
+    """`pack-07` for a tree whose diagram is rendered and packed, or None."""
+    if "m" not in _TREE_MANIFEST_CACHE:
+        _TREE_MANIFEST_CACHE["m"] = vp.read_tree_manifest(TREE_VISUALS_DIR)
+    return vp.tree_shard_for(_TREE_MANIFEST_CACHE["m"], tree_id)
 
 
 def _guide_search_blob(*parts: str) -> str:
@@ -3319,7 +3315,7 @@ def _render_trees_tab(include_trees: bool = True) -> str:
     into index.html, `include_trees=False`: the trees were MOVED onto each plugin's
     detail page (index.html's __openPlugin pulls them from the hidden #dt-store),
     so the folded Guidance tab shows best-practices only and points at the plugin
-    pages. Either way `_decision_trees_inventory` / `_load_tree_svg` stay the source
+    pages. Either way `_decision_trees_inventory` / `_tree_shard` stay the source
     of truth."""
     trees = _decision_trees_inventory() if include_trees else []
     practices = _best_practices_inventory()
@@ -3366,20 +3362,21 @@ def _render_trees_tab(include_trees: bool = True) -> str:
                 )
             )
             when = f'<p class="guide-when">{html.escape(t["when"])}</p>' if t["when"] else ""
-            # Lazy-load the pre-rendered SVG as an EXTERNAL file (loading="lazy" +
-            # collapsed <details>) instead of inlining its ~20KB of markup. With
-            # 600+ trees, inlining doubled dashboard.html (~13MB→27MB); referencing
-            # the committed file keeps the page light and only fetches a diagram
-            # when its <details> is actually opened. The SVG self-themes via the
-            # render-trees fallback palette (page CSS vars don't reach an <img>).
-            # Path is relative to dashboard.html (plugins/ravenclaude-core/).
-            if (TREE_VISUALS_DIR / f"{t['id']}.svg").is_file():
-                rel = f"knowledge/tree-visuals/{html.escape(t['id'])}.svg"
+            # Lazy-load the pre-rendered SVG from its packed SHARD (collapsed <details>) instead
+            # of inlining its ~20KB of markup. With 600+ trees, inlining doubled dashboard.html
+            # (~13MB→27MB); the shard keeps the page light and is only fetched when a diagram's
+            # <details> is first opened (visual_pack.CLIENT_JS gives the <img> its data: URI).
+            # The SVG self-themes via the render-trees fallback palette (page CSS vars don't
+            # reach an <img>). data-pack is just the shard name; the loader prefixes
+            # window.__rcTreeBase (default knowledge/tree-visuals/, relative to dashboard.html).
+            shard = _tree_shard(t["id"])
+            if shard:
                 diagram = (
                     '<details class="guide-tree-diagram">'
                     '<summary class="guide-tree-summary">Diagram</summary>'
-                    f'<div class="guide-tree-svg"><img loading="lazy" decoding="async" '
-                    f'src="{rel}" alt="{html.escape(t["title"])} decision tree" class="guide-tree-img"></div>'
+                    f'<div class="guide-tree-svg"><img decoding="async" '
+                    f'data-tree="{html.escape(t["id"])}" data-pack="{shard}" '
+                    f'alt="{html.escape(t["title"])} decision tree" class="guide-tree-img"></div>'
                     "</details>"
                 )
             else:
@@ -16711,6 +16708,11 @@ function wireHostScopeFilter(root) {
 
 })();
 """.strip()
+# The decision-tree loader (scripts/visual_pack.py) is its own small IIFE at the START of the dashboard script.
+# It must NOT sit just before the dashboard IIFE's final close: render_fragment() injects `window.__dashApp`
+# there, and check-shell-router.mjs treats a `})();` immediately followed by that exposure as the stranded-
+# after-the-close bug. At the start, the injection and the router check are untouched.
+_JS = vp.CLIENT_JS.strip() + "\n" + _JS
 
 
 # Raven Power brand mark — the real raven-mark-dark.png from the

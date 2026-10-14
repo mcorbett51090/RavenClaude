@@ -202,9 +202,10 @@ def concept_svg(plugin_dir: Path, rel: str) -> str:
 
 
 # ── the page-side loader, shared by dashboard.html and index.html ───────────────────────────────
-# Opening a <details> that holds an <img data-pack=URL data-tree=ID> loads the shard once (a <script>,
+# Opening a <details> that holds an <img data-pack=SHARD data-tree=ID> loads <base>/SHARD.js once (a <script>,
 # which works on file://) and gives the <img> a data: URI. The pack's SVG is byte-identical to the old
-# file; an <img> does not inherit page CSS vars either way, so theming is unchanged.
+# file; an <img> does not inherit page CSS vars either way, so theming is unchanged. <base> is
+# window.__rcTreeBase (index.html sets it), default `knowledge/tree-visuals/` (dashboard.html).
 CLIENT_JS = r"""
 /* rc-tree-loader: lazy-load pre-rendered decision-tree SVGs from packed shards (scripts/visual_pack.py). */
 (function () {
@@ -232,8 +233,9 @@ CLIENT_JS = r"""
   }
   function load(img) {
     if (img.getAttribute("data-state") || img.getAttribute("src")) return;
-    var url = img.getAttribute("data-pack");
-    if (!url) return;
+    var token = img.getAttribute("data-pack");
+    if (!token) return;
+    var url = (window.__rcTreeBase || "knowledge/tree-visuals/") + token + ".js";
     img.setAttribute("data-state", "loading");
     if (state[url] === "done") {
       show(img);
@@ -311,16 +313,17 @@ global.document = {
   createElement: el,
   addEventListener(name, fn, cap) { if (name === "toggle" && cap === true) { listener = fn; listeners++; } },
 };
+window.__rcTreeBase = "base/";
 eval(src);
 eval(src); // idempotent: the second load must not register a second listener or loader
 const out = {};
 function img(id, pack) { const e = el("img"); e.setAttribute("data-tree", id); e.setAttribute("data-pack", pack); return e; }
-const d1 = el("details"); d1.children = [img("a--one", "p1.js"), img("a--two", "p1.js")];
-const d2 = el("details"); d2.children = [img("a--one", "p1.js"), img("zz--ghost", "p1.js")];
-const d3 = el("details"); d3.children = [img("b--bad", "bad.js")];
-const closed = el("details"); closed.open = false; closed.children = [img("a--one", "never.js")];
+const d1 = el("details"); d1.children = [img("a--one", "p1"), img("a--two", "p1")];
+const d2 = el("details"); d2.children = [img("a--one", "p1"), img("zz--ghost", "p1")];
+const d3 = el("details"); d3.children = [img("b--bad", "bad")];
+const closed = el("details"); closed.open = false; closed.children = [img("a--one", "never")];
 const outer = el("details"), inner = el("details");
-const nested = img("a--one", "nested.js");
+const nested = img("a--one", "nested");
 outer.children = [nested];
 for (const holder of [d1, d2, d3, closed]) for (const c of holder.children) c.closest = () => holder;
 nested.closest = () => inner;
@@ -519,8 +522,8 @@ def self_test() -> int:
             (t / "packs.json").write_text(
                 json.dumps(
                     {
-                        "p1.js": {"a--one": "<svg>one ✓</svg>", "a--two": "<svg>two</svg>"},
-                        "bad.js": "ERROR",
+                        "base/p1.js": {"a--one": "<svg>one ✓</svg>", "a--two": "<svg>two</svg>"},
+                        "base/bad.js": "ERROR",
                     }
                 )
             )
@@ -543,7 +546,7 @@ def self_test() -> int:
                 )
                 check(
                     "loader fetches each shard once, even for several images",
-                    got["scripts"] == ["p1.js", "bad.js"],
+                    got["scripts"] == ["base/p1.js", "base/bad.js"],
                     str(got["scripts"]),
                 )
                 check(
