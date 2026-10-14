@@ -176,6 +176,15 @@ esac
 # FIRST (preserves per-worktree isolation), then fall back to CLAUDE_PROJECT_DIR
 # (SessionStart / adapters), else keep the payload cwd.
 _payload_cwd="$cwd"
+# A RELATIVE payload cwd (the Copilot adapter supplies "." when both .cwd and
+# .workspaceRoot are absent) makes the walk-up below spin forever: `dirname .`
+# is `.`, a fixed point that is neither empty nor "/". Resolve a relative cwd to
+# absolute first, and break on a fixed point (belt-and-suspenders). [1b-1]
+case "$_payload_cwd" in
+  /*) : ;;
+  *) _payload_cwd="$(cd "$_payload_cwd" 2>/dev/null && pwd)" || _payload_cwd="$PWD" ;;
+esac
+[ -n "$_payload_cwd" ] || _payload_cwd="$PWD"
 root=""
 _d="$_payload_cwd"
 while [ -n "$_d" ] && [ "$_d" != "/" ]; do
@@ -183,7 +192,9 @@ while [ -n "$_d" ] && [ "$_d" != "/" ]; do
     root="$_d"
     break
   fi
-  _d="$(dirname "$_d")"
+  _p="$(dirname "$_d")"
+  [ "$_p" = "$_d" ] && break
+  _d="$_p"
 done
 if [ -z "$root" ] && [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}/.ravenclaude" ]; then
   root="$CLAUDE_PROJECT_DIR"
