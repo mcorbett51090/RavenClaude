@@ -1,6 +1,6 @@
 ---
 name: wallet-passes
-description: Use when designing, reviewing, or implementing Apple Wallet (.pkpass / PassKit) or Google Wallet (GenericClass / GenericObject) passes — digital business cards, tickets, coupons, save links — or tap-to-share / NFC-tag / QR lead capture. Reach for this on pass.json layout, images, truncation, NFC/VAS/Smart Tap, updates, JWT save URLs, appLinkData, or branding.
+description: Use when designing, reviewing, or implementing Apple Wallet (.pkpass / PassKit) or Google Wallet passes — business cards, tickets, save links — or handing a card to another person (share sheet, AirDrop, NFC tag, QR, in-app browsers) and lead capture. Covers pass.json layout, images, NFC/VAS/Smart Tap, updates, JWT save URLs, branding.
 ---
 
 # wallet-passes
@@ -12,8 +12,8 @@ Official-docs reference for Apple Wallet (PassKit) and Google Wallet generic pas
 | Apple `pass.json`, styles, images, relevance, signing, web service, NFC, Featured Actions | [`references/apple.md`](references/apple.md) |
 | Google Generic class/object, templates, images, JWT save, Smart Tap, notifications, publishing | [`references/google.md`](references/google.md) |
 | Digital business-card layout, worked examples, common-mistakes checklist | [`references/business-card-layout.md`](references/business-card-layout.md) |
-| Tap-to-share / tap-to-lead-form: what's possible / entitlement-gated / impossible; NFC-tag/QR → HTTPS; workarounds | [`references/tap-to-share.md`](references/tap-to-share.md) |
-| Weak / unverified / absent-evidence claims (the 29-item ledger; P1 = #1–#8) | [`references/verify.md`](references/verify.md) |
+| Tap-to-share / tap-to-lead-form: what's possible / entitlement-gated / impossible; NFC-tag/QR → HTTPS; workarounds; **pushing a card to another person** (every path ranked, receiving-page traps, Google multi-holder) | [`references/tap-to-share.md`](references/tap-to-share.md) |
+| Weak / unverified / absent-evidence claims (the 37-item ledger; P1 = #1–#8) | [`references/verify.md`](references/verify.md) |
 
 ## When to use
 
@@ -29,7 +29,7 @@ Official-docs reference for Apple Wallet (PassKit) and Google Wallet generic pas
 > Eight claims the research could not confirm from a primary source would each change an architecture decision or a customer promise. **Do not treat any of these as settled**; the full ledger with how-to-verify steps is [`references/verify.md`](references/verify.md).
 >
 > 1. **`.pkpass` single-pass MIME / Safari Add-to-Wallet sheet** (#1) — `application/vnd.apple.pkpass` was on no current page.
-> 2. **`.pkpass` download in non-Safari/Android browsers** (#2) — undocumented.
+> 2. **`.pkpass` download in non-Safari/Android browsers** (#2) — partly resolved: Chrome iOS shows the Add sheet, Google Wallet on Android imports a `.pkpass` (no updates); **in-app browsers (Instagram, Messenger…) fail**.
 > 3. **`posterGeneric` is a real supported key** (#3) — absent from the `Pass` reference table; ship a `generic` fallback.
 > 4. **Google Wallet passes work on iOS** (#4) — not stated; plan Android-only + `.pkpass` for iOS.
 > 5. **No public NameDrop API** (#5) — argument from absence; you cannot drive NameDrop from an app.
@@ -37,7 +37,7 @@ Official-docs reference for Apple Wallet (PassKit) and Google Wallet generic pas
 > 7. **Apple NFC (VAS) cert has no published SLA** (#7) — the request form is sign-in gated.
 > 8. **Google `appLinkData` needs allowlisting** (#8) — one FAQ sentence, no criteria/timeline; it gates any front-of-pass button.
 >
-> The other 21 items (#9–#29: P2 implementation details and P3 undocumented numbers) are in the same ledger.
+> The other 29 items (#9–#37: P2 implementation details and P3 undocumented numbers; #10 resolved) are in the same ledger.
 
 ## Hard rules (both platforms)
 
@@ -105,6 +105,16 @@ For "tap a phone to share a card" and "a tap opens a lead form." Full detail + f
 - **"A tap opens a lead form" is fully doable today, zero approvals:** one stable **HTTPS universal-link/App-Link-ready URL** carried by (a) an NFC tag (NDEF well-known URI, HTTPS, single record), (b) a printed QR, (c) the QR inside the pass. Cost: **2 taps** on both platforms (Android 17 added an "open link" notification step, matching iOS).
 - **Front-of-pass CTA button:** Apple has none before iOS 27 **Featured Actions** (schema unverified — #11); `appLaunchURL` only launches *your* App Store app. Google has **`appLinkData`** but it is **allowlist-gated** (#8). Until both are confirmed, the QR + back/detail links are the CTA.
 - **Keep off the build list:** phone-to-phone card beaming (not available), a NameDrop integration (no API), a headshot on a Google pass (banned), reliance on developer-authored Google push (unsupported), a `.vcf`-download-only primary flow (multi-step on both platforms).
+
+### Pushing a card to another person — 30 seconds
+
+Full ranked table + evidence: [`references/tap-to-share.md`](references/tap-to-share.md) § Pushing a card to another person.
+
+- **One URL, many carriers.** Pass QR (any camera; the pass is on the paired Apple Watch automatically), NFC sticker, the OS share sheet with the **URL alone**, prefilled text/email/WhatsApp. The one native file hand-off is Wallet **Share** (iPhone → iPhone; same serial, so every copy registers for your updates).
+- **Strangers:** iOS 26.2+ AirDrop to a non-contact needs an **AirDrop code** — the QR or Messages is faster. The hold-two-iPhones gesture is for undefined "eligible passes" (#30): never promise it.
+- **The receiving page is where it breaks:** one Wallet button per phone (Android hides Apple only when a Google pass exists — Google Wallet imports `.pkpass` without updates; iPhone hides Google); an **in-app-browser** escape on iOS (Instagram/Messenger block passes — Apple: only Safari and Safari View Controller import directly); `[hidden]{display:none!important}` so script-hidden buttons stay hidden; a strict CSP needs the script as a same-origin file.
+- **Google:** one object saved by many people needs `multipleDevicesAndHoldersAllowedStatus: MULTIPLE_HOLDERS` **on the class** — under `ONE_USER_ALL_DEVICES` the first saver locks everyone else out.
+- **Owner without an app:** Web NFC writes a sticker from Chrome on Android (Safari will not implement it). `sms:` body forms are undocumented (#31) — use per-phone forms and device-test.
 
 ## Business-card default
 
