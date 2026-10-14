@@ -207,7 +207,7 @@ function parseRouteDispatch(app) {
   // …;` normalisation above it is a single statement, so it is skipped without
   // this parser knowing that any such statement exists.
   let chain = -1;
-  for (let i = 0; ;) {
+  for (let i = 0; ; ) {
     const k = routeText.indexOf("if (", i);
     if (k === -1) break;
     if (k > 0 && /[\w$]/.test(routeText[k - 1])) {
@@ -225,7 +225,7 @@ function parseRouteDispatch(app) {
     throw new Error("route(): no block-bodied if/else dispatch ladder found — deleted?");
 
   const dispatch = [];
-  for (let pos = chain; ;) {
+  for (let pos = chain; ; ) {
     const condOpen = routeText.indexOf("(", pos);
     const condClose = matchDelim(routeText, condOpen);
     const cond = routeText.slice(condOpen + 1, condClose).trim();

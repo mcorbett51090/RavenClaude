@@ -24,7 +24,12 @@ export type CheckoutHandle =
   | { mode: "embedded"; clientSecret: string; publishableKey: string };
 
 export type PaymentStatus =
-  "requires_payment" | "authorized" | "captured" | "refunded" | "canceled" | "failed";
+  | "requires_payment"
+  | "authorized"
+  | "captured"
+  | "refunded"
+  | "canceled"
+  | "failed";
 
 export type CommerceEventType =
   | "payment.succeeded"
