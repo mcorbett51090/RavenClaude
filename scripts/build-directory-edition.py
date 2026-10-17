@@ -1716,7 +1716,7 @@ def _fixture(root: Path) -> dict:
         "plugin_json": {"description": "Demo.", "displayName": "Demo"},
         "limits": {
             "max_files": 40,
-            # The posture gate ships in this tree. The cap stays under the 5000-byte plant below.
+            # The posture gate ships in this tree; the must-fail plant below is sized cap+1 so it tracks this value.
             "max_file_bytes_nonimage": 4992,
             "max_file_bytes": 8192,
             "max_total_bytes": 100000,
@@ -1854,7 +1854,7 @@ def self_test() -> int:
         )
 
         big = root / "o1" / "knowledge" / "huge.md"
-        big.write_text("x" * 5000)
+        big.write_text("x" * (m["limits"]["max_file_bytes_nonimage"] + 1))
         check(
             "limits: a non-image file over the cap is a violation",
             bool(limits_report(root / "o1", m["limits"])["violations"]),
