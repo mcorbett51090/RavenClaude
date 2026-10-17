@@ -1066,7 +1066,20 @@ def structure_findings(root: Path, manifest: dict) -> list[str]:
 
 # ── hygiene: things a stranger's repository could turn against the person who installed this ──
 
-_PY_TOKEN = re.compile(r"(?<![\w./$-])python3?(?:\.\d+)?(?![\w.-])")
+# An interpreter in command position: start of the line, or after | & ; ( ` or $(.
+# Optional NAME=value assignments (quoted values included) may precede it. The path may be
+# ./ ../ or absolute, including /usr/bin/env python3. A bare docs/python3 is not a command.
+_PY_INVOKE = re.compile(
+    r"(?:^|(?<=[|&;(`])|(?<=\$\())"
+    r"[ \t]*"
+    r"(?:[A-Za-z_][A-Za-z0-9_]*=(?:"
+    r'"[^"]*"|'
+    r"'[^']*'|"
+    r"[^\s|&;()`]+"
+    r")[ \t]+)*"
+    r"(?:(?:\.\./)+(?:[\w.@+-]+/)*|\./(?:[\w.@+-]+/)*|/(?:[\w.@+-]+/)*)?"
+    r"(?:python3?(?:\.\d+)?(?![\w.-])|env(?![\w.-])[ \t]+python3?(?:\.\d+)?(?![\w.-]))"
+)
 _CLAUDE_CL = "cla" + "ude"
 _SPAWN_PIECES = (
     r"(^|[|&;(`]|\$\()\s*([A-Za-z_]+=\S+\s+)*" + _CLAUDE_CL + r"\s+(-|auth|plugin|mcp|config)",
@@ -1082,45 +1095,243 @@ _SPAWN = re.compile("|".join(_SPAWN_PIECES))
 _ROOT_FALLBACK = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT:?[-=][^}]")
 
 
+def _line_continues(line: str) -> bool:
+    """A trailing unescaped backslash continues the shell line (backslash-newline)."""
+    n = 0
+    for ch in reversed(line):
+        if ch != "\\":
+            break
+        n += 1
+    return n % 2 == 1
+
+
+def _join_continuations(text: str) -> str:
+    """Join backslash-newline continuations so the interpreter and its flags are one line."""
+    out: list[str] = []
+    buf = ""
+    pending = False
+    for line in text.splitlines():
+        buf = buf + line if pending else line
+        if _line_continues(line):
+            buf = buf[:-1]
+            pending = True
+            continue
+        out.append(buf)
+        buf = ""
+        pending = False
+    if pending:
+        out.append(buf)
+    return "\n".join(out)
+
+
+def _logical_lines(text: str) -> list[str]:
+    joined = _join_continuations(text)
+    return joined.splitlines()
+
+
+def _read_word(s: str, i: int) -> tuple[str, int]:
+    n = len(s)
+    if i >= n:
+        return "", i
+    if s[i] in "\"'":
+        q = s[i]
+        j = i + 1
+        while j < n and s[j] != q and s[j] != "\n":
+            j += 1
+        if j < n and s[j] == q:
+            j += 1
+        return s[i:j], j
+    j = i
+    while j < n and s[j] not in " \t\n|&;)#<>":
+        if s[j] in "\"'":
+            q = s[j]
+            j += 1
+            while j < n and s[j] != q and s[j] != "\n":
+                j += 1
+            if j < n and s[j] == q:
+                j += 1
+            continue
+        j += 1
+    return s[i:j], j
+
+
+def _skip_ws(s: str, i: int) -> int:
+    while i < len(s) and s[i] in " \t":
+        i += 1
+    return i
+
+
+def _consume_word(s: str, i: int) -> int:
+    i = _skip_ws(s, i)
+    if i >= len(s) or s[i] in "|&;\n#)<>":
+        return i
+    _word, i = _read_word(s, i)
+    return i
+
+
+def _invocation_sensitive(tail: str, before: str) -> bool | None:
+    """Whether the argv after an interpreter token imports the current directory and is not isolated.
+
+    None means this match is a case-pattern arm (`python3|python)`), not a command.
+    `-I` counts only as a flag (alone or in a cluster). A script path is not sensitive.
+    No script and no -c/-m means the interpreter reads stdin (a pipe, a bare name, `python3 -`,
+    or a heredoc). `--version` / `--help` / `-V` / `-h` do not run user code.
+    """
+    if before == "|" and tail.startswith(")"):
+        return None
+    if re.match(r"(?:\|[A-Za-z0-9._-]*)+\)", tail):
+        return None
+    i = 0
+    n = len(tail)
+    isolated = False
+    c_or_m = False
+    dash_stdin = False
+    heredoc = False
+    stdin_redirect = False
+    script = False
+    version = False
+    while True:
+        i = _skip_ws(tail, i)
+        if i >= n or tail[i] in "|&;\n#)":
+            break
+        if tail.startswith("<<", i):
+            heredoc = True
+            break
+        if tail[i] == "<":
+            stdin_redirect = True
+            break
+        if tail[i] == ">":
+            break
+        if tail[i].isdigit():
+            j = i
+            while j < n and tail[j].isdigit():
+                j += 1
+            if j < n and tail[j] == ">":
+                break
+        word, i = _read_word(tail, i)
+        if not word:
+            break
+        if word == "-":
+            dash_stdin = True
+            break
+        if word == "--":
+            i = _skip_ws(tail, i)
+            if i < n and tail[i] not in "|&;\n#)<>":
+                script = True
+            break
+        if word.startswith("--"):
+            name, _eq, _attached = word.partition("=")
+            if name in ("--version", "--help"):
+                version = True
+                continue
+            if name == "--check-hash-based-pycs" and "=" not in word:
+                i = _consume_word(tail, i)
+            continue
+        if word.startswith("-") and len(word) > 1:
+            cluster = word[1:]
+            k = 0
+            while k < len(cluster):
+                ch = cluster[k]
+                k += 1
+                if not (("a" <= ch <= "z") or ("A" <= ch <= "Z") or ch == "?"):
+                    break
+                if ch == "I":
+                    isolated = True
+                    continue
+                if ch in "Vh?":
+                    version = True
+                    continue
+                if ch in "cm":
+                    c_or_m = True
+                    if cluster[k:] == "":
+                        i = _consume_word(tail, i)
+                    break
+                if ch in "WXQ":
+                    if cluster[k:] == "":
+                        i = _consume_word(tail, i)
+                    break
+            if c_or_m:
+                break
+            continue
+        script = True
+        break
+    if c_or_m or dash_stdin or heredoc or (stdin_redirect and not script):
+        return not isolated
+    if script or version:
+        return False
+    return not isolated
+
+
 def python_cwd_sensitive(line: str) -> bool:
     """True when `line` runs python in a form that puts the CURRENT DIRECTORY on sys.path and does not
-    isolate it. `python3 -c`, `python3 -m`, `python3 -` and `python3 <<` all do (a `json.py` in the project
-    root is imported by the snippet); `python3 script.py` puts the SCRIPT's directory there instead. `-I`
-    (isolated mode, Python 3.4+) removes the current directory, PYTHON* variables and the user site."""
-    for m in _PY_TOKEN.finditer(line):
-        tail = line[m.end() :]
-        clusters: list[str] = []
-        pos = 0
-        while True:
-            mm = re.match(r"[ \t]+(-[A-Za-z]*)(?=[ \t]|$)", tail[pos:])
-            if not mm:
-                break
-            clusters.append(mm.group(1))
-            pos += mm.end()
-        heredoc = bool(re.match(r"[ \t]*<<", tail[pos:]))
-        sensitive = heredoc or any(c == "-" or "c" in c[1:] or "m" in c[1:] for c in clusters)
-        isolated = any("I" in c[1:] for c in clusters)
-        if sensitive and not isolated:
-            return True
+    isolate it. `python3 -c` (with or without a space, including `-Bc`/`-uc`), `python3 -m`, `python3 -`,
+    `python3 <<`, a pipe into a bare interpreter, and a bare `python3` all do. A path
+    (`/usr/bin/python3`, `./python3`, `/usr/bin/env python3`) is the same command. Options may precede
+    `-c`/`-m`/`-`, including ones that take an argument (`-W ignore`, `-X dev`). A backslash-newline
+    between the interpreter and its flags still counts. `python3 script.py` puts the SCRIPT's directory
+    on sys.path instead, so it is allowed. `-I` (isolated mode, Python 3.4+, also inside a cluster such
+    as `-Ic`) removes the current directory, PYTHON* variables and the user site."""
+    for logical in _logical_lines(line):
+        if re.match(r"^[ \t]*[A-Za-z0-9._|*-]+\)[ \t]*$", logical):
+            continue
+        for m in _PY_INVOKE.finditer(logical):
+            before = logical[m.start() - 1] if m.start() else ""
+            decided = _invocation_sensitive(logical[m.end() :], before)
+            if decided:
+                return True
     return False
 
 
+_INLINE_PY = re.compile(
+    r"^(?:(?:\.\./)+(?:[\w.@+-]+/)*|\./(?:[\w.@+-]+/)*|/(?:[\w.@+-]+/)*)?"
+    r"(?:python3?(?:\.\d+)?|env[ \t]+python3?(?:\.\d+)?)\b"
+)
+
+
 def _md_code_lines(text: str):
-    """(lineno, code) for fenced-block lines and inline code spans that START with an interpreter."""
-    fenced = False
-    for i, line in enumerate(text.splitlines(), 1):
-        if line.lstrip().startswith("```"):
-            fenced = not fenced
+    """(lineno, code) for fenced-block lines and inline code spans that START with an interpreter.
+
+    Backslash-newline continuations inside a fence are joined first. An inline span is scanned when
+    it starts with python, a ./ ../ or absolute path to python, or env python — not when python is
+    merely mentioned later in the span.
+    """
+    lines = text.splitlines()
+    i = 0
+    n = len(lines)
+    while i < n:
+        if lines[i].lstrip().startswith("```"):
+            i += 1
+            block: list[tuple[int, str]] = []
+            while i < n and not lines[i].lstrip().startswith("```"):
+                block.append((i + 1, lines[i]))
+                i += 1
+            buf = ""
+            start = 0
+            pending = False
+            for no, bl in block:
+                if not pending:
+                    buf = bl
+                    start = no
+                else:
+                    buf += bl
+                if _line_continues(bl):
+                    buf = buf[:-1]
+                    pending = True
+                    continue
+                yield start, buf
+                pending = False
+            if pending and buf:
+                yield start, buf
+            if i < n and lines[i].lstrip().startswith("```"):
+                i += 1
             continue
-        if fenced:
-            yield i, line
-            continue
-        for sp in re.finditer(r"`([^`\n]+)`", line):
+        for sp in re.finditer(r"`([^`\n]+)`", lines[i]):
             code = sp.group(1).strip()
             if code.startswith("$ "):
                 code = code[2:]
-            if re.match(r"python3?(?:\.\d+)?\b", code):
-                yield i, code
+            if _INLINE_PY.match(code):
+                yield i + 1, code
+        i += 1
 
 
 def hygiene_findings(root: Path, manifest: dict) -> list[str]:
@@ -1154,7 +1365,7 @@ def hygiene_findings(root: Path, manifest: dict) -> list[str]:
                         f"({line.strip()[:70]!r}); Claude Code substitutes only the bare token"
                     )
         if suffix in EXEC_EXT:
-            for line in _scannable(text, rel).splitlines():
+            for line in _logical_lines(_scannable(text, rel)):
                 if python_cwd_sensitive(line):
                     py_seen.add(rel)
                     if rel not in py_allow:
@@ -1793,6 +2004,54 @@ def self_test() -> int:
             "python3 -I -m json.tool": False,
             "python3 script.py": False,
             "echo python3": False,
+            "/usr/bin/python3 -c 'x'": True,
+            "./python3 -c 'x'": True,
+            "/usr/bin/env python3 -c 'x'": True,
+            "env python3 -c 'x'": True,
+            "python -c 'x'": True,
+            "python3 -c'import json'": True,
+            'python3 -c"import json"': True,
+            "python3 -Bc 'x'": True,
+            "python3 -uc 'x'": True,
+            "python3 -W ignore -c 'x'": True,
+            "python3 -X dev -c 'x'": True,
+            "python3 -O -m json.tool": True,
+            "cmd | python3": True,
+            "python3": True,
+            "python3 -": True,
+            "python3 \\\n -c 'x'": True,
+            "python3.11 -c 'x'": True,
+            "python3 -Wignore -c 'x'": True,
+            "python3 -c -I": True,
+            "python3 < file": True,
+            "`python -m spacy download en`": True,
+            "pip install spacy && python -m spacy download en": True,
+            "python3 -I -c'import json'": False,
+            "/usr/bin/python3 -I -c 'x'": False,
+            "/usr/bin/env python3 -I -c 'x'": False,
+            "python3 -W ignore -I -c 'x'": False,
+            "python3 -I -W ignore -c 'x'": False,
+            "python3 -BI -c 'x'": False,
+            "cmd | python3 -I": False,
+            "python3 -I": False,
+            "python3 -I <<EOF": False,
+            "python3 -O script.py": False,
+            "python3 -W ignore script.py": False,
+            "cmd | python3 script.py": False,
+            "python3 \\\n script.py": False,
+            "command -v python3": False,
+            "python3|python)": False,
+            "python3 -V": False,
+            "python3 --version": False,
+            "python3 -h": False,
+            "python3 --help": False,
+            "notpython3 -c 'x'": False,
+            "docs/python3 readme": False,
+            "python3-config --prefix": False,
+            "python3 script.py < file": False,
+            "#!/usr/bin/env python3": False,
+            'FOO="a b" python3 -I -c \'x\'': False,
+            "python3 ${SCRIPTS_DIR}/repo_map.py --out x": False,
         }
         wrong = [k for k, v in table.items() if python_cwd_sensitive(k) != v]
         check("python isolation: truth table " + (f"[wrong: {wrong}]" if wrong else ""), not wrong)

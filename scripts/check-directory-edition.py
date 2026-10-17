@@ -26,7 +26,9 @@ MUST-FAIL HALVES (a check that cannot fail proves nothing)
       posture test removed, and behind a gate with the TRUST test removed, is not - so each property comes
       from the gate and the harness can see it go
   M3  a hook that runs `python3 -c` from the project directory is classified unsafe (a planted module in the
-      project root is imported); the same hook with `-I` is safe
+      project root is imported); the same hook with `-I` is safe. Each cwd-importing spelling (a path to
+      the interpreter, -c glued to its code, an option argument, a pipe, a bare interpreter, a
+      backslash-newline) is a build refusal
   M4  the same workflow with its pluginRoot validation neutered starts without a root, so check 5 can fail
   M5  a hook that runs git in the payload's cwd executes a vendored repository's core.fsmonitor and is
       classified unsafe (H7); the same hook at the project root with core.fsmonitor=false is safe
@@ -335,6 +337,38 @@ def must_fail_python_cwd(dist: Path) -> None:
             bool(good.get("hostile_safe")),
             "; ".join(good.get("hostile_reasons", [])),
         )
+        # Build refusal (the detector), not the runtime import. The runtime pair above stays.
+        # These are the spellings a whitespace-only flag scan misses.
+        manifest = build.load_manifest(build.DEFAULT_MANIFEST)
+        planted = plug / "hooks" / "zz-py-form.sh"
+        forms = (
+            ("/usr/bin/python3 -c", "/usr/bin/python3 -c 'import shlex'"),
+            ("./python3 -c", "./python3 -c 'import shlex'"),
+            ("/usr/bin/env python3 -c", "/usr/bin/env python3 -c 'import shlex'"),
+            ("env python3 -c", "env python3 -c 'import shlex'"),
+            ("python -c", "python -c 'import shlex'"),
+            ("python3 -c glued", "python3 -c'import shlex'"),
+            ("python3 -c double-quoted", 'python3 -c"import shlex"'),
+            ("python3 -Bc", "python3 -Bc 'import shlex'"),
+            ("python3 -uc", "python3 -uc 'import shlex'"),
+            ("python3 -W ignore -c", "python3 -W ignore -c 'import shlex'"),
+            ("python3 -X dev -c", "python3 -X dev -c 'import shlex'"),
+            ("python3 -O -m", "python3 -O -m json.tool"),
+            ("cmd | python3", "cmd | python3"),
+            ("bare python3", "python3"),
+            ("python3 -", "python3 -"),
+            ("python3 <<EOF", "python3 <<EOF"),
+            ("backslash-newline", "python3 \\\n -c 'import shlex'"),
+        )
+        try:
+            for label, body in forms:
+                planted.write_text("#!/usr/bin/env bash\n" + body + "\n")
+                findings = build.hygiene_findings(plug, manifest)
+                hit = [item for item in findings if "zz-py-form.sh" in item and "without -I" in item]
+                check(f"M3 build refuses {label}", bool(hit), "; ".join(hit)[:180])
+        finally:
+            if planted.exists():
+                planted.unlink()
 
 
 def _unprivileged_prefix(scratch: Path) -> list[str] | None:
