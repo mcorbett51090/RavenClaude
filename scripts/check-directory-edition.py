@@ -512,6 +512,28 @@ def trust_helper_checks(dist: Path) -> None:
             state() == "untrusted",
         )
         (proj / ".ravenclaude" / "runs" / "thing" / "runaway").unlink()
+        # depth 4: the counter file runaway-brake.sh opens. find's start path is depth 0, so
+        # runs/thing/runaway/<session_id> is depth 4 — a -maxdepth 3 walk does not see this link.
+        (proj / ".ravenclaude" / "runs" / "thing" / "runaway").mkdir()
+        counter = proj / ".ravenclaude" / "runs" / "thing" / "runaway" / "sess"
+        counter.symlink_to(root / "outside-counter")
+        check(
+            "trust: a file symlink at .ravenclaude/runs/thing/runaway/<session_id> (depth 4) is never active",
+            state() == "untrusted" and not ran(),
+        )
+        text = gate.read_text()
+        shallow = dist.parent / "gate-maxdepth-3.sh"
+        find_cmd = 'links="$(find "$proj/.ravenclaude" -type l -print 2>&1)"; found=$?'
+        shallow_cmd = 'links="$(find "$proj/.ravenclaude" -maxdepth 3 -type l -print 2>&1)"; found=$?'
+        shallow.write_text(text.replace(find_cmd, shallow_cmd, 1))
+        check(
+            "trust: M6 a gate that stops at depth 3 says ACTIVE for that counter-file link "
+            "(the unbounded walk has teeth)",
+            find_cmd in text and state(gate_file=shallow) == "active",
+        )
+        shallow.unlink()
+        counter.unlink()
+        (proj / ".ravenclaude" / "runs" / "thing" / "runaway").rmdir()
         (proj / ".ravenclaude" / "runs" / "thing").rmdir()
         (proj / ".ravenclaude" / "runs").rmdir()
         check("trust: ... and active again once the links are gone", state() == "active")

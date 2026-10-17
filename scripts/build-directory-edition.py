@@ -110,9 +110,12 @@ POSTURE_GATE_SH = """#!/usr/bin/env bash
 # hooks.json invokes every hook as:  bash posture-gate.sh <the hook command...>
 # The wrapped hook runs ONLY when all of these are true:
 #   1. the project has .ravenclaude/comfort-posture.yaml (a regular file), AND
-#   2. nothing under .ravenclaude/ (three levels deep) is a symbolic link, and every directory there can be
+#   2. nothing under .ravenclaude/ is a symbolic link, at any depth, and every directory there can be
 #      read: a repository can ship a link, and the hooks write there, so a link could send a write outside
-#      the project (a directory the check cannot list could be hiding one, so that refuses too), AND
+#      the project. runaway-brake.sh writes .ravenclaude/runs/thing/runaway/<session_id> and a .lock beside
+#      it. find counts .ravenclaude as depth 0, so that file is depth 4 and a bound of 3 never sees it.
+#      find reports every link and does not stop at a depth bound. A directory the check cannot list
+#      could be hiding one, and find's own errors refuse too (fail closed). AND
 #   3. YOU trusted the project AS IT NOW IS: ~/.ravenclaude/edition-trusted-projects holds the line
 #      "<real project path><TAB><sha256>" and the digest still matches the three files the hooks read from the
 #      project (the posture, .repo-layout.json, .ravenclaude/task-scope.json; each at most 1 MiB). Change one
@@ -143,7 +146,7 @@ rc_line() {
       why=untrusted; return 1
     fi
   fi
-  links="$(find "$proj/.ravenclaude" -maxdepth 3 -type l -print 2>&1)"; found=$?
+  links="$(find "$proj/.ravenclaude" -type l -print 2>&1)"; found=$?
   if [ -L "$proj/.ravenclaude" ] || [ "$found" -ne 0 ] || [ -n "$links" ]; then
     why=symlink; return 1
   fi
