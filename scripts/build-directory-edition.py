@@ -1716,7 +1716,8 @@ def _fixture(root: Path) -> dict:
         "plugin_json": {"description": "Demo.", "displayName": "Demo"},
         "limits": {
             "max_files": 40,
-            "max_file_bytes_nonimage": 4096,
+            # The posture gate ships in this tree. The cap stays under the 5000-byte plant below.
+            "max_file_bytes_nonimage": 4992,
             "max_file_bytes": 8192,
             "max_total_bytes": 100000,
         },
