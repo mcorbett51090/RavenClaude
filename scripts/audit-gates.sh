@@ -6989,26 +6989,39 @@ echo "── Gate 300: dashboard-prompt.sh (unconfigured-project dashboard promp
 # session. The test drives the REAL script: P1 prompt (both channels), P2 silent when
 # configured, P3 off-switch, P4 writes nothing, P5 edition wording (no bin/rc), P6
 # fail-safe, P7 no-egress of payload/env, P8 registered in hooks.json AND the dev-mirror,
-# and two teeth mutants (posture gate removed -> speaks when configured; stdin echo ->
-# caught by the P7 check).
+# E1-E7 edition trust states (untrusted, changed, refused-symlink, refused-size,
+# refused-other — a refusal does not tell the person to trust the project), and three
+# teeth mutants (T1 posture gate removed -> speaks when configured; T2 stdin echo ->
+# caught by the P7 check; T3 ignoring --status -> speaks in a trusted project).
+# 25 assertions.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate300-dashboard-prompt.sh >/dev/null 2>&1 || rc=$?
 gate "dashboard-prompt: prompt when unconfigured, silent when configured, writes nothing, no egress, registered, teeth" must_pass "$rc"
 
 echo "── Gate 301: directory edition of ravenclaude-core (Anthropic Directory submission) ──"
 # The Directory edition is a SMALLER build of the source plugin for strangers: it ships only agents,
 # skills, commands and hooks that docs/directory-edition/ravenclaude-core/manifest.json allow-lists with
-# a reason, and wraps every hook (except the one setup prompt) in hooks/posture-gate.sh so it does nothing
-# until a posture file exists. This gate builds it and refuses it unless its README and PRIVACY.md claims
-# hold: deterministic build, limits (<=512 files, no file over 256 KiB non-image, none over 5 MiB, no
-# symlinks), no bin/ monitors/ CLAUDE.md dashboard.html or `experimental`, README lists exactly the shipped
-# hooks, every network primitive in an executable classified, no secret-shaped string, and every shipped
-# hook MEASURED (scripts/directory-edition-hook-audit.py) inert with no posture file and safe under a
-# hostile one (no posture string executed, no claude, no network, no allow/updatedInput output, writes only
-# under .ravenclaude/, only allow-listed programs). Must-fail halves: an always-on hook behind the real
-# shim is inert and behind a shim without the posture test is not; real guard-destructive.sh is not
-# inert and real dod-gate.sh is not hostile-safe (it runs a command read from the posture file), so the
-# audit's payloads and seeds provably reach real triggers. `claude plugin validate --strict` and the
-# strace syscall lane run when their tools exist and are reported NOT RUN otherwise (not a pass);
+# a reason, and wraps every hook (except the one setup prompt) in hooks/posture-gate.sh. A hook runs only
+# when three things hold: a regular posture file, nothing under .ravenclaude/ is a symlink at any depth
+# (find errors fail closed; the runaway counter is depth 4), and ~/.ravenclaude/edition-trusted-projects
+# holds a line whose sha256 still matches the posture, .repo-layout.json and .ravenclaude/task-scope.json.
+# A posture file alone is not the switch. This gate builds the edition and refuses it unless its README
+# and PRIVACY.md claims hold: deterministic build, limits (<=512 files, no file over 256 KiB non-image,
+# none over 5 MiB, no symlinks), no bin/ monitors/ CLAUDE.md dashboard.html or `experimental`, README lists
+# exactly the shipped hooks, every network primitive in an executable classified, no secret-shaped string,
+# and every shipped hook MEASURED (scripts/directory-edition-hook-audit.py) inert with no posture file,
+# inert when the posture is present but the project is not trusted, and safe under a hostile one (no
+# posture string executed, no claude, no network, no allow/updatedInput output, writes only under
+# .ravenclaude/, only allow-listed programs). Must-fail halves include: M1 removes the posture test and,
+# separately, the trust grep, and the untrusted lane must see the hook; M6 plants a directory symlink and
+# a file symlink at the depth-4 runaway counter, and a mutant that stops at depth 3 must go active on that
+# file; M3 plants the cwd-importing python forms (a path to the interpreter, -c glued to its code, an
+# option argument, a pipe, a bare interpreter, a backslash-newline) and expects a build refusal, and still
+# runs the runtime pair (python3 -c imports a planted module; python3 -I does not). Detail status is
+# refused-symlink, refused-size or refused-other for those refusals, not the word untrusted. Real
+# guard-destructive.sh is not inert and real dod-gate.sh is not hostile-safe (it runs a command read from
+# the posture file), so the audit's payloads and seeds provably reach real triggers. The checker prints
+# its own pass/fail tally; a lane marked NOT RUN is not a pass. `claude plugin validate --strict` and the
+# strace syscall lane run when their tools exist and are reported NOT RUN otherwise;
 # RC_EDITION_REQUIRE_STRACE=1 makes strace's absence a failure.
 if command -v python3 >/dev/null 2>&1; then
   rc=0; DE_OUT="$(python3 scripts/check-directory-edition.py 2>&1)" || rc=$?

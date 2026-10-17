@@ -5389,7 +5389,7 @@ control: `generate-{gemini,codex,copilot,cursor}-hooks.py --check` -> all four O
 
 **Honest limit.** Whether the terminal RENDERS `systemMessage` cannot be observed from a headless run; the model channel is the measured one. Check it by eye once.
 
-Proven by **Gate 300** (`hooks/tests/test-gate300-dashboard-prompt.sh`): prompt on both channels, silent when configured, off-switch, writes nothing, edition wording, fail-safe, no echo of payload or environment, registered in both manifests, and two teeth mutants (posture gate removed -> speaks when configured; stdin echo -> caught). Registered in the `--check` dispatcher, the main sequence, the `Supported:` string and the `hooks` suite, and verified by Gates 195 and 267.
+Proven by **Gate 300** (`hooks/tests/test-gate300-dashboard-prompt.sh`): 25 assertions, including prompt on both channels, silent when configured, off-switch, writes nothing, edition wording, fail-safe, no echo of payload or environment, registered in both manifests, the edition states untrusted, changed, refused-symlink, refused-size and refused-other, and three teeth mutants (T1 posture gate removed -> speaks when configured; T2 stdin echo -> caught; T3 ignoring `--status` -> speaks in a trusted project). Registered in the `--check` dispatcher, the main sequence, the `Supported:` string and the `hooks` suite, and verified by Gates 195 and 267.
 
 **Migration:** consumer-visible and advisory. A project with no posture file now sees one line per session; nothing is blocked or written.
 

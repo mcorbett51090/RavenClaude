@@ -518,6 +518,10 @@ def trust_helper_checks(dist: Path) -> None:
         mid.unlink()
         mid.symlink_to(other / ".ravenclaude" / "comfort-posture.yaml")
         check("trust: a symlinked posture file is never active", state() == "untrusted")
+        check(
+            "trust: detail names a symlinked posture file as refused-symlink",
+            state(detail=True) == "refused-symlink",
+        )
         mid.unlink()
         mid.write_text("schema_version: 5\n")
         (proj / ".ravenclaude" / "runs").symlink_to(root)
@@ -555,6 +559,10 @@ def trust_helper_checks(dist: Path) -> None:
             "trust: a file symlink at .ravenclaude/runs/thing/runaway/<session_id> (depth 4) is never active",
             state() == "untrusted" and not ran(),
         )
+        check(
+            "trust: detail names the depth-4 counter-file link as refused-symlink",
+            state(detail=True) == "refused-symlink",
+        )
         text = gate.read_text()
         shallow = dist.parent / "gate-maxdepth-3.sh"
         find_cmd = 'links="$(find "$proj/.ravenclaude" -type l -print 2>&1)"; found=$?'
@@ -582,6 +590,10 @@ def trust_helper_checks(dist: Path) -> None:
         check(
             "trust: a path with a newline is refused even when the trust file seems to list it",
             state(nl_dir) == "untrusted" and not ran(nl_dir),
+        )
+        check(
+            "trust: detail names a newline path as refused-other",
+            state(nl_dir, detail=True) == "refused-other",
         )
         text = gate.read_text()
         nl_gate = dist.parent / "gate-no-newline-check.sh"
@@ -657,6 +669,13 @@ def trust_helper_checks(dist: Path) -> None:
                 "trust: an untrusted project with a 4 GiB layout file is refused at once (no hashing before the trust lookup)",
                 untrusted == "untrusted" and time.monotonic() - t0 < 5,
                 f"state={untrusted!r} in {time.monotonic() - t0:.1f}s",
+            )
+            t0 = time.monotonic()
+            sized = state(big, detail=True)
+            check(
+                "trust: detail names an oversize layout file as refused-size, without hashing it",
+                sized == "refused-size" and time.monotonic() - t0 < 5,
+                f"state={sized!r} in {time.monotonic() - t0:.1f}s",
             )
             t0 = time.monotonic()
             r = run(gate, "--line", project=big)

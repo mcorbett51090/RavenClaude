@@ -124,6 +124,8 @@ POSTURE_GATE_SH = """#!/usr/bin/env bash
 # Otherwise this exits 0 at once: no output, no files written, no network, the hook never starts.
 #
 #   posture-gate.sh --status [detail]   prints one word, exits 0:  no-posture | untrusted | changed | active
+#     detail also names a refusal the trust helper would make, which is not the word untrusted
+#     (that word means the project is simply not in the trust file): refused-symlink | refused-size | refused-other
 #   posture-gate.sh --line              prints this project's trust line (exit 1 and a reason on stderr if none)
 #
 # It reads no VALUE from the posture file and fails toward doing nothing.
@@ -168,8 +170,23 @@ rc_line() {
   return 0
 }
 rc_state() {
-  rc_line quick || { if [ "$why" = no-posture ]; then echo no-posture; else echo untrusted; fi; return; }
-  [ -n "${HOME:-}" ] || { echo untrusted; return; }
+  # detail is what dashboard-prompt asks. It must not say untrusted for a project the trust helper
+  # would refuse (a symlink, an oversize file, a bad path, no hasher): that word tells the person
+  # to trust the project. The hook hot path stays the one-word quick check.
+  if [ "${1:-}" = detail ]; then
+    if ! rc_line; then
+      case "$why" in
+        no-posture) echo no-posture ;;
+        symlink) echo refused-symlink ;;
+        size) echo refused-size ;;
+        *) echo refused-other ;;
+      esac
+      return
+    fi
+  else
+    rc_line quick || { if [ "$why" = no-posture ]; then echo no-posture; else echo untrusted; fi; return; }
+  fi
+  [ -n "${HOME:-}" ] || { if [ "${1:-}" = detail ]; then echo refused-other; else echo untrusted; fi; return; }
   tf="$HOME/.ravenclaude/edition-trusted-projects"
   if grep -Fxq -- "$real$tab$digest" "$tf" 2>/dev/null; then echo active; return; fi
   if [ "${1:-}" = detail ] && REAL="$real" awk -F'\\t' '$1 == ENVIRON["REAL"] { f = 1 } END { exit !f }' "$tf" 2>/dev/null; then

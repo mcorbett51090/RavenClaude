@@ -23,6 +23,9 @@
 #   E2  directory edition, project trusted -> silent
 #   E3  the model-facing copy tells the agent never to trust a project itself
 #   E4  trust is bound to content: a posture edited after trusting -> says it changed
+#   E5  a symlink under .ravenclaude/ -> says to fix the link, not to trust the project
+#   E6  a fingerprinted file over 1 MiB -> says the trust command refuses it
+#   E7  a path with a newline -> says the trust command refuses it
 #   T1  teeth: a mutant with the posture gate REMOVED must speak in a configured
 #       project — proving P2 depends on that gate and is not passing vacuously
 #   T2  teeth: a mutant that echoes stdin must be caught by the P7 check
@@ -136,6 +139,65 @@ out="$(run_ed "$TMP/ed2/scripts/dashboard-prompt.sh" "$TMP/ed-proj" "$TMP/ed-hom
 sysmsg_c="$(printf '%s' "$out" | json_field systemMessage)"
 case "$sysmsg_c" in *"changed since you trusted it"*) pass "E4 edition: a trusted project whose posture changed -> says it changed" ;; *) fail "E4 edition did not report the changed state (out=${out:0:80})" ;; esac
 : > "$TMP/ed-proj/.ravenclaude/comfort-posture.yaml"
+
+# E5: the counter file runaway-brake writes. A symlink there must not be described as "trust the project".
+mkdir -p "$TMP/ed-proj/.ravenclaude/runs/thing/runaway"
+ln -s "$TMP/outside-counter" "$TMP/ed-proj/.ravenclaude/runs/thing/runaway/sess"
+out="$(run_ed "$TMP/ed2/scripts/dashboard-prompt.sh" "$TMP/ed-proj" "$TMP/ed-home")"
+sysmsg_s="$(printf '%s' "$out" | json_field systemMessage)"
+ctx_s="$(printf '%s' "$out" | json_field hookSpecificOutput.additionalContext)"
+case "$sysmsg_s" in
+  *"symbolic link"*)
+    case "$sysmsg_s" in
+      *"until you trust the project"*) fail "E5 tells the person to trust a project the gate would refuse" ;;
+      *)
+        case "$ctx_s" in
+          *"Never trust a project on your own"*)
+            case "$ctx_s" in
+              *"until you trust the project"*) fail "E5 model copy tells the agent to trust a refused project" ;;
+              *) pass "E5 symlink: says to fix the link, does not say to trust the project" ;;
+            esac
+            ;;
+          *) fail "E5 model copy lacks the never-trust rule" ;;
+        esac
+        ;;
+    esac
+    ;;
+  *) fail "E5 did not report the symlink refusal (out=${out:0:120})" ;;
+esac
+rm -f "$TMP/ed-proj/.ravenclaude/runs/thing/runaway/sess"
+rmdir "$TMP/ed-proj/.ravenclaude/runs/thing/runaway" "$TMP/ed-proj/.ravenclaude/runs/thing" "$TMP/ed-proj/.ravenclaude/runs"
+
+# E6: over 1 MiB. Detail must say refused-size, not "trust the project".
+mkdir -p "$TMP/ed-big/.ravenclaude"
+printf 'schema_version: 5\n' > "$TMP/ed-big/.ravenclaude/comfort-posture.yaml"
+python3 -c 'import sys; open(sys.argv[1], "wb").truncate(1048577)' "$TMP/ed-big/.repo-layout.json"
+out="$(run_ed "$TMP/ed2/scripts/dashboard-prompt.sh" "$TMP/ed-big" "$TMP/ed-home")"
+sysmsg_z="$(printf '%s' "$out" | json_field systemMessage)"
+case "$sysmsg_z" in
+  *"1 MiB"*)
+    case "$sysmsg_z" in
+      *"until you trust the project"*) fail "E6 tells the person to trust an oversize project" ;;
+      *) pass "E6 oversize file: says the trust command refuses it, does not say to trust" ;;
+    esac
+    ;;
+  *) fail "E6 did not report the size refusal (out=${out:0:120})" ;;
+esac
+
+# E7: a newline in the path. Detail must say refused-other.
+mkdir -p "$TMP/ed-nl/proj"$'\n'"x/.ravenclaude"
+printf 'schema_version: 5\n' > "$TMP/ed-nl/proj"$'\n'"x/.ravenclaude/comfort-posture.yaml"
+out="$(run_ed "$TMP/ed2/scripts/dashboard-prompt.sh" "$TMP/ed-nl/proj"$'\n'"x" "$TMP/ed-home")"
+sysmsg_n="$(printf '%s' "$out" | json_field systemMessage)"
+case "$sysmsg_n" in
+  *"newline or a tab"*)
+    case "$sysmsg_n" in
+      *"until you trust the project"*) fail "E7 tells the person to trust a path the gate would refuse" ;;
+      *) pass "E7 bad path: says the trust command refuses it, does not say to trust" ;;
+    esac
+    ;;
+  *) fail "E7 did not report the path refusal (out=${out:0:120})" ;;
+esac
 
 # ── P6: fail-safe ────────────────────────────────────────────────────────────
 out="$(run "$SCRIPT" "/nonexistent/zzz-$$")"; rc=$?
