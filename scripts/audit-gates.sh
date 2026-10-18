@@ -379,7 +379,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # independently claimed 282 for claude-launch-safeguard while this
       # branch was unmerged, same "no better-fit suite" reasoning as
       # 173/175/193/194/267-281 above).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289 301"
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289 301 302"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -2094,9 +2094,14 @@ PY
       python3 scripts/check-directory-edition.py
       exit $?
       ;;
+    302)
+      echo "── Gate 302: repo file budget (Claude Code Directory 10,000-file limit; per-gate run) ──"
+      python3 scripts/check-repo-file-budget.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4195,8 +4200,12 @@ cp -p "$TMP/plugins_ravenclaude-core_knowledge_concepts_visuals_.render-manifest
 # JSON read + file existence, no Chromium). Guards the stepper's build contract.
 rc=0; python3 - <<'PY' || rc=1
 import json, os, sys
+from pathlib import Path
+sys.path.insert(0, "scripts")
+import visual_pack as vp
 reg = json.load(open("plugins/ravenclaude-core/concepts.json"))
 vis = "plugins/ravenclaude-core/knowledge/concepts/visuals"
+packed = vp.read_concept_pack(Path(vis))  # the committed SVGs live in visuals.pack.json, not as 220 files
 stepped = [c for c in reg["concepts"] if c.get("steps")]
 if not stepped:
     sys.exit("no concept declares steps — expected at least the agent-harness-loop demonstrator")
@@ -4205,8 +4214,8 @@ for c in stepped:
         want = f"{vis}/{c['id']}.step-{i}.svg"
         if s["svg"] != f"knowledge/concepts/visuals/{c['id']}.step-{i}.svg":
             sys.exit(f"{c['id']}: steps[{i-1}].svg path wrong: {s['svg']}")
-        if not os.path.isfile(want):
-            sys.exit(f"{c['id']}: missing committed step SVG {want}")
+        if os.path.basename(want) not in packed:
+            sys.exit(f"{c['id']}: missing step SVG {os.path.basename(want)} in {vp.CONCEPT_PACK_NAME}")
 PY
 gate "stepper SVGs (each declared step has a committed .step-N.svg)" must_pass "$rc"
 
@@ -4229,6 +4238,30 @@ cp -p "$TMP/plugins_ravenclaude-core_knowledge_tree-visuals_.render-manifest.jso
 # NOTE: "clean tree must_pass" removed for the same reason as render-concepts above
 # — decision-tree SVGs self-heal post-merge (mermaid-cli render). The must_fail
 # detector above stays. See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
+
+# visual_pack.py: the 1,019 per-file diagram SVGs are committed as 40 tree shards + 1 concept pack so the
+# repo stays under the Claude Code Directory's 10,000-file limit. These gates prove nothing was lost or
+# half-written: the pack formats and the page-side loader (driven under node), and the tree packs vs their
+# manifest — clean must pass, a shard with a member removed must fail.
+rc=0; python3 scripts/visual_pack.py --self-test >/dev/null 2>&1 || rc=$?
+gate "visual_pack self-test (formats, shard stability, loader JS)" must_pass "$rc"
+rc=0; python3 scripts/visual_pack.py --verify >/dev/null 2>&1 || rc=$?
+gate "tree packs match their manifest (clean tree)" must_pass "$rc"
+PACK1=plugins/ravenclaude-core/knowledge/tree-visuals/pack-01.js
+backup "$PACK1"
+python3 - <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, "scripts")
+import visual_pack as vp
+p = Path("plugins/ravenclaude-core/knowledge/tree-visuals/pack-01.js")
+m = vp.load_tree_shard(p.read_text(encoding="utf-8"))
+m.pop(sorted(m)[0])
+p.write_text(vp.dump_tree_shard(m), encoding="utf-8")
+PY
+rc=0; python3 scripts/visual_pack.py --verify >/dev/null 2>&1 || rc=$?
+gate "tree packs match their manifest (a member removed)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_knowledge_tree-visuals_pack-01.js.bak" "$PACK1"
 
 # generate-concepts-doc.py: a stale committed docs/concepts.md.
 backup docs/concepts.md
@@ -7016,6 +7049,23 @@ if command -v python3 >/dev/null 2>&1; then
   gate "directory-edition: build, limits, structure, README parity, network, secrets, every hook inert + hostile-safe, must-fail halves" must_pass "$rc"
 else
   _skip_or_fail "Gate 301 (directory-edition)" python3
+fi
+
+echo "── Gate 302: repo file budget (Claude Code Directory 10,000-file limit) ──"
+# The Directory stops validating a repo at 10,000 files, and this repo was at 10,883 until the 1,019 generated
+# diagram SVGs were packed (scripts/visual_pack.py). This gate keeps the count under FAIL_AT (9,990) so it
+# cannot drift back over one PR at a time: it must pass on the real tree and must FAIL when the count is pushed
+# over (--simulate-extra), and its own self-test covers the boundaries and the not-a-git-repo case (exit 2 =
+# NOT RUN, never a pass).
+if command -v python3 >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-repo-file-budget.py >/dev/null 2>&1 || rc=$?
+  gate "repo-file-budget: tracked files under the Directory's 10,000-file limit (clean tree)" must_pass "$rc"
+  rc=0; python3 scripts/check-repo-file-budget.py --simulate-extra 100000 >/dev/null 2>&1 || rc=$?
+  gate "repo-file-budget: fails when the count is pushed over (simulated files)" must_fail "$rc"
+  rc=0; python3 scripts/check-repo-file-budget.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "repo-file-budget: self-test (boundaries, teeth, not-a-git-repo is NOT RUN)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 302 (repo-file-budget)" python3 git
 fi
 
 
