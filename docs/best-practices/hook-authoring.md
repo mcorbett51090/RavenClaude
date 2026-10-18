@@ -115,6 +115,7 @@ If pipe-test passes but the hook doesn't fire in a live session: the file watche
 - [`.claude/settings.json` `hooks` block](../../.claude/settings.json) — how the three are wired up today.
 - [Rebase orphans lesson](../memory-bank/lessons-learned.md) — the double-block trap that motivated the *don't duplicate the deny list* rule above.
 - [Plugin versioning rule](./plugin-versioning.md) — bump PATCH after every hook edit; bump MINOR when adding a new hook file.
+- [`harness-spectate-operations-and-troubleshooting.md`](./harness-spectate-operations-and-troubleshooting.md) — `spectate-emit.sh` (observe-only) and `spectate-steer.sh` (opt-in deny) when the `/spectate` graph is empty or steer is silent.
 - The official Claude Code hooks reference (run `/help` in any session and search for *hooks*) for the full event list and JSON output schema.
 
 ## Provenance
