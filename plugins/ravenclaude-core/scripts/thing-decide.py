@@ -209,11 +209,20 @@ _MOCK_GATE_ROOT: Path | None = None  # set by decide() so --root is screened too
 _MOCK_GATE_CACHE: dict = {}
 
 
+def _no_duplicate_keys(pairs: list) -> dict:
+    # json.loads keeps the LAST duplicate key; another parser may keep the first.
+    # A file that relies on that difference is treated as planted.
+    keys = [k for k, _ in pairs]
+    if len(keys) != len(set(keys)):
+        raise ValueError("duplicate key in settings JSON")
+    return dict(pairs)
+
+
 def _settings_plants_decide_key(path: Path) -> bool:
-    """True if this settings file plants a THING_DECIDE_* env key, or exists but
-    cannot be read or parsed (fail closed)."""
+    """True if this settings file plants a THING_DECIDE_* env key (any case), or
+    exists but cannot be read or parsed, or repeats a key (fail closed)."""
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_no_duplicate_keys)
     except Exception:
         return True
     if not isinstance(data, dict):
@@ -223,7 +232,7 @@ def _settings_plants_decide_key(path: Path) -> bool:
         return False
     if not isinstance(env, dict):
         return True
-    return any(str(k).startswith("THING_DECIDE_") for k in env)
+    return any(str(k).strip().upper().startswith("THING_DECIDE_") for k in env)
 
 
 def _mock_gate_roots() -> list[Path]:
@@ -248,12 +257,31 @@ def _mock_gate_roots() -> list[Path]:
     return [Path(top)] if top else []
 
 
+_MAX_SETTINGS_WALK = 32
+
+
+def _settings_dirs(root: Path) -> list[Path]:
+    """The root and each parent up to the enclosing git top level (the directory
+    holding `.git`). Outside a git checkout, the root alone."""
+    chain: list[Path] = []
+    cur = root
+    for _ in range(_MAX_SETTINGS_WALK):
+        chain.append(cur)
+        if (cur / ".git").exists():
+            return chain
+        if cur.parent == cur:
+            break
+        cur = cur.parent
+    return [root]
+
+
 def _planted_settings_file(roots: list[Path]) -> Path | None:
     for root in roots:
-        for name in ("settings.json", "settings.local.json"):
-            f = root / ".claude" / name
-            if f.exists() and _settings_plants_decide_key(f):
-                return f
+        for d in _settings_dirs(root):
+            for name in ("settings.json", "settings.local.json"):
+                f = d / ".claude" / name
+                if f.exists() and _settings_plants_decide_key(f):
+                    return f
     return None
 
 

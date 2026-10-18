@@ -197,6 +197,7 @@ def main() -> int:
             want_gate=None,
             cwd=None,
             project_env=True,
+            want_binding=None,
         ):
             env = dict(extra)
             if project_env:
@@ -207,6 +208,8 @@ def main() -> int:
             problems = []
             if got != want_verdict:
                 problems.append(f"verdict={got!r} want {want_verdict!r}")
+            if want_binding is not None and res.get("binding") is not want_binding:
+                problems.append(f"binding={res.get('binding')!r} want {want_binding!r}")
             if want_calls is not None and (calls > 0) != want_calls:
                 problems.append(f"stub calls={calls} want {'>0' if want_calls else '0'}")
             if want_gate is not None and gate != want_gate:
@@ -222,12 +225,13 @@ def main() -> int:
 
         # Positive controls: the guard must not break the sanctioned harness path.
         case(
-            "control: clean project + marker + mock=yes honoured",
+            "control: clean project + marker + mock=yes honoured (binding)",
             clean,
             harness,
             "yes",
             False,
             "honour",
+            want_binding=True,
         )
         case(
             "control: unrelated env keys are not a plant",
@@ -301,12 +305,13 @@ def main() -> int:
         )
         # Live session: only defer-producing mocks; a yes/no mock makes every seat abstain.
         case(
-            "live (CLAUDECODE) mock=yes -> seats abstain -> defer",
+            "live (CLAUDECODE) mock=yes -> seats abstain -> defer (not binding)",
             clean,
             {**harness, "CLAUDECODE": "1"},
             "defer",
             False,
             "live-refused",
+            want_binding=False,
         )
         case(
             "live (THING_DECIDE_LIVE_SESSION) mock=yes -> defer",
@@ -340,6 +345,115 @@ def main() -> int:
             False,
             "honour",
         )
+
+        # Plant shapes a lenient reader would miss.
+        dup_env = make_project(
+            base, "dupenv", settings='{"env":{"THING_DECIDE_MOCK_VERDICT":"yes"},"env":{}}'
+        )
+        lower_key = make_project(
+            base, "lowerkey", settings='{"env":{"thing_decide_mock_verdict":"yes"}}'
+        )
+        case(
+            "duplicate env keys -> fail closed (planted)",
+            dup_env,
+            planted_export,
+            "no",
+            True,
+            "planted",
+        )
+        case(
+            "lower-case THING_DECIDE_* key -> planted",
+            lower_key,
+            planted_export,
+            "no",
+            True,
+            "planted",
+        )
+        # A plant in a parent directory, up to the git top level, is screened too.
+        gitrepo = base / "gitrepo"
+        (gitrepo / ".git").mkdir(parents=True)
+        (gitrepo / ".claude").mkdir(parents=True)
+        (gitrepo / ".claude" / "settings.json").write_text(
+            json.dumps({"env": {"THING_DECIDE_MOCK_VERDICT": "yes"}}), encoding="utf-8"
+        )
+        sub = make_project(gitrepo, "sub", settings='{"permissions":{}}')
+        case(
+            "plant in parent .claude (up to the git top level) -> planted",
+            sub,
+            planted_export,
+            "no",
+            True,
+            "planted",
+        )
+        cleangit = base / "cleangit"
+        (cleangit / ".git").mkdir(parents=True)
+        cleansub = make_project(cleangit, "sub", settings='{"permissions":{}}')
+        case(
+            "control: clean parent repo + marker -> mock still honoured",
+            cleansub,
+            harness,
+            "yes",
+            False,
+            "honour",
+        )
+
+        # The route hook marks a live payload (one carrying transcript_path), so a
+        # harness yes-mock exported into a live hook cannot auto-answer the prompt.
+        hook = ENGINE.parents[1] / "hooks" / "route-decision-review.sh"
+        plugin_root = ENGINE.parents[1]
+
+        def hook_decision(with_transcript: bool) -> str:
+            payload = {
+                "tool_name": "AskUserQuestion",
+                "tool_input": {
+                    "questions": [
+                        {
+                            "question": "Should the docs-only change land?",
+                            "multiSelect": False,
+                            "options": [{"label": "Yes"}, {"label": "No"}],
+                        }
+                    ]
+                },
+                "cwd": str(clean),
+                "session_id": "g303hook",
+            }
+            if with_transcript:
+                payload["transcript_path"] = str(base / "transcript.jsonl")
+            env = hermetic_env(
+                stub_dir,
+                {
+                    "CLAUDE_PROJECT_DIR": str(clean),
+                    "CLAUDE_PLUGIN_ROOT": str(plugin_root),
+                    "CLAUDE_SESSION_ID": "g303hook",
+                    **harness,
+                },
+            )
+            env.pop("THING_DECIDE_LIVE_SESSION", None)
+            proc = subprocess.run(
+                ["bash", str(hook)],
+                input=json.dumps(payload),
+                capture_output=True,
+                text=True,
+                env=env,
+                timeout=120,
+            )
+            try:
+                out = json.loads(proc.stdout or "{}")
+            except Exception:
+                out = {}
+            return (out.get("hookSpecificOutput") or {}).get("permissionDecision", "")
+
+        if hook.is_file():
+            d_ctl = hook_decision(with_transcript=False)
+            (ok if d_ctl == "deny" else bad)(
+                f"control: route hook, no transcript_path, harness yes -> binding deny (got {d_ctl!r})"
+            )
+            d_live = hook_decision(with_transcript=True)
+            (ok if d_live != "deny" else bad)(
+                f"route hook, transcript_path present -> live, mock refused, prompt allowed (got {d_live!r})"
+            )
+        else:
+            bad(f"route hook not found at {hook}")
 
         # The eval mock follows the same rules (unit level: the gate's effective values).
         mod = load_engine()
