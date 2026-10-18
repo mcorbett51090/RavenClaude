@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.357.1 — 2026-10-18
+
+### Fixed
+- **The decision-review engine's test hooks could be planted by a cloned repo.** `THING_DECIDE_MOCK_VERDICT` short-circuits every seat in `thing-decide.py`. Claude Code exports a project's `.claude/settings.json` `env` block into every hook, so a repo that planted `THING_DECIDE_MOCK_VERDICT=yes` would make every routed yes/no resolve "yes" under `decision_review: binding`. High-blast decisions still deferred. The engine now applies the same guard `thing-seat.sh` uses (`_mock_gate`):
+  - a mock needs the harness marker `THING_DECIDE_ALLOW_MOCK=1`;
+  - any `THING_DECIDE_*` key, in any letter case, in a project-scope settings file unsets all of these hooks. The files checked are `.claude/settings.json` and `settings.local.json` under `$CLAUDE_PROJECT_DIR` and the `--root` dir, and in each parent up to the git top level. An unreadable, empty or non-object `env`, or a file that repeats a JSON key, counts as planted;
+  - under a live session (`CLAUDECODE`, or `THING_DECIDE_LIVE_SESSION=1`, which `route-decision-review.sh` now sets when its payload carries `transcript_path`) only a defer-producing verdict mock is allowed. Any other value makes every seat abstain, and the eval mock is dropped.
+  - The result JSON gains `mock_gate` whenever the guard did something.
+- **The 0.356.0 entry said the seat change "needs security review".** The review is done: CLEAR, recorded on #1374.
+
+### Changed
+- Harness callers of the decide mocks (Gates 17 and 31, `test-phase0-emit-and-scrub.sh`, `test-gate20-adapter-diagnostics.sh`, `test-gate91-tribunal-shadow.py`, `test-heimdall-abstain-injection.py`) set the marker and drop the caller's session markers.
+- **Gate 303 gains its decide half** (`hooks/tests/test-decide-mock-source.py`, 26 checks). A stub `claude` always votes "no", so an honoured mock ("yes"), a real seat ("no") and an abstain ("defer") are three distinct results. It also checks `binding`, the duplicate-key, letter-case and parent-directory plants, and the route hook end to end: without `transcript_path` a harness yes is a binding deny, with it the prompt is allowed. Teeth: with the plant check neutered, the planted attack resolves "yes".
+
 ## 0.357.0 — 2026-10-18
 
 ### Added
@@ -12,7 +26,7 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 ## 0.356.0 — 2026-10-18
 
 ### Changed
-- **`thing-decide.py` seats run without tools** (needs security review). Both `claude -p` calls (the decision seat and the dispatch-evaluator shadow) now pass `--strict-mcp-config --tools ""`, the same shape `thing-seat.sh` already uses. The seats only return a verdict JSON. A live probe of the new seat shape used about 4,825 input tokens; the default shape measured about 213K (analysis.md E8). This also removes tool access from a call that reads untrusted decision text.
+- **`thing-decide.py` seats run without tools** (security review: CLEAR, #1374). Both `claude -p` calls (the decision seat and the dispatch-evaluator shadow) now pass `--strict-mcp-config --tools ""`, the same shape `thing-seat.sh` already uses. The seats only return a verdict JSON. A live probe of the new seat shape used about 4,825 input tokens; the default shape measured about 213K (analysis.md E8). This also removes tool access from a call that reads untrusted decision text.
 - **`scripts/inventory-nuance-judge.py`** (repo-root tooling) runs `claude -p --strict-mcp-config --tools=` from a temp directory, so this repo's `CLAUDE.md`, project hooks and project MCP config no longer load into the judge. The model is unchanged (CLI default).
 
 ### Added
