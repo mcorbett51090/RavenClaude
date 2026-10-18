@@ -51,6 +51,77 @@
 
 set -euo pipefail
 
+# Args (cannot be planted through settings `env`, unlike THING_SEAT_* vars):
+#   --live-session   the caller saw a live hook payload (transcript_path); the
+#                    mock is restricted to deny/abstain (see _thing_mock_gate).
+#   --mock-precheck  print the mock-gate decision (none|honour|unmarked|planted|
+#                    live-refused) and exit 0 — used by the orchestrator before
+#                    fan-out so it applies the SAME check as the seat.
+_arg_live=0; _arg_precheck=0
+for _a in "$@"; do
+  case "$_a" in
+    --live-session) _arg_live=1 ;;
+    --mock-precheck) _arg_precheck=1 ;;
+  esac
+done
+
+# _thing_mock_planted — 0 (planted) if a project-scope settings file plants any
+# THING_SEAT_* key in .env, or exists but cannot be parsed (fail closed). User-scope
+# ~/.claude/settings.json is deliberately NOT consulted (a cloned repo can't write it).
+_thing_mock_planted() {
+  local proj f rc
+  proj="${CLAUDE_PROJECT_DIR:-}"
+  [ -n "$proj" ] || proj="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  [ -n "$proj" ] || return 1
+  for f in "$proj/.claude/settings.json" "$proj/.claude/settings.local.json"; do
+    [ -e "$f" ] || continue
+    _mock_planted_file="$f"
+    command -v jq >/dev/null 2>&1 || return 0
+    rc=0
+    jq -e '(.env // {}) | if type == "object" then (keys | any(startswith("THING_SEAT_"))) else true end' \
+      "$f" >/dev/null 2>&1 || rc=$?
+    # rc 0 = a THING_SEAT_* key (or non-object env); rc 1 = clean; anything else
+    # (parse error, empty file, unreadable) = fail closed.
+    [ "$rc" -eq 1 ] || return 0
+  done
+  _mock_planted_file=""
+  return 1
+}
+
+# THING_SEAT_* TEST hooks (parent-set by a harness, never by a project). When the
+# project-settings check finds ANY THING_SEAT_* key, ALL of these are unset — not
+# just the mock — because a planted RESOLVED_OVERRIDE can mask a real
+# model-diversity collapse and a planted MOCK_REVISED can steer a harden EDIT.
+_THING_SEAT_TEST_HOOKS="THING_SEAT_MOCK_VERDICT THING_SEAT_MOCK_REVISED THING_SEAT_RESOLVED_OVERRIDE THING_SEAT_ALLOW_MOCK"
+
+# _thing_mock_gate — sets _mock_decision. The project-settings check runs FIRST and
+# ALWAYS (even with no mock set): planted -> every test hook is unset and the
+# decision is `planted` (a mock had been requested) or `planted-nomock`.
+_thing_mock_gate() {
+  local _had_mock="${THING_SEAT_MOCK_VERDICT:-}" _v
+  _mock_decision="none"; _mock_planted_file=""
+  if _thing_mock_planted; then
+    for _v in $_THING_SEAT_TEST_HOOKS; do unset "$_v"; done
+    if [ -n "$_had_mock" ]; then _mock_decision="planted"; else _mock_decision="planted-nomock"; fi
+    return 0
+  fi
+  [ -n "$_had_mock" ] || return 0
+  if [ "${THING_SEAT_ALLOW_MOCK:-}" != "1" ]; then _mock_decision="unmarked"; return 0; fi
+  if [ -n "${CLAUDECODE:-}" ] || [ "$_arg_live" = 1 ]; then
+    case "$_had_mock" in
+      deny | inject | malformed | timeout) ;;  # deny-or-abstain mocks only
+      *) _mock_decision="live-refused"; return 0 ;;
+    esac
+  fi
+  _mock_decision="honour"
+}
+
+if [ "$_arg_precheck" = 1 ]; then
+  _thing_mock_gate
+  printf '%s\n' "$_mock_decision"
+  exit 0
+fi
+
 # THING_PAYLOAD (the full reviewed text for any shape) takes precedence; THING_CMD
 # is the Bash alias (back-compat). `cmd` below is the reviewed text either way.
 cmd="${THING_PAYLOAD:-${THING_CMD:-}}"
@@ -125,12 +196,42 @@ done
 # THING_SEAT_RESOLVED_OVERRIDE is a TEST-ONLY hook (parent-set, never attacker-derived;
 # sibling to THING_SEAT_MOCK_VERDICT) that lets Gate 121 simulate a fallback resolving a
 # seat onto a given model so the collapse gate is exercisable through the mock harness.
+# The test-hook gate runs HERE (before the write) so a project-planted
+# RESOLVED_OVERRIDE is already unset when the resolved model is recorded.
+_thing_mock_gate
 [ -n "${THING_SEAT_RESOLVED_FILE:-}" ] && printf '%s' "${THING_SEAT_RESOLVED_OVERRIDE:-$model}" >"$THING_SEAT_RESOLVED_FILE"
 
 # ── TEST HOOK: canned, role-aware verdicts (no network, no credits) ───────────
 # The mock edited_command strings are chosen so the orchestrator's deterministic
 # EDIT re-validation (thing-concerns.py) passes for `edit` and fails for
 # `edit-unsafe` against the gate's `git push origin main` fixture.
+#
+# SECURITY (2026-10-18, AppSec #1370): a cloned repo can plant test hooks via the
+# `env` block of its `.claude/settings.json`, which Claude Code exports into every
+# hook process. The mock is therefore honoured only when ALL of these hold
+# (see _thing_mock_gate above; the orchestrator runs the same gate before fan-out):
+#   1. THING_SEAT_ALLOW_MOCK=1 is set (harness marker; never sufficient alone);
+#   2. neither project-scope settings file (settings.json / settings.local.json
+#      under $CLAUDE_PROJECT_DIR, else the git toplevel of cwd) has ANY
+#      THING_SEAT_* key in .env — an unparseable file counts as planted;
+#   3. under a live session (CLAUDECODE set, or --live-session from the
+#      orchestrator when the hook payload carries transcript_path) the mock may
+#      only produce deny or abstain — an allow/EDIT-producing mock abstains.
+# No CI/env flag (GITHUB_ACTIONS etc.) is used as a trust signal.
+# Cases 1-2 fall through to the REAL seat; case 3 abstains (exit 7). Any planted
+# THING_SEAT_* key unsets ALL test hooks (incl. RESOLVED_OVERRIDE), mock or not.
+case "$_mock_decision" in
+  unmarked)
+    echo "thing-seat: refusing THING_SEAT_MOCK_VERDICT without THING_SEAT_ALLOW_MOCK=1 (repo-local env is not trusted)" >&2
+    THING_SEAT_MOCK_VERDICT="" ;;
+  planted)
+    echo "thing-seat: ignoring THING_SEAT_MOCK_VERDICT: mock var planted via project settings (${_mock_planted_file:-unknown}); all THING_SEAT_* test hooks unset; running the real seat" >&2 ;;
+  planted-nomock)
+    echo "thing-seat: THING_SEAT_* test hook planted via project settings (${_mock_planted_file:-unknown}); all THING_SEAT_* test hooks unset" >&2 ;;
+  live-refused)
+    echo "thing-seat: refusing THING_SEAT_MOCK_VERDICT=${THING_SEAT_MOCK_VERDICT} under a live session (only deny/abstain mocks allowed); abstaining" >&2
+    exit 7 ;;
+esac
 case "${THING_SEAT_MOCK_VERDICT:-}" in
   allow)
     echo '{"verdict":"allow","edited_command":null,"concerns_cited":[],"reasoning":"mock: no concern applies","confidence":0.95,"injection_detected":false}'

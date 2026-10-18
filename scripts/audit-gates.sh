@@ -27,6 +27,16 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
+# ── Live-session marker is NOT inherited by this harness's children (#1370) ──
+# thing-seat.sh treats CLAUDECODE as a live session and lets a THING_SEAT_MOCK_VERDICT
+# produce only deny/abstain (an allow/EDIT mock abstains). Run from inside a Claude
+# Code session, every mock-driven tribunal gate would then abstain and fail. This
+# harness is never a live session, so it unsets CLAUDECODE for ALL its own child
+# invocations. Real hooks are unaffected: the orchestrator still passes
+# --live-session to its seats whenever the hook payload carries transcript_path,
+# and Claude Code sets CLAUDECODE afresh for every real hook process.
+unset CLAUDECODE
+
 # ── Shared: pinned actionlint resolver (Gate 10 + Gate 188) ──────────────────
 # ONE resolver, reused — do NOT re-solve. Called by Gate 10 AND Gate 188 (and
 # their --check dispatcher entries, which run before the main helper defs, so
@@ -434,8 +444,9 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # Gate 14 is already in), 102 (claude-orchestrate.sh — the script that
       # spawns `claude -p` for panel seats; tribunal infrastructure, not a
       # generic hook), 196 (every regex in the Thing's own concern/
-      # denial-resolution catalogs compiles).
-      echo "14 15 17 21 22 28 31 33 60 102 137 177 179 190 196 197"
+      # denial-resolution catalogs compiles), 303 (THING_SEAT_* mock-verdict
+      # source gate — the tribunal seat's own test-hook trust boundary).
+      echo "14 15 17 21 22 28 31 33 60 102 137 177 179 190 196 197 303"
       ;;
     hosts)
       # Gaps: 26 (Codespace auto-setup — a host environment), 80 (the
@@ -2099,9 +2110,14 @@ PY
       python3 scripts/check-repo-file-budget.py
       exit $?
       ;;
+    303)
+      echo "── Gate 303: mock-verdict source gate (marker + project-settings plant + live-session; per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2929,7 +2945,7 @@ thing_run() { # $1=mock-verdict $2=command -> prints the full hookSpecificOutput
   rm -rf "$SAGA"  # one Sága file per call, so `ls -t` ties never matter
   jq -cn --arg c "$2" --arg cwd "$G14" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit"}' \
-    | THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH14" 2>/dev/null
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH14" 2>/dev/null
 }
 thing_decision() { # $1=mock-verdict $2=command -> prints permissionDecision (or "none")
   local d
@@ -3066,7 +3082,7 @@ EOF
 t4_decision() { # $1=command -> permissionDecision (mock=allow, so a screen miss -> allow)
   jq -cn --arg c "$1" --arg cwd "$G15" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit"}' \
-    | THING_SEAT_MOCK_VERDICT=allow bash "$ORCH14" 2>/dev/null \
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT=allow bash "$ORCH14" 2>/dev/null \
     | jq -r '.hookSpecificOutput.permissionDecision // "none"'
 }
 # (a) curated injection payloads -> deny. Each leads with a shell_readonly command
@@ -4096,7 +4112,7 @@ ORCH=plugins/ravenclaude-core/hooks/thing-orchestrator.sh
 t15_run() {  # $1=mock $2=cmd -> full hookSpecificOutput JSON (keeps the Sága)
   jq -cn --arg c "$2" --arg cwd "$G22" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit15"}' \
-    | THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH" 2>/dev/null
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH" 2>/dev/null
 }
 t15_dec() { t15_run "$1" "$2" | jq -r '.hookSpecificOutput.permissionDecision // "none"'; }
 t15_seatcount() { jq -r '.seats | length' "$(ls -t "$SAGA22"/*.json 2>/dev/null | head -1)" 2>/dev/null || echo "x"; }
@@ -4313,7 +4329,7 @@ tb_dec() { # proj tool_name tool_input_json -> permissionDecision ("none" if no 
   local out
   out="$(jq -cn --arg tn "$2" --argjson ti "$3" --arg cwd "$1" \
     '{tool_name:$tn,tool_input:$ti,cwd:$cwd,session_id:"audit24"}' \
-    | THING_SEAT_MOCK_VERDICT="${4:-allow}" bash "$ORCH24" 2>/dev/null)"
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="${4:-allow}" bash "$ORCH24" 2>/dev/null)"
   [ -z "$out" ] && { echo none; return; }
   printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "none"'
 }
@@ -4365,7 +4381,7 @@ gate "tb: seat EDIT on a file shape coerced to DENY (#g)" must_pass "$rc"
 oversize_v="$(python3 -c "
 import json,sys
 sys.stdout.write(json.dumps({'tool_name':'Write','tool_input':{'file_path':'$G24F/src/big.txt','content':'x'*1100000},'cwd':'$G24F','session_id':'a24'}))" \
-  | THING_SEAT_MOCK_VERDICT=allow bash "$ORCH24" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecision // "none"')"
+  | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT=allow bash "$ORCH24" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecision // "none"')"
 rc=0; [ "$oversize_v" = "deny" ] || rc=1
 gate "tb: oversize (>1 MiB) payload fails closed -> deny (#c)" must_pass "$rc"
 # (j) cache non-collision: two distinct file paths yield distinct cache identities
@@ -4704,7 +4720,7 @@ printf '#!/usr/bin/env bash\nprintf "%%s\\n" "wrong/repo"\n' > "$G28DBAD/gh"; ch
 _orch28d() { # $1=stub_dir $2=command $3=mock-verdict -> permissionDecision
   jq -cn --arg c "$2" --arg cwd "$G28D" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit"}' \
-    | PATH="$1:$PATH" THING_SEAT_MOCK_VERDICT="$3" bash "$ORCH14" 2>/dev/null \
+    | PATH="$1:$PATH" THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$3" bash "$ORCH14" 2>/dev/null \
     | jq -r '.hookSpecificOutput.permissionDecision // "none"'
 }
 # force-push built by concatenation so the literal never reaches a live shell / hook
@@ -7067,6 +7083,20 @@ if command -v python3 >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
 else
   _skip_or_fail "Gate 302 (repo-file-budget)" python3 git
 fi
+
+echo "── Gate 303: mock-verdict source gate (THING_SEAT_* test hooks; AppSec #1370) ──"
+# A cloned repo can plant THING_SEAT_* test hooks through the `env` block of its
+# .claude/settings.json (Claude Code exports it into every hook). thing-seat.sh, and
+# the orchestrator before fan-out, honour a mock only with THING_SEAT_ALLOW_MOCK=1,
+# no THING_SEAT_* key in the project-scope settings files (unparseable = planted),
+# and — under a live session — only a deny/abstain mock; any planted key unsets ALL
+# seat test hooks incl. RESOLVED_OVERRIDE. The test drives the real seat and
+# orchestrator against a stub `claude` (no live model) and carries its own
+# controls (clean project, unrelated env keys, harness override honoured).
+# Registered in the --check dispatcher, this main sequence, the Supported: string
+# and the `tribunal` suite. GREP THE SUITE OUTPUT FOR "Gate 303".
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh >/dev/null 2>&1 || rc=$?
+gate "mock-verdict source: marker required, project plant ignored (fail closed), live session deny/abstain only" must_pass "$rc"
 
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"

@@ -446,17 +446,17 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
-           THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
+           THING_SEAT_ALLOW_MOCK="${THING_SEAT_ALLOW_MOCK:-}" THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
            THING_SEAT_MOCK_REVISED="${THING_SEAT_MOCK_REVISED:-}" \
-           _rc_timeout "${seat_timeout}" bash "$SEAT" 2>"$tmp/$role.err")" || rc=$?
+           _rc_timeout "${seat_timeout}" bash "$SEAT" ${_seat_live_arg:+"$_seat_live_arg"} 2>"$tmp/$role.err")" || rc=$?
   else
     out="$(THING_SEAT_ACTIVE=1 THING_PAYLOAD="$reviewed" THING_PAYLOAD_SHAPE="$payload_shape" \
            THING_CATEGORY="$category" \
            THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
-           THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
-           _rc_timeout "${seat_timeout}" bash "$SEAT" 2>"$tmp/$role.err")" || rc=$?
+           THING_SEAT_ALLOW_MOCK="${THING_SEAT_ALLOW_MOCK:-}" THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
+           _rc_timeout "${seat_timeout}" bash "$SEAT" ${_seat_live_arg:+"$_seat_live_arg"} 2>"$tmp/$role.err")" || rc=$?
   fi
   printf '%s' "$out" > "$tmp/$role.json"
   printf '%s' "$rc" > "$tmp/$role.rc"
@@ -596,6 +596,27 @@ else
   # RE-setting the EXIT trap here (a second `trap ... EXIT` would OVERWRITE the
   # fail-closed guard, reopening the FM2 fail-open hole on the panel path).
   _tmp_to_clean="$tmp"
+
+  # ── Mock-verdict source gate (AppSec #1370), BEFORE fan-out. Same check as
+  #    thing-seat.sh (the seat is the single source of truth: --mock-precheck).
+  #    A live hook payload (transcript_path) restricts mocks to deny/abstain; that
+  #    is passed to every seat as an ARG (an arg can't be planted via settings
+  #    `env`). Unmarked / project-planted mocks are stripped here so no seat —
+  #    including a later Thor — sees them; the seats then run for real. ─────────
+  _seat_live_arg=""
+  [ -n "$(printf '%s' "$payload" | jq -r '.transcript_path // empty' 2>/dev/null)" ] && _seat_live_arg="--live-session"
+  # Runs on EVERY convened panel, mock or not: a project-planted THING_SEAT_* key
+  # unsets ALL seat test hooks (incl. THING_SEAT_RESOLVED_OVERRIDE) for fan-out.
+  _mock_pre="$(bash "$SEAT" --mock-precheck ${_seat_live_arg:+"$_seat_live_arg"} 2>/dev/null || echo planted)"
+  case "$_mock_pre" in
+    none | honour | live-refused) : ;;  # live-refused: each seat abstains on its own
+    planted | planted-nomock)
+      echo "[Command review] THING_SEAT_* test hook planted via project settings (mock var planted via project settings); unsetting all THING_SEAT_* test hooks and convening the real panel." >&2
+      unset THING_SEAT_MOCK_VERDICT THING_SEAT_MOCK_REVISED THING_SEAT_RESOLVED_OVERRIDE THING_SEAT_ALLOW_MOCK ;;
+    *)
+      echo "[Command review] ignoring THING_SEAT_MOCK_VERDICT (${_mock_pre}); convening the real panel." >&2
+      unset THING_SEAT_MOCK_VERDICT THING_SEAT_MOCK_REVISED THING_SEAT_RESOLVED_OVERRIDE THING_SEAT_ALLOW_MOCK ;;
+  esac
 
   # ── Fan the convened seats out in PARALLEL, bounded by the panel deadline. ──
   pids=()
