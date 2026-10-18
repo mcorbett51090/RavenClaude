@@ -88,14 +88,27 @@ _thing_mock_planted() {
   return 1
 }
 
-# _thing_mock_gate — sets _mock_decision for the current THING_SEAT_MOCK_VERDICT.
+# THING_SEAT_* TEST hooks (parent-set by a harness, never by a project). When the
+# project-settings check finds ANY THING_SEAT_* key, ALL of these are unset — not
+# just the mock — because a planted RESOLVED_OVERRIDE can mask a real
+# model-diversity collapse and a planted MOCK_REVISED can steer a harden EDIT.
+_THING_SEAT_TEST_HOOKS="THING_SEAT_MOCK_VERDICT THING_SEAT_MOCK_REVISED THING_SEAT_RESOLVED_OVERRIDE THING_SEAT_ALLOW_MOCK"
+
+# _thing_mock_gate — sets _mock_decision. The project-settings check runs FIRST and
+# ALWAYS (even with no mock set): planted -> every test hook is unset and the
+# decision is `planted` (a mock had been requested) or `planted-nomock`.
 _thing_mock_gate() {
+  local _had_mock="${THING_SEAT_MOCK_VERDICT:-}" _v
   _mock_decision="none"; _mock_planted_file=""
-  [ -n "${THING_SEAT_MOCK_VERDICT:-}" ] || return 0
+  if _thing_mock_planted; then
+    for _v in $_THING_SEAT_TEST_HOOKS; do unset "$_v"; done
+    if [ -n "$_had_mock" ]; then _mock_decision="planted"; else _mock_decision="planted-nomock"; fi
+    return 0
+  fi
+  [ -n "$_had_mock" ] || return 0
   if [ "${THING_SEAT_ALLOW_MOCK:-}" != "1" ]; then _mock_decision="unmarked"; return 0; fi
-  if _thing_mock_planted; then _mock_decision="planted"; return 0; fi
   if [ -n "${CLAUDECODE:-}" ] || [ "$_arg_live" = 1 ]; then
-    case "$THING_SEAT_MOCK_VERDICT" in
+    case "$_had_mock" in
       deny | inject | malformed | timeout) ;;  # deny-or-abstain mocks only
       *) _mock_decision="live-refused"; return 0 ;;
     esac
@@ -183,6 +196,9 @@ done
 # THING_SEAT_RESOLVED_OVERRIDE is a TEST-ONLY hook (parent-set, never attacker-derived;
 # sibling to THING_SEAT_MOCK_VERDICT) that lets Gate 121 simulate a fallback resolving a
 # seat onto a given model so the collapse gate is exercisable through the mock harness.
+# The test-hook gate runs HERE (before the write) so a project-planted
+# RESOLVED_OVERRIDE is already unset when the resolved model is recorded.
+_thing_mock_gate
 [ -n "${THING_SEAT_RESOLVED_FILE:-}" ] && printf '%s' "${THING_SEAT_RESOLVED_OVERRIDE:-$model}" >"$THING_SEAT_RESOLVED_FILE"
 
 # ── TEST HOOK: canned, role-aware verdicts (no network, no credits) ───────────
@@ -202,15 +218,16 @@ done
 #      orchestrator when the hook payload carries transcript_path) the mock may
 #      only produce deny or abstain — an allow/EDIT-producing mock abstains.
 # No CI/env flag (GITHUB_ACTIONS etc.) is used as a trust signal.
-# Cases 1-2 fall through to the REAL seat; case 3 abstains (exit 7).
-_thing_mock_gate
+# Cases 1-2 fall through to the REAL seat; case 3 abstains (exit 7). Any planted
+# THING_SEAT_* key unsets ALL test hooks (incl. RESOLVED_OVERRIDE), mock or not.
 case "$_mock_decision" in
   unmarked)
     echo "thing-seat: refusing THING_SEAT_MOCK_VERDICT without THING_SEAT_ALLOW_MOCK=1 (repo-local env is not trusted)" >&2
     THING_SEAT_MOCK_VERDICT="" ;;
   planted)
-    echo "thing-seat: ignoring THING_SEAT_MOCK_VERDICT: mock var planted via project settings (${_mock_planted_file:-unknown}); running the real seat" >&2
-    THING_SEAT_MOCK_VERDICT="" ;;
+    echo "thing-seat: ignoring THING_SEAT_MOCK_VERDICT: mock var planted via project settings (${_mock_planted_file:-unknown}); all THING_SEAT_* test hooks unset; running the real seat" >&2 ;;
+  planted-nomock)
+    echo "thing-seat: THING_SEAT_* test hook planted via project settings (${_mock_planted_file:-unknown}); all THING_SEAT_* test hooks unset" >&2 ;;
   live-refused)
     echo "thing-seat: refusing THING_SEAT_MOCK_VERDICT=${THING_SEAT_MOCK_VERDICT} under a live session (only deny/abstain mocks allowed); abstaining" >&2
     exit 7 ;;

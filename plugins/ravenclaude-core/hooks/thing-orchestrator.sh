@@ -605,18 +605,18 @@ else
   #    including a later Thor — sees them; the seats then run for real. ─────────
   _seat_live_arg=""
   [ -n "$(printf '%s' "$payload" | jq -r '.transcript_path // empty' 2>/dev/null)" ] && _seat_live_arg="--live-session"
-  if [ -n "${THING_SEAT_MOCK_VERDICT:-}" ]; then
-    _mock_pre="$(bash "$SEAT" --mock-precheck ${_seat_live_arg:+"$_seat_live_arg"} 2>/dev/null || echo planted)"
-    case "$_mock_pre" in
-      honour | live-refused) : ;;  # live-refused: each seat abstains on its own
-      planted)
-        echo "[Command review] ignoring THING_SEAT_MOCK_VERDICT: mock var planted via project settings; convening the real panel." >&2
-        unset THING_SEAT_MOCK_VERDICT THING_SEAT_MOCK_REVISED THING_SEAT_ALLOW_MOCK ;;
-      *)
-        echo "[Command review] ignoring THING_SEAT_MOCK_VERDICT (${_mock_pre}); convening the real panel." >&2
-        unset THING_SEAT_MOCK_VERDICT THING_SEAT_MOCK_REVISED THING_SEAT_ALLOW_MOCK ;;
-    esac
-  fi
+  # Runs on EVERY convened panel, mock or not: a project-planted THING_SEAT_* key
+  # unsets ALL seat test hooks (incl. THING_SEAT_RESOLVED_OVERRIDE) for fan-out.
+  _mock_pre="$(bash "$SEAT" --mock-precheck ${_seat_live_arg:+"$_seat_live_arg"} 2>/dev/null || echo planted)"
+  case "$_mock_pre" in
+    none | honour | live-refused) : ;;  # live-refused: each seat abstains on its own
+    planted | planted-nomock)
+      echo "[Command review] THING_SEAT_* test hook planted via project settings (mock var planted via project settings); unsetting all THING_SEAT_* test hooks and convening the real panel." >&2
+      unset THING_SEAT_MOCK_VERDICT THING_SEAT_MOCK_REVISED THING_SEAT_RESOLVED_OVERRIDE THING_SEAT_ALLOW_MOCK ;;
+    *)
+      echo "[Command review] ignoring THING_SEAT_MOCK_VERDICT (${_mock_pre}); convening the real panel." >&2
+      unset THING_SEAT_MOCK_VERDICT THING_SEAT_MOCK_REVISED THING_SEAT_RESOLVED_OVERRIDE THING_SEAT_ALLOW_MOCK ;;
+  esac
 
   # ── Fan the convened seats out in PARALLEL, bounded by the panel deadline. ──
   pids=()
