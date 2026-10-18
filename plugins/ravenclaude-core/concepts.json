@@ -3003,7 +3003,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:1821fbfcfb8a38b720a8eed19138240f7c71be5953159b58b56aa75d46c6c9d9",
+      "covers_digest": "sha256:d07150e0affec2c1db4afe4c2af7e16d816abafe44ce6810e14a85a253a6433a",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3065,7 +3065,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:2020dbb43a436715f3080355e917fa1b5b15769447c1f1124b82a9d6398f2a2b",
+      "covers_digest": "sha256:801cefaba5586717a6a87d05675c1ed0465153388df8ef7cc334da749abe4822",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3422,7 +3422,7 @@
         "scripts/inventory-sweep.py",
         "scripts/inventory-coverage.py"
       ],
-      "covers_digest": "sha256:6767ac9b98b8d1b7e6dc94fa910022c7a2acf7f2de37fb0d0acd74fb55db2122",
+      "covers_digest": "sha256:069e22e37cdc732e091de5c72afa449c9fdcf851ea065187850ffad44721f475",
       "nuance": "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3526,7 +3526,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:2b509695ba92c32401dcc9f0fbec92187ab79c1db9b2d53cfda62c13b0428a73",
+      "covers_digest": "sha256:b974b27cfebb045bb5c8d4d7f1921c07c65af99ef921f27b0244d546079680c9",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3574,7 +3574,7 @@
         "scripts/inventory-sweep.py",
         "scripts/audit-prose-rendering-path.py"
       ],
-      "covers_digest": "sha256:a74be45f73db3b577a0b10c461553c7634d8ed5b3f2c702a0c30042d8fa0132b",
+      "covers_digest": "sha256:daf52c67aa80b49fd2b0f98c1a17b161099a4cde2679fc65426a54302d3d22a9",
       "nuance": "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.",
       "nuance_evidence": {
         "measured": "2026-08-19",
