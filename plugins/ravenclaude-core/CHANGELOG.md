@@ -18,13 +18,18 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 ### Added
 - **Gate 306** (`scripts/check-headless-call-shape.py`). Every `claude -p` site in `plugins/`, `scripts/` and `.claude/workflows/` must pass `--strict-mcp-config` or be listed with a reason and a site count in `tests/fixtures/headless-call-shape-exemptions.json`. It also fails the variadic `--tools "" <positional>` trap. A changed site count, a short reason or a stale entry fails. A positive control fails the gate if discovery stops finding the known sites, and `--must-fail` strips the flag from `thing-seat.sh` and must be caught. Seven files are exempt today: the three `--bare` dispatch-evaluator shell-outs, the evaluator hook (also `--bare`), the host canary, a live nested-dispatch test, and a fixture string.
 
-## 0.355.10 — 2026-10-18
+## 0.355.11 — 2026-10-18
 
 ### Fixed
 - **False "1-hour verify cache" claims.** Both `rc-deep-research.js` copies and `adaptive-run-classifier/SKILL.md` said the verify phases get a 1-hour cache through `cache_control` on the workflow `agent()` call. `agent()` has no `cache_control` or `thinking` option (the workflow-authoring reference lists `label`, `phase`, `schema`, `model`, `effort`, `isolation`, `agentType`), so the key is almost certainly ignored. Workflow agents get Claude Code's own 5-minute subagent TTL unless `CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL` / `subagentPromptCacheTtl` overrides it. Comments and the skill now say so. Code is unchanged.
 - **Stale "below Haiku 4.5's 4,096-token minimum" reasons** for not caching the run classifier and the dispatch evaluator. The fast tier is Haiku 5.5 now. The comments (both workflow copies and `agent-dispatch-evaluator/reference/evaluate-dispatch.js`) now give the reason that still holds: `agent()` has no cache option, and `claude -p` is cached by Claude Code itself.
 - **`knowledge/headless-claude-calls.md`** row for the workflow copies updated to match.
 - **`docs/research/2026-06-04-claude-features-gap-analysis/gap-analysis.md` §B3** gains a second dated correction: the call shape (`--tools ""` loading about 211,798 tokens of MCP definitions against about 3,470 with `--strict-mcp-config`) was a real lever, so "no correct code change" was wrong.
+
+## 0.355.10 — 2026-10-18
+
+### Fixed
+- **`wallet-passes`: NameDrop never carries the card link (correction).** `references/tap-to-share.md` ranked-paths row 9 told owners to put the card URL in their Contacts *My Card* so it would travel by NameDrop. It does not. Apple's [Personal Safety guide](https://support.apple.com/guide/personal-safety/secure-namedrop-ips97e16d3b1/web) (read 2026-10-18): "NameDrop shares only your name, the phone number or email address you choose, and Contact Poster information" and "It doesn't share other information in your Contact Card". The row now says NameDrop swaps contact details only, never the pass or the card link, and that adding the URL to *My Card* does nothing. No other file claimed the URL travels.
 
 ## 0.355.9 — 2026-10-18
 
