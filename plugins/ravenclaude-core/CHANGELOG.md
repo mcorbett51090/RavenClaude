@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.356.1 — 2026-10-18
+
+### Added
+- **`wallet-passes`: straight to Wallet from the QR and the tag.** `references/tap-to-share.md` gains § Straight to Wallet from the QR and the tag, the pattern built on 2026-10-18 in RavenPower-Website #685, ravenpower-app #18 and RavenPower-website-factory #102. The pass's QR and the NFC tag carry the card URL plus `#add-to-wallet`. The card page removes the fragment with `history.replaceState` and about 150 ms after paint opens this phone's Wallet link, with the card page left underneath. The section records why a fragment works better than a query parameter and the fail-closed rules from the security review: no auto-open unless `replaceState` succeeded, and only to a same-site path or an `https://` URL. It also records three measured limits. The Google Save JWT measured 1,791 of 1,800 characters, so the Google pass's QR stays unmarked. Changing the Apple barcode sends a silent Wallet push to every holder. An NTAG213 holds a 137-byte URI payload. `references/verify.md` adds **#38**: whether iOS shows the Add-to-Wallet sheet with no tap. The SKILL.md map gains a one-line pointer, and the ledger count is now 38.
+
 ## 0.356.0 — 2026-10-18
 
 ### Changed
