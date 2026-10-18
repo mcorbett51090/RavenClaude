@@ -94,7 +94,15 @@ _REF_SIB = re.compile(r"/([\w-]+\.(?:sh|py|js|mjs|json))\b")
 _NEVER_COPY = ("__pycache__", ".DS_Store", "node_modules", ".pytest_cache")
 
 GATE_PATH = "hooks/posture-gate.sh"
-GATE_PREFIX = 'bash "${CLAUDE_PLUGIN_ROOT}/hooks/posture-gate.sh" '
+# The hardened launch line (AppSec hook-env; scripts/check-hook-launch-line.py): every hook process starts
+# with the execution-control env (BASH_ENV, LD_PRELOAD, ...) stripped and PATH pinned, so the gate itself is
+# launched that way too - a planted BASH_ENV must not run inside posture-gate.sh before it decides anything.
+HARDENED_LAUNCH = (
+    "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT "
+    "-u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP "
+    "PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc "
+)
+GATE_PREFIX = HARDENED_LAUNCH + '"${CLAUDE_PLUGIN_ROOT}/hooks/posture-gate.sh" '
 TRUST_PATH = "scripts/edition-trust.sh"
 TRUST_FILE = "~/.ravenclaude/edition-trusted-projects"
 
@@ -264,7 +272,8 @@ esac
 # else - a `;`, a `&&`, a pipe, a variable in the program position - is a build failure, because the gate
 # wraps the command string verbatim and only a command this simple is certain to run entirely inside it.
 HOOK_CMD_FORM = re.compile(
-    r'^(?:bash )?"\$\{CLAUDE_PLUGIN_ROOT\}/(?!\S*\.\.)[A-Za-z0-9_./-]+"(?: "\$CLAUDE_TOOL_FILE_PATH")?$'
+    r'^(?:bash |' + re.escape(HARDENED_LAUNCH) + r')?'
+    r'"\$\{CLAUDE_PLUGIN_ROOT\}/(?!\S*\.\.)[A-Za-z0-9_./-]+"(?: "\$CLAUDE_TOOL_FILE_PATH")?$'
 )
 # Only these hooks may skip the gate, whatever a manifest says: they print one fixed line and do nothing else.
 UNGATED_ALLOWED = frozenset({"dashboard-prompt.sh"})
@@ -1797,6 +1806,7 @@ def self_test() -> int:
             '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"',
             'bash "${CLAUDE_PLUGIN_ROOT}/scripts/b.sh"',
             '"${CLAUDE_PLUGIN_ROOT}/hooks/c.sh" "$CLAUDE_TOOL_FILE_PATH"',
+            HARDENED_LAUNCH + '"${CLAUDE_PLUGIN_ROOT}/hooks/d.sh" "$CLAUDE_TOOL_FILE_PATH"',
         ]
         bad_cmds = [
             '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"; rm x',
@@ -1807,6 +1817,8 @@ def self_test() -> int:
             'X; bash "${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"',
             '"${CLAUDE_PLUGIN_ROOT}/../a.sh"',
             '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh" x',
+            HARDENED_LAUNCH + '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"; rm x',
+            "/usr/bin/env -u BASH_ENV " + '/bin/bash "${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"',
         ]
         check(
             "hook command form: the shapes in hooks.json pass",

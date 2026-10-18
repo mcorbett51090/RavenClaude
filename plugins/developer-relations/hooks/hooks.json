@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-devrel-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/hooks/flag-devrel-antipatterns.sh\" \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Advisory: flags 4 mechanically-detectable DevRel anti-patterns in .md artifacts — (1) a getting-started doc with no first-success/TTFS milestone, (2) a hardcoded secret/API-key literal in sample content, (3) sample code that swallows errors (empty catch / except: pass), (4) a content/calendar with no activation goal. Set DEVREL_STRICT=1 to make it blocking."
           }
         ]

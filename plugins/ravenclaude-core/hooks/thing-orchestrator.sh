@@ -58,9 +58,11 @@ set -euo pipefail
 # below) and exit 2 is an already-blocking deny — neither is touched.
 _emitted=0
 _tmp_to_clean=""
+_seat_lock=""
 _on_exit() {
   local _ec=$?
   [ -n "$_tmp_to_clean" ] && rm -rf "$_tmp_to_clean" 2>/dev/null || true
+  [ -n "${_seat_lock:-}" ] && rm -f "$_seat_lock" 2>/dev/null || true
   if [ "$_emitted" != 1 ] && [ "$_ec" != 0 ] && [ "$_ec" != 2 ]; then
     printf '[Command review] aborted unexpectedly (exit %s); failing closed (deny).\n' "$_ec" >&2
     exit 2
@@ -78,9 +80,29 @@ if [ -f "$_emit_event_helper" ]; then
 fi
 command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
 
+# ── Private runtime dir helpers (seat-child locks, pre-tool records). Fail-safe:
+#    without the helper no lock can validate (the recursion guard is then never
+#    honoured, i.e. review runs) and no record is written (the PostToolUse check
+#    then warns) — both directions fail LOUD, never silent. ──────────────────────
+_rc_runtime_helper="$(dirname "${BASH_SOURCE[0]}")/_rc-runtime.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_runtime_helper" ] && . "$_rc_runtime_helper" 2>/dev/null || true
+command -v _rc_seat_child_ok >/dev/null 2>&1 || _rc_seat_child_ok() { return 1; }
+command -v _rc_runtime_subdir >/dev/null 2>&1 || _rc_runtime_subdir() { return 1; }
+command -v _rc_safe_id >/dev/null 2>&1 || _rc_safe_id() { printf '%s' "$1" | tr -cd 'A-Za-z0-9_-' | cut -c1-128; }
+
 # ── Recursion guard: a seat runs `claude -p` (which we mark THING_SEAT_ACTIVE);
-#    belt-and-suspenders so a tribunal call can never reconvene the tribunal. ──
-[ -n "${THING_SEAT_ACTIVE:-}" ] && exit 0
+#    belt-and-suspenders so a tribunal call can never reconvene the tribunal.
+#    AppSec hook-env (2026-10-18): THING_SEAT_ACTIVE ALONE never disables review —
+#    a repo's .claude/settings.json can plant it. The guard is honoured only when
+#    THING_SEAT_CHILD_NONCE names a live lock this user's orchestrator created for
+#    its seats (0600, owned by $UID, in the 0700 runtime dir, < 30 min old). ──
+if [ -n "${THING_SEAT_ACTIVE:-}" ]; then
+  if _rc_seat_child_ok "${THING_SEAT_CHILD_NONCE:-}"; then
+    exit 0
+  fi
+  echo "[Command review] THING_SEAT_ACTIVE is set without a valid seat-child lock; it does not disable review — reviewing this call." >&2
+fi
 
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 DECISION="${PLUGIN_ROOT}/scripts/thing-decision.py"
@@ -91,6 +113,18 @@ SEAT="${PLUGIN_ROOT}/scripts/thing-seat.sh"
 payload=""
 if [ ! -t 0 ]; then payload="$(cat)"; fi
 [ -z "$payload" ] && exit 0
+
+# ── Pre-tool review record (AppSec hook-env, D). Written FIRST, keyed by
+#    tool_use_id, before any short-circuit, so pretool-record-check.sh (PostToolUse,
+#    same matcher) can tell "review ran" from "this hook never started". Best-effort:
+#    a failure here never changes the verdict. ──────────────────────────────────────
+if command -v jq >/dev/null 2>&1; then
+  _rec_id="$(_rc_safe_id "$(printf '%s' "$payload" | jq -r '.tool_use_id // empty' 2>/dev/null || true)")"
+  if [ -n "$_rec_id" ]; then
+    _rec_dir="$(_rc_runtime_subdir pretool 2>/dev/null || true)"
+    [ -n "$_rec_dir" ] && { (umask 077 && printf '%s\n' "$$" >"$_rec_dir/$_rec_id") 2>/dev/null || true; }
+  fi
+fi
 
 # ── Emit a Claude Code PreToolUse verdict and exit. (The fail-closed _on_exit trap
 #    that reads _emitted is armed at the top of the script, before any setup.) ──────
@@ -448,7 +482,7 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
            THING_SEAT_ALLOW_MOCK="${THING_SEAT_ALLOW_MOCK:-}" THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
            THING_SEAT_MOCK_REVISED="${THING_SEAT_MOCK_REVISED:-}" \
-           _rc_timeout "${seat_timeout}" bash "$SEAT" ${_seat_live_arg:+"$_seat_live_arg"} 2>"$tmp/$role.err")" || rc=$?
+           _rc_timeout "${seat_timeout}" bash "$SEAT" ${_seat_live_arg:+"$_seat_live_arg"} ${_seat_nonce:+--seat-child "$_seat_nonce"} 2>"$tmp/$role.err")" || rc=$?
   else
     out="$(THING_SEAT_ACTIVE=1 THING_PAYLOAD="$reviewed" THING_PAYLOAD_SHAPE="$payload_shape" \
            THING_CATEGORY="$category" \
@@ -456,7 +490,7 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
            THING_SEAT_ALLOW_MOCK="${THING_SEAT_ALLOW_MOCK:-}" THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
-           _rc_timeout "${seat_timeout}" bash "$SEAT" ${_seat_live_arg:+"$_seat_live_arg"} 2>"$tmp/$role.err")" || rc=$?
+           _rc_timeout "${seat_timeout}" bash "$SEAT" ${_seat_live_arg:+"$_seat_live_arg"} ${_seat_nonce:+--seat-child "$_seat_nonce"} 2>"$tmp/$role.err")" || rc=$?
   fi
   printf '%s' "$out" > "$tmp/$role.json"
   printf '%s' "$rc" > "$tmp/$role.rc"
@@ -617,6 +651,18 @@ else
       echo "[Command review] ignoring THING_SEAT_MOCK_VERDICT (${_mock_pre}); convening the real panel." >&2
       unset THING_SEAT_MOCK_VERDICT THING_SEAT_MOCK_REVISED THING_SEAT_RESOLVED_OVERRIDE THING_SEAT_ALLOW_MOCK ;;
   esac
+
+  # ── Seat-child lock (AppSec hook-env, C): the seats' nested `claude -p` inherits
+  #    THING_SEAT_ACTIVE=1 + THING_SEAT_CHILD_NONCE; the recursion guard above honours
+  #    it only while this lock exists. Removed by the EXIT trap. No runtime dir -> no
+  #    nonce: the nested session is then reviewed (seats run with --tools "", so it
+  #    makes no tool calls) rather than trusted. ────────────────────────────────────
+  _seat_nonce=""
+  if command -v _rc_new_nonce >/dev/null 2>&1; then
+    _seat_nonce="$(_rc_new_nonce)"
+    _seat_lock="$(_rc_seat_child_lock "${session_id:-}" "$_seat_nonce" 2>/dev/null || true)"
+    [ -n "$_seat_lock" ] || _seat_nonce=""
+  fi
 
   # ── Fan the convened seats out in PARALLEL, bounded by the panel deadline. ──
   pids=()

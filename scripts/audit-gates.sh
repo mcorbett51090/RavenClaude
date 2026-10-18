@@ -397,7 +397,10 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # boundary), 48 (WebFetch sanitizer), 50/54 (Phase-0 emit+scrub /
       # R-PRIV never-capture — the run-context-capture pipeline's own
       # secret-scrub floor).
-      echo "7 24 25 48 50 54 98 101 127 142 143 156 159 169 170 199 203 209"
+      # 304/305: AppSec hook-env hardening — the static launch-line gate and the
+      # behavioural test (planted PATH/BASH_ENV/LD_PRELOAD/THING_SEAT_*, guard B,
+      # seat-child lock C, missing pre-tool record D).
+      echo "7 24 25 48 50 54 98 101 127 142 143 156 159 169 170 199 203 209 304 305"
       ;;
     ratchet)
       echo "132 237 238 239 240 241 242 243"
@@ -2115,9 +2118,22 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh
       exit $?
       ;;
+    304)
+      echo "── Gate 304: hardened hook launch line (every hooks.json command; per-gate run) ──"
+      rc=0
+      python3 scripts/check-hook-launch-line.py --check || rc=$?
+      python3 scripts/check-hook-launch-line.py --self-test || rc=$?
+      rc_mustfail python3 scripts/check-hook-launch-line.py || rc=$?
+      exit $rc
+      ;;
+    305)
+      echo "── Gate 305: hook env hardening (planted env, env-integrity guard, seat-child lock, pre-tool record; per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7097,6 +7113,39 @@ echo "── Gate 303: mock-verdict source gate (THING_SEAT_* test hooks; AppSec
 # and the `tribunal` suite. GREP THE SUITE OUTPUT FOR "Gate 303".
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh >/dev/null 2>&1 || rc=$?
 gate "mock-verdict source: marker required, project plant ignored (fail closed), live session deny/abstain only" must_pass "$rc"
+
+echo "── Gate 304: hardened hook launch line (AppSec hook-env) ──"
+# Claude Code exports a project's .claude/settings.json `env` block into every hook
+# and runs each command as `/bin/sh -c`. Every hooks.json command across
+# plugins/*/hooks/ must therefore start
+#   /usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD
+#   -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH
+#   -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin
+#   /bin/bash --noprofile --norc "${CLAUDE_PLUGIN_ROOT}/<script>"   (python: /usr/bin/python3 -I)
+# so a planted BASH_ENV / PATH / LD_PRELOAD never reaches our processes.
+# GREP THE SUITE OUTPUT FOR "Gate 304".
+rc=0; python3 scripts/check-hook-launch-line.py --check >/dev/null 2>&1 || rc=$?
+gate "hook-launch-line: every hooks.json command uses the hardened launch line" must_pass "$rc"
+rc=0; python3 scripts/check-hook-launch-line.py --self-test >/dev/null 2>&1 || rc=$?
+gate "hook-launch-line: self-test (prefix, interpreter, quoting, inherit-only-on-the-guard, no ; | \$( )" must_pass "$rc"
+rc=0; rc_mustfail python3 scripts/check-hook-launch-line.py || rc=$?
+gate "hook-launch-line: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+
+echo "── Gate 305: hook env hardening (AppSec hook-env) ──"
+# Drives the REAL hooks.json commands as Claude Code does (env + planted keys,
+# /bin/sh -c) in scratch repos with harmless markers and a stub claude: planted
+# PATH (fake jq/bash) / BASH_ENV / LD_PRELOAD / THING_SEAT_ACTIVE are denied by
+# env-integrity-guard.sh and never reach our processes; settings.local.json; malformed
+# / empty / unreadable settings fail closed; benign keys pass; inherited BASH_ENV /
+# LD_PRELOAD / PATH-without-/usr/bin are runtime-denied; THING_SEAT_ACTIVE alone never
+# disables review (only a 0600 seat-child lock + nonce does); a missing pre-tool
+# record is warned about. GREP THE SUITE OUTPUT FOR "Gate 305".
+if command -v jq >/dev/null 2>&1; then
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh >/dev/null 2>&1 || rc=$?
+  gate "hook-env hardening: planted env denied + never reaches hooks, lock-gated recursion guard, review-gap warning" must_pass "$rc"
+else
+  _skip_or_fail "Gate 305 (hook-env hardening)" jq
+fi
 
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"

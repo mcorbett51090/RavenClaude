@@ -77,8 +77,19 @@ _SOURCE_HOOKS = frozenset(
         "alias-deprecation-advisory.sh",
         "routine-reserve-hook.sh",  # matched by basename; "--event session" stripped
         "spectate-emit.sh",  # observe-only Spectate emitter (v0.2)
+        "env-integrity-guard.sh",  # AppSec hook-env: quarantine notice ("session" arg stripped)
     }
 )
+
+# env-integrity-guard.sh reads the Claude-Code-only `.claude/settings.json` env
+# block; every other host's generator `_SKIP`s it (same reason in each).
+_ENV_GUARD = "env-integrity-guard.sh"
+
+# Check B exemption: the repo's OWN dev mirror (.claude/settings.json) carries
+# RAVENCLAUDE_TEAM_MODE / RAVENCLAUDE_WORKTREE_ROOT in its `env` block, which
+# the guard quarantines by design -- mirroring it there would lock the
+# maintainers out of their own repo. Tracked as an open decision.
+_SETTINGS_PARITY_EXEMPT = frozenset({_ENV_GUARD})
 _COMPACT_HOOK = "compact-anchor.sh"
 
 # The full canonical SessionStart hook set, across ALL matcher lanes (the
@@ -101,6 +112,7 @@ _GEMINI_HOST_EXEMPT = frozenset(
         # generate-gemini-hooks.py's _SKIP entry for the same hook.
         "routine-reserve-hook.sh",  # claude.ai Routines + Claude Code statusline
         # data only; see the same generator's _SKIP entry.
+        _ENV_GUARD,
         # spectate-emit.sh is NOT exempt: v0.7 per-event skip wires SessionStart
         # (and PreToolUse/PostToolUse); only unmapped lifecycle events stay skipped.
     }
@@ -111,7 +123,7 @@ _GEMINI_HOST_EXEMPT = frozenset(
 # store does not exist on this host" -- identical reasoning to Gemini's).
 # spectate-emit.sh is NOT exempt here: Copilot wires it (SubagentStart mode
 # remapped; other events project).
-_COPILOT_HOST_EXEMPT = frozenset({"caveman-route-hook.sh", "routine-reserve-hook.sh"})
+_COPILOT_HOST_EXEMPT = frozenset({"caveman-route-hook.sh", "routine-reserve-hook.sh", _ENV_GUARD})
 
 # Same exemption again, independently declared by generate-cursor-hooks.py's
 # own `_SKIP` map (identical reasoning for caveman/routine-reserve).
@@ -122,6 +134,7 @@ _CURSOR_HOST_EXEMPT = frozenset(
     {
         "caveman-route-hook.sh",
         "routine-reserve-hook.sh",
+        _ENV_GUARD,
     }
 )
 
@@ -563,7 +576,13 @@ def _session_start_groups(hooks_json_path: Path) -> dict:
             cmd = h.get("command", "")
             # "worktree-guard.sh register" -> basename is "register"; take the
             # script token specifically (first path-shaped word).
-            for tok in cmd.split():
+            # The hardened launch line (`/usr/bin/env -u ... PATH=/usr/...
+            # /bin/bash --noprofile --norc "${CLAUDE_PLUGIN_ROOT}/hooks/x.sh"`)
+            # puts path-shaped tokens before the script: prefer the first
+            # token naming the plugin root, else the first path-shaped word.
+            toks = cmd.split()
+            rooted = [t for t in toks if "CLAUDE_PLUGIN_ROOT" in t]
+            for tok in rooted or toks:
                 if "/" in tok or tok.endswith(".sh"):
                     names.add(_basename(tok))
                     break
@@ -594,8 +613,8 @@ def check_b_parity(
 ) -> None:
     a = _session_start_groups(hooks_json_path or _HOOKS_JSON)
     b = _session_start_groups(settings_json_path or _SETTINGS_JSON)
-    a_source = a.get(_SOURCE_MATCHER, set())
-    b_source = b.get(_SOURCE_MATCHER, set())
+    a_source = a.get(_SOURCE_MATCHER, set()) - _SETTINGS_PARITY_EXEMPT
+    b_source = b.get(_SOURCE_MATCHER, set()) - _SETTINGS_PARITY_EXEMPT
     if a_source != b_source:
         only_a = sorted(a_source - b_source)
         only_b = sorted(b_source - a_source)

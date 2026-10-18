@@ -181,6 +181,13 @@ _SKIP = {
         "claude.ai Routines + Claude Code statusline data only; nothing to reserve or "
         "warn about on Codex."
     ),
+    # AppSec hook-env hardening (Claude-Code-only surfaces).
+    "env-integrity-guard.sh": (
+        "Claude-Code-only (AppSec hook-env): reads the `env` block of .claude/settings.json, which only Claude Code exports into hook processes; another host never plants it, and this repo's own settings carry RAVENCLAUDE_* keys the guard would quarantine."
+    ),
+    "pretool-record-check.sh": (
+        "Claude-Code-only (AppSec hook-env): pairs with thing-orchestrator.sh's record keyed by Claude Code's tool_use_id; other hosts' adapters do not carry that id."
+    ),
 }
 
 # The pre-Phase-4 SessionStart hand-list, transcribed verbatim as literal data

@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-form-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/hooks/flag-form-antipatterns.sh\" \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Advisory: check this form surface against the rules forms-engineering owns (honeypot invisibility, challenge-widget verification, duplicate-submission guard, a named denominator, the control-charting floor). Rules owned by web-design are deliberately not detected here. Set FORMS_STRICT=1 to make it blocking."
           }
         ]

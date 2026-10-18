@@ -25,7 +25,8 @@
 #     auto-loaded (fast, cheap, deterministic).
 #   - API KEY (opt-in): set THING_SEAT_BARE=1 (or have ANTHROPIC_API_KEY set) to
 #     use `claude -p --bare`, which additionally skips hooks/plugins/memory.
-# The orchestrator exports THING_SEAT_ACTIVE=1 and the seat issues no tool calls,
+# The orchestrator exports THING_SEAT_ACTIVE=1 (+ THING_SEAT_CHILD_NONCE via
+# --seat-child, verified against a 0600 lock) and the seat issues no tool calls,
 # so it can never recursively reconvene the tribunal.
 #
 # Inputs (env):
@@ -57,13 +58,25 @@ set -euo pipefail
 #   --mock-precheck  print the mock-gate decision (none|honour|unmarked|planted|
 #                    live-refused) and exit 0 — used by the orchestrator before
 #                    fan-out so it applies the SAME check as the seat.
-_arg_live=0; _arg_precheck=0
-for _a in "$@"; do
-  case "$_a" in
+#   --seat-child <nonce>  (AppSec hook-env) the orchestrator's seat-child lock
+#                    nonce; exported as THING_SEAT_CHILD_NONCE into the seat's
+#                    `claude -p` so the nested orchestrator's recursion guard can
+#                    verify the lock. Without it the nonce is cleared, never inherited.
+_arg_live=0; _arg_precheck=0; _arg_nonce=""
+while [ $# -gt 0 ]; do
+  case "$1" in
     --live-session) _arg_live=1 ;;
     --mock-precheck) _arg_precheck=1 ;;
+    --seat-child) _arg_nonce="${2:-}"; [ $# -gt 1 ] && shift ;;
   esac
+  shift
 done
+case "$_arg_nonce" in *[!0-9a-f]*) _arg_nonce="" ;; esac
+if [ -n "$_arg_nonce" ]; then
+  THING_SEAT_CHILD_NONCE="$_arg_nonce"; export THING_SEAT_CHILD_NONCE
+else
+  unset THING_SEAT_CHILD_NONCE
+fi
 
 # _thing_mock_planted — 0 (planted) if a project-scope settings file plants any
 # THING_SEAT_* key in .env, or exists but cannot be parsed (fail closed). User-scope
@@ -313,6 +326,10 @@ case "${THING_SEAT_MOCK_VERDICT:-}" in
 esac
 
 # ── Real seat: build the role-specific prompt and call claude -p ──────────────
+# The hardened hook launch line pins PATH; find a native-installer claude in the
+# passwd home's ~/.local/bin if it is not on that PATH (see hooks/_rc-runtime.sh).
+# shellcheck source=/dev/null
+. "$(dirname "$0")/../hooks/_rc-runtime.sh" 2>/dev/null && _rc_add_claude_to_path 2>/dev/null || true
 command -v claude >/dev/null 2>&1 || { echo '{"error":"claude CLI not found"}' >&2; exit 4; }
 
 # Role-specific evaluation axis + concern slice. The concern catalog
