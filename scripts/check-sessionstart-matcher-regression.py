@@ -69,6 +69,8 @@ _SOURCE_HOOKS = frozenset(
         "worktree-guard.sh",  # matched by basename; "register" arg stripped below
         "thing-denial-kb-recall.sh",
         "dashboard-autostart.sh",
+        "dashboard-prompt.sh",  # unconfigured-project prompt; host-neutral wording, so
+        # every host projector derives it from hooks.json and none needs a _SKIP entry
         "caveman-route-hook.sh",
         "oath-hook.sh",
         "plugin-lifecycle-sweep.sh",

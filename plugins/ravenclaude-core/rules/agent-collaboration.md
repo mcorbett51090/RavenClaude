@@ -77,7 +77,7 @@ When Agent A confidently calls out Agent B's claim or artifact as wrong, the Tea
 **Decision rule (Team Lead applies on receiving a "B is wrong" claim from A):**
 
 1. **Trust A immediately** when A's claim is in A's domain of authority AND doesn't contradict an existing artifact.
-2. **Test it yourself** when the claim is *deterministically verifiable by software* — schema, exit code, file presence, regex match. Never spawn a judge for what `python3 -m json.tool` or a single regex can settle.
+2. **Test it yourself** when the claim is *deterministically verifiable by software* — schema, exit code, file presence, regex match. Never spawn a judge for what `python3 -I -m json.tool` or a single regex can settle.
 3. **Spawn `deep-researcher` in citation-only mode** when *any two* of the following hold:
    - A's claim contradicts B's prior artifact AND A's `confidence` ≥ 0.7 in the Structured Output Protocol block.
    - The domain is correctness-critical (security, concurrency, shell/regex/glob semantics, crypto, data loss, layout enforcement).

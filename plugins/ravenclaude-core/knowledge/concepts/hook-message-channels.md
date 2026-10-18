@@ -24,6 +24,7 @@ covers:
   - plugins/ravenclaude-core/hooks/copilot-hook-adapter.sh
   - plugins/ravenclaude-core/hooks/cursor-hook-adapter.sh
   - plugins/ravenclaude-core/hooks/dashboard-autostart.sh
+  - plugins/ravenclaude-core/scripts/dashboard-prompt.sh
   - plugins/ravenclaude-core/hooks/delegation-nudge.sh
   - plugins/ravenclaude-core/hooks/dod-gate.sh
   - plugins/ravenclaude-core/hooks/enforce-git-protocol.sh
@@ -58,7 +59,7 @@ covers:
   - plugins/ravenclaude-core/hooks/triage-outcome.sh
   - plugins/ravenclaude-core/hooks/worktree-guard.sh
   - plugins/ravenclaude-core/hooks/emit-permission-denied.sh
-covers_digest: "sha256:00e7d287596c02d1bbc4876cad5e3bb3810dfc76b81d14da85b96dfe4cc01bf5"
+covers_digest: "sha256:614d4394f0e17e87eb27607479ee4b24393b842783c5bfe7722eaab0f2102f2e"
 nuance: "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life."
 nuance_evidence:
   measured: 2026-08-19

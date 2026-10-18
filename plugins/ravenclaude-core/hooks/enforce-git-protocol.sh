@@ -71,7 +71,7 @@ if [ ! -t 0 ]; then
     if command -v jq >/dev/null 2>&1; then
       cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
     elif command -v python3 >/dev/null 2>&1; then
-      cmd="$(printf '%s' "$payload" | python3 -c 'import json,sys
+      cmd="$(printf '%s' "$payload" | python3 -I -c 'import json,sys
 try: print(json.load(sys.stdin).get("tool_input",{}).get("command","") or "")
 except Exception: pass' 2>/dev/null || true)"
     fi
@@ -283,7 +283,7 @@ if findings:
     sys.stdout.write(kind + "\t" + val.replace("\t", " ").replace("\n", " "))
 PY
 
-verdict="$(__GP_CMD="$cmd" python3 -c "$__GP_PY" 2>/dev/null || true)"
+verdict="$(__GP_CMD="$cmd" python3 -I -c "$__GP_PY" 2>/dev/null || true)"
 [ -z "$verdict" ] && exit 0
 
 kind="$(printf '%s' "$verdict" | cut -f1)"

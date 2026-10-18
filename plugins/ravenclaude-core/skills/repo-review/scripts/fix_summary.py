@@ -191,18 +191,23 @@ def write_summary(
     return True
 
 
+# The repository may be untrusted: its .git/config can name a command for core.fsmonitor or an external diff
+# driver. Switch the first off here and the others off per call (--no-ext-diff, --no-textconv).
+_GIT_SAFE = ["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null"]
+
+
 def write_patch_and_stat(patch_path: str, stat_path: str, repo_root: str | None) -> None:
     """Capture `git diff` / `git diff --stat` when repo_root is given;
     otherwise write a placeholder comment to each output file.
     """
     if repo_root:
         diff = subprocess.run(
-            ["git", "-C", repo_root, "diff"],
+            _GIT_SAFE + ["-C", repo_root, "diff", "--no-ext-diff", "--no-textconv"],
             capture_output=True,
             text=True,
         ).stdout
         stat = subprocess.run(
-            ["git", "-C", repo_root, "diff", "--stat"],
+            _GIT_SAFE + ["-C", repo_root, "diff", "--no-ext-diff", "--no-textconv", "--stat"],
             capture_output=True,
             text=True,
         ).stdout
