@@ -2860,7 +2860,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:2ad83a833c2d9986c5c254889a1bd5bc8975997c50982a34c7a018238a3ad987",
+      "covers_digest": "sha256:f058f2b6bde86762da1e3a2c02cf1fbaef376b09fe8ff798672f8d3a6e6fa6f1",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3003,7 +3003,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:9664bf884c55aa88f55f593bae6d73b96bb767cc295560491858ec9322c09584",
+      "covers_digest": "sha256:e9e8595c9fc9c45f085d115bf09e7a97c60afe344bac76988112496dd069c47a",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",

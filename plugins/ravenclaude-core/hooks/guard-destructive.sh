@@ -170,20 +170,32 @@ s = re.sub(r"""(-m\s+)'[^'\n]*'""", r"\1MSG", s)
 _INTERP_BASE = re.compile(
     r"^(?:sh|bash|dash|zsh|ksh|ash|csh|tcsh|mksh|busybox|python[0-9.]*|perl|ruby|node|php|tclsh|lua|Rscript)$"
 )
-def _heredoc_feeds_interpreter(prefix):
+# (b0') 2026-10-18 heredoc-to-interpreter bypass: the command-word-only check missed an
+# interpreter reached through a WRAPPER (`sudo bash <<'EOF'`, `nohup sh <<X`, `timeout 5
+# bash <<X`, `exec bash <<X`, `doas sh <<X`) and a heredoc PIPED into one on its opening
+# line (`cat <<'EOF' | bash`, `cat <<EOF | sudo sh -s`). Fail-safe rule: the heredoc feeds
+# an interpreter when ANY word of its simple command (before `<<`), or of any pipeline
+# stage after it on the opening line, is an interpreter. Over-matching only means a body
+# is scanned rather than blanked, i.e. the conservative direction.
+def _words_name_interpreter(seg):
+    for tok in seg.split():
+        tok = tok.strip("'\"").lstrip("\\")
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tok):
+            continue
+        if _INTERP_BASE.match(tok.rsplit("/", 1)[-1]):
+            return True
+    return False
+def _heredoc_feeds_interpreter(prefix, opening=""):
     seg = re.split(r"[\n;&|(]", prefix)[-1]
-    toks = seg.split()
-    i = 0
-    while i < len(toks) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", toks[i]):
-        i += 1
-    if i < len(toks) and toks[i].lstrip("\\").rsplit("/", 1)[-1] == "env":
-        i += 1
-        while i < len(toks) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", toks[i]):
-            i += 1
-    if i >= len(toks):
-        return False
-    base = toks[i].lstrip("\\").rsplit("/", 1)[-1]
-    return bool(_INTERP_BASE.match(base))
+    if _words_name_interpreter(seg):
+        return True
+    # Pipeline stages after the heredoc operator on its opening line.
+    stages = re.split(r"\|\|?&?", opening)
+    for stage in stages[1:]:
+        stage = re.split(r"[;&]", stage)[0]
+        if _words_name_interpreter(stage):
+            return True
+    return False
 # (b1) SAME-COMMAND write-then-execute (2026-07-08 review, finding 11). A heredoc that
 # writes to a FILE with a non-interpreter command word (`cat <<'EOF' > /tmp/x.sh`) is
 # inert data on its own — but if the SAME command string then executes that written file
@@ -212,7 +224,7 @@ def _cmd_executes_path(full, path):
 def _strip_heredoc(m):
     quoted, body = m.group(1), m.group(3)
     prefix = m.string[: m.start()]
-    if _heredoc_feeds_interpreter(prefix):
+    if _heredoc_feeds_interpreter(prefix, m.group(0).split("\n", 1)[0]):
         return m.group(0)  # interpreter heredoc: body IS executed — scan it, don't blank
     # Look for the redirect target on this simple command (either before `<<`, in the
     # prefix's last segment, or after it, in the heredoc's opening line).

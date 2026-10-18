@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.355.6 — 2026-10-18
+
+### Security
+- **`hooks/guard-destructive.sh`: a heredoc fed to an interpreter through a wrapper or a pipe skipped every deny pattern.** The interpreter-heredoc check looked only at the simple command's first word, so `sudo bash <<'EOF'`, `nohup`/`timeout`/`exec`/`doas`/`nice … sh <<X` and `cat <<'EOF' | bash` were blanked as inert data. Any interpreter word in the heredoc's simple command, or in a later pipeline stage, now keeps the body scanned. New `test-guard-heredoc-interpreter.sh` (14 deny, 4 allow, 1 mutation).
+
 ## 0.355.5 — 2026-10-18
 
 Salvages the still-open fixes from #1288, #1268, #1267 and #1270 onto current main.
