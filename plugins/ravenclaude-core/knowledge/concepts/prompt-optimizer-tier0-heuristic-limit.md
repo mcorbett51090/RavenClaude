@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 931
 summary: "Tier-0's zero-cost skip rule is a whitelist over sentence shape, not a semantic understanding of triviality — an adversarial reviewer can always construct one more evasive phrasing."
-last_verified: 2026-09-10
+last_verified: 2026-10-18
 covers:
   - plugins/ravenclaude-core/commands/optimize.md
   - plugins/ravenclaude-core/scripts/prompt-optimizer-dispatch.sh
@@ -17,7 +17,7 @@ covers:
   - plugins/ravenclaude-core/scripts/prompt-optimizer-rewrite.sh
   - plugins/ravenclaude-core/skills/prompt-optimizer/SKILL.md
   - plugins/ravenclaude-core/skills/prompt-optimizer/eval/golden-set.jsonl
-covers_digest: "sha256:3610e56b91aa9b61d576836c109b540ec30f07d83c26df665748912cc7d008fa"
+covers_digest: "sha256:4953dac206b7b87fbf380c65340e16588baffd4c6805adc02247af4297f5f152"
 nuance: "A whitelist-based zero-anchor skip rule can be adversarially rephrased indefinitely — closing every demonstrated instance never closes the underlying gap, because the gap is a property of matching sentence shape, not meaning."
 nuance_evidence:
   measured: 2026-09-03

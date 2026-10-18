@@ -2860,7 +2860,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:0bab37545657f7a197f31ee47ad1d2cd22ac9e961135417b42a8f11114eeb760",
+      "covers_digest": "sha256:c587f4ef18e2aefab617aade1887afa518b0917f84f0346bd68cbf1c94747c93",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2889,7 +2889,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-12",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -2909,7 +2909,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:21ca6cbcd5f662379b1d89afc80fd0e5652107b0606417c16a45b5e318ac3eb1",
+      "covers_digest": "sha256:2fd3ae8ed70a89c65c8112804a628a511a9457d594bda15932d547fa6b2f1d19",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3003,7 +3003,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:7af0f57e3e3816380f80646309368154da0b30d5289c1338e521058c18c0f0da",
+      "covers_digest": "sha256:b498c03687b1c1abd6e3103b15ca11f8da5da6d20bb515266df29b6756e01883",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3065,7 +3065,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:afd78a2c8553da3100005c039809901833b860c2dda1bba4a3d3a91b6b4afd19",
+      "covers_digest": "sha256:098868237feb9f96575a32b251babbee63f1e7ed1f8e0424398cc652697d7599",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3505,7 +3505,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-10",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -3526,7 +3526,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:b974b27cfebb045bb5c8d4d7f1921c07c65af99ef921f27b0244d546079680c9",
+      "covers_digest": "sha256:f2e9635249190893666306ffdffa3b79c72fa0fce01f6e8c4faa543126ce3ab8",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4004,7 +4004,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -4025,7 +4025,7 @@
         "plugins/ravenclaude-core/scripts/caveman-route-hook.sh",
         "plugins/ravenclaude-core/scripts/caveman-route-engine.py"
       ],
-      "covers_digest": "sha256:e747cee327d3497794420abc9c1ce997eefd78df5ab43f66f216840bf368eb98",
+      "covers_digest": "sha256:7f9f9ff371c29ddc9a6492bdce0de6207b10637475c521f8327aa8ae9ebbae4c",
       "nuance": "caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh chmod is denied,\nsame reason ask-on-ambiguity.sh lives there. P7 live calls the applier (on→lite, off→off);\nshadow still records only. Absent/off is the default and writes nothing.",
       "nuance_evidence": {
         "measured": "2026-09-10",
@@ -4241,7 +4241,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -4267,7 +4267,7 @@
         "plugins/ravenclaude-core/skills/prompt-optimizer/SKILL.md",
         "plugins/ravenclaude-core/skills/prompt-optimizer/eval/golden-set.jsonl"
       ],
-      "covers_digest": "sha256:3610e56b91aa9b61d576836c109b540ec30f07d83c26df665748912cc7d008fa",
+      "covers_digest": "sha256:4953dac206b7b87fbf380c65340e16588baffd4c6805adc02247af4297f5f152",
       "nuance": "A whitelist-based zero-anchor skip rule can be adversarially rephrased indefinitely — closing every demonstrated instance never closes the underlying gap, because the gap is a property of matching sentence shape, not meaning.",
       "nuance_evidence": {
         "measured": "2026-09-03",
@@ -4669,7 +4669,7 @@
         "plugins/ravenclaude-core/scripts/thing-harden.py",
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
       ],
-      "covers_digest": "sha256:d158f506565adac363557fcfa8ef349400100b9f54136280882ce199933f5af9",
+      "covers_digest": "sha256:58003eaa74ebbac1c462ca8b08a23e47097bb16639f52622e4d5e2d389151a42",
       "nuance": "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op.",
       "nuance_evidence": {
         "measured": "2026-09-16",
@@ -5000,6 +5000,60 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/scripts/headless-usage.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "project-settings-env-reaches-hooks",
+      "title": "A repo's settings env reaches every hook; the launch line and the guard close it",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 945,
+      "summary": "Project settings env (PATH, BASH_ENV, THING_SEAT_*) reaches hooks; a hardened launch line plus a quarantine guard stop it.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-10-18",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "Claude Code docs: What runs before you trust a folder (env block and settings hooks are used)",
+          "url": "https://code.claude.com/docs/en/permissions#what-runs-before-you-trust-a-folder"
+        },
+        {
+          "label": "Claude Code docs: hooks reference (shell form runs sh -c; a hook inherits the parent environment)",
+          "url": "https://code.claude.com/docs/en/hooks"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a hook runs with the user's own environment, so a cloned repository can only add\nhooks the user sees in `/hooks`, not change how RavenClaude's own hooks run.\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`. The old\ncommand form sources a planted `BASH_ENV` (marker written). Under the hardened launch line\nno marker is written, a fake `jq`/`bash` on a planted `PATH` is never used, and\n`env-integrity-guard.sh` denies the call with `project settings plant execution-control env\n(<keys>); this repo is quarantined`.\n\n## Why it matters\n\nThe `env` block is not a hook, so neither the trust dialog nor `/hooks` shows it, and a\n`claude -p` run applies it in a folder that was never trusted. Without the launch line a\nplanted `THING_SEAT_ACTIVE` would also have switched command review off. The seat-child\nlock (`_rc-runtime.sh`) and the pre-tool record check (`pretool-record-check.sh`) cover the\nrecursion guard and a review hook that never started.\n\nFalsifier: a hooks.json command without the hardened prefix, or a planted key that does not\ndeny. Probe: `plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/env-integrity-guard.sh",
+        "plugins/ravenclaude-core/hooks/_rc-runtime.sh",
+        "plugins/ravenclaude-core/hooks/pretool-record-check.sh",
+        "scripts/check-hook-launch-line.py"
+      ],
+      "covers_digest": "sha256:0f2a9495d5aedd74a1ddb9dd5183ab4220e60b1ace16b74f16090b183dd84f02",
+      "nuance": "Claude Code 2.1.260 exports project settings env into every hook (sh -c): a planted BASH_ENV ran in every bash hook, a planted PATH chose jq. The hardened launch line keeps them out; env-integrity-guard.sh denies every tool call. A real LD_PRELOAD library cannot be stopped, only refused.",
+      "nuance_evidence": {
+        "measured": "2026-10-18",
+        "control": "test-hook-env-hardening.sh: the pre-hardening 'bash \"${CLAUDE_PLUGIN_ROOT}/…\"' form DOES source a planted BASH_ENV; the hardened commands do not, and the guard denies",
+        "falsifier": "a hooks.json command without the /usr/bin/env -u … /bin/bash --noprofile --norc prefix, or a planted PATH/BASH_ENV/THING_SEAT_* key that does not deny",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/env-integrity-guard.sh; scripts/check-hook-launch-line.py",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

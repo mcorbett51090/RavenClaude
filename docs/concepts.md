@@ -2378,7 +2378,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-12_
+_Last verified: 2026-10-18_
 
 
 ---
@@ -2748,7 +2748,7 @@ Probe: `scripts/check-artifact-budgets.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-10_
+_Last verified: 2026-10-18_
 
 
 ---
@@ -3159,7 +3159,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh`
 
 **Sources:** [measured in the FORGE caveman-routing-decision-tree run](https://github.com/mcorbett51090/RavenClaude/pull/1095)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-10-18_
 
 
 ---
@@ -3299,7 +3299,7 @@ Falsifier: a future Tier-0 rewrite that classifies by parsed intent rather than 
 
 **Sources:** [SDD fix-loop ledger — round-2 re-review adversarial variants + the controller's ruling to close the loop with a disclosed residual rather than a round-3 fix](https://github.com/mcorbett51090/RavenClaude/pull/1098)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-10-18_
 
 
 ---
@@ -3818,6 +3818,41 @@ Measured 2026-10-17: the recorder appends a sidecar and leaves the caller to pri
 **Sources:** [2026-10-14 prompt-caching analysis — headless envelopes were not metered](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/analysis.md)
 
 _Last verified: 2026-10-17_
+
+
+---
+
+### A repo's settings env reaches every hook; the launch line and the guard close it · _RavenClaude-built_
+
+> Project settings env (PATH, BASH_ENV, THING_SEAT_*) reaches hooks; a hardened launch line plus a quarantine guard stop it.
+
+## What a reader would have assumed instead
+
+That a hook runs with the user's own environment, so a cloned repository can only add
+hooks the user sees in `/hooks`, not change how RavenClaude's own hooks run.
+
+## The discriminator
+
+control: `bash plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`. The old
+command form sources a planted `BASH_ENV` (marker written). Under the hardened launch line
+no marker is written, a fake `jq`/`bash` on a planted `PATH` is never used, and
+`env-integrity-guard.sh` denies the call with `project settings plant execution-control env
+(<keys>); this repo is quarantined`.
+
+## Why it matters
+
+The `env` block is not a hook, so neither the trust dialog nor `/hooks` shows it, and a
+`claude -p` run applies it in a folder that was never trusted. Without the launch line a
+planted `THING_SEAT_ACTIVE` would also have switched command review off. The seat-child
+lock (`_rc-runtime.sh`) and the pre-tool record check (`pretool-record-check.sh`) cover the
+recursion guard and a review hook that never started.
+
+Falsifier: a hooks.json command without the hardened prefix, or a planted key that does not
+deny. Probe: `plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`.
+
+**Sources:** [Claude Code docs: What runs before you trust a folder (env block and settings hooks are used)](https://code.claude.com/docs/en/permissions#what-runs-before-you-trust-a-folder) · [Claude Code docs: hooks reference (shell form runs sh -c; a hook inherits the parent environment)](https://code.claude.com/docs/en/hooks)
+
+_Last verified: 2026-10-18_
 
 
 ---

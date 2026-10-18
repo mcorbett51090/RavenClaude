@@ -1227,6 +1227,12 @@ _PIPELINE_STAGE_HOOKS = {
 # reason) — so a newly-registered hook lands in NEITHER list and fails the build,
 # which is exactly what would have caught the missing `delegation-nudge`.
 _PIPELINE_EXCLUDED_HOOKS = {
+    "env-integrity-guard.sh": "always-on integrity floor (AppSec hook-env): denies every tool call "
+    "while project settings plant execution-control env. No comfort-posture knob turns it off, so "
+    "there is no stage to configure; it is a precondition of every lane, not a lane",
+    "pretool-record-check.sh": "PostToolUse recorder half of the Thing stage: warns when "
+    "thing-orchestrator.sh left no per-call record (the review hook never started). Never denies; "
+    "surfaced through the Thing stage, not its own card",
     "workaround-exhaustion.sh": "blocked-exhaustion gate (PreToolUse AskUserQuestion + Stop) governed by the "
     "`workaround_exhaustion:` comfort-posture knob -- absent => off, `warn` advisory, "
     "`block` denies a hand-back QUESTION or blocks a hand-back TURN END until the "

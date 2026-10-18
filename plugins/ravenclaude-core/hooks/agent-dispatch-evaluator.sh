@@ -53,6 +53,17 @@ _portable_helper="$(dirname "${BASH_SOURCE[0]}")/_portable.sh"
 [ -f "$_portable_helper" ] && . "$_portable_helper" 2>/dev/null || true
 command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
 
+# AppSec hook-env: the hardened launch line pins PATH, dropping ~/.local/bin where the
+# native installer puts `claude`. _rc_add_claude_to_path re-finds it from the PASSWD
+# home (never $HOME, which project settings can plant); _rc_tool_missing makes a
+# missing tool visible instead of a silent skip. Absent helper -> inert stubs.
+_rc_runtime_helper="$(dirname "${BASH_SOURCE[0]}")/_rc-runtime.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_runtime_helper" ] && . "$_rc_runtime_helper" 2>/dev/null || true
+command -v _rc_add_claude_to_path >/dev/null 2>&1 || _rc_add_claude_to_path() { return 1; }
+command -v _rc_tool_missing >/dev/null 2>&1 || _rc_tool_missing() { echo "[RavenClaude] WARNING: $1 not found on the hook PATH - $2: $3" >&2; }
+command -v _rc_system_message >/dev/null 2>&1 || _rc_system_message() { :; }
+
 # ── Structured hook-event substrate. Source the emit helper so every shadow verdict is
 #    recorded in hook-events.jsonl. Fail-safe: absent helper -> no-op stub.
 _emit_event_helper="$(dirname "${BASH_SOURCE[0]}")/_emit-event.sh"
@@ -169,7 +180,13 @@ fi
 #        enters the agent's tool-call stream, so it does not count against runaway-brake.sh.
 #        `claude` absent on PATH -> skip the classifier and allow (we still recorded nothing
 #        actionable; audit-only means a missing classifier is simply no shadow data). ---
-command -v claude >/dev/null 2>&1 || emit_allow
+command -v claude >/dev/null 2>&1 || _rc_add_claude_to_path 2>/dev/null || true
+if ! command -v claude >/dev/null 2>&1; then
+  _rc_system_message "$(_rc_tool_missing claude agent-dispatch-evaluator.sh \
+    "the dispatch-evaluator shadow classifier was skipped for this subagent (no shadow verdict recorded)" \
+    "$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)")"
+  emit_allow
+fi
 
 envelope="$(jq -nc \
   --arg st "$subagent_type" \

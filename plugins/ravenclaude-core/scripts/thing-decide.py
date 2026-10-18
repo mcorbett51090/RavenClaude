@@ -274,7 +274,9 @@ def _run_seat(
     if mock is not None:
         return mock
 
-    if not _have("claude"):
+    claude = _claude_bin()
+    if claude is None:
+        _warn_claude_missing("decision-review seats abstain, so the decision defers to you")
         return dict(_ABSTAIN)
 
     sys_prompt = _SYS_TEMPLATE.format(brief=_ROLE_BRIEFS.get(role, _ROLE_BRIEFS["mimir"]))
@@ -295,7 +297,7 @@ def _run_seat(
         with tempfile.TemporaryDirectory() as scratch:
             proc = subprocess.run(
                 [
-                    "claude",
+                    claude,
                     "-p",
                     *bare,
                     "--output-format",
@@ -310,7 +312,7 @@ def _run_seat(
                 capture_output=True,
                 text=True,
                 timeout=timeout_s,
-                env={**os.environ, "THING_SEAT_ACTIVE": "1"},
+                env=_claude_env({"THING_SEAT_ACTIVE": "1"}),
             )
     except Exception:
         return dict(_ABSTAIN)
@@ -388,7 +390,9 @@ def _evaluator_shadow(
             "rationale": f"mock shadow {mock} for seat {role}",
         }
 
-    if not _have("claude"):
+    claude = _claude_bin()
+    if claude is None:
+        _warn_claude_missing("the shadow dispatch evaluation was skipped")
         return None
     envelope = json.dumps(
         {
@@ -414,7 +418,7 @@ def _evaluator_shadow(
         with tempfile.TemporaryDirectory() as scratch:
             proc = subprocess.run(
                 [
-                    "claude",
+                    claude,
                     "-p",
                     *bare,
                     "--output-format",
@@ -427,6 +431,7 @@ def _evaluator_shadow(
                 capture_output=True,
                 text=True,
                 timeout=min(timeout_s, 5),
+                env=_claude_env(),
             )
         _record_headless_usage("thing-decide-shadow", "claude-haiku-5-5", proc.stdout or "")
         if proc.returncode != 0:
@@ -494,7 +499,82 @@ def _parse_seat(raw: str) -> dict:
 def _have(binname: str) -> bool:
     from shutil import which
 
+    if binname == "claude":
+        return _claude_bin() is not None
     return which(binname) is not None
+
+
+def _claude_bin() -> str | None:
+    """The `claude` to run (AppSec hook-env). The hardened hook launch line pins
+    PATH to /usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin, dropping ~/.local/bin
+    where the native installer puts claude. If PATH has none, look ONLY in the
+    PASSWD home's ~/.local/bin and ~/.claude/local -- never $HOME, which a
+    project's .claude/settings.json `env` block can plant -- and never inside
+    $CLAUDE_PROJECT_DIR. Mirrors _rc_add_claude_to_path in hooks/_rc-runtime.sh."""
+    from shutil import which
+
+    found = which("claude")
+    if found:
+        return found
+    if os.environ.get("RC_CLAUDE_HOME_LOOKUP", "1") == "0":  # test/audit escape hatch
+        return None
+    try:
+        import pwd
+
+        home = pwd.getpwuid(os.getuid()).pw_dir
+    except Exception:
+        return None
+    if not home:
+        return None
+    proj = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+    for cand in (os.path.join(home, ".local", "bin", "claude"), os.path.join(home, ".claude", "local", "claude")):
+        if os.path.isfile(cand) and os.access(cand, os.X_OK):
+            if proj and os.path.realpath(cand).startswith(os.path.realpath(proj).rstrip("/") + "/"):
+                continue
+            return cand
+    return None
+
+
+def _claude_env(extra: dict | None = None) -> dict:
+    """os.environ with the resolved claude's directory first on PATH."""
+    env = dict(os.environ)
+    b = _claude_bin()
+    if b:
+        d = os.path.dirname(b)
+        if d not in env.get("PATH", "").split(os.pathsep):
+            env["PATH"] = d + os.pathsep + env.get("PATH", "")
+    if extra:
+        env.update(extra)
+    return env
+
+
+_CLAUDE_MISSING_WARNED = False
+
+
+def _warn_claude_missing(where: str) -> None:
+    """Visible, not silent: stderr + <runtime>/missing-tools.log (same file the
+    bash hooks use). Once per process."""
+    global _CLAUDE_MISSING_WARNED
+    if _CLAUDE_MISSING_WARNED:
+        return
+    _CLAUDE_MISSING_WARNED = True
+    msg = f"[RavenClaude] WARNING: claude not found on the hook PATH - thing-decide.py: {where}"
+    print(msg, file=sys.stderr)
+    try:
+        base = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+        proj = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+        if not base.startswith("/") or (proj and (base.rstrip("/") + "/").startswith(proj.rstrip("/") + "/")):
+            base = "/tmp"
+        d = os.path.join(base, f"ravenclaude-{os.getuid()}")
+        st = os.lstat(d)
+        import stat as _stat
+
+        if _stat.S_ISDIR(st.st_mode) and st.st_uid == os.getuid() and (st.st_mode & 0o777) == 0o700:
+            ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            with open(os.path.join(d, "missing-tools.log"), "a", encoding="utf-8") as fh:
+                fh.write(f"{ts} claude not found hook=thing-decide.py session=?\n")
+    except Exception:
+        pass
 
 
 # All line-separator-shaped characters we strip from `reasoning`. ASCII CR/LF
@@ -594,6 +674,12 @@ def _tally(
 
     # 1. Abstention gate -> defer (escape to human).
     if abstained >= 2 or (len(_SEATS) > 0 and abstained == len(_SEATS)):
+        if _CLAUDE_MISSING_WARNED:
+            return (
+                "defer",
+                "panel abstained: claude was not found on the hook PATH (nor in ~/.local/bin of the passwd home) — deferring to human",
+                records,
+            )
         return "defer", "panel abstained (timeout/error) — deferring to human", records
     # 2. Injection -> defer.
     if injection:

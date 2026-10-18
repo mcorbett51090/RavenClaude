@@ -178,8 +178,12 @@ for pair in "$GATE_SH:g264-2a:gate.sh" "$REWRITE_SH:g264-2b:rewrite.sh" "$DISPAT
     PATH="$BARE_PATH" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_SESSION_ID="$sid" \
       bash "$script" 2>/dev/null)"
   rc=$?
-  if [ "$rc" -eq 0 ] && [ -z "$out" ]; then
-    ok "2: $label fails open (exit 0, empty stdout) when the claude binary is absent"
+  # Fail-open + VISIBLE (AppSec hook-env): stdout is empty, or exactly one
+  # {"systemMessage": "...claude... not found..."} object (gate.sh, once per
+  # session) -- never prompt-derived context.
+  if [ "$rc" -eq 0 ] && { [ -z "$out" ] ||
+    printf '%s' "$out" | jq -e 'keys == ["systemMessage"] and (.systemMessage | test("`claude` was not found"))' >/dev/null 2>&1; }; then
+    ok "2: $label fails open (exit 0, no context; at most a claude-not-found systemMessage) when the claude binary is absent"
   else
     bad "2: $label did NOT fail open on missing claude (rc=$rc out=$out)"
   fi
@@ -189,13 +193,13 @@ done
 # marker to stdout instead of exiting silently — the assertion above MUST catch
 # it, proving this fixture actually measures the fail-open guarantee.
 MUTANT="$TMP/prompt-optimizer-gate.MUTANT.sh"
-sed '/TIER1_FAILOPEN reason=claude_missing/{n;s/  exit 0/  echo "MUTANT-LEAK"; exit 0/;}' "$GATE_SH" >"$MUTANT"
+sed '/TIER1_FAILOPEN reason=claude_missing/,/^  exit 0$/s/^  exit 0$/  echo "MUTANT-LEAK"; exit 0/' "$GATE_SH" >"$MUTANT"
 chmod +x "$MUTANT"
 if ! diff -q "$GATE_SH" "$MUTANT" >/dev/null 2>&1; then
   out="$(printf '%s' '{"prompt":"anything"}' |
     PATH="$BARE_PATH" CLAUDE_PROJECT_DIR="$PROJ" CLAUDE_SESSION_ID="g264-2mut" \
       bash "$MUTANT" 2>/dev/null)"
-  if [ -n "$out" ]; then
+  if printf '%s' "$out" | grep -q 'MUTANT-LEAK'; then
     ok "MUST-FAIL teeth: a neutered claude-missing fail-open branch LEAKS and IS caught"
   else
     bad "MUST-FAIL: the mutant should have leaked to stdout but produced nothing — teeth are missing"

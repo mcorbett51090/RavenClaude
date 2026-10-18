@@ -202,6 +202,13 @@ _SKIP = {
         "equivalent event. Projecting it would ship a silent no-op that reads as "
         "coverage. Claude Code lane remains wired via hooks.json."
     ),
+    # AppSec hook-env hardening (Claude-Code-only surfaces).
+    "env-integrity-guard.sh": (
+        "Claude-Code-only (AppSec hook-env): reads the `env` block of .claude/settings.json, which only Claude Code exports into hook processes; another host never plants it, and this repo's own settings carry RAVENCLAUDE_* keys the guard would quarantine."
+    ),
+    "pretool-record-check.sh": (
+        "Claude-Code-only (AppSec hook-env): pairs with thing-orchestrator.sh's record keyed by Claude Code's tool_use_id; other hosts' adapters do not carry that id."
+    ),
 }
 
 
