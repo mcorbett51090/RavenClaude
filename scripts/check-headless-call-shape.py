@@ -32,7 +32,11 @@ fails if discovery stops finding the known sites.
 
 Exemptions are keyed by path with the number of sites in that file. A changed
 site count, a missing reason, or a file that no longer needs the exemption is a
-violation, so an exemption cannot silently cover a new call.
+violation. That stops an exemption from silently covering an ADDED call, but not
+a SWAPPED one: replacing one exempt call with a different unflagged call leaves
+the count unchanged and passes. The flag check is a substring test, so the flag
+inside a trailing comment also satisfies it. ``--print`` forms and ``.github/``
+are not scanned. This is a lint, not a control.
 
 Exit codes: 0 clean, 2 violation, 1 could not run.
 Usage:

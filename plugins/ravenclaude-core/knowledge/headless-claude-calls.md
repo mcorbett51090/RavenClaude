@@ -24,7 +24,7 @@ Haiku 5.5 is $0.10 / $0.50 per million tokens at or under 100k prompt tokens, an
 | Flag | This plugin |
 |---|---|
 | `--strict-mcp-config` | Added on JSON-only sites that already passed `--tools ""` and do not need MCP: `thing-seat.sh`, `claude-orchestrate.sh`, `prompt-optimizer-gate.sh`, `prompt-optimizer-rewrite.sh`, `prompt-optimizer-dispatch.sh`, `prompt-optimizer-judge-soak.py`, `judge.sh`. Since 0.356.0 also `thing-decide.py` (both calls, with `--tools ""`) and the repo-root `scripts/inventory-nuance-judge.py`. Gate 306 (`scripts/check-headless-call-shape.py`) requires it on every `claude -p` site unless the file is exempt with a reason in `tests/fixtures/headless-call-shape-exemptions.json`. |
-| `--bare` | Already the lean flag on `agent-dispatch-evaluator.sh`. Not combined with `--strict-mcp-config` here; that pair was not measured. `--bare` also stays opt-in on seats (`THING_SEAT_BARE` / `ANTHROPIC_API_KEY`). This change does not flip that. |
+| `--bare` | Already the lean flag on `agent-dispatch-evaluator.sh`, which does not also pass `--strict-mcp-config`. On seats `--bare` stays opt-in (`THING_SEAT_BARE` / `ANTHROPIC_API_KEY`), and when it is on, `thing-seat.sh` and (since 0.356.0) `thing-decide.py` pass it together with `--strict-mcp-config`. A 2026-10-18 probe showed that pair starts cleanly with no tools and no MCP servers loaded; its token cost was not measured. |
 | `--safe-mode` | Not used. It skips hooks, and whether it beats `--strict-mcp-config` once hooks are counted was not measured on the owner's machine. |
 
 `--tools` is variadic. A positional prompt must not sit immediately after `--tools ""`. Sites that pass the prompt next use `--tools=""`.
