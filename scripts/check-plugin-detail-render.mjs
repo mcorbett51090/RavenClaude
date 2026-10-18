@@ -101,7 +101,11 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 65, // 64 -> 65: scripts/headless-usage.py (core 0.353.0 — sidecar recorder for
+  tools: 66, // 65 -> 66: scripts/subagent-ttl-advisor.py (core 0.358.0 — rc ttl-advice, reads
+  //   the dispatch ledgers for 1-hour subagent cache TTL break-even). COUNTED, not inferred:
+  //   the plugin-detail island's scripts_index for ravenclaude-core -> 66 after
+  //   generate-index-dashboard.py regen.
+  //        64 -> 65: scripts/headless-usage.py (core 0.353.0 — sidecar recorder for
   //   headless claude -p usage envelopes). COUNTED, not inferred: the plugin-detail
   //   island's scripts_index for ravenclaude-core -> 65 after generate-index-dashboard.py.
   //        63 -> 64: scripts/claim_grounding_scan.py (SH-F9 / core 0.339.3 — single-process

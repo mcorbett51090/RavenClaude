@@ -3856,3 +3856,24 @@ _Last verified: 2026-10-18_
 
 
 ---
+
+### The TTL advisor counts only gaps the 1-hour cache changes · _RavenClaude-built_
+
+> Which re-dispatches count toward a 1-hour subagent cache, and why most agents should keep the default.
+
+## What a reader would have assumed instead
+
+That any agent dispatched more than once in a session would save money on a 1-hour cache, so the advisor should recommend it for every busy agent.
+
+## The discriminator
+
+control: `subagent-ttl-advisor.py --self-test` scores an agent re-dispatched every 2 minutes at zero in-window gaps, and does not recommend one re-dispatched every 2 hours.
+
+Measured 2026-10-18: a gap under 5 minutes already reads the 5-minute cache, and a gap over 60 minutes misses either way, so only the 5-60 minute band changes the bill.
+
+**Sources:** [2026-10-14 prompt-caching build plan — Phase 4, subagent TTL from data](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/BUILD-PLAN.md)
+
+_Last verified: 2026-10-18_
+
+
+---

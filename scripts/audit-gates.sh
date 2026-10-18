@@ -2153,6 +2153,8 @@ PY
       rc=0
       python3 plugins/ravenclaude-core/scripts/headless-usage.py --self-test || rc=$?
       rc_mustfail python3 plugins/ravenclaude-core/scripts/headless-usage.py || rc=$?
+      python3 plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py --self-test || rc=$?
+      rc_mustfail python3 plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py || rc=$?
       exit $rc
       ;;
     *)
@@ -7207,6 +7209,13 @@ if command -v python3 >/dev/null 2>&1; then
   gate "headless-usage: self-test (no prompt/result text, present 0 kept, gaps omitted, per-site hit rate)" must_pass "$rc"
   rc=0; rc_mustfail python3 plugins/ravenclaude-core/scripts/headless-usage.py || rc=$?
   gate "headless-usage: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+  # subagent-ttl-advisor.py (rc ttl-advice) reads the dispatch ledgers and lists
+  # agents whose 5-60 minute re-dispatches beat the 1-hour cache-write break-even.
+  # --must-fail plants an advisor that ignores the break-even and must be caught.
+  rc=0; python3 plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "subagent-ttl-advisor: self-test (in-window gaps, break-even, names and numbers only)" must_pass "$rc"
+  rc=0; rc_mustfail python3 plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py || rc=$?
+  gate "subagent-ttl-advisor: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
 else
   _skip_or_fail "Gate 307 (headless-usage)" python3
 fi
