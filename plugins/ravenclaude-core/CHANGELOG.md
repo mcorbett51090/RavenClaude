@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.358.3 — 2026-10-18
+
+### Fixed (marketplace tooling, not shipped in the plugin)
+- **`scripts/inventory-sweep.py` reported three false self-test failures wherever git config is passed through the environment.** Before running a script's `--must-fail` check, the sweep drops environment variables with secret-shaped names. `KEY` matched `GIT_CONFIG_KEY_0..n` but not `GIT_CONFIG_COUNT`, so git refused to start ("missing config key GIT_CONFIG_KEY_0") and every git call in the child failed. `_base_ref.py`, `check-ratchet-freshness.py` and `inventory-census.py` returned 1, 0 and 1 instead of their declared 3. CI does not set these variables and stayed green; a container that does set them failed locally. The whole `GIT_CONFIG_COUNT` / `KEY_n` / `VALUE_n` / `PARAMETERS` group is now dropped together. That also stops `GIT_CONFIG_VALUE_n` being passed on, since a value can carry a credential under a name the pattern cannot see. The sweep's `--must-fail` gained a check that runs git under the reduced environment, with a control proving the old half-dropped shape breaks git. A mutant with the old filter exits 0. Restamped `probing-a-script-runs-it`, `census-must-be-independent` and `must-fail-conventions-diverge` as cosmetic; their claims are unchanged.
+
 ## 0.358.2 — 2026-10-18
 
 ### Changed
