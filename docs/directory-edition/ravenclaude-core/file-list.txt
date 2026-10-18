@@ -43,6 +43,7 @@ knowledge/declarative-visualization.md
 knowledge/design-first-report-workflow.md
 knowledge/dynamic-workflows.md
 knowledge/github-actions-hardening.md
+knowledge/headless-claude-calls.md
 knowledge/host-support.json
 knowledge/model-tier-delegation.md
 knowledge/orchestration-decision-trees.md
