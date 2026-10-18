@@ -67,6 +67,12 @@ From the sender's-playbook research ([`tap-to-share.md`](tap-to-share.md) § Pus
 - Unverified: **#36 (P3)** — whether the hold-together pass share is exempt from iOS 26.2's **AirDrop code** requirement for non-contacts ("if someone tries to send you an item with AirDrop and they're not in your contacts, they must use an AirDrop code"). Not found.
 - Unverified: **#37 (P3)** — what the iOS share sheet does with `navigator.share({ files: [<.pkpass File>] })`. Safari's `canShare` has no MIME allow-list (DOC, WebKit `Navigator.cpp`); Chrome's permitted list has no `.pkpass` or `.vcf` (DOC, Chromium FILE_TYPES). Share the URL instead until tested.
 
+## Added 2026-10-18 — straight to Wallet from the QR and the tag
+
+From [`tap-to-share.md`](tap-to-share.md) § Straight to Wallet from the QR and the tag.
+
+- Unverified: **#38 (P2)** — whether iOS Safari presents the **Add-to-Wallet sheet for a script-initiated navigation** to a `.pkpass` with **no user activation** — the page was opened from Camera's QR banner or an NFC notification, and the script navigates about 150 ms after paint with no tap on the page. Not yet tested on a device. If it does not appear, the person simply lands on the card (the page they would have seen anyway). How to verify: on a current iPhone, open a card URL ending `#add-to-wallet` from the Camera and from an NFC tag; record whether the sheet appears without a tap, per iOS version and per default browser. Control: the same URL without the fragment shows only the page.
+
 ## Cross-platform asymmetries worth a second look
 
 - **Headshots.** Google states flatly that "personal images" are **not supported** on passes (documented, not a VERIFY item). Apple has no equivalent statement in the docs reviewed (#29). If RavenPass wants a photo on the card, the design may differ per platform — or the photo lives only behind the URL.

@@ -48,7 +48,7 @@ The fastest way to start a new hook is to copy the closest-shaped existing one:
 
 | Existing hook | Event + matcher | Shape worth copying |
 |---|---|---|
-| [`format-on-write.sh`](../../plugins/ravenclaude-core/hooks/format-on-write.sh) | `PostToolUse` on `Edit\|Write\|MultiEdit` | Extension-dispatch via `case`, `command -v` fallback chain, silent on no-match, never blocks |
+| [`format-on-write.sh`](../../plugins/ravenclaude-core/hooks/format-on-write.sh) | `PostToolUse` on `Edit\|Write\|MultiEdit` | Extension-dispatch via `case`, runs a formatter only when the project declares it (config walk up to the project root), silent on no-match, never blocks |
 | [`guard-destructive.sh`](../../plugins/ravenclaude-core/hooks/guard-destructive.sh) | `PreToolUse` on `Bash` | Bash-regex deny-pattern array, exit 1 + stderr explanation on match, narrowly scoped |
 | [`remind-tests.sh`](../../plugins/ravenclaude-core/hooks/remind-tests.sh) | `Stop` (no matcher) | Git-aware reachability check, code-extension filter, stderr-only heredoc reminder |
 

@@ -18,8 +18,9 @@
 #      missing ('pre-tool review did not run') (10).
 #   13-17 the pinned PATH drops ~/.local/bin: every claude caller re-finds it from
 #      the PASSWD home, never a planted $HOME (13, 13p, 14); a missing claude /
-#      declared formatter / node is reported, never skipped silently (14-16); this
-#      repo's own settings carry no env block and pass the guard (17);
+#      declared formatter / node is reported, never skipped silently (14-16);
+#      format-on-write runs a formatter only when the project declares it (15c-15k);
+#      this repo's own settings carry no env block and pass the guard (17);
 #   12 macOS: this file runs on macos-latest via the gate audit shards
 #      (validate-macos.yml); it was not run on a Mac locally.
 # Honest limit (3): a REAL shared object in LD_PRELOAD / DYLD_INSERT_LIBRARIES is
@@ -443,6 +444,82 @@ else
   [ "$DRC" -eq 0 ] && [ ! -s "$TMP/out" ] && [ ! -s "$TMP/err" ] \
     && pass "15b project declares no formatter → silent (exit 0, no output)" || fail "15b out=$(head -c 200 "$TMP/out")"
 fi
+
+echo "── 15c-15k. format-on-write.sh formats only what the project declares (fake formatters first on PATH) ──"
+# A global prettier once rewrote a whole .ts file in a repo with no prettier config
+# (2026-10-18). Fake prettier / biome / ruff / black record each call; they sit FIRST
+# on the hook's pinned PATH, so `command -v` finds them whether or not real ones exist.
+FAKEF="$TMP/fakefmt"; mkdir -p "$FAKEF"
+for t in prettier biome ruff black; do
+  printf '#!/bin/sh\necho "%s $*" >>"%s/fmt-calls"\nexit 0\n' "$t" "$MARK" >"$FAKEF/$t"; chmod +x "$FAKEF/$t"
+done
+FWCMD="$(hook_cmd format-on-write.sh | sed "s|PATH=$BASEPATH |PATH=$FAKEF:$BASEPATH |")"
+case "$FWCMD" in *"PATH=$FAKEF:"*) pass "15c setup: fake formatters are first on the hook's PATH" ;;
+  *) fail "15c setup: could not put the fake formatters on the hook PATH: ${FWCMD:0:160}" ;; esac
+fcalls(){ cat "$MARK/fmt-calls" 2>/dev/null; }
+# fw <proj> <file> -- run the real hook command on <file> as a PostToolUse(Write)
+fw(){ rm -f "$MARK/fmt-calls"
+  drive "$FWCMD" "$1" "$(jq -cn --arg f "$2" '{session_id:"fw15c",hook_event_name:"PostToolUse",tool_name:"Write",tool_input:{file_path:$f}}')"; }
+
+P15c="$(proj fwnone)"; printf 'const a = 1\n' >"$P15c/a.ts"
+fw "$P15c" "$P15c/a.ts"
+[ "$DRC" -eq 0 ] && [ -z "$(fcalls)" ] && [ ! -s "$TMP/out" ] \
+  && pass "15d no prettier config, prettier on PATH → prettier NOT run, silent, exit 0" \
+  || fail "15d undeclared project ran a formatter: calls='$(fcalls)' rc=$DRC out=$(head -c 120 "$TMP/out")"
+
+P15e="$(proj fwrc)"; printf '{}\n' >"$P15e/.prettierrc"; printf 'const a = 1\n' >"$P15e/a.ts"
+fw "$P15e" "$P15e/a.ts"
+[ "$DRC" -eq 0 ] && fcalls | grep -q "^prettier --write .*/a.ts$" \
+  && pass "15e .prettierrc at the project root → prettier --write <file>" \
+  || fail "15e calls='$(fcalls)' rc=$DRC"
+
+P15f="$(proj fwmono)"; mkdir -p "$P15f/packages/web/src" "$P15f/packages/api/src"
+printf 'semi: false\n' >"$P15f/packages/web/.prettierrc.yaml"
+printf 'const a = 1\n' >"$P15f/packages/web/src/a.ts"; printf 'const b = 1\n' >"$P15f/packages/api/src/b.ts"
+fw "$P15f" "$P15f/packages/web/src/a.ts"
+fcalls | grep -q "^prettier --write .*/packages/web/src/a.ts$" \
+  && pass "15f monorepo: config only in the subpackage above the file → prettier runs" \
+  || fail "15f subpackage config not found by the upward walk: calls='$(fcalls)'"
+fw "$P15f" "$P15f/packages/api/src/b.ts"
+[ -z "$(fcalls)" ] && pass "15g monorepo control: a sibling package with no config → not run (the walk goes up, not sideways)" \
+  || fail "15g sibling package ran prettier: calls='$(fcalls)'"
+
+P15h="$(proj fwpkg)"; printf '{"name":"x","devDependencies":{"prettier":"^3.3.0"}}\n' >"$P15h/package.json"
+printf 'const a = 1\n' >"$P15h/a.ts"
+fw "$P15h" "$P15h/a.ts"
+fcalls | grep -q "^prettier --write .*/a.ts$" \
+  && pass "15h package.json lists \"prettier\" in devDependencies → prettier runs" \
+  || fail "15h calls='$(fcalls)'"
+
+P15i="$(proj fwbiome)"; printf '{}\n' >"$P15i/biome.json"; printf 'const a = 1\n' >"$P15i/a.ts"
+fw "$P15i" "$P15i/a.ts"
+fcalls | grep -q "^biome format --write .*/a.ts$" && ! fcalls | grep -q '^prettier' \
+  && pass "15i biome.json declared → biome runs (not prettier)" || fail "15i calls='$(fcalls)'"
+
+P15j="$(proj fwpy)"; printf 'x=1\n' >"$P15j/a.py"
+fw "$P15j" "$P15j/a.py"
+[ -z "$(fcalls)" ] && pass "15j Python, no ruff/black config, both on PATH → neither runs" || fail "15j calls='$(fcalls)'"
+printf '[tool.ruff]\nline-length = 100\n' >"$P15j/pyproject.toml"
+fw "$P15j" "$P15j/a.py"
+fcalls | grep -q "^ruff format .*/a.py$" && fcalls | grep -q "^ruff check --fix" && ! fcalls | grep -q '^black' \
+  && pass "15j' [tool.ruff] in pyproject.toml → ruff format + ruff check --fix" || fail "15j' calls='$(fcalls)'"
+printf '[tool.black]\nline-length = 100\n' >"$P15j/pyproject.toml"
+fw "$P15j" "$P15j/a.py"
+fcalls | grep -q "^black --quiet .*/a.py$" && ! fcalls | grep -q '^ruff' \
+  && pass "15j'' [tool.black] only → black runs, ruff does not" || fail "15j'' calls='$(fcalls)'"
+
+# A file in ANOTHER checkout (a worktree beside the project): the walk stops at that
+# checkout's .git, so its own config counts and the project's does not leak in.
+P15k="$(proj fwproj)"; printf '{}\n' >"$P15k/.prettierrc"
+WT="$TMP/p-fwother"; mkdir -p "$WT/src"; git -C "$WT" init -q 2>/dev/null; printf 'const a = 1\n' >"$WT/src/a.ts"
+fw "$P15k" "$WT/src/a.ts"
+[ -z "$(fcalls)" ] && pass "15k file in another checkout with no config → not run (project's .prettierrc does not apply)" \
+  || fail "15k calls='$(fcalls)'"
+printf '{}\n' >"$WT/.prettierrc"
+fw "$P15k" "$WT/src/a.ts"
+fcalls | grep -q "^prettier --write .*/src/a.ts$" \
+  && pass "15k' that checkout declares prettier at its .git root → prettier runs" || fail "15k' calls='$(fcalls)'"
+rm -f "$MARK/fmt-calls"
 
 echo "── 16. caveman_routing: live, node missing → visible (caveman-route-hook.sh) ──"
 NN="$TMP/nonode"; mkdir -p "$NN"

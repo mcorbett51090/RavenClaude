@@ -2860,7 +2860,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:86feac0c1cd8c7a6a98b2b397acd93dcd6cc18cbd9ee98e88748386eb9cc471c",
+      "covers_digest": "sha256:6296f08cae43284057f0287a2b4309c5a38bc1e768f62e0265cba6aa47062087",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3003,7 +3003,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:446f2932dfab45ad9342ad8d9bf275632c4f582e18319596ffde3e0147f6057e",
+      "covers_digest": "sha256:f53da33c8ed889eb37264906c14231c34e838d9840d57cca5811edcb8c7bee70",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3526,7 +3526,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:f2e9635249190893666306ffdffa3b79c72fa0fce01f6e8c4faa543126ce3ab8",
+      "covers_digest": "sha256:ce1a20e7450ba8ca5c10bf8c3957b847d6d8aa7de85551cd98c40ed650b690c1",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4942,7 +4942,7 @@
         "plugins/ravenclaude-core/skills/wallet-passes/references/tap-to-share.md",
         "plugins/ravenclaude-core/skills/wallet-passes/references/verify.md"
       ],
-      "covers_digest": "sha256:218445871ada1779034940467b28fc6c94e64f085fc83475a1009e8b39617fb8",
+      "covers_digest": "sha256:d50919dfb7b24fdfb8927709af00c028e14e36d53e29373852ef62397c805edd",
       "nuance": "Apple `PassKit_PG/Creating.html` names `headerFields` counts and says overflow hides fields; it never publishes a per-slot character maximum. Google `generic/resources/brand-guidelines` Content does publish English caps. An invented Apple char-limit table is working guidance, not a contract.",
       "nuance_evidence": {
         "measured": "2026-10-11",

@@ -1048,10 +1048,10 @@ _PIPELINE_LANES = [
                 "detail": {
                     "steps": [
                         "Runs right after a file is saved.",
-                        "Runs the formatter for that kind of file.",
+                        "Runs the formatter your project has set up for that kind of file.",
                         "Saves the tidied version.",
                     ],
-                    "trip": "Skips files it doesn't have a formatter for — never blocks.",
+                    "trip": "Does nothing when your project has not set up a formatter, even if one is installed — never blocks.",
                     "set": "Built in.",
                 },
             },
@@ -1429,7 +1429,7 @@ _PIPE_DTREE_HOOK_META = {
         "title": "Auto-tidy",
         "outcomes": ["EDIT"],
         "strength": "always",
-        "note": "Formats after save — never blocks.",
+        "note": "Formats after save with the formatter the project declares — never blocks.",
     },
     "guard-cause-closure.sh": {
         "title": "Cause closure guard",
