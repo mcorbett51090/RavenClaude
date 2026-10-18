@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.355.10 — 2026-10-18
+
+### Fixed
+- **`wallet-passes`: NameDrop never carries the card link (correction).** `references/tap-to-share.md` ranked-paths row 9 told owners to put the card URL in their Contacts *My Card* so it would travel by NameDrop. It does not. Apple's [Personal Safety guide](https://support.apple.com/guide/personal-safety/secure-namedrop-ips97e16d3b1/web) (read 2026-10-18): "NameDrop shares only your name, the phone number or email address you choose, and Contact Poster information" and "It doesn't share other information in your Contact Card". The row now says NameDrop swaps contact details only, never the pass or the card link, and that adding the URL to *My Card* does nothing. No other file claimed the URL travels.
+
 ## 0.355.9 — 2026-10-18
 
 ### Security
