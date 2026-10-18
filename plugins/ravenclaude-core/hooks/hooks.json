@@ -515,6 +515,12 @@
           },
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/dashboard-prompt.sh\"",
+            "timeout": 5,
+            "comment": "Dashboard prompt (discoverability). Speaks ONLY when the project has no .ravenclaude/comfort-posture.yaml: one fixed-text line telling the person to run /dashboard (or `rc dashboard` in any terminal) and naming the opt-in dashboard_autostart knob. Emits systemMessage (what the PERSON sees) AND additionalContext (so the agent can answer 'how do I open the dashboard'). Silent once the posture file exists, so no state and no file writes; RC_DASHBOARD_PROMPT=off silences it. Chose a prompt over autostart: an undisclosed background server + browser tab per session was rejected. Wording switches on whether bin/rc ships next to it (the directory edition has no bin/). No payload, env, or filesystem content is echoed. Fail-safe: always exits 0. Lives under scripts/ for the same executable-bit reason as ask-on-ambiguity.sh, hence the `bash` prefix."
+          },
+          {
+            "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/caveman-route-hook.sh\" --event session",
             "timeout": 10,
             "comment": "Caveman auto-routing (FORGE P7), SessionStart half of the same hook body registered under UserPromptSubmit above \u2014 see that entry's comment for the full contract (short-circuit, live-apply / shadow-never-applies, latency budget, fail-open). Joins this EXISTING startup|resume|clear|fork matcher group deliberately (no `compact` entry, no new matcher block) \u2014 a `compact` re-fire on this hook would be the v0.302.0-era 7-SessionStart-hooks incident in a new place, with nothing useful to do on that source."

@@ -2824,6 +2824,7 @@
         "plugins/ravenclaude-core/hooks/copilot-hook-adapter.sh",
         "plugins/ravenclaude-core/hooks/cursor-hook-adapter.sh",
         "plugins/ravenclaude-core/hooks/dashboard-autostart.sh",
+        "plugins/ravenclaude-core/scripts/dashboard-prompt.sh",
         "plugins/ravenclaude-core/hooks/delegation-nudge.sh",
         "plugins/ravenclaude-core/hooks/dod-gate.sh",
         "plugins/ravenclaude-core/hooks/enforce-git-protocol.sh",
@@ -2859,7 +2860,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:00e7d287596c02d1bbc4876cad5e3bb3810dfc76b81d14da85b96dfe4cc01bf5",
+      "covers_digest": "sha256:614d4394f0e17e87eb27607479ee4b24393b842783c5bfe7722eaab0f2102f2e",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2908,7 +2909,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:247f4921bda6a1a49bc4fe4910535a7ace93b129b6e683c4f83e7d76d9d3edc3",
+      "covers_digest": "sha256:21ca6cbcd5f662379b1d89afc80fd0e5652107b0606417c16a45b5e318ac3eb1",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3002,7 +3003,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:bb117cdf294343c23d2da2bb4b633b358958841f80b4d5ea35b6c20f3f3211e4",
+      "covers_digest": "sha256:7be4b5e8da43feb2db85632a7912241170429c9150a4dc208288651cc978b737",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3064,7 +3065,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:4ac50227e8413ebd164f999e8c8525949e55596b33864fc87a5dd6b5a33e8409",
+      "covers_digest": "sha256:5f67a3effd15ee6d24f1559f4c71a14d885f23df1e8f09909504c1c4961b7edd",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3525,7 +3526,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:e4fe113ff21d1c3ae5a19078fc0d3cb1638d136058b1e519f013ba3c04f58bf6",
+      "covers_digest": "sha256:c7465f44b140aa8809515231789d8f2dfa1ea57cf5c11f5faa1f839dc5fa9247",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3974,7 +3975,7 @@
         "plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py",
         "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js"
       ],
-      "covers_digest": "sha256:918c30e0f0c57e10f103f09ba5840118f4f8a6a4c2188296cc3d2fbed8b3705b",
+      "covers_digest": "sha256:d6212ff405a9a94817acc498125af32cb61ec0623fb25bf18aebaae4f7eca767",
       "nuance": "A dedup key built from each finding's own title tokens misses two models describing one bug in different words at the same line -- keys differ, so exact-key merge misses it. The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the identical line) -- the single most common real shape cross-model review exists to catch.",
       "nuance_evidence": {
         "measured": "2026-09-02",

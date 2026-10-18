@@ -60,12 +60,12 @@ done
 # --- path jail helpers (python3; this repo requires it) ----------------------
 
 _realpath() {
-  python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null
+  python3 -I -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1" 2>/dev/null
 }
 
 # Exit 0 if $1 realpath is under $2 realpath (inclusive).
 _under_root() {
-  python3 -c '
+  python3 -I -c '
 import os, sys
 p = os.path.realpath(sys.argv[1])
 r = os.path.realpath(sys.argv[2])
@@ -75,7 +75,7 @@ sys.exit(0 if (p == r or p.startswith(r + os.sep)) else 1)
 
 # Exit 0 if plan is a regular non-symlink file under .ravenclaude/runs/forge/<slug>/.
 _plan_jail_ok() {
-  python3 -c '
+  python3 -I -c '
 import os, re, stat, sys
 path = sys.argv[1]
 if os.path.islink(path):
@@ -105,7 +105,7 @@ sys.exit(0)
 
 # Copy src→dst without following a symlink dest (O_NOFOLLOW when available).
 _safe_copy() {
-  python3 -c '
+  python3 -I -c '
 import os, stat, sys
 src, dst = sys.argv[1], sys.argv[2]
 if os.path.islink(src):
@@ -239,7 +239,7 @@ self_test() {
     proj="${scratch}/proj6"
     mkdir -p "$proj"
     gh="${scratch}/grok6"
-    enc="$(python3 -c 'import sys; from pathlib import Path; from urllib.parse import quote; print(quote(str(Path(sys.argv[1]).resolve()), safe=""))' "$proj")"
+    enc="$(python3 -I -c 'import sys; from pathlib import Path; from urllib.parse import quote; print(quote(str(Path(sys.argv[1]).resolve()), safe=""))' "$proj")"
     mkdir -p "${gh}/sessions/${enc}"
     out="$(GROK_HOME="$gh" bash "$script_abs" --plan "$src" --cwd "$proj" 2>&1)" || exit 32
     printf '%s' "$out" | grep -q 'skip (no session dir under' || exit 33
@@ -250,7 +250,7 @@ self_test() {
     proj="${scratch}/proj7"
     mkdir -p "$proj"
     gh="${scratch}/grok7"
-    enc="$(python3 -c 'import sys; from pathlib import Path; from urllib.parse import quote; print(quote(str(Path(sys.argv[1]).resolve()), safe=""))' "$proj")"
+    enc="$(python3 -I -c 'import sys; from pathlib import Path; from urllib.parse import quote; print(quote(str(Path(sys.argv[1]).resolve()), safe=""))' "$proj")"
     mkdir -p "${gh}/sessions/${enc}/abc123"
     out="$(GROK_HOME="$gh" bash "$script_abs" --plan "$src" --cwd "$proj" 2>&1)" || exit 34
     printf '%s' "$out" | grep -q '^FORGE_SESSION_PLAN ' || exit 35
@@ -300,7 +300,7 @@ self_test() {
     proj="${scratch}/proj11"
     mkdir -p "$proj"
     gh="${scratch}/grok11"
-    enc="$(python3 -c 'import sys; from pathlib import Path; from urllib.parse import quote; print(quote(str(Path(sys.argv[1]).resolve()), safe=""))' "$proj")"
+    enc="$(python3 -I -c 'import sys; from pathlib import Path; from urllib.parse import quote; print(quote(str(Path(sys.argv[1]).resolve()), safe=""))' "$proj")"
     mkdir -p "${gh}/sessions/${enc}/old" "${gh}/sessions/${enc}/new"
     bash -c "GROK_HOME='$gh' env -u GROK_SESSION_ID bash '$script_abs' --plan '$src' --cwd '$proj'" >/dev/null 2>&1
     rc=$?
@@ -313,7 +313,7 @@ self_test() {
     proj="${scratch}/proj12"
     mkdir -p "$proj"
     gh="${scratch}/grok12"
-    enc="$(python3 -c 'import sys; from pathlib import Path; from urllib.parse import quote; print(quote(str(Path(sys.argv[1]).resolve()), safe=""))' "$proj")"
+    enc="$(python3 -I -c 'import sys; from pathlib import Path; from urllib.parse import quote; print(quote(str(Path(sys.argv[1]).resolve()), safe=""))' "$proj")"
     mkdir -p "${gh}/sessions/${enc}/sid-old" "${gh}/sessions/${enc}/sid-new"
     out="$(GROK_HOME="$gh" GROK_SESSION_ID=sid-old bash "$script_abs" --plan "$src" --cwd "$proj" 2>&1)" || exit 43
     printf '%s' "$out" | grep -q '^FORGE_SESSION_PLAN ' || exit 44
@@ -355,7 +355,7 @@ grok_home="${GROK_HOME:-$HOME/.grok}"
 sessions_root="$grok_home/sessions"
 
 if [ -z "$session_dir" ]; then
-  enc="$(python3 -c 'import sys; from pathlib import Path; from urllib.parse import quote; print(quote(str(Path(sys.argv[1]).resolve()), safe=""))' "$cwd")"
+  enc="$(python3 -I -c 'import sys; from pathlib import Path; from urllib.parse import quote; print(quote(str(Path(sys.argv[1]).resolve()), safe=""))' "$cwd")"
   group="$grok_home/sessions/$enc"
   if [ ! -d "$group" ]; then
     echo "forge-publish-session-plan: skip (no Grok session group at $group)"

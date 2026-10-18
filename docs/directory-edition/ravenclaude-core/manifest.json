@@ -1,0 +1,678 @@
+{
+  "schema_version": 1,
+  "plugin": "ravenclaude-core",
+  "source_plugin_dir": "plugins/ravenclaude-core",
+  "target": {
+    "repository": "https://github.com/mcorbett51090/ravenclaude-core",
+    "homepage": "https://github.com/mcorbett51090/ravenclaude-core",
+    "marketplace_name": "ravenclaude-core",
+    "portal_url": "https://mcorbett51090.github.io/RavenClaude/",
+    "support": "https://github.com/mcorbett51090/ravenclaude-core/issues"
+  },
+  "plugin_json": {
+    "displayName": "RavenClaude Core",
+    "description": "A Team Lead plus specialist agents, a whole-repo bug sweep (/repo-review) and opt-in, local-only guardrails. Every hook stays off until you create a posture file and trust the project.",
+    "keywords": [
+      "team-lead",
+      "agents",
+      "orchestration",
+      "planning",
+      "code-review",
+      "guardrails",
+      "skills"
+    ]
+  },
+  "limits": {
+    "max_files": 512,
+    "max_file_bytes_nonimage": 262144,
+    "max_file_bytes": 5242880,
+    "max_total_bytes": 52428800
+  },
+  "closure": {
+    "prose_depth": 1
+  },
+  "components": {
+    "agents": [
+      {
+        "name": "architect",
+        "reason": "Upfront design and phase-boundary consultation; reads and plans, writes no production code."
+      },
+      {
+        "name": "backend-coder",
+        "reason": "Server-side implementation of one focused, testable change."
+      },
+      {
+        "name": "code-reviewer",
+        "reason": "Pre-merge review that returns blockers, suggestions and praise."
+      },
+      {
+        "name": "data-engineer",
+        "reason": "Domain-neutral data pipeline, modeling and query work."
+      },
+      {
+        "name": "deep-researcher",
+        "reason": "Multi-source research with citations, using Claude's own search and fetch tools."
+      },
+      {
+        "name": "designer",
+        "reason": "UX direction, wireframes, flows and accessibility checks."
+      },
+      {
+        "name": "documentarian",
+        "reason": "Stakeholder-facing writing: memos, runbooks, release notes, READMEs."
+      },
+      {
+        "name": "frontend-coder",
+        "reason": "UI implementation with a render-then-look verification discipline."
+      },
+      {
+        "name": "fullstack-coder",
+        "reason": "Changes that genuinely cross the client/server boundary in one unit."
+      },
+      {
+        "name": "partner-success-manager",
+        "reason": "Domain-neutral partner profiles, success plans and QBR material."
+      },
+      {
+        "name": "project-manager",
+        "reason": "RAID log, task list and weekly status hygiene."
+      },
+      {
+        "name": "prompt-engineer",
+        "reason": "Authors and critiques agent, skill and prompt definitions."
+      },
+      {
+        "name": "scout",
+        "reason": "Fast read-a-lot/return-a-little worker for search, grep and inventory."
+      },
+      {
+        "name": "security-reviewer",
+        "reason": "Security review of diffs touching auth, secrets, input parsing, shell or network."
+      },
+      {
+        "name": "tester-qa",
+        "reason": "Test plans, flake hunting and coverage gaps."
+      },
+      {
+        "name": "viz-spec-reviewer",
+        "reason": "Reviews Vega-Lite, Vega and SVG specs for correctness and safety."
+      }
+    ],
+    "skills": [
+      {
+        "name": "agent-quality-rubric",
+        "reason": "Scores an agent file on a six-dimension rubric; prose only."
+      },
+      {
+        "name": "audit-ci-gates",
+        "reason": "Checks that a CI workflow really enforces the property it claims to; prose only."
+      },
+      {
+        "name": "claude-code-parallel-and-modes",
+        "reason": "Guidance on parallel work and Claude Code's permission/plan modes; prose only."
+      },
+      {
+        "name": "create-pr",
+        "reason": "Opens a pull request from the current branch using the project's template."
+      },
+      {
+        "name": "cross-platform-determinism",
+        "reason": "Rules for scripts whose output a repo commits and CI diffs; prose only."
+      },
+      {
+        "name": "declarative-visualization",
+        "reason": "Vega-Lite, Deneb and SVG authoring with a local spec linter."
+      },
+      {
+        "name": "diff-budget",
+        "reason": "Per-PR file-count and line-count budget discipline; prose only."
+      },
+      {
+        "name": "draft-agent-brief",
+        "reason": "Turns a business need into an agent brief; prose only."
+      },
+      {
+        "name": "game-theory-basics",
+        "reason": "Short reference for strategic-interaction reasoning; prose only."
+      },
+      {
+        "name": "new-worktree",
+        "reason": "Creates an isolated git worktree under .claude/worktrees/."
+      },
+      {
+        "name": "permission-hygiene",
+        "reason": "Diagnoses a project's Claude Code permission setup; reads settings, writes nothing."
+      },
+      {
+        "name": "prompt-pattern-library",
+        "reason": "Catalog of applied prompt patterns; prose only."
+      },
+      {
+        "name": "pseudonymize",
+        "reason": "Reversibly pseudonymizes names and entities in text before it is shared; local script."
+      },
+      {
+        "name": "quantitative-problem-solving",
+        "reason": "Structured approach to estimation and quantitative problems; prose only."
+      },
+      {
+        "name": "ravenclaude-core-orchestration",
+        "reason": "How the Team Lead picks a surface and dispatches specialists; prose only."
+      },
+      {
+        "name": "repo-review",
+        "reason": "Whole-repo bug sweep across eight dimensions; chunked, cached, subagent-based."
+      },
+      {
+        "name": "run-full-test-suite",
+        "reason": "Runs the project's full quality gate in order; prose only."
+      },
+      {
+        "name": "spawn-team",
+        "reason": "Team Lead dispatch playbook: surface first, then specialist, then tier."
+      },
+      {
+        "name": "spec-reread-ritual",
+        "reason": "Re-read the spec before each task of a multi-task build; prose only."
+      },
+      {
+        "name": "structured-output",
+        "reason": "Every sub-agent handoff ends with one machine-readable result block; prose only."
+      },
+      {
+        "name": "svg-report-lint",
+        "reason": "Lints a standalone SVG for geometry, legibility and unsafe content; local script."
+      },
+      {
+        "name": "wall-handling",
+        "reason": "What to do when the same tool keeps failing the same way; prose only."
+      },
+      {
+        "name": "webfetch-hardening",
+        "reason": "Documents the local stdlib sanitizer that the architect and prompt-engineer agents tell Claude to run over fetched page bodies; no network."
+      }
+    ],
+    "commands": [
+      {
+        "name": "init-agent-ready",
+        "reason": "Scaffolds AGENTS.md, CLAUDE.md, .repo-layout.json and an optional CI workflow for your repo."
+      },
+      {
+        "name": "repo-review",
+        "reason": "Whole-repo bug sweep across eight dimensions."
+      },
+      {
+        "name": "dashboard",
+        "reason": "Opens the hosted posture editor and saves your pasted posture (edition override; the local dashboard server is not included)."
+      }
+    ],
+    "hooks": [
+      {
+        "id": "dashboard-prompt.sh",
+        "reason": "The one setup prompt; speaks only when no posture file exists.",
+        "summary": "Prints one fixed line when no posture file exists, saying how to open the posture editor, and one when a posture file exists but you have not trusted the project (the hooks are off). Writes nothing. Silence it with `RC_DASHBOARD_PROMPT=off`, or by creating the posture file and trusting the project.",
+        "ungated": true,
+        "ungated_reason": "It exists to run when the posture file is absent; it prints one fixed line and writes nothing."
+      },
+      {
+        "id": "runaway-brake.sh",
+        "reason": "Opt-in (a posture file AND your trust in the project as it now is), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
+        "summary": "Blocks a tool call that repeats identically 8 times in a row, or any call once a session passes 1,200; both limits, and `runaway: off`, are set in your posture file. Keeps a per-session counter under `.ravenclaude/runs/`. On the 2nd identical mutating call in a row it also adds a one-line hint to Claude (once per streak)."
+      },
+      {
+        "id": "enforce-git-protocol.sh",
+        "reason": "Opt-in (a posture file AND your trust in the project as it now is), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
+        "summary": "Warns on `git commit -m` subjects that are not `type(scope): subject` and on new branch names without a standard prefix; `git_protocol: block` makes those blocks, `off` silences it. Never blocks a push. May append to `.ravenclaude/runs/<session>/hook-events.jsonl`. It only reads the command Claude is about to run; it never runs git."
+      },
+      {
+        "id": "enforce-layout.sh",
+        "reason": "Opt-in (a posture file AND your trust in the project as it now is), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
+        "summary": "Denies a write that matches no `allowed_globs` entry in your project's `.repo-layout.json` (nothing happens if you have none). May append to `hook-events.jsonl`."
+      },
+      {
+        "id": "claim-grounding-lint.sh",
+        "reason": "Opt-in (a posture file AND your trust in the project as it now is), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
+        "summary": "Advisory text (shown to you and passed to Claude as context; it can quote the offending line) when an unhedged absolute or causal claim is written into a `knowledge/` or `docs/` markdown file. Never blocks."
+      },
+      {
+        "id": "delegation-nudge.sh",
+        "reason": "Opt-in (a posture file AND your trust in the project as it now is), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
+        "summary": "Advisory text (shown to you and passed to Claude as context; it can quote the offending line) when a `knowledge/` or `docs/` file tells the reader to 'open the portal and check' something. Never blocks."
+      },
+      {
+        "id": "guard-recursive-spawn.sh",
+        "reason": "Opt-in (a posture file AND your trust in the project as it now is), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
+        "summary": "Advisory text when an agent definition (`plugins/*/agents/*.md`) is edited to tell the agent to spawn further sub-agents. Never blocks."
+      },
+      {
+        "id": "ask-on-ambiguity.sh",
+        "reason": "Opt-in (a posture file AND your trust in the project as it now is), local only. Measured inert with no posture file and with an untrusted one, and hostile-posture-safe in a trusted project.",
+        "summary": "Adds a one-line hint asking Claude to ask one question when a short prompt names nothing concrete. Never blocks or alters the prompt. `ask_on_ambiguity: off` silences it."
+      }
+    ]
+  },
+  "overrides": {
+    "commands/dashboard.md": "overrides/commands/dashboard.md"
+  },
+  "deny_globs": [
+    {
+      "glob": "CLAUDE.md",
+      "reason": "Plugin-root constitution; 590 KB and not loaded as project context."
+    },
+    {
+      "glob": "CHANGELOG.md",
+      "reason": "460 KB; history lives in the source repo."
+    },
+    {
+      "glob": "concepts.json",
+      "reason": "448 KB dashboard data."
+    },
+    {
+      "glob": "GEMINI.md",
+      "reason": "Other host."
+    },
+    {
+      "glob": "gemini-extension.json",
+      "reason": "Other host."
+    },
+    {
+      "glob": "pattern-explanations.json",
+      "reason": "Dashboard data."
+    },
+    {
+      "glob": "dashboard-schema.json",
+      "reason": "Dashboard data."
+    },
+    {
+      "glob": "dashboard.html",
+      "reason": "11 MB; hard limit is 5 MiB. Replaced by the hosted portal."
+    },
+    {
+      "glob": "dashboard-assets/**",
+      "reason": "Dashboard assets."
+    },
+    {
+      "glob": "bin/**",
+      "reason": "bin/ makes a listing Claude-Code-only and holds claude-launch-guard, which edits shell rc files."
+    },
+    {
+      "glob": "monitors/**",
+      "reason": "Experimental component; a background watcher."
+    },
+    {
+      "glob": "copilot/**",
+      "reason": "Other host."
+    },
+    {
+      "glob": "codex/**",
+      "reason": "Other host."
+    },
+    {
+      "glob": "vscode-extension/**",
+      "reason": "Other host."
+    },
+    {
+      "glob": "hooks/tests/**",
+      "reason": "Fixtures contain deliberately hostile strings."
+    },
+    {
+      "glob": "**/tests/**",
+      "reason": "Test fixtures; deliberately hostile strings."
+    },
+    {
+      "glob": "**/__pycache__/**",
+      "reason": "Bytecode."
+    },
+    {
+      "glob": "knowledge/tree-visuals/**",
+      "reason": "1,019 dashboard SVGs."
+    },
+    {
+      "glob": "knowledge/concepts/**",
+      "reason": "Dashboard concept cards."
+    },
+    {
+      "glob": "skills/skill-index/**",
+      "reason": "371 KB index of every skill."
+    },
+    {
+      "glob": "hooks/*.sh",
+      "reason": "Hooks not in the manifest do not ship; shipped hooks and _-prefixed helpers are exempt below.",
+      "except": ["hooks/_*.sh"]
+    },
+    {
+      "glob": "scripts/claude-orchestrate.sh",
+      "reason": "Spawns a nested `claude -p`; no shipped component may start another model session."
+    },
+    {
+      "glob": "scripts/thing-decide.py",
+      "reason": "Tribunal engine; spawns nested `claude -p` seats."
+    },
+    {
+      "glob": "knowledge/concerns-catalog.md",
+      "reason": "Tribunal constitution; the tribunal does not ship."
+    },
+    {
+      "glob": "scripts/serve-dashboards.py",
+      "reason": "Local dashboard server; the edition has no dashboard."
+    },
+    {
+      "glob": "scripts/spectate_store.py",
+      "reason": "Spectate livestream store."
+    },
+    {
+      "glob": "scripts/routine-reserve.py",
+      "reason": "Routine token reserve: reads a user-configured private GitHub repo."
+    },
+    {
+      "glob": "knowledge/routine-token-reserve.md",
+      "reason": "Documents the routine token reserve, which does not ship."
+    },
+    {
+      "glob": "templates/routine-reserve/**",
+      "reason": "Routine token reserve prompts."
+    },
+    {
+      "glob": "scripts/conserve-tokens.py",
+      "reason": "Posture-driven parallelism/conserve engine; not part of the edition."
+    },
+    {
+      "glob": "scripts/parallelism-detector.py",
+      "reason": "Posture-driven parallelism detector; not part of the edition."
+    },
+    {
+      "glob": "scripts/archive-branch.sh",
+      "reason": "Deletes a local branch and pushes a tag to origin."
+    },
+    {
+      "glob": "scripts/cleanup-branches.sh",
+      "reason": "Deletes branches."
+    },
+    {
+      "glob": "scripts/branch-hygiene.sh",
+      "reason": "Branch deletion helper."
+    },
+    {
+      "glob": "scripts/handoff-nudge.py",
+      "reason": "Handoff nudge engine; the handoff family is not in the first edition."
+    },
+    {
+      "glob": "scripts/context-handoff.py",
+      "reason": "Writes handoff briefs; its `fill` mode delegates to a nested model."
+    },
+    {
+      "glob": "knowledge/orchestrator-data-egress.md",
+      "reason": "Documents the nested-orchestrator egress path, which does not ship."
+    },
+    {
+      "glob": "knowledge/cross-session-messaging.md",
+      "reason": "Documents peer-session messaging, which does not ship."
+    },
+    {
+      "glob": "knowledge/codex-cli-customization.md",
+      "reason": "Other host."
+    },
+    {
+      "glob": "knowledge/github-gold-standard-repos.md",
+      "reason": "Marketplace-maintenance reference."
+    },
+    {
+      "glob": "scripts/context-usage-meter.py",
+      "reason": "Context meter for the handoff nudge, which is not in the first edition; it reads ~/.claude transcripts."
+    },
+    {
+      "glob": "knowledge/model-catalog.json",
+      "reason": "Model-id catalog used only by the context meter."
+    },
+    {
+      "glob": "scripts/apply-comfort-posture.py",
+      "reason": "Rewrites the user's global ~/.claude/settings.json permissions from a project posture file (replaces, not merges) and probes `claude auth status`; a cloned repo's posture must never reach that path."
+    },
+    {
+      "glob": "scripts/forge-*",
+      "reason": "The /forge family does not ship in the first edition: it writes under ~/.grok, provisions worktrees and falls back to project-relative script paths."
+    },
+    {
+      "glob": "scripts/resolve-plugin-root.sh",
+      "reason": "Searches the project for the plugin root; the edition resolves paths with ${CLAUDE_PLUGIN_ROOT} only."
+    },
+    {
+      "glob": "scripts/premise-gate.py",
+      "reason": "Part of the /forge family, which does not ship in the first edition."
+    },
+    {
+      "glob": "skills/visual-feedback-loop/**",
+      "reason": "driver.py computes the repo root as four directories above itself (the maintainer's repo layout). Installed from a marketplace that is the plugin cache, so every project path is refused and the skill cannot run; fix it at the source first."
+    },
+    {
+      "glob": "hooks/remind-tests.sh",
+      "reason": "Runs `git status` in the project. Git runs the programs a repository's own .git/config names (core.fsmonitor, filter.<name>.clean), and no flag switches the filter drivers off, so a repository that arrived as an archive can have a hook run its command. Cut rather than weakened: its only job is a one-line reminder."
+    }
+  ],
+  "closure_allow": [
+    {
+      "from": "scripts/dashboard-prompt.sh",
+      "to": "bin/rc",
+      "reason": "A presence test, not a dependency: the script prints the hosted-page wording precisely because bin/rc is absent from this edition."
+    },
+    {
+      "from": "scripts/apply-comfort-posture.py",
+      "to": "hooks/ensure-default-mode.sh",
+      "reason": "Docstring mention of a hook that does not ship; the script never opens it."
+    },
+    {
+      "from": "scripts/pseudonymize-brief.py",
+      "to": "knowledge/orchestrator-data-egress.md",
+      "reason": "Docstring pointer to a document about the nested-orchestrator path that does not ship; the script never opens it."
+    },
+    {
+      "from": "skills/repo-review/scripts/block_planner.py",
+      "to": "scripts/forge-worktree.sh",
+      "reason": "A docstring names forge-route.py/forge-worktree.sh as examples of self-tested helpers; nothing is imported, read or run."
+    }
+  ],
+  "network_classification": {
+    "hooks/delegation-nudge.sh": {
+      "kind": "text-only",
+      "reason": "`curl ` is one alternative in a regex that recognises a 'go check it manually' phrase in a document being written; nothing is fetched.",
+      "primitives": ["curl"],
+      "hosts": []
+    },
+    "hooks/runaway-brake.sh": {
+      "kind": "text-only",
+      "reason": "`curl`/`wget` appear in a list of command words that mark a Bash call as mutating; the hook only reads the command string.",
+      "primitives": ["curl", "wget"],
+      "hosts": []
+    },
+    "skills/svg-report-lint/lint.py": {
+      "kind": "text-only",
+      "reason": "w3.org URLs are XML namespace identifiers compared against parsed SVG; nothing is fetched.",
+      "primitives": [],
+      "hosts": ["www.w3.org"]
+    }
+  },
+  "extra_roots": [
+    {
+      "glob": "templates/agent-ready-repo/**",
+      "reason": "The /init-agent-ready command names these templates by family (AGENTS.md, CLAUDE.md, CI workflows, CODEOWNERS); only one is named by path, so closure alone would ship a command with missing templates."
+    }
+  ],
+  "hook_audit": {
+    "allowed_output": ["dashboard-prompt.sh"],
+    "write_dirs": ["ravenclaude"],
+    "allowed_execs": [
+      "awk",
+      "bash",
+      "cat",
+      "cksum",
+      "cut",
+      "date",
+      "dirname",
+      "flock",
+      "grep",
+      "head",
+      "jq",
+      "mkdir",
+      "mktemp",
+      "python3",
+      "rm",
+      "sed",
+      "tr",
+      "wc",
+      "sh",
+      "basename",
+      "env",
+      "ls",
+      "stat",
+      "sort",
+      "uniq",
+      "touch",
+      "sleep",
+      "readlink",
+      "realpath",
+      "find",
+      "xargs",
+      "tee",
+      "expr",
+      "id",
+      "sha256sum",
+      "shasum"
+    ],
+    "reason": "Programs the shipped hooks are allowed to start. The measured set was awk, bash, cat, cksum, cut, date, dirname, flock, grep, head, jq, mkdir, mktemp, python3, rm, sed, tr, wc, plus sha256sum or shasum in the posture gate; the rest are ordinary coreutils that a shell may start on another platform. Anything else (curl, wget, nc, ssh, gh, claude, npx, osascript...) fails the build."
+  },
+  "secret_scan_allow": [
+    {
+      "file": "hooks/_scrub.sh",
+      "reason": "The scrubber's own pattern literal for URLs with embedded credentials, and the example in the comment above it; it is the definition of what to redact, not a credential."
+    }
+  ],
+  "python_isolation_allow": [
+    {
+      "file": "knowledge/claude-code-permissions.md",
+      "reason": "Documents the attack a Read deny does NOT stop (a script Claude writes). It is the example being warned about, not an instruction to run it."
+    },
+    {
+      "file": "scripts/pseudonymize.py",
+      "reason": "Two error strings tell the USER to run `python -m spacy download ...`; the script never runs python on a project file."
+    }
+  ],
+  "runnable_path_allow": [],
+  "text_edits": [
+    {
+      "file": "agents/code-reviewer.md",
+      "find": "**Use the ledger — do not do this by memory.** `scripts/review-ledger.py` persists findings per round\nand does the comparison for you:\n\n```bash\npython3 scripts/review-ledger.py next-round-brief    # what to re-check FIRST, and the diff to scope to\npython3 scripts/review-ledger.py reopen-check --round N   # exit 2 = something reopened\npython3 scripts/review-ledger.py converge-report     # regression share; says when to stop\n```\n\nIt fingerprints findings so a fix that shifts line numbers does not read as a new finding — the thing\na by-hand comparison gets wrong first.",
+      "replace": "**Keep the ledger by hand.** The RavenClaude marketplace repository has a `review-ledger` script that does this comparison; this edition does not ship it. Write each finding down with a fingerprint that does not depend on line numbers (file, symptom, the line's text), and carry that list into the next round, so a fix that shifts line numbers does not read as a new finding.",
+      "reason": "The ledger script lives in the marketplace repository, not in the plugin. Left as written, the agent would run `python3 scripts/review-ledger.py` inside the user's project - a path the project, not the plugin, controls."
+    },
+    {
+      "file": "skills/cross-platform-determinism/SKILL.md",
+      "find": "python scripts/generate-index-dashboard.py",
+      "replace": "python scripts/<your-generator>.py",
+      "count": 2,
+      "reason": "Names the maintainer's own generator, which the edition does not ship; an example must not read as a command to run in the user's project."
+    },
+    {
+      "file": "rules/git-workflow.md",
+      "find": "That case routes to\n>   [`${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-branches.sh`](../scripts/cleanup-branches.sh), the **one**\n>   sanctioned `-D` escape hatch (house rule 5) — do not add a second force-delete path.",
+      "replace": "In the full plugin that case routes to\n>   `cleanup-branches.sh`, the **one** sanctioned `-D` escape hatch (house rule 5). This edition does not\n>   ship that script: do not force-delete a branch yourself, and ask the user before any `-D`.",
+      "reason": "The rule names a deletion helper this edition does not ship. Left as written, an agent would look for it, not find it, and might improvise a force-delete."
+    },
+    {
+      "file": "rules/git-workflow.md",
+      "find": "**Run it:** [`${CLAUDE_PLUGIN_ROOT}/scripts/branch-hygiene.sh`](../scripts/branch-hygiene.sh) implements\nall four gates,",
+      "replace": "**Run it (full plugin only; this edition does not ship `branch-hygiene.sh`, so apply the four gates by hand with plain `git`, one branch at a time, and never `-D`):** `branch-hygiene.sh` implements\nall four gates,",
+      "reason": "The sweep script is not part of this edition (it deletes branches)."
+    },
+    {
+      "file": "rules/git-workflow.md",
+      "find": "that case needs\n[`${CLAUDE_PLUGIN_ROOT}/scripts/archive-branch.sh`](../scripts/archive-branch.sh), which tags the tip so\nit stays recoverable.",
+      "replace": "that case needs\n`archive-branch.sh` (full plugin only; not in this edition), which tags the tip so\nit stays recoverable. Without it, leave the branch alone and tell the user.",
+      "reason": "The archive script is not part of this edition (it pushes a tag to origin)."
+    },
+    {
+      "file": "skills/repo-review/workflows/repo-sweep.workflow.js",
+      "find": "// ─── The plugin-root fallback path prefix (this repo's own convention: a\n// consumer gets the installed-cache CLAUDE_PLUGIN_ROOT; developing the plugin\n// inside the marketplace repo itself falls back to the marketplace-relative\n// path). Every sibling script + dimensions.md is resolved through this so the\n// workflow is portable to any consumer repo, not just this marketplace. ────\nconst PLUGIN_ROOT_EXPR = \"${CLAUDE_PLUGIN_ROOT:-plugins/ravenclaude-core}\";\nconst SCRIPTS_DIR = `${PLUGIN_ROOT_EXPR}/skills/repo-review/scripts`;\nconst DIMENSIONS_MD = `${PLUGIN_ROOT_EXPR}/skills/repo-review/reference/dimensions.md`;",
+      "replace": "// ─── The plugin root. The /repo-review skill passes it in as args.pluginRoot (the skill text carries the\n// absolute path Claude Code substituted), and this workflow REFUSES to start without it. There is\n// deliberately no fallback: any relative or project-local default would name a directory inside the\n// repository under review, which may be hostile, and the scripts would run from there. ─────────────────\nconst PLUGIN_ROOT_EXPR =\n  args && typeof args === \"object\" && typeof args.pluginRoot === \"string\" ? args.pluginRoot.trim() : \"\";\nif (!/^\\/[A-Za-z0-9._\\-/~]+$/.test(PLUGIN_ROOT_EXPR) || PLUGIN_ROOT_EXPR.split(\"/\").includes(\"..\")) {\n  return {\n    error:\n      `repo-sweep needs args.pluginRoot, the absolute path of the installed plugin (letters, digits, \"._-/~\" only, ` +\n      `no \"..\"). Got: ${JSON.stringify(args && args.pluginRoot)}. Pass the plugin root the /repo-review skill ` +\n      `shows you; this workflow never guesses one, because a guessed path could lie inside the project.`,\n  };\n}\nconst SCRIPTS_DIR = `${PLUGIN_ROOT_EXPR}/skills/repo-review/scripts`;\nconst DIMENSIONS_MD = `${PLUGIN_ROOT_EXPR}/skills/repo-review/reference/dimensions.md`;",
+      "reason": "Claude Code substitutes only the bare token ${CLAUDE_PLUGIN_ROOT}; the ${VAR:-default} form is left as text and the shell then expands it to the fallback, a path relative to the project. In a cloned project that is attacker-controlled code run with the user's permissions. The edition's workflow takes a validated absolute args.pluginRoot and returns an error without it."
+    },
+    {
+      "file": "skills/repo-review/workflows/repo-sweep.workflow.js",
+      "find": "`Run this exact command (the shell expands ${PLUGIN_ROOT_EXPR} to the installed plugin root):`,",
+      "replace": "`Run this exact command (${PLUGIN_ROOT_EXPR} is the absolute path of the installed plugin):`,",
+      "reason": "The sentence described the removed shell-expansion fallback and would mislead the agent that reads it."
+    },
+    {
+      "file": "skills/repo-review/SKILL.md",
+      "find": "${CLAUDE_PLUGIN_ROOT:-plugins/ravenclaude-core}/skills/repo-review/scripts/",
+      "replace": "${CLAUDE_PLUGIN_ROOT}/skills/repo-review/scripts/",
+      "count": 2,
+      "reason": "Claude Code substitutes only the bare token ${CLAUDE_PLUGIN_ROOT}; the ${VAR:-default} form is left as text and the shell then expands it to the fallback, a path relative to the project. In a cloned project that is attacker-controlled code run with the user's permissions. The two recovery commands use the bare token, which Claude Code substitutes in skill text."
+    },
+    {
+      "file": "skills/repo-review/SKILL.md",
+      "find": "## Why `low`/`medium` are refused, not degraded",
+      "replace": "> **Where the scripts live (this edition).** Every script and reference file named in this skill sits under\n> `${CLAUDE_PLUGIN_ROOT}/skills/repo-review/`. Always run them by that absolute path, never by a path relative\n> to the repository under review: that repository may be hostile, and a same-named file in it would run with\n> your permissions. When you start `workflows/repo-sweep.workflow.js` through the `Workflow` tool, pass\n> `pluginRoot: \"${CLAUDE_PLUGIN_ROOT}\"` in `args` (that exact absolute path); the workflow refuses to start\n> without it and has no fallback. Review only a repository you would be willing to run `git status` in: git\n> runs the filter and diff programs that repository's own `.git/config` names, and no flag this skill passes\n> turns those off.\n\n## Why `low`/`medium` are refused, not degraded",
+      "reason": "Tells the agent to run the skill's scripts by absolute path and to pass pluginRoot to the workflow; without it the workflow refuses to start."
+    },
+    {
+      "file": "hooks/runaway-brake.sh",
+      "find": "_payload_cwd=\"$cwd\"\n# A RELATIVE payload cwd (the Copilot adapter supplies \".\" when both .cwd and\n# .workspaceRoot are absent) makes the walk-up below spin forever: `dirname .`\n# is `.`, a fixed point that is neither empty nor \"/\". Resolve it to an absolute\n# path first, and add a fixed-point break as a belt-and-suspenders (a Windows\n# drive root or an unresolvable path would otherwise hang the PreToolUse brake\n# until the host's command-hook timeout — inert for every non-adopter).\ncase \"$_payload_cwd\" in\n  /*) : ;;\n  *) _payload_cwd=\"$(cd \"$_payload_cwd\" 2>/dev/null && pwd)\" || _payload_cwd=\"$PWD\" ;;\nesac\n[ -n \"$_payload_cwd\" ] || _payload_cwd=\"$PWD\"\nroot=\"\"\n_d=\"$_payload_cwd\"\nwhile [ -n \"$_d\" ] && [ \"$_d\" != \"/\" ]; do\n  if [ -d \"${_d}/.ravenclaude\" ]; then\n    root=\"$_d\"\n    break\n  fi\n  _p=\"$(dirname \"$_d\")\"\n  [ \"$_p\" = \"$_d\" ] && break\n  _d=\"$_p\"\ndone\nif [ -z \"$root\" ] && [ -n \"${CLAUDE_PROJECT_DIR:-}\" ] && [ -d \"${CLAUDE_PROJECT_DIR}/.ravenclaude\" ]; then\n  root=\"$CLAUDE_PROJECT_DIR\"\nfi\n[ -n \"$root\" ] || root=\"$_payload_cwd\"\ncwd=\"$root\"",
+      "replace": "# Edition: posture and state live in the project the person opened (CLAUDE_PROJECT_DIR), never in a directory\n# found by walking up from the payload's cwd. That cwd is wherever the session last changed directory, which can\n# be inside a cloned repository's vendored directory whose own .ravenclaude/ was never trusted, or whose\n# runs/ is a symlink out of the project. A host that sets no CLAUDE_PROJECT_DIR falls back to the payload cwd.\nroot=\"${CLAUDE_PROJECT_DIR:-$cwd}\"\ncwd=\"$root\"",
+      "reason": "The source walks up from the payload's cwd and uses the FIRST .ravenclaude/ it finds, so a posture or a runs/ symlink inside a vendored directory of a cloned repository is honoured even though the posture gate only vetted the project root. The edition resolves the root from CLAUDE_PROJECT_DIR only. (The source keeps the walk-up: it exists for per-worktree isolation in the full plugin.)"
+    },
+    {
+      "file": "skills/permission-hygiene/SKILL.md",
+      "find": "Abstract to one `Bash(python3 -m json.tool:*)`.",
+      "replace": "Abstract to one `Bash(jq . *)` rule instead. Do not fold them into a `Bash(python3 -m json.tool:*)` rule, even with `-I`: its second argument is a file it OVERWRITES, so a broad rule hands out a file overwrite without a prompt.",
+      "reason": "The source recommends `Bash(python3 -m json.tool:*)`, which lets a prompt-injected session overwrite any file (json.tool writes its second argument). jq only reads."
+    },
+    {
+      "file": "skills/permission-hygiene/SKILL.md",
+      "find": "(e.g. multiple `python3 -m json.tool <path>`)",
+      "replace": "(e.g. multiple `Bash(python3 -m json.tool <path>)` rules)",
+      "reason": "Describes rules the user already has, so it is not an instruction to run python; spelled as the rule text so the build's python-without--I lint does not mistake it for one."
+    },
+    {
+      "file": "skills/repo-review/workflows/repo-sweep.workflow.js",
+      "find": "  const dodReceipt = await agent(\n    [\n      `Check whether ${joinPath(REPO_PATH, \".ravenclaude/comfort-posture.yaml\")} exists and defines a top-level \"definition_of_done\" block with a \"cmd\" field.`,\n      `If it does NOT: return {ran: false, passed: null, output_tail: \"\"}.`,\n      `If it DOES: run that exact command inside ${REPO_PATH}, capture its exit code and the last ~40 lines of combined output.`,\n      `Do NOT revert, stash, or discard the fix changes regardless of the result — report only. Do NOT commit, stage, or push.`,\n      `Return ONLY structured output: {ran: <bool>, passed: <bool|null>, output_tail: \"<last lines, truncated>\"}.`,\n    ].join(\"\\n\"),\n    { label: \"fix:definition-of-done\", phase: \"Fix\", schema: DOD_RESULT_SCHEMA },\n  ).catch(() => null);",
+      "replace": "  // Edition: the source runs the `definition_of_done.cmd` read from the reviewed repository's own posture\n  // file here. That file is the repository's, not the user's, so the command is attacker-chosen input.\n  // This edition never runs it; the fix pass reports its patch and stops.\n  const dodReceipt = null;",
+      "reason": "The source tells an agent to read definition_of_done.cmd from <repo>/.ravenclaude/comfort-posture.yaml and run it. A hostile repository ships that file, and trust does not apply to a repository being reviewed, so the only barrier would be one Bash prompt. Removed in the edition."
+    },
+    {
+      "file": "skills/run-full-test-suite/SKILL.md",
+      "find": "Detect them once and cache the answer in this file's `## Project commands` section below; subsequent runs use the cache.",
+      "replace": "Detect them on each run. Do not cache them in this file: it ships inside the plugin and is shared by every project you open, so a command learned in one repository would run in all the others.",
+      "reason": "The source caches detected commands in the installed SKILL.md, which every project shares: commands learned in a hostile repository would persist and run in every later project."
+    },
+    {
+      "file": "skills/run-full-test-suite/SKILL.md",
+      "find": "If the cache block below is empty AND detection (see rules above) finds nothing",
+      "replace": "If detection (see rules above) finds nothing",
+      "reason": "The cache block no longer exists in the edition."
+    },
+    {
+      "file": "skills/run-full-test-suite/SKILL.md",
+      "find": "(a) fill in the `## Project commands` block at the bottom of this\n           skill file with the gates your project does have, OR",
+      "replace": "(a) tell me the gates your project does have (or put them in its\n           CLAUDE.md), OR",
+      "reason": "Do not tell the reader to write into the shared skill file."
+    },
+    {
+      "file": "skills/run-full-test-suite/SKILL.md",
+      "find": "## Project commands (filled in on first run)\n<!-- Edit this block once with the project's actual commands -->",
+      "replace": "## Project commands (not used in this edition)\n<!-- This file is shared by every project. Never write one project's commands here. -->",
+      "reason": "Marks the placeholder block as unused."
+    },
+    {
+      "file": "commands/init-agent-ready.md",
+      "find": "`bash .github/scripts/setup-branch-protection.sh` is read-only",
+      "replace": "Run it ONLY if `.github/scripts/setup-branch-protection.sh` is byte-for-byte the template you just copied (check with `cmp \"${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/setup-branch-protection.sh.template\" .github/scripts/setup-branch-protection.sh`); a file that was already there belongs to the repository and must not be run. The template is read-only:\n  `bash .github/scripts/setup-branch-protection.sh`",
+      "reason": "The command never overwrites an existing file, so a repository that already ships .github/scripts/setup-branch-protection.sh would have Claude run the repository's own script and call it safe. The edition runs it only when it is identical to the plugin's template."
+    },
+    {
+      "file": "commands/init-agent-ready.md",
+      "find": "1. The plugin's enforce-layout hook is already active — it will read .repo-layout.json on every Write/Edit and block off-pattern paths.",
+      "replace": "1. The plugin's enforce-layout hook reads .repo-layout.json on every Write/Edit and blocks off-pattern paths once the project has a comfort posture and you have trusted it (run /dashboard).",
+      "reason": "In the directory edition every hook except one setup line is off until the person trusts the project."
+    }
+  ]
+}

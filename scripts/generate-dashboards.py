@@ -1315,6 +1315,12 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "when seed leftovers match. Never writes posture, never denies, never inspects a "
     "tool call — same class as thing-denial-kb-recall.sh, so deliberately NOT a "
     "Pipeline stage card",
+    "dashboard-prompt.sh": "SessionStart discoverability prompt. Speaks only when the "
+    "project has no .ravenclaude/comfort-posture.yaml: one fixed-text line (systemMessage "
+    "for the person + additionalContext for the agent) pointing at /dashboard and the "
+    "opt-in dashboard_autostart knob. Writes nothing, starts nothing, never blocks; silent "
+    "once the posture file exists. An onboarding pointer, not a safety-floor guardrail — "
+    "same class as alias-deprecation-advisory.sh — so deliberately NOT a Pipeline stage card",
     "emit-permission-denied.sh": "PermissionDenied substrate (ENH-006). After auto mode "
     "(or the permission system) denies a tool call, appends ONE derived deny line to "
     "hook-events.jsonl via _emit-event.sh so Heimdall and workaround-exhaustion.sh can "
