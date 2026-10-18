@@ -215,7 +215,10 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 82, // 81 -> 82: dashboard-prompt.sh WIRED on SessionStart(startup|resume|clear|fork)
+  hooks: 85, // 82 -> 85: env-integrity-guard.sh WIRED on PreToolUse(*) + SessionStart(startup|resume|clear|fork),
+  //   pretool-record-check.sh WIRED on PostToolUse (AppSec hook-env, core 0.355.9).
+  //   COUNTED, not inferred: hooks.json on this tree holds 85 registrations.
+  //        81 -> 82: dashboard-prompt.sh WIRED on SessionStart(startup|resume|clear|fork)
   //   (unconfigured-project dashboard prompt, core 0.353.0 — fixed text, writes nothing).
   //   COUNTED, not inferred: hooks.json on this tree holds 82 registrations.
   //   79 -> 81: spectate-emit WIRED on PermissionDenied + StopFailure (Spectate v0.16).

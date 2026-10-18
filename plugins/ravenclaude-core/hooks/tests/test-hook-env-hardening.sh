@@ -284,7 +284,7 @@ python3 "$LL" --self-test >/dev/null 2>&1 && pass "9 check-hook-launch-line.py -
 rc=0; python3 "$LL" --must-fail >/dev/null 2>&1 || rc=$?
 [ "$rc" -eq 3 ] && pass "9 --must-fail: a bare command is caught (exit 3)" || fail "9 --must-fail exit $rc"
 M9="$TMP/m9"; mkdir -p "$M9/plugins/demo/hooks"
-for bad in 'bash "${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"' \
+for bad in 'bash "${CLAUDE_PLUGIN_ROOT}/hooks/guard-destructive.sh"' \
            "$(jq -r '.hooks.PreToolUse[1].hooks[0].command' "$HJ"); touch /tmp/x" \
            "$(jq -r '.hooks.PreToolUse[1].hooks[0].command' "$HJ" | sed 's|-u BASH_ENV ||')"; do
   jq -n --arg c "$bad" '{hooks:{PreToolUse:[{matcher:"*",hooks:[{type:"command",command:$c}]}]}}' >"$M9/plugins/demo/hooks/hooks.json"

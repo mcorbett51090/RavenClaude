@@ -16,6 +16,8 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 ### Testing
 - **`hooks/tests/test-hook-env-hardening.sh` (Gate 305, `security` suite) covers the hardening.** It runs the real `hooks.json` commands the way Claude Code does, through `env` plus the planted keys and `/bin/sh -c`, in scratch repos. It uses harmless markers and a stub `claude`. The cases cover a planted PATH with a fake `jq` and `bash`, `BASH_ENV`, `LD_PRELOAD` and `THING_SEAT_ACTIVE`; the same keys in `settings.local.json`; malformed, empty and unreadable settings, including the case where `jq` is missing; benign keys; inherited runtime env; the static launch-line check; the seat-child lock in both directions; and the missing-record warning. On macOS it runs through the `macos-latest` gate-audit shards.
 
+- **Learn tab: new inventory concept `project-settings-env-reaches-hooks`.** It records the measured mechanism (project `env` reaches every hook through `sh -c`), the probe, and the falsifier, and covers the new hooks for the inception gate. The dashboard island-payload budget is raised by one row to 33,150, measured at 33,142.
+
 ## 0.355.8 — 2026-10-18
 
 ### Security

@@ -3505,7 +3505,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-10",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -3526,7 +3526,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:b974b27cfebb045bb5c8d4d7f1921c07c65af99ef921f27b0244d546079680c9",
+      "covers_digest": "sha256:f2e9635249190893666306ffdffa3b79c72fa0fce01f6e8c4faa543126ce3ab8",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -5000,6 +5000,60 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/scripts/headless-usage.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "project-settings-env-reaches-hooks",
+      "title": "A repo's settings env reaches every hook; the launch line and the guard close it",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 945,
+      "summary": "Project settings env (PATH, BASH_ENV, THING_SEAT_*) reaches hooks; a hardened launch line plus a quarantine guard stop it.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-10-18",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "Claude Code docs: What runs before you trust a folder (env block and settings hooks are used)",
+          "url": "https://code.claude.com/docs/en/permissions#what-runs-before-you-trust-a-folder"
+        },
+        {
+          "label": "Claude Code docs: hooks reference (shell form runs sh -c; a hook inherits the parent environment)",
+          "url": "https://code.claude.com/docs/en/hooks"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a hook runs with the user's own environment, so a cloned repository can only add\nhooks the user sees in `/hooks`, not change how RavenClaude's own hooks run.\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`. The old\ncommand form sources a planted `BASH_ENV` (marker written). Under the hardened launch line\nno marker is written, a fake `jq`/`bash` on a planted `PATH` is never used, and\n`env-integrity-guard.sh` denies the call with `project settings plant execution-control env\n(<keys>); this repo is quarantined`.\n\n## Why it matters\n\nThe `env` block is not a hook, so neither the trust dialog nor `/hooks` shows it, and a\n`claude -p` run applies it in a folder that was never trusted. Without the launch line a\nplanted `THING_SEAT_ACTIVE` would also have switched command review off. The seat-child\nlock (`_rc-runtime.sh`) and the pre-tool record check (`pretool-record-check.sh`) cover the\nrecursion guard and a review hook that never started.\n\nFalsifier: a hooks.json command without the hardened prefix, or a planted key that does not\ndeny. Probe: `plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/env-integrity-guard.sh",
+        "plugins/ravenclaude-core/hooks/_rc-runtime.sh",
+        "plugins/ravenclaude-core/hooks/pretool-record-check.sh",
+        "scripts/check-hook-launch-line.py"
+      ],
+      "covers_digest": "sha256:5abc09964ef9cb5ba15feab04c131ebf36a6acbeb984a7fa0ad5d2372f814e21",
+      "nuance": "Claude Code 2.1.260 exports project settings env into every hook (sh -c): a planted BASH_ENV ran in every bash hook, a planted PATH chose jq. The hardened launch line keeps them out; env-integrity-guard.sh denies every tool call. A real LD_PRELOAD library cannot be stopped, only refused.",
+      "nuance_evidence": {
+        "measured": "2026-10-18",
+        "control": "test-hook-env-hardening.sh: the pre-hardening 'bash \"${CLAUDE_PLUGIN_ROOT}/…\"' form DOES source a planted BASH_ENV; the hardened commands do not, and the guard denies",
+        "falsifier": "a hooks.json command without the /usr/bin/env -u … /bin/bash --noprofile --norc prefix, or a planted PATH/BASH_ENV/THING_SEAT_* key that does not deny",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/env-integrity-guard.sh; scripts/check-hook-launch-line.py",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

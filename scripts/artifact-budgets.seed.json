@@ -101,6 +101,11 @@
         "harness-spectate inventory entry (PR #1290 Gate 242/240/294, 2026-10-09)",
         33100,
         "PR #1290 Harness Spectate v0.1 adds inventory concept harness-spectate covering spectate_store.py, spectate_demo.py, spectate schema/capabilities, and check-spectate.py (Gate 294). Regenerating dashboard.html for Learn-tab parity measured island payload at 33,037 (over prior 33,000 by 37; largest panel learn-payload at 25,702) and 10,938,004 bytes (over prior 10,930,000 by 8,004). Same no-diagrams-for-inventory-entries shape as every prior wave — pure content-size raise, not a DOM control. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "project-settings-env-reaches-hooks inventory entry (AppSec hook-env, core 0.355.9, Gates 304/305, 2026-10-18)",
+        33150,
+        "The hook-env hardening (core 0.355.9) adds inventory concept project-settings-env-reaches-hooks covering env-integrity-guard.sh, _rc-runtime.sh, pretool-record-check.sh and check-hook-launch-line.py, to satisfy check-inception-coverage for the new hooks. Measured island payload 33,142 (over prior 33,100 by 42; largest panel learn-payload at 25,807). Same no-diagrams-for-inventory-entries shape as every prior wave; the Pipeline tab is unchanged because both hooks are listed in _PIPELINE_EXCLUDED_HOOKS with a reason. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [

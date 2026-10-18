@@ -43,6 +43,14 @@ payload=""
 
 _KEYS_RE='^(PATH|BASH_ENV|ENV|SHELLOPTS|BASHOPTS|IFS|PYTHONPATH|PYTHONSTARTUP|NODE_OPTIONS|PERL5OPT|RUBYOPT|GIT_SSH_COMMAND)$|^(LD_|DYLD_|GIT_CONFIG_|THING_SEAT_|RAVENCLAUDE_)'
 
+_PY_KEYS='import json, re, sys
+d = json.load(open(sys.argv[1], encoding="utf-8"))
+if not isinstance(d, dict): sys.exit(9)
+e = d.get("env", {})
+if not isinstance(e, dict): sys.exit(9)
+for k in e:
+    if re.search(sys.argv[2], k): print(k)'
+
 proj="${CLAUDE_PROJECT_DIR:-}"
 if [ -z "$proj" ] && command -v jq >/dev/null 2>&1; then
   proj="$(printf '%s' "$payload" | jq -r '.cwd // empty' 2>/dev/null || true)"
@@ -65,16 +73,8 @@ _keys_of() {
     [ -s "$f" ] || return 9
     [ "$rc" -eq 0 ] || return 9
   elif [ -x /usr/bin/python3 ]; then
-    out="$(/usr/bin/python3 -I - "$f" "$_KEYS_RE" <<'PY' 2>/dev/null
-import json, re, sys
-d = json.load(open(sys.argv[1], encoding="utf-8"))
-if not isinstance(d, dict): sys.exit(9)
-e = d.get("env", {})
-if not isinstance(e, dict): sys.exit(9)
-for k in e:
-    if re.search(sys.argv[2], k): print(k)
-PY
-)"; rc=$?
+    # No heredoc inside $( ): bash 3.2 (macOS /bin/bash) aborts at parse time on it.
+    out="$(/usr/bin/python3 -I -c "$_PY_KEYS" "$f" "$_KEYS_RE" 2>/dev/null)"; rc=$?
     [ "$rc" -eq 0 ] || return 9
   else
     return 9
