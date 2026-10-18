@@ -20,6 +20,9 @@
 #   * All tmp state is cleaned up on exit.
 
 set -uo pipefail
+# Hermetic: the decide engine's mock guard (thing-decide.py _mock_gate) limits a
+# mock to defer-only under a live session, so drop the caller's session markers.
+unset CLAUDECODE THING_DECIDE_LIVE_SESSION 2>/dev/null || true
 
 HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FAILED=0
@@ -140,7 +143,7 @@ rc=0
 printf '%s' "$AUQ_PAYLOAD" \
   | CLAUDE_PROJECT_DIR="$T2" CLAUDE_SESSION_ID="g50t2" \
     CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
-    THING_DECIDE_MOCK_VERDICT=yes \
+    THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes \
     bash "$HOOKS_DIR/route-decision-review.sh" >/dev/null 2>&1 || rc=$?
 
 if [[ -f "$LOG2" ]]; then

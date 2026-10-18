@@ -180,11 +180,148 @@ _ABSTAIN = {
 }
 
 
+# ── Test-hook guard (THING_DECIDE_MOCK_VERDICT / THING_DECIDE_MOCK_EVAL) ─────────
+# SECURITY (2026-10-18, follow-up to #1374's review): a cloned repo can plant these
+# test hooks through the `env` block of its .claude/settings.json, which Claude Code
+# exports into every hook process. Unguarded, THING_DECIDE_MOCK_VERDICT=yes would
+# make every routed yes/no auto-resolve "yes" under decision_review: binding. This
+# mirrors thing-seat.sh's _thing_mock_gate. A mock is honoured only when ALL hold:
+#   1. THING_DECIDE_ALLOW_MOCK=1 is set (harness marker; never sufficient alone);
+#   2. no project-scope settings file (settings.json / settings.local.json under
+#      $CLAUDE_PROJECT_DIR and the --root dir, else the git toplevel of cwd) has ANY
+#      THING_DECIDE_* key in .env. An unparseable file counts as planted;
+#   3. under a live session (CLAUDECODE set, or THING_DECIDE_LIVE_SESSION=1 from
+#      route-decision-review.sh when its payload carries transcript_path), the
+#      verdict mock may only produce a defer (abstain / inject / defer /
+#      heimdall-abstain). Any other value makes every seat abstain, and the eval
+#      mock is dropped.
+# Cases 1 and 2 fall through to the REAL seat. A planted THING_DECIDE_* key unsets
+# ALL of these test hooks, mock or not. User-scope ~/.claude/settings.json is
+# deliberately NOT consulted (a cloned repo cannot write it). No CI/env flag is used
+# as a trust signal.
+_DECIDE_TEST_HOOKS = (
+    "THING_DECIDE_MOCK_VERDICT",
+    "THING_DECIDE_MOCK_EVAL",
+    "THING_DECIDE_ALLOW_MOCK",
+)
+_LIVE_SAFE_VERDICT_MOCKS = frozenset({"abstain", "inject", "defer", "heimdall-abstain"})
+_MOCK_GATE_ROOT: Path | None = None  # set by decide() so --root is screened too
+_MOCK_GATE_CACHE: dict = {}
+
+
+def _settings_plants_decide_key(path: Path) -> bool:
+    """True if this settings file plants a THING_DECIDE_* env key, or exists but
+    cannot be read or parsed (fail closed)."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return True
+    if not isinstance(data, dict):
+        return True
+    env = data.get("env")
+    if env is None or env is False:
+        return False
+    if not isinstance(env, dict):
+        return True
+    return any(str(k).startswith("THING_DECIDE_") for k in env)
+
+
+def _mock_gate_roots() -> list[Path]:
+    roots: list[Path] = []
+    for cand in (os.environ.get("CLAUDE_PROJECT_DIR"), _MOCK_GATE_ROOT):
+        if cand:
+            p = Path(cand).resolve()
+            if p not in roots:
+                roots.append(p)
+    if roots:
+        return roots
+    try:
+        top = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        ).stdout.strip()
+    except Exception:
+        top = ""
+    return [Path(top)] if top else []
+
+
+def _planted_settings_file(roots: list[Path]) -> Path | None:
+    for root in roots:
+        for name in ("settings.json", "settings.local.json"):
+            f = root / ".claude" / name
+            if f.exists() and _settings_plants_decide_key(f):
+                return f
+    return None
+
+
+def _mock_gate() -> dict:
+    """Decide whether the decide-engine test hooks may be honoured. Returns
+    {"decision", "verdict", "eval"}; verdict/eval are the EFFECTIVE mock values
+    (None = run the real path). decision is one of none | honour | unmarked |
+    planted | planted-nomock | live-refused."""
+    v = os.environ.get("THING_DECIDE_MOCK_VERDICT", "")
+    e = os.environ.get("THING_DECIDE_MOCK_EVAL", "")
+    allow = os.environ.get("THING_DECIDE_ALLOW_MOCK", "")
+    live = bool(os.environ.get("CLAUDECODE")) or (
+        os.environ.get("THING_DECIDE_LIVE_SESSION") == "1"
+    )
+    roots = _mock_gate_roots()
+    key = (tuple(str(r) for r in roots), v, e, allow, live)
+    hit = _MOCK_GATE_CACHE.get(key)
+    if hit is not None:
+        return hit
+
+    planted = _planted_settings_file(roots)
+    if planted is not None:
+        for name in _DECIDE_TEST_HOOKS:
+            os.environ.pop(name, None)
+        decision = "planted" if (v or e) else "planted-nomock"
+        print(
+            f"thing-decide: THING_DECIDE_* test hook planted via project settings ({planted}); "
+            "all THING_DECIDE_* test hooks unset; running the real seats",
+            file=sys.stderr,
+        )
+        res = {"decision": decision, "verdict": None, "eval": None}
+        # Cache under the post-unset key too, so later seat calls do not re-warn.
+        _MOCK_GATE_CACHE[key] = res
+        _MOCK_GATE_CACHE[(key[0], "", "", "", live)] = res
+        return res
+
+    if not (v or e):
+        res = {"decision": "none", "verdict": None, "eval": None}
+    elif allow != "1":
+        print(
+            "thing-decide: refusing THING_DECIDE_MOCK_* without THING_DECIDE_ALLOW_MOCK=1 "
+            "(repo-local env is not trusted)",
+            file=sys.stderr,
+        )
+        res = {"decision": "unmarked", "verdict": None, "eval": None}
+    else:
+        verdict, ev, decision = (v or None), (e or None), "honour"
+        if live:
+            if verdict is not None and verdict not in _LIVE_SAFE_VERDICT_MOCKS:
+                print(
+                    f"thing-decide: refusing THING_DECIDE_MOCK_VERDICT={verdict} under a live "
+                    "session (only defer-producing mocks allowed); seats abstain",
+                    file=sys.stderr,
+                )
+                verdict, decision = "abstain", "live-refused"
+            if ev is not None:
+                ev = None
+        res = {"decision": decision, "verdict": verdict, "eval": ev}
+    _MOCK_GATE_CACHE[key] = res
+    return res
+
+
 def _mock_verdict(role: str) -> dict | None:
     """TEST HOOK: THING_DECIDE_MOCK_VERDICT short-circuits real claude calls so
     the gate-audit (and local tests) can exercise every tally path without
-    network/credits. Values: yes|no|defer|split|abstain|inject."""
-    m = os.environ.get("THING_DECIDE_MOCK_VERDICT", "")
+    network/credits. Values: yes|no|defer|split|abstain|inject. Honoured only
+    through _mock_gate (harness marker, no project plant, live-session limits)."""
+    m = _mock_gate()["verdict"] or ""
     if not m:
         return None
     if m == "abstain":
@@ -379,7 +516,8 @@ def _evaluator_shadow(
 
     # TEST HOOK: THING_DECIDE_MOCK_EVAL short-circuits the real claude call so the gate
     # can exercise the shadow-attach path offline. Values: keep|upgrade|downgrade.
-    mock = os.environ.get("THING_DECIDE_MOCK_EVAL", "")
+    # Honoured only through _mock_gate (same marker / plant / live-session rules).
+    mock = _mock_gate()["eval"] or ""
     # Tribunal is claude -p. Default host stays claude even if RAVENCLAUDE_HOST is grok.
     tier_model = {
         "fast": _resolve_tier("claude", "fast")["model"],
@@ -753,6 +891,8 @@ def _tally(
 
 
 def decide(root: Path, question: str, context: str, high_blast: bool) -> dict:
+    global _MOCK_GATE_ROOT
+    _MOCK_GATE_ROOT = Path(root)
     posture, perr = _read_posture(root)
     mode = _decision_mode(posture)
 
@@ -766,6 +906,9 @@ def decide(root: Path, question: str, context: str, high_blast: bool) -> dict:
     }
     if perr:
         base["posture_error"] = perr
+    gate = _mock_gate()["decision"]
+    if gate != "none":
+        base["mock_gate"] = gate
 
     # Envelope short-circuits that need no panel.
     if mode == "off":

@@ -33,6 +33,9 @@
 #     it proves the fixtures have teeth when PR A is not yet merged.
 
 set -uo pipefail
+# Hermetic: the decide engine's mock guard (thing-decide.py _mock_gate) limits a
+# mock to defer-only under a live session, so drop the caller's session markers.
+unset CLAUDECODE THING_DECIDE_LIVE_SESSION 2>/dev/null || true
 
 HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ADAPTER="$HOOKS_DIR/copilot-hook-adapter.sh"
@@ -367,7 +370,7 @@ rc=0
 OUT_G="$(printf '%s' "$AUQ_PAYLOAD_G" | \
   CLAUDE_PROJECT_DIR="$TG" CLAUDE_SESSION_ID="g20g-session" \
   CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
-  THING_DECIDE_MOCK_VERDICT=yes \
+  THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes \
   bash "$ROUTE_HOOK" 2>/dev/null)" || rc=$?
 
 reason_g="$(printf '%s' "$OUT_G" | jq -r '.hookSpecificOutput.permissionDecisionReason // ""' 2>/dev/null)"
@@ -473,7 +476,7 @@ rc2=0
 OUT_G2="$(printf '%s' "$AUQ_PAYLOAD_G2" | \
   CLAUDE_PROJECT_DIR="$TG2" CLAUDE_SESSION_ID="g20g2-session" \
   CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
-  THING_DECIDE_MOCK_VERDICT=yes \
+  THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes \
   bash "$PATCHED_ROUTE2" 2>/dev/null)" || rc2=$?
 
 reason_g2="$(printf '%s' "$OUT_G2" | jq -r '.hookSpecificOutput.permissionDecisionReason // ""' 2>/dev/null)"

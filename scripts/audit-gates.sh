@@ -2121,8 +2121,10 @@ PY
       ;;
     303)
       echo "── Gate 303: mock-verdict source gate (marker + project-settings plant + live-session; per-gate run) ──"
-      bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh
-      exit $?
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh || rc=$?
+      python3 plugins/ravenclaude-core/hooks/tests/test-decide-mock-source.py || rc=$?
+      exit $rc
       ;;
     304)
       echo "── Gate 304: hardened hook launch line (every hooks.json command; per-gate run) ──"
@@ -3304,7 +3306,7 @@ printf 'schema_version: 5\ndecision_review: binding\n' > "$G17B/.ravenclaude/com
 printf 'schema_version: 5\n' > "$G17O/.ravenclaude/comfort-posture.yaml"
 decide_field() { # $1=mock $2=root $3=high_blast $4=field -> prints field value
   printf '{"question":"q?","context":"x","high_blast":%s}' "$3" \
-    | THING_DECIDE_MOCK_VERDICT="$1" python3 "$DECIDE17" --root "$2" decide 2>/dev/null \
+    | THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT="$1" python3 "$DECIDE17" --root "$2" decide 2>/dev/null \
     | jq -r ".$4 // empty"
 }
 # off mode (default) -> defer: nothing is auto-decided unless opted in
@@ -5014,12 +5016,12 @@ gate "route-decision-review (off -> allow)" must_pass "$rc"
 
 # binding + eligible yes/no + binding verdict -> deny (auto-resolve, no human ask).
 printf 'schema_version: 5\ndecision_review: binding\n' > "$DRROOT/.ravenclaude/comfort-posture.yaml"
-out="$(printf '%s' "$DR_ELIG" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
+out="$(printf '%s' "$DR_ELIG" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
 rc=0; [[ "$(_dr_decision "$out")" == "deny" ]] || rc=1
 gate "route-decision-review (binding yes/no -> auto-resolve/deny)" must_pass "$rc"
 
 # binding + multi-select -> allow (ineligible; the human answers).
-out="$(printf '%s' "$DR_MULTI" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
+out="$(printf '%s' "$DR_MULTI" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
 rc=0; [[ "$(_dr_decision "$out")" == "allow" ]] || rc=1
 gate "route-decision-review (multi-select -> allow)" must_pass "$rc"
 
@@ -5028,7 +5030,7 @@ gate "route-decision-review (multi-select -> allow)" must_pass "$rc"
 # semantics, not index: a positional map (pick=opt0) would tell the agent to
 # choose "No" on a yes verdict. The deny reason must name the "Yes" option.
 DR_REV='{"tool_name":"AskUserQuestion","cwd":"'"$DRROOT"'","tool_input":{"questions":[{"question":"Should we use tabs for indentation?","multiSelect":false,"options":[{"label":"No"},{"label":"Yes"}]}]}}'
-out="$(printf '%s' "$DR_REV" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
+out="$(printf '%s' "$DR_REV" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
 rc=0
 [[ "$(_dr_decision "$out")" == "deny" ]] || rc=1
 # the rendered reason must instruct "choose the \"Yes\" option", never "No"
@@ -7114,7 +7116,7 @@ else
   _skip_or_fail "Gate 302 (repo-file-budget)" python3 git
 fi
 
-echo "── Gate 303: mock-verdict source gate (THING_SEAT_* test hooks; AppSec #1370) ──"
+echo "── Gate 303: mock-verdict source gate (THING_SEAT_* + THING_DECIDE_* test hooks; AppSec #1370) ──"
 # A cloned repo can plant THING_SEAT_* test hooks through the `env` block of its
 # .claude/settings.json (Claude Code exports it into every hook). thing-seat.sh, and
 # the orchestrator before fan-out, honour a mock only with THING_SEAT_ALLOW_MOCK=1,
@@ -7127,6 +7129,12 @@ echo "── Gate 303: mock-verdict source gate (THING_SEAT_* test hooks; AppSec
 # and the `tribunal` suite. GREP THE SUITE OUTPUT FOR "Gate 303".
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh >/dev/null 2>&1 || rc=$?
 gate "mock-verdict source: marker required, project plant ignored (fail closed), live session deny/abstain only" must_pass "$rc"
+# Decide half (THING_DECIDE_* hooks in thing-decide.py): the same marker / plant /
+# live-session rules, with a stub `claude` that always votes "no" so honoured mock,
+# real seat and abstain are three distinct verdicts. Carries its own teeth (the
+# planted attack resolves "yes" once the plant check is neutered).
+rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-decide-mock-source.py >/dev/null 2>&1 || rc=$?
+gate "decide mock source: marker required, project/--root plant ignored (fail closed), live session defer-only" must_pass "$rc"
 
 echo "── Gate 304: hardened hook launch line (AppSec hook-env) ──"
 # Claude Code exports a project's .claude/settings.json `env` block into every hook

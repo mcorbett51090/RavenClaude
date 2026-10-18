@@ -135,6 +135,13 @@ desc_capped="${description:0:300}"
 req="$(jq -nc --arg q "$qtext" --arg c "Binary user prompt intercepted by route-decision-review. Options: [$opt0 | $opt1]. Header: ${hdr_capped}. Option details: ${desc_capped}. Auto-resolve only if rule/fact-derivable." --argjson hb "$hb" '{question:$q,context:$c,high_blast:$hb}' 2>/dev/null || echo '')"
 [ -n "$req" ] || emit_allow
 
+# A live hook payload carries transcript_path. Tell the engine, so its test-hook
+# guard (_mock_gate) limits any THING_DECIDE_MOCK_VERDICT to a defer-producing value
+# on hosts that do not set CLAUDECODE. Same role as the orchestrator's --live-session.
+if printf '%s' "$payload" | jq -e '(.transcript_path // "") != ""' >/dev/null 2>&1; then
+  export THING_DECIDE_LIVE_SESSION=1
+fi
+
 out="$(printf '%s' "$req" | _rc_timeout 80 python3 "$engine" --root "$root" decide 2>/dev/null || echo '')"
 [ -n "$out" ] || emit_allow
 
