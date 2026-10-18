@@ -87,6 +87,8 @@ returns 1. Verified: driving both scripts with a config-less catalog entry print
 
 ### F1 (P2) — `guard-web-access.sh` host extraction is bypassable via `#`/`?` before `@`
 
+> **Status (2026-10-18):** fixed on main by #1308 (`fix(ravenclaude-core): cut web-access host before userinfo spoofs`, 0.338.3).
+
 **Why it can't be auto-fixed here:** the file lives under `plugins/ravenclaude-core/hooks/`, the
 command-review tribunal's own **substrate**. An agent edit is denied category-independently by
 `xc.tribunal-self-disable` (Sága log `.ravenclaude/runs/thing/thing-2026-09-24T07-19-17Z-4853.json`)
