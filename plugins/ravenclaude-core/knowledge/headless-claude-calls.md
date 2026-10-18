@@ -50,7 +50,7 @@ Do not stagger tribunal seats to share a cache. They are different models. Do no
 
 `scripts/headless-usage.py record` appends a derived row to `.ravenclaude/runs/headless-usage.jsonl` (gitignored; override with `HEADLESS_USAGE_LOG`). Absent fields are omitted. A present `0` is kept. Prompt text and `result` text are not logged. Record mode is fail-open and does not change the caller's exit code.
 
-`rc cache-report` prints the sum. Hit rate is `cache_read / (cache_read + cache_creation + input_tokens)`. `total_cost_usd` is the client-side estimate on the envelope. Subscription accounting is unverified.
+`rc cache-report` prints the sum, then one line per call site with its own hit rate (since 0.357.0), so a site that never reads the cache stands out. Hit rate is `cache_read / (cache_read + cache_creation + input_tokens)`; a site with no denominator prints `n/a`. `total_cost_usd` is the client-side estimate on the envelope. Subscription accounting is unverified. Since 0.357.0 the repo-root `scripts/inventory-nuance-judge.py` records too (site `inventory-nuance-judge`, JSON envelope), and Gate 307 runs the recorder's self-test plus a `--must-fail` mutant that stores result text and must be caught.
 
 ## Effort, max tokens, verdicts, batches
 

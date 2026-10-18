@@ -6,10 +6,10 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 944
 summary: "Where a headless call's token and cost envelope goes after the call returns."
-last_verified: 2026-10-17
+last_verified: 2026-10-18
 covers:
   - plugins/ravenclaude-core/scripts/headless-usage.py
-covers_digest: "sha256:782d83e52e13f3c6887208dc4f9f00be5e917c0b6cb94ee6298f97ba0b183e0b"
+covers_digest: "sha256:71875d5db313b4113c34755709b17d71c5fcddc4209436761cbe410a6bd4671b"
 nuance: "The caller still prints only its own verdict on `stdout`, and record mode returns exit 0 after it writes `.ravenclaude/runs/headless-usage.jsonl`. A missing envelope skips the append rather than replacing that verdict."
 nuance_evidence:
   measured: 2026-10-17

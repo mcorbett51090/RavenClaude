@@ -394,8 +394,9 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # independently claimed 282 for claude-launch-safeguard while this
       # branch was unmerged, same "no better-fit suite" reasoning as
       # 173/175/193/194/267-281 above). 306 (headless claude -p call shape — a
-      # repo-wide call-site lint, no better fit than core).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289 301 302 306"
+      # repo-wide call-site lint, no better fit than core), 307 (the headless
+      # usage recorder's self-test + teeth — same generic-self-test family).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289 301 302 306 307"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -2147,9 +2148,16 @@ PY
       rc_mustfail python3 scripts/check-headless-call-shape.py || rc=$?
       exit $rc
       ;;
+    307)
+      echo "── Gate 307: headless usage recorder (derived values only, per-site hit rate; per-gate run) ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/headless-usage.py --self-test || rc=$?
+      rc_mustfail python3 plugins/ravenclaude-core/scripts/headless-usage.py || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7185,6 +7193,22 @@ if command -v python3 >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
   gate "headless-call-shape: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
 else
   _skip_or_fail "Gate 306 (headless-call-shape)" python3 git
+fi
+
+echo "── Gate 307: headless usage recorder (rc cache-report) ──"
+# plugins/ravenclaude-core/scripts/headless-usage.py records one DERIVED row per
+# headless claude -p envelope (token counts, cache split, cost estimate, stop
+# reason) and never the prompt or the model's result text. Its self-test pins that,
+# plus "a present 0 is kept, an absent field is omitted" and the overall and
+# per-site hit rate. --must-fail plants a recorder that also stores result text and
+# must be caught (exit 3). GREP THE SUITE OUTPUT FOR "Gate 307".
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 plugins/ravenclaude-core/scripts/headless-usage.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "headless-usage: self-test (no prompt/result text, present 0 kept, gaps omitted, per-site hit rate)" must_pass "$rc"
+  rc=0; rc_mustfail python3 plugins/ravenclaude-core/scripts/headless-usage.py || rc=$?
+  gate "headless-usage: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 307 (headless-usage)" python3
 fi
 
 

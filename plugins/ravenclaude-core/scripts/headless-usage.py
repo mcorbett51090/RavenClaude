@@ -6,8 +6,12 @@ Record mode reads one JSON envelope on stdin and appends a derived row to
 or ``--log``). Prompt text and the model's ``result`` text are never written.
 Absent usage fields are omitted; a present ``0`` is kept. Record always exits 0.
 
-Report mode prints a cache-hit summary. ``total_cost_usd`` is the client-side
-estimate from the envelope; subscription accounting is unverified.
+Report mode prints a cache-hit summary, overall and per call site.
+``total_cost_usd`` is the client-side estimate from the envelope; subscription
+accounting is unverified.
+
+``--must-fail`` plants a recorder that also stores the model's ``result`` text and
+exits 3 only if this file's own self-test catches it (Gate 307).
 
 Hit rate is ``cache_read / (cache_read + cache_creation + input_tokens)``.
 """
@@ -35,8 +39,13 @@ SITES = frozenset(
         "prompt-optimizer-judge-soak",
         "refine-to-rubric-judge",
         "agent-dispatch-evaluator",
+        "inventory-nuance-judge",
     }
 )
+TEETH_EXIT = 3
+# The mutation anchor for --must-fail: the last lines of extract_row().
+_MUTANT_ANCHOR = "    if not has_metric:\n        return None\n    return row\n"
+
 
 USAGE_INT_FIELDS = (
     "input_tokens",
@@ -171,32 +180,38 @@ def _load_rows(log_path: Path, days: int | None) -> list[dict]:
     return rows
 
 
+def _hit_rate(totals: dict) -> float | None:
+    read = totals["cache_read_input_tokens"]
+    denom = read + totals["cache_creation_input_tokens"] + totals["input_tokens"]
+    return (read / denom) if denom else None
+
+
 def summarise(rows: list[dict]) -> dict:
     keys = USAGE_INT_FIELDS + CACHE_CREATION_FIELDS
     totals = dict.fromkeys(keys, 0)
     cost = 0.0
     by_site: dict[str, int] = {}
+    site_totals: dict[str, dict] = {}
     for row in rows:
         site = str(row.get("site") or "unknown")
         by_site[site] = by_site.get(site, 0) + 1
+        per_site = site_totals.setdefault(site, dict.fromkeys(USAGE_INT_FIELDS, 0))
         for key in keys:
             value = row.get(key)
             if isinstance(value, int) and not isinstance(value, bool):
                 totals[key] += value
+                if key in per_site:
+                    per_site[key] += value
         row_cost = row.get("total_cost_usd")
         if isinstance(row_cost, (int, float)) and not isinstance(row_cost, bool):
             cost += float(row_cost)
-    read = totals["cache_read_input_tokens"]
-    write = totals["cache_creation_input_tokens"]
-    uncached = totals["input_tokens"]
-    denom = read + write + uncached
-    hit_rate = (read / denom) if denom else None
     return {
         "rows": len(rows),
         "by_site": by_site,
+        "site_hit_rate": {site: _hit_rate(t) for site, t in site_totals.items()},
         "totals": totals,
         "total_cost_usd": cost,
-        "hit_rate": hit_rate,
+        "hit_rate": _hit_rate(totals),
         "note": _COST_NOTE,
     }
 
@@ -218,8 +233,11 @@ def render_report(summary: dict, log_path: Path) -> str:
         f"hit_rate: {hit_text}",
         f"note: {summary['note']}",
     ]
+    site_hits = summary.get("site_hit_rate", {})
     for site in sorted(summary["by_site"]):
-        lines.append(f"site {site}: {summary['by_site'][site]}")
+        rate = site_hits.get(site)
+        rate_text = "n/a" if rate is None else f"{rate:.4f}"
+        lines.append(f"site {site}: {summary['by_site'][site]}, hit_rate {rate_text}")
     return "\n".join(lines) + "\n"
 
 
@@ -347,6 +365,11 @@ def self_test() -> int:
             failures.append(f"hit rate mismatch:\n{report.stdout}")
         if _COST_NOTE not in report.stdout:
             failures.append("cost note missing")
+        # Per-site: thing-seat 10/42; thing-decide has input 0 only, so no denominator.
+        if "site thing-seat: 1, hit_rate 0.2381" not in report.stdout:
+            failures.append(f"per-site hit rate mismatch:\n{report.stdout}")
+        if "site thing-decide: 1, hit_rate n/a" not in report.stdout:
+            failures.append(f"empty per-site denominator not n/a:\n{report.stdout}")
 
     if failures:
         print("headless-usage --self-test: FAIL")
@@ -357,7 +380,34 @@ def self_test() -> int:
     return 0
 
 
+def must_fail() -> int:
+    """Plant a recorder that also stores result text; the self-test must catch it."""
+    source = Path(__file__).resolve().read_text(encoding="utf-8")
+    if source.count(_MUTANT_ANCHOR) != 1:
+        print("must-fail: mutation anchor not found; nothing was planted", file=sys.stderr)
+        return 1
+    leak = '    row["result"] = envelope.get("result")\n'
+    mutant = source.replace(_MUTANT_ANCHOR, leak + _MUTANT_ANCHOR)
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "headless-usage-mutant.py"
+        path.write_text(mutant, encoding="utf-8")
+        proc = subprocess.run(
+            [sys.executable, str(path), "--self-test"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    caught = proc.returncode != 0
+    print(f"must-fail: recorder that stores result text -> {'caught' if caught else 'NOT caught'}")
+    return TEETH_EXIT if caught else 0
+
+
 def main(argv: list[str]) -> int:
+    if "--must-fail-convention" in argv:
+        print(f"must-fail-teeth-exit: {TEETH_EXIT}")
+        return 0
+    if "--must-fail" in argv:
+        return must_fail()
     if "--self-test" in argv:
         return self_test()
     log_flag = _flag(argv, "--log")
@@ -377,7 +427,7 @@ def main(argv: list[str]) -> int:
     print(
         "usage: headless-usage.py record --site SITE --model MODEL [--log PATH]\n"
         "       headless-usage.py report [--days N] [--json] [--log PATH]\n"
-        "       headless-usage.py --self-test",
+        "       headless-usage.py --self-test | --must-fail | --must-fail-convention",
         file=sys.stderr,
     )
     return 2
