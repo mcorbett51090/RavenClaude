@@ -2929,7 +2929,7 @@ thing_run() { # $1=mock-verdict $2=command -> prints the full hookSpecificOutput
   rm -rf "$SAGA"  # one Sága file per call, so `ls -t` ties never matter
   jq -cn --arg c "$2" --arg cwd "$G14" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit"}' \
-    | THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH14" 2>/dev/null
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH14" 2>/dev/null
 }
 thing_decision() { # $1=mock-verdict $2=command -> prints permissionDecision (or "none")
   local d
@@ -3066,7 +3066,7 @@ EOF
 t4_decision() { # $1=command -> permissionDecision (mock=allow, so a screen miss -> allow)
   jq -cn --arg c "$1" --arg cwd "$G15" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit"}' \
-    | THING_SEAT_MOCK_VERDICT=allow bash "$ORCH14" 2>/dev/null \
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT=allow bash "$ORCH14" 2>/dev/null \
     | jq -r '.hookSpecificOutput.permissionDecision // "none"'
 }
 # (a) curated injection payloads -> deny. Each leads with a shell_readonly command
@@ -4096,7 +4096,7 @@ ORCH=plugins/ravenclaude-core/hooks/thing-orchestrator.sh
 t15_run() {  # $1=mock $2=cmd -> full hookSpecificOutput JSON (keeps the Sága)
   jq -cn --arg c "$2" --arg cwd "$G22" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit15"}' \
-    | THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH" 2>/dev/null
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH" 2>/dev/null
 }
 t15_dec() { t15_run "$1" "$2" | jq -r '.hookSpecificOutput.permissionDecision // "none"'; }
 t15_seatcount() { jq -r '.seats | length' "$(ls -t "$SAGA22"/*.json 2>/dev/null | head -1)" 2>/dev/null || echo "x"; }
@@ -4313,7 +4313,7 @@ tb_dec() { # proj tool_name tool_input_json -> permissionDecision ("none" if no 
   local out
   out="$(jq -cn --arg tn "$2" --argjson ti "$3" --arg cwd "$1" \
     '{tool_name:$tn,tool_input:$ti,cwd:$cwd,session_id:"audit24"}' \
-    | THING_SEAT_MOCK_VERDICT="${4:-allow}" bash "$ORCH24" 2>/dev/null)"
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="${4:-allow}" bash "$ORCH24" 2>/dev/null)"
   [ -z "$out" ] && { echo none; return; }
   printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "none"'
 }
@@ -4365,7 +4365,7 @@ gate "tb: seat EDIT on a file shape coerced to DENY (#g)" must_pass "$rc"
 oversize_v="$(python3 -c "
 import json,sys
 sys.stdout.write(json.dumps({'tool_name':'Write','tool_input':{'file_path':'$G24F/src/big.txt','content':'x'*1100000},'cwd':'$G24F','session_id':'a24'}))" \
-  | THING_SEAT_MOCK_VERDICT=allow bash "$ORCH24" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecision // "none"')"
+  | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT=allow bash "$ORCH24" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecision // "none"')"
 rc=0; [ "$oversize_v" = "deny" ] || rc=1
 gate "tb: oversize (>1 MiB) payload fails closed -> deny (#c)" must_pass "$rc"
 # (j) cache non-collision: two distinct file paths yield distinct cache identities
@@ -4704,7 +4704,7 @@ printf '#!/usr/bin/env bash\nprintf "%%s\\n" "wrong/repo"\n' > "$G28DBAD/gh"; ch
 _orch28d() { # $1=stub_dir $2=command $3=mock-verdict -> permissionDecision
   jq -cn --arg c "$2" --arg cwd "$G28D" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit"}' \
-    | PATH="$1:$PATH" THING_SEAT_MOCK_VERDICT="$3" bash "$ORCH14" 2>/dev/null \
+    | PATH="$1:$PATH" THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$3" bash "$ORCH14" 2>/dev/null \
     | jq -r '.hookSpecificOutput.permissionDecision // "none"'
 }
 # force-push built by concatenation so the literal never reaches a live shell / hook
