@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.355.3 — 2026-10-18
+
+### Fixed
+- **Four CI/tooling scripts hardened (2026-09-28 autonomous review, #1265).** `check-dashboard-server-parity.py`, `generate-index-dashboard.py`, `inventory-sweep.py` and `sync-plugin-versions.py` get the review's correctness fixes; the covering concepts are re-stamped. Version bump only carries the regenerated core artifacts.
+
 ## 0.355.2 — 2026-10-18
 
 ### Fixed
