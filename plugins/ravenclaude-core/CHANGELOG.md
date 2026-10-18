@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.355.4 — 2026-10-18
+
+### Changed
+- **`skills/skill-index/SKILL.md` regenerated** for the grok-bot-delegation 0.3.0 / grok-bot-creation 0.2.0 Bot Architect fleet skills (#1356): seven new delegation skills indexed and three reconciled descriptions refreshed. Generated content only.
+
 ## 0.355.3 — 2026-10-18
 
 ### Fixed

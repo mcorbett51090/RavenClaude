@@ -12,7 +12,7 @@ covers:
   - plugins/ravenclaude-core/skills/skill-index/SKILL.md
   - plugins/ravenclaude-core/skills/forge-pipeline/agents/openai.yaml
   - plugins/ravenclaude-core/skills/spawn-team/agents/openai.yaml
-covers_digest: "sha256:5c429cafe53b23ed828af7a6864168fd61e2db6cabae5b44a6a520845071c5fa"
+covers_digest: "sha256:34e38608abda86a28627e87a9e94de02f7313b3b30f86a4d2e6f3a9934da19be"
 nuance: "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output
   file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist
   yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count
