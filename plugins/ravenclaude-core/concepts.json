@@ -2860,7 +2860,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:3878ad3890520e74f154f4792a660cb4428554dddaf31490317cb486b3618bc4",
+      "covers_digest": "sha256:6296f08cae43284057f0287a2b4309c5a38bc1e768f62e0265cba6aa47062087",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3003,7 +3003,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:a158998609b9ddf2e93e3b9fb6eae82d43db3875466a54ee41113fcb89767b57",
+      "covers_digest": "sha256:166b031e00964a733d7b83666c20d4ce359feea2cd715c1648b0bb17ff248ba2",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3065,7 +3065,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:decd6ce7afb7b0621c32435e8ca7df95c7d92b278afe7a5781a4ade5426b5e88",
+      "covers_digest": "sha256:042c2c4161277dd4f8b2dadb8ee56f693b551f9e235a76d414dcde34c2179118",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4968,7 +4968,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-17",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -4986,7 +4986,7 @@
       "covers": [
         "plugins/ravenclaude-core/scripts/headless-usage.py"
       ],
-      "covers_digest": "sha256:782d83e52e13f3c6887208dc4f9f00be5e917c0b6cb94ee6298f97ba0b183e0b",
+      "covers_digest": "sha256:71875d5db313b4113c34755709b17d71c5fcddc4209436761cbe410a6bd4671b",
       "nuance": "The caller still prints only its own verdict on `stdout`, and record mode returns exit 0 after it writes `.ravenclaude/runs/headless-usage.jsonl`. A missing envelope skips the append rather than replacing that verdict.",
       "nuance_evidence": {
         "measured": "2026-10-17",

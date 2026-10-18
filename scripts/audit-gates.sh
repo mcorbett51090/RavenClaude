@@ -394,8 +394,9 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # independently claimed 282 for claude-launch-safeguard while this
       # branch was unmerged, same "no better-fit suite" reasoning as
       # 173/175/193/194/267-281 above). 306 (headless claude -p call shape — a
-      # repo-wide call-site lint, no better fit than core).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289 301 302 306"
+      # repo-wide call-site lint, no better fit than core), 307 (the headless
+      # usage recorder's self-test + teeth — same generic-self-test family).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289 301 302 306 307"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -2121,8 +2122,10 @@ PY
       ;;
     303)
       echo "── Gate 303: mock-verdict source gate (marker + project-settings plant + live-session; per-gate run) ──"
-      bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh
-      exit $?
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh || rc=$?
+      python3 plugins/ravenclaude-core/hooks/tests/test-decide-mock-source.py || rc=$?
+      exit $rc
       ;;
     304)
       echo "── Gate 304: hardened hook launch line (every hooks.json command; per-gate run) ──"
@@ -2145,9 +2148,16 @@ PY
       rc_mustfail python3 scripts/check-headless-call-shape.py || rc=$?
       exit $rc
       ;;
+    307)
+      echo "── Gate 307: headless usage recorder (derived values only, per-site hit rate; per-gate run) ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/headless-usage.py --self-test || rc=$?
+      rc_mustfail python3 plugins/ravenclaude-core/scripts/headless-usage.py || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3304,7 +3314,7 @@ printf 'schema_version: 5\ndecision_review: binding\n' > "$G17B/.ravenclaude/com
 printf 'schema_version: 5\n' > "$G17O/.ravenclaude/comfort-posture.yaml"
 decide_field() { # $1=mock $2=root $3=high_blast $4=field -> prints field value
   printf '{"question":"q?","context":"x","high_blast":%s}' "$3" \
-    | THING_DECIDE_MOCK_VERDICT="$1" python3 "$DECIDE17" --root "$2" decide 2>/dev/null \
+    | THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT="$1" python3 "$DECIDE17" --root "$2" decide 2>/dev/null \
     | jq -r ".$4 // empty"
 }
 # off mode (default) -> defer: nothing is auto-decided unless opted in
@@ -5014,12 +5024,12 @@ gate "route-decision-review (off -> allow)" must_pass "$rc"
 
 # binding + eligible yes/no + binding verdict -> deny (auto-resolve, no human ask).
 printf 'schema_version: 5\ndecision_review: binding\n' > "$DRROOT/.ravenclaude/comfort-posture.yaml"
-out="$(printf '%s' "$DR_ELIG" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
+out="$(printf '%s' "$DR_ELIG" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
 rc=0; [[ "$(_dr_decision "$out")" == "deny" ]] || rc=1
 gate "route-decision-review (binding yes/no -> auto-resolve/deny)" must_pass "$rc"
 
 # binding + multi-select -> allow (ineligible; the human answers).
-out="$(printf '%s' "$DR_MULTI" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
+out="$(printf '%s' "$DR_MULTI" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
 rc=0; [[ "$(_dr_decision "$out")" == "allow" ]] || rc=1
 gate "route-decision-review (multi-select -> allow)" must_pass "$rc"
 
@@ -5028,7 +5038,7 @@ gate "route-decision-review (multi-select -> allow)" must_pass "$rc"
 # semantics, not index: a positional map (pick=opt0) would tell the agent to
 # choose "No" on a yes verdict. The deny reason must name the "Yes" option.
 DR_REV='{"tool_name":"AskUserQuestion","cwd":"'"$DRROOT"'","tool_input":{"questions":[{"question":"Should we use tabs for indentation?","multiSelect":false,"options":[{"label":"No"},{"label":"Yes"}]}]}}'
-out="$(printf '%s' "$DR_REV" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
+out="$(printf '%s' "$DR_REV" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
 rc=0
 [[ "$(_dr_decision "$out")" == "deny" ]] || rc=1
 # the rendered reason must instruct "choose the \"Yes\" option", never "No"
@@ -7114,7 +7124,7 @@ else
   _skip_or_fail "Gate 302 (repo-file-budget)" python3 git
 fi
 
-echo "── Gate 303: mock-verdict source gate (THING_SEAT_* test hooks; AppSec #1370) ──"
+echo "── Gate 303: mock-verdict source gate (THING_SEAT_* + THING_DECIDE_* test hooks; AppSec #1370) ──"
 # A cloned repo can plant THING_SEAT_* test hooks through the `env` block of its
 # .claude/settings.json (Claude Code exports it into every hook). thing-seat.sh, and
 # the orchestrator before fan-out, honour a mock only with THING_SEAT_ALLOW_MOCK=1,
@@ -7127,6 +7137,12 @@ echo "── Gate 303: mock-verdict source gate (THING_SEAT_* test hooks; AppSec
 # and the `tribunal` suite. GREP THE SUITE OUTPUT FOR "Gate 303".
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh >/dev/null 2>&1 || rc=$?
 gate "mock-verdict source: marker required, project plant ignored (fail closed), live session deny/abstain only" must_pass "$rc"
+# Decide half (THING_DECIDE_* hooks in thing-decide.py): the same marker / plant /
+# live-session rules, with a stub `claude` that always votes "no" so honoured mock,
+# real seat and abstain are three distinct verdicts. Carries its own teeth (the
+# planted attack resolves "yes" once the plant check is neutered).
+rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-decide-mock-source.py >/dev/null 2>&1 || rc=$?
+gate "decide mock source: marker required, project/--root plant ignored (fail closed), live session defer-only" must_pass "$rc"
 
 echo "── Gate 304: hardened hook launch line (AppSec hook-env) ──"
 # Claude Code exports a project's .claude/settings.json `env` block into every hook
@@ -7177,6 +7193,22 @@ if command -v python3 >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
   gate "headless-call-shape: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
 else
   _skip_or_fail "Gate 306 (headless-call-shape)" python3 git
+fi
+
+echo "── Gate 307: headless usage recorder (rc cache-report) ──"
+# plugins/ravenclaude-core/scripts/headless-usage.py records one DERIVED row per
+# headless claude -p envelope (token counts, cache split, cost estimate, stop
+# reason) and never the prompt or the model's result text. Its self-test pins that,
+# plus "a present 0 is kept, an absent field is omitted" and the overall and
+# per-site hit rate. --must-fail plants a recorder that also stores result text and
+# must be caught (exit 3). GREP THE SUITE OUTPUT FOR "Gate 307".
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 plugins/ravenclaude-core/scripts/headless-usage.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "headless-usage: self-test (no prompt/result text, present 0 kept, gaps omitted, per-site hit rate)" must_pass "$rc"
+  rc=0; rc_mustfail python3 plugins/ravenclaude-core/scripts/headless-usage.py || rc=$?
+  gate "headless-usage: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 307 (headless-usage)" python3
 fi
 
 

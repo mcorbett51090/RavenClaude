@@ -2,7 +2,7 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-## 0.356.1 — 2026-10-18
+## 0.357.2 — 2026-10-18
 
 ### Added
 - **`wallet-passes`: straight to Wallet from the QR and the tag.** `references/tap-to-share.md` gains § Straight to Wallet from the QR and the tag, the pattern built on 2026-10-18 in RavenPower-Website #685, ravenpower-app #18 and RavenPower-website-factory #102. The pass's QR and the NFC tag carry the card URL plus `#add-to-wallet`. The card page removes the fragment with `history.replaceState` and about 150 ms after paint opens this phone's Wallet link, with the card page left underneath. The section records why a fragment works better than a query parameter and the fail-closed rules from the security review: no auto-open unless `replaceState` succeeded, and only to a same-site path or an `https://` URL. It also records three measured limits. The Google Save JWT measured 1,791 of 1,800 characters, so the Google pass's QR stays unmarked. Changing the Apple barcode sends a silent Wallet push to every holder. An NTAG213 holds a 137-byte URI payload. `references/verify.md` adds **#38**: whether iOS shows the Add-to-Wallet sheet with no tap. The SKILL.md map gains a one-line pointer, and the ledger count is now 38.
@@ -14,10 +14,31 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 ### Testing
 - **Gate 305 (`hooks/tests/test-hook-env-hardening.sh`) adds cases 15c–15k.** Fake prettier, biome, ruff and black sit first on the hook's PATH and record each call. With no config nothing runs. A root `.prettierrc`, a subpackage `.prettierrc.yaml` above the file, and `package.json` devDependencies each run prettier, and a sibling package with no config does not. `biome.json` runs biome. Python covers undeclared, `[tool.ruff]` and `[tool.black]`. A file in another checkout uses that checkout's config, not the project's. Six hook mutants, including the pre-fix hook, are each caught.
 
+## 0.357.1 — 2026-10-18
+
+### Fixed
+- **The decision-review engine's test hooks could be planted by a cloned repo.** `THING_DECIDE_MOCK_VERDICT` short-circuits every seat in `thing-decide.py`. Claude Code exports a project's `.claude/settings.json` `env` block into every hook, so a repo that planted `THING_DECIDE_MOCK_VERDICT=yes` would make every routed yes/no resolve "yes" under `decision_review: binding`. High-blast decisions still deferred. The engine now applies the same guard `thing-seat.sh` uses (`_mock_gate`):
+  - a mock needs the harness marker `THING_DECIDE_ALLOW_MOCK=1`;
+  - any `THING_DECIDE_*` key, in any letter case, in a project-scope settings file unsets all of these hooks. The files checked are `.claude/settings.json` and `settings.local.json` under `$CLAUDE_PROJECT_DIR` and the `--root` dir, and in each parent up to the git top level. An unreadable, empty or non-object `env`, or a file that repeats a JSON key, counts as planted;
+  - under a live session (`CLAUDECODE`, or `THING_DECIDE_LIVE_SESSION=1`, which `route-decision-review.sh` now sets when its payload carries `transcript_path`) only a defer-producing verdict mock is allowed. Any other value makes every seat abstain, and the eval mock is dropped.
+  - The result JSON gains `mock_gate` whenever the guard did something.
+- **The 0.356.0 entry said the seat change "needs security review".** The review is done: CLEAR, recorded on #1374.
+
+### Changed
+- Harness callers of the decide mocks (Gates 17 and 31, `test-phase0-emit-and-scrub.sh`, `test-gate20-adapter-diagnostics.sh`, `test-gate91-tribunal-shadow.py`, `test-heimdall-abstain-injection.py`) set the marker and drop the caller's session markers.
+- **Gate 303 gains its decide half** (`hooks/tests/test-decide-mock-source.py`, 26 checks). A stub `claude` always votes "no", so an honoured mock ("yes"), a real seat ("no") and an abstain ("defer") are three distinct results. It also checks `binding`, the duplicate-key, letter-case and parent-directory plants, and the route hook end to end: without `transcript_path` a harness yes is a binding deny, with it the prompt is allowed. Teeth: with the plant check neutered, the planted attack resolves "yes".
+
+## 0.357.0 — 2026-10-18
+
+### Added
+- **Per-site cache hit rate in `rc cache-report`.** After the totals, each call site prints `site <name>: <rows>, hit_rate <rate>` (`n/a` when the site has no input tokens to divide by). The `--json` form gains `site_hit_rate`. Existing `by_site` counts are unchanged.
+- **The inventory nuance judge records its usage.** `scripts/inventory-nuance-judge.py` now asks for `--output-format json`, takes the verdict from the envelope's `result`, and appends a derived row (site `inventory-nuance-judge`) via `headless-usage.py`. Recording is fail-open and never changes a verdict. Live probe: verdict `nuance`, one row with token counts only.
+- **Gate 307** runs `headless-usage.py --self-test` (no prompt or result text stored, a present `0` kept, absent fields omitted, overall and per-site hit rate) and a new `--must-fail` mutant that also stores result text and must be caught (exit 3, declared via `--must-fail-convention`).
+
 ## 0.356.0 — 2026-10-18
 
 ### Changed
-- **`thing-decide.py` seats run without tools** (needs security review). Both `claude -p` calls (the decision seat and the dispatch-evaluator shadow) now pass `--strict-mcp-config --tools ""`, the same shape `thing-seat.sh` already uses. The seats only return a verdict JSON. A live probe of the new seat shape used about 4,825 input tokens; the default shape measured about 213K (analysis.md E8). This also removes tool access from a call that reads untrusted decision text.
+- **`thing-decide.py` seats run without tools** (security review: CLEAR, #1374). Both `claude -p` calls (the decision seat and the dispatch-evaluator shadow) now pass `--strict-mcp-config --tools ""`, the same shape `thing-seat.sh` already uses. The seats only return a verdict JSON. A live probe of the new seat shape used about 4,825 input tokens; the default shape measured about 213K (analysis.md E8). This also removes tool access from a call that reads untrusted decision text.
 - **`scripts/inventory-nuance-judge.py`** (repo-root tooling) runs `claude -p --strict-mcp-config --tools=` from a temp directory, so this repo's `CLAUDE.md`, project hooks and project MCP config no longer load into the judge. The model is unchanged (CLI default).
 
 ### Added

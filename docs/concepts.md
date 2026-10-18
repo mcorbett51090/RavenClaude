@@ -3817,7 +3817,7 @@ Measured 2026-10-17: the recorder appends a sidecar and leaves the caller to pri
 
 **Sources:** [2026-10-14 prompt-caching analysis — headless envelopes were not metered](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/analysis.md)
 
-_Last verified: 2026-10-17_
+_Last verified: 2026-10-18_
 
 
 ---
