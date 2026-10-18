@@ -2860,7 +2860,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:ed956b7b8db152b1e27e9ed68d3ad05df00878e9d0180af7273603a32820231f",
+      "covers_digest": "sha256:0bab37545657f7a197f31ee47ad1d2cd22ac9e961135417b42a8f11114eeb760",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3065,7 +3065,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:62c93e570032fc2064431ae64f8ffd2439312ae130a7ec6561034f80483e2fbb",
+      "covers_digest": "sha256:afd78a2c8553da3100005c039809901833b860c2dda1bba4a3d3a91b6b4afd19",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4669,7 +4669,7 @@
         "plugins/ravenclaude-core/scripts/thing-harden.py",
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
       ],
-      "covers_digest": "sha256:37dec6e5fa5de65a224fe732101c52ee553edc5571e55584fbaaf15447a26d1e",
+      "covers_digest": "sha256:d158f506565adac363557fcfa8ef349400100b9f54136280882ce199933f5af9",
       "nuance": "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op.",
       "nuance_evidence": {
         "measured": "2026-09-16",
