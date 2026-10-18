@@ -13,7 +13,7 @@ Official-docs reference for Apple Wallet (PassKit) and Google Wallet generic pas
 | Google Generic class/object, templates, images, JWT save, Smart Tap, notifications, publishing | [`references/google.md`](references/google.md) |
 | Digital business-card layout, worked examples, common-mistakes checklist | [`references/business-card-layout.md`](references/business-card-layout.md) |
 | Tap-to-share / tap-to-lead-form: what's possible / entitlement-gated / impossible; NFC-tag/QR → HTTPS; workarounds; **pushing a card to another person** (every path ranked, receiving-page traps, Google multi-holder) | [`references/tap-to-share.md`](references/tap-to-share.md) |
-| Weak / unverified / absent-evidence claims (the 37-item ledger; P1 = #1–#8) | [`references/verify.md`](references/verify.md) |
+| Weak / unverified / absent-evidence claims (the 38-item ledger; P1 = #1–#8) | [`references/verify.md`](references/verify.md) |
 
 ## When to use
 
@@ -37,7 +37,7 @@ Official-docs reference for Apple Wallet (PassKit) and Google Wallet generic pas
 > 7. **Apple NFC (VAS) cert has no published SLA** (#7) — the request form is sign-in gated.
 > 8. **Google `appLinkData` needs allowlisting** (#8) — one FAQ sentence, no criteria/timeline; it gates any front-of-pass button.
 >
-> The other 29 items (#9–#37: P2 implementation details and P3 undocumented numbers; #10 resolved) are in the same ledger.
+> The other 30 items (#9–#38: P2 implementation details and P3 undocumented numbers; #10 resolved) are in the same ledger.
 
 ## Hard rules (both platforms)
 
@@ -114,6 +114,7 @@ Full ranked table + evidence: [`references/tap-to-share.md`](references/tap-to-s
 - **Strangers:** iOS 26.2+ AirDrop to a non-contact needs an **AirDrop code** — the QR or Messages is faster. The hold-two-iPhones gesture is for undefined "eligible passes" (#30): never promise it.
 - **The receiving page is where it breaks:** one Wallet button per phone (Android hides Apple only when a Google pass exists — Google Wallet imports `.pkpass` without updates; iPhone hides Google); an **in-app-browser** escape on iOS (Instagram/Messenger block passes — Apple: only Safari and Safari View Controller import directly); `[hidden]{display:none!important}` so script-hidden buttons stay hidden; a strict CSP needs the script as a same-origin file.
 - **Google:** one object saved by many people needs `multipleDevicesAndHoldersAllowedStatus: MULTIPLE_HOLDERS` **on the class** — under `ONE_USER_ALL_DEVICES` the first saver locks everyone else out.
+- **Straight to Wallet:** mark only the pass QR and the NFC tag with `#add-to-wallet` (not the Google pass's QR — Save-JWT budget); the card script strips it and opens this phone's Wallet link, fail-closed. Whether iOS shows the sheet without a tap is #38 — [`references/tap-to-share.md`](references/tap-to-share.md) § Straight to Wallet.
 - **Owner without an app:** Web NFC writes a sticker from Chrome on Android (Safari will not implement it). `sms:` body forms are undocumented (#31) — use per-phone forms and device-test.
 
 ## Business-card default

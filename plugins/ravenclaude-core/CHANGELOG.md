@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.358.1 — 2026-10-18
+
+### Added
+- **`wallet-passes`: straight to Wallet from the QR and the tag.** `references/tap-to-share.md` gains § Straight to Wallet from the QR and the tag, the pattern built on 2026-10-18 in RavenPower-Website #685, ravenpower-app #18 and RavenPower-website-factory #102. The pass's QR and the NFC tag carry the card URL plus `#add-to-wallet`. The card page removes the fragment with `history.replaceState` and about 150 ms after paint opens this phone's Wallet link, with the card page left underneath. The section records why a fragment works better than a query parameter and the fail-closed rules from the security review: no auto-open unless `replaceState` succeeded, and only to a same-site path or an `https://` URL. It also records three measured limits. The Google Save JWT measured 1,791 of 1,800 characters, so the Google pass's QR stays unmarked. Changing the Apple barcode sends a silent Wallet push to every holder. An NTAG213 holds a 137-byte URI payload. `references/verify.md` adds **#38**: whether iOS shows the Add-to-Wallet sheet with no tap. The SKILL.md map gains a one-line pointer, and the ledger count is now 38.
+
+### Fixed
+- **`format-on-write.sh` formats only with a formatter the project declares.** It ran `prettier --write` on every `.ts`, `.md`, `.json` and similar edit whenever prettier was on PATH, and `ruff format` plus `ruff check --fix` on every `.py` whenever ruff was. In a consumer repo with no prettier config and a global prettier, it rewrote a whole TypeScript file into a style the repo does not use (double quotes, re-wrapped lines; observed 2026-10-18). Prettier now runs only when a `.prettierrc*` or `prettier.config.*` file, or a `package.json` that names `"prettier"`, is in the edited file's directory or an ancestor up to the project root. Biome needs `biome.json` or `biome.jsonc`, ruff needs `ruff.toml`, `.ruff.toml` or `[tool.ruff]`, and black needs `[tool.black]`. For a file outside the project, the walk stops at that checkout's `.git`. Nothing declared means a silent no-op; declared but not installed still warns once per session. gofmt, rustfmt and shfmt are unchanged. **Consumer impact:** a project that relied on an installed formatter with no config file is no longer auto-formatted. Add the config file to get it back; an empty `.prettierrc` gives prettier's defaults.
+- **Docs that described the old behaviour** now say a formatter runs only when declared: the dashboard's Auto-tidy card (`scripts/generate-dashboards.py`), `docs/best-practices/hook-authoring.md` and the `agent-ready-repo` CLAUDE.md template.
+
+### Testing
+- **Gate 305 (`hooks/tests/test-hook-env-hardening.sh`) adds cases 15c–15k.** Fake prettier, biome, ruff and black sit first on the hook's PATH and record each call. With no config nothing runs. A root `.prettierrc`, a subpackage `.prettierrc.yaml` above the file, and `package.json` devDependencies each run prettier, and a sibling package with no config does not. `biome.json` runs biome. Python covers undeclared, `[tool.ruff]` and `[tool.black]`. A file in another checkout uses that checkout's config, not the project's. Six hook mutants, including the pre-fix hook, are each caught.
+
 ## 0.358.0 — 2026-10-18
 
 ### Added
