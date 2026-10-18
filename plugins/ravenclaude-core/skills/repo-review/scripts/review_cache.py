@@ -290,7 +290,24 @@ def main(argv: list[str]) -> int:
         return 0
 
     if args.cmd == "store":
-        findings = json.loads(Path(args.findings_file).read_text(encoding="utf-8"))
+        # Read + shape-validate the findings file inside the exit-2 contract: a
+        # missing/unreadable file or invalid JSON previously raised an uncaught
+        # traceback (exit 1, conflated with "could not run"), and a JSON object
+        # (not a list) was stored verbatim without complaint.
+        try:
+            findings = json.loads(Path(args.findings_file).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            print(
+                f"error: cannot read --findings-file {args.findings_file!r}: {e}", file=sys.stderr
+            )
+            return 2
+        if not isinstance(findings, list):
+            print(
+                f"error: --findings-file {args.findings_file!r} must contain a JSON array of findings, "
+                f"got {type(findings).__name__}",
+                file=sys.stderr,
+            )
+            return 2
         try:
             store(
                 args.cache_dir,

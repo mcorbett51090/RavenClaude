@@ -17,7 +17,7 @@ covers:
   - plugins/ravenclaude-core/skills/repo-review/scripts/fix_summary.py
   - plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py
   - plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js
-covers_digest: "sha256:d6212ff405a9a94817acc498125af32cb61ec0623fb25bf18aebaae4f7eca767"
+covers_digest: "sha256:9f39e991db1c31942822e2c6d9cd101fc674dfc1c42f266ff0f592d8284ac821"
 nuance: "A dedup key built from each finding's own title tokens misses two models describing
   one bug in different words at the same line -- keys differ, so exact-key merge misses it.
   The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the
