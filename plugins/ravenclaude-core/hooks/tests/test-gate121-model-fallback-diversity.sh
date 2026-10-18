@@ -45,7 +45,7 @@ reason_of() { jq -r '.hookSpecificOutput.permissionDecisionReason // ""' 2>/dev/
 decision_of() { jq -r '.hookSpecificOutput.permissionDecision // ""' 2>/dev/null; }
 
 # ── A: collapse (override every seat onto one model) ⇒ deny + collapse reason ──
-outA="$(THING_SEAT_MOCK_VERDICT=allow THING_SEAT_RESOLVED_OVERRIDE=claude-haiku-4-5 run_orch "$ORCH")"
+outA="$(THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT=allow THING_SEAT_RESOLVED_OVERRIDE=claude-haiku-4-5 run_orch "$ORCH")"
 if [ "$(printf '%s' "$outA" | decision_of)" = "deny" ] &&
   printf '%s' "$outA" | reason_of | grep -qi "collapsed the panel onto a single model"; then
   pass "collapse (>=2 seats → one model) ⇒ fail closed (deny, reason cites collapse)"
@@ -54,7 +54,7 @@ else
 fi
 
 # ── B: no override (distinct configured models) ⇒ gate inert (no collapse reason) ──
-outB="$(THING_SEAT_MOCK_VERDICT=allow run_orch "$ORCH")"
+outB="$(THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT=allow run_orch "$ORCH")"
 if printf '%s' "$outB" | reason_of | grep -qi "collapsed the panel"; then
   fail "B: false collapse with distinct models (reason=$(printf '%s' "$outB" | reason_of))"
 else
@@ -67,7 +67,7 @@ sed 's/\[ "$diversity_collapsed" = "true" \]/false/' "$ORCH" >"$MUT"
 if ! grep -q "if false; then" "$MUT"; then
   fail "C: could not neuter the collapse guard (sed no-op — fixture stale)"
 else
-  outC="$(THING_SEAT_MOCK_VERDICT=allow THING_SEAT_RESOLVED_OVERRIDE=claude-haiku-4-5 run_orch "$MUT")"
+  outC="$(THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT=allow THING_SEAT_RESOLVED_OVERRIDE=claude-haiku-4-5 run_orch "$MUT")"
   if printf '%s' "$outC" | reason_of | grep -qi "collapsed the panel"; then
     fail "C: must-fail — neutered guard STILL cited collapse (gate has no teeth)"
   else

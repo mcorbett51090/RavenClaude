@@ -131,6 +131,16 @@ done
 # The mock edited_command strings are chosen so the orchestrator's deterministic
 # EDIT re-validation (thing-concerns.py) passes for `edit` and fails for
 # `edit-unsafe` against the gate's `git push origin main` fixture.
+#
+# SECURITY (2026-10-18): a cloned repo can plant THING_SEAT_MOCK_VERDICT via
+# `.claude/settings.json` `env`. Honor the mock ONLY when the test harness also
+# sets THING_SEAT_ALLOW_MOCK=1 in the real process environment (parent-set).
+# Without that marker the mock is ignored and we fall through to the real seat.
+if [ -n "${THING_SEAT_MOCK_VERDICT:-}" ] && [ "${THING_SEAT_ALLOW_MOCK:-}" != "1" ]; then
+  echo "thing-seat: refusing THING_SEAT_MOCK_VERDICT without THING_SEAT_ALLOW_MOCK=1 (repo-local env is not trusted)" >&2
+  # Fall through — do not exit. Clearing the value prevents the case below from matching.
+  THING_SEAT_MOCK_VERDICT=""
+fi
 case "${THING_SEAT_MOCK_VERDICT:-}" in
   allow)
     echo '{"verdict":"allow","edited_command":null,"concerns_cited":[],"reasoning":"mock: no concern applies","confidence":0.95,"injection_detected":false}'

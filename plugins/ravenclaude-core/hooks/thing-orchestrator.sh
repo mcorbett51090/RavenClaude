@@ -446,7 +446,7 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
-           THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
+           THING_SEAT_ALLOW_MOCK="${THING_SEAT_ALLOW_MOCK:-}" THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
            THING_SEAT_MOCK_REVISED="${THING_SEAT_MOCK_REVISED:-}" \
            _rc_timeout "${seat_timeout}" bash "$SEAT" 2>"$tmp/$role.err")" || rc=$?
   else
@@ -455,7 +455,7 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
-           THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
+           THING_SEAT_ALLOW_MOCK="${THING_SEAT_ALLOW_MOCK:-}" THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
            _rc_timeout "${seat_timeout}" bash "$SEAT" 2>"$tmp/$role.err")" || rc=$?
   fi
   printf '%s' "$out" > "$tmp/$role.json"
