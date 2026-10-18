@@ -43,7 +43,7 @@ findings=()
 if grep -nEi "(time\\.sleep|sleep\\(|cy\\.wait\\([0-9]|page\\.waitForTimeout\\([0-9]|Thread\\.sleep)" "$scan_target" >/dev/null 2>&1; then
   findings+=("Fixed sleep in a test — replace with a condition-based wait; fixed sleeps are flaky or slow.")
 fi
-if grep -nEi "(By\\.xpath|cy\\.xpath|page\\.\\$x\\(|//div\\[|//span\\[)" "$scan_target" >/dev/null 2>&1; then
+if grep -nEi "(By\\.xpath|cy\\.xpath|page\\.\\\$x\\(|//div\\[|//span\\[)" "$scan_target" >/dev/null 2>&1; then
   findings+=("XPath/brittle selector in a test — prefer roles and data-testid; XPath breaks on markup changes.")
 fi
 if grep -nEi "(\\.only\\(|fit\\(|fdescribe\\(|test\\.only|describe\\.only)" "$scan_target" >/dev/null 2>&1; then

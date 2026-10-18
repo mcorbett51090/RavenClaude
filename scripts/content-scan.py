@@ -48,6 +48,7 @@ Stdlib-only. Exits non-zero on missing key / API failure so CI fails loudly.
 from __future__ import annotations
 
 import argparse
+import http.client
 import ipaddress
 import json
 import os
@@ -242,7 +243,13 @@ def fetch_body_excerpt(url: str) -> str:
             if "html" not in ctype and "text" not in ctype:
                 return ""
             raw = resp.read(400_000).decode(errors="replace")
-    except (urllib.error.URLError, urllib.error.HTTPError, ValueError):
+    except (OSError, http.client.HTTPException, ValueError):
+        # The docstring promises "'' on any error", but the previous tuple
+        # (URLError, HTTPError, ValueError) missed a mid-body ConnectionResetError
+        # and socket read-timeout — both OSError, not URLError — so one flaky host
+        # aborted the whole scan and lost the not-yet-written digest. OSError
+        # subsumes URLError/HTTPError (both are OSError subclasses); HTTPException
+        # covers IncompleteRead/BadStatusLine from resp.read().
         return ""
     # Strip script/style, then tags, then collapse whitespace. Crude but stdlib.
     raw = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", raw, flags=re.S | re.I)

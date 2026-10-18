@@ -182,7 +182,13 @@ def resolve_branch(explicit: str | None = None) -> str:
     from_env = os.environ.get("RC_REVIEW_BRANCH")
     if from_env:
         return from_env
-    return _git("rev-parse", "--abbrev-ref", "HEAD") or "detached"
+    # On a detached HEAD, `rev-parse --abbrev-ref HEAD` prints the literal string
+    # "HEAD" (truthy), so a bare `or "detached"` never fired and every detached
+    # checkout collided on the ledger key "HEAD". Treat "HEAD" as detached too.
+    branch = _git("rev-parse", "--abbrev-ref", "HEAD")
+    if not branch or branch == "HEAD":
+        return "detached"
+    return branch
 
 
 def branch_slug(branch: str) -> str:

@@ -2,6 +2,23 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.355.5 — 2026-10-18
+
+Salvages the still-open fixes from #1288, #1268, #1267 and #1270 onto current main.
+
+### Security
+- **Scenario intake: a secret split by an injection tag could be rebuilt into the staged file (P1).** `scripts/process-scenario-submission.py` scanned for secrets/PII on the normalized text, *before* `_strip_injection`, but staged the text *after* stripping, so `ghp_AAA…<system-reminder>…</system-reminder>…BBB` passed the scan and was written whole. The intake now also strips injection tags first and scans the stripped text of every field, then re-scans the exact capped text it writes. These checks only add rejections; they never let more text through.
+
+### Fixed
+- **Gate 170 (`check-codex-agent-sandbox.py`) used the generator it audits as its oracle (P1).** It now works out the least-privilege `sandbox_mode` independently, so loosening `sandbox_for` and regenerating can no longer pass.
+- **`emit-codex-config.py` root-key anchor ignored `[[array-of-tables]]` (P1).** `sandbox_mode`/`approval_policy` could land under a leading `[[hooks.pre]]` instead of at the root.
+- **`check-inception-coverage.py` missed renames into a gated root.** It now uses `--diff-filter=ACR`, matching `check-layout.py`.
+- **`content-scan.py`**: a mid-body reset or timeout no longer aborts the whole scan.
+- **`review-ledger.py`**: a detached HEAD now keys as `detached` instead of the literal `HEAD`.
+- **`hooks/enforce-layout.sh`**: `$project_root` is quoted in the prefix strip, so a glob or bracket in the project path no longer denies every write.
+- **`scripts/cleanup-branches.sh`**: the merged-ness proof uses `refs/heads/$b`, so a tag with the same name can't shadow the branch.
+- **Docs**: dead section anchors and wrong-file references fixed in `CLAUDE.md`, `knowledge/subagent-isolation-and-tooling.md` and `agents/source-control-coordinator.md`.
+
 ## 0.355.4 — 2026-10-18
 
 ### Changed
