@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.358.4 — 2026-10-18
+
+### Changed
+- **`wallet-passes`: straight to Wallet is measured on a real iPhone.** On 2026-10-18 the owner opened a card URL ending `#add-to-wallet` directly in Safari, on RavenPower's preview (`preview.ravenpower-sites.pages.dev/connect`) and on production (`www.ravenpower.net/connect`). Wallet's pass sheet (Add / review) appeared with no tap. So iOS Safari does present the Add-to-Wallet sheet for a script-initiated `location.assign()` to a `.pkpass` about 150 ms after page load, without user activation. `references/verify.md` **#38** is now partly resolved, and `references/tap-to-share.md` § Straight to Wallet records the result as MEAS in place of the UNVER statement, keeping the fallback (where it does not fire, the person lands on the card). Still open under #38: the iOS version, the Camera QR and NFC-tag entry points themselves (the test opened the URL directly in Safari), and a non-Safari default browser. The SKILL.md map says the same in one line.
+
 ## 0.358.3 — 2026-10-18
 
 ### Fixed (marketplace tooling, not shipped in the plugin)

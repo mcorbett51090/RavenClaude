@@ -37,7 +37,7 @@ Official-docs reference for Apple Wallet (PassKit) and Google Wallet generic pas
 > 7. **Apple NFC (VAS) cert has no published SLA** (#7) — the request form is sign-in gated.
 > 8. **Google `appLinkData` needs allowlisting** (#8) — one FAQ sentence, no criteria/timeline; it gates any front-of-pass button.
 >
-> The other 30 items (#9–#38: P2 implementation details and P3 undocumented numbers; #10 resolved) are in the same ledger.
+> The other 30 items (#9–#38: P2 implementation details and P3 undocumented numbers; #10 resolved, #38 partly resolved) are in the same ledger.
 
 ## Hard rules (both platforms)
 
@@ -114,7 +114,7 @@ Full ranked table + evidence: [`references/tap-to-share.md`](references/tap-to-s
 - **Strangers:** iOS 26.2+ AirDrop to a non-contact needs an **AirDrop code** — the QR or Messages is faster. The hold-two-iPhones gesture is for undefined "eligible passes" (#30): never promise it.
 - **The receiving page is where it breaks:** one Wallet button per phone (Android hides Apple only when a Google pass exists — Google Wallet imports `.pkpass` without updates; iPhone hides Google); an **in-app-browser** escape on iOS (Instagram/Messenger block passes — Apple: only Safari and Safari View Controller import directly); `[hidden]{display:none!important}` so script-hidden buttons stay hidden; a strict CSP needs the script as a same-origin file.
 - **Google:** one object saved by many people needs `multipleDevicesAndHoldersAllowedStatus: MULTIPLE_HOLDERS` **on the class** — under `ONE_USER_ALL_DEVICES` the first saver locks everyone else out.
-- **Straight to Wallet:** mark only the pass QR and the NFC tag with `#add-to-wallet` (not the Google pass's QR — Save-JWT budget); the card script strips it and opens this phone's Wallet link, fail-closed. Whether iOS shows the sheet without a tap is #38 — [`references/tap-to-share.md`](references/tap-to-share.md) § Straight to Wallet.
+- **Straight to Wallet:** mark only the pass QR and the NFC tag with `#add-to-wallet` (not the Google pass's QR — Save-JWT budget); the card script strips it and opens this phone's Wallet link, fail-closed. iOS Safari shows the sheet with no tap (MEAS 2026-10-18, URL opened in Safari); the Camera and NFC entry points and other default browsers are still #38 — [`references/tap-to-share.md`](references/tap-to-share.md) § Straight to Wallet.
 - **Owner without an app:** Web NFC writes a sticker from Chrome on Android (Safari will not implement it). `sms:` body forms are undocumented (#31) — use per-phone forms and device-test.
 
 ## Business-card default
