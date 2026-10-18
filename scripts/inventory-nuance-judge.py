@@ -98,10 +98,19 @@ def _model_available() -> tuple[bool, str]:
 
 
 def _ask(prompt: str) -> str | None:
+    # Lean call (Gate 306). A temp cwd keeps this repo's CLAUDE.md, project hooks and
+    # project MCP config out of the judge's prompt; --tools= and --strict-mcp-config keep
+    # tool and MCP definitions out of the prefix. The rubric is self-contained, so the
+    # judge needs none of it. The model is still the CLI default, as before.
     try:
-        r = subprocess.run(
-            ["claude", "-p", prompt], capture_output=True, text=True, timeout=JUDGE_TIMEOUT
-        )
+        with tempfile.TemporaryDirectory() as scratch:
+            r = subprocess.run(
+                ["claude", "-p", "--strict-mcp-config", "--tools=", prompt],
+                cwd=scratch,
+                capture_output=True,
+                text=True,
+                timeout=JUDGE_TIMEOUT,
+            )
     except (OSError, subprocess.SubprocessError):
         return None
     if r.returncode != 0:

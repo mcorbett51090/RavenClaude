@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.356.0 — 2026-10-18
+
+### Changed
+- **`thing-decide.py` seats run without tools** (needs security review). Both `claude -p` calls (the decision seat and the dispatch-evaluator shadow) now pass `--strict-mcp-config --tools ""`, the same shape `thing-seat.sh` already uses. The seats only return a verdict JSON. A live probe of the new seat shape used about 4,825 input tokens; the default shape measured about 213K (analysis.md E8). This also removes tool access from a call that reads untrusted decision text.
+- **`scripts/inventory-nuance-judge.py`** (repo-root tooling) runs `claude -p --strict-mcp-config --tools=` from a temp directory, so this repo's `CLAUDE.md`, project hooks and project MCP config no longer load into the judge. The model is unchanged (CLI default).
+
+### Added
+- **Gate 306** (`scripts/check-headless-call-shape.py`). Every `claude -p` site in `plugins/`, `scripts/` and `.claude/workflows/` must pass `--strict-mcp-config` or be listed with a reason and a site count in `tests/fixtures/headless-call-shape-exemptions.json`. It also fails the variadic `--tools "" <positional>` trap. A changed site count, a short reason or a stale entry fails. A positive control fails the gate if discovery stops finding the known sites, and `--must-fail` strips the flag from `thing-seat.sh` and must be caught. Seven files are exempt today: the three `--bare` dispatch-evaluator shell-outs, the evaluator hook (also `--bare`), the host canary, a live nested-dispatch test, and a fixture string.
+
 ## 0.355.10 — 2026-10-18
 
 ### Fixed

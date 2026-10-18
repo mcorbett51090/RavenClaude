@@ -393,8 +393,9 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # suite of its own; renumbered from 282 at THIS merge — origin/main
       # independently claimed 282 for claude-launch-safeguard while this
       # branch was unmerged, same "no better-fit suite" reasoning as
-      # 173/175/193/194/267-281 above).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289 301 302"
+      # 173/175/193/194/267-281 above). 306 (headless claude -p call shape — a
+      # repo-wide call-site lint, no better fit than core).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289 301 302 306"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -2136,9 +2137,17 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh
       exit $?
       ;;
+    306)
+      echo "── Gate 306: headless claude -p call shape (--strict-mcp-config or a reasoned exemption; per-gate run) ──"
+      rc=0
+      python3 scripts/check-headless-call-shape.py || rc=$?
+      python3 scripts/check-headless-call-shape.py --self-test || rc=$?
+      rc_mustfail python3 scripts/check-headless-call-shape.py || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7150,6 +7159,24 @@ if command -v jq >/dev/null 2>&1; then
   gate "hook-env hardening: planted env denied + never reaches hooks, lock-gated recursion guard, review-gap warning" must_pass "$rc"
 else
   _skip_or_fail "Gate 305 (hook-env hardening)" jq
+fi
+
+echo "── Gate 306: headless claude -p call shape ──"
+# Every code site that runs `claude -p` passes --strict-mcp-config (keeps MCP tool
+# definitions out of the request prefix: ~211,798 vs ~3,470 input tokens measured in
+# docs/plans/2026-10-14-prompt-caching/analysis.md E9) or carries a reasoned
+# exemption in tests/fixtures/headless-call-shape-exemptions.json. Also rejects the
+# variadic `--tools "" <positional>` trap. A positive control fails the gate if
+# discovery stops finding the known sites. GREP THE SUITE OUTPUT FOR "Gate 306".
+if command -v python3 >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-headless-call-shape.py >/dev/null 2>&1 || rc=$?
+  gate "headless-call-shape: every claude -p site is lean or exempt with a reason" must_pass "$rc"
+  rc=0; python3 scripts/check-headless-call-shape.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "headless-call-shape: self-test (discovery, variadic trap, exemption staleness, positive control)" must_pass "$rc"
+  rc=0; rc_mustfail python3 scripts/check-headless-call-shape.py || rc=$?
+  gate "headless-call-shape: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 306 (headless-call-shape)" python3 git
 fi
 
 

@@ -23,7 +23,7 @@ Haiku 5.5 is $0.10 / $0.50 per million tokens at or under 100k prompt tokens, an
 
 | Flag | This plugin |
 |---|---|
-| `--strict-mcp-config` | Added on JSON-only sites that already passed `--tools ""` and do not need MCP: `thing-seat.sh`, `claude-orchestrate.sh`, `prompt-optimizer-gate.sh`, `prompt-optimizer-rewrite.sh`, `prompt-optimizer-dispatch.sh`, `prompt-optimizer-judge-soak.py`, `judge.sh`. |
+| `--strict-mcp-config` | Added on JSON-only sites that already passed `--tools ""` and do not need MCP: `thing-seat.sh`, `claude-orchestrate.sh`, `prompt-optimizer-gate.sh`, `prompt-optimizer-rewrite.sh`, `prompt-optimizer-dispatch.sh`, `prompt-optimizer-judge-soak.py`, `judge.sh`. Since 0.356.0 also `thing-decide.py` (both calls, with `--tools ""`) and the repo-root `scripts/inventory-nuance-judge.py`. Gate 306 (`scripts/check-headless-call-shape.py`) requires it on every `claude -p` site unless the file is exempt with a reason in `tests/fixtures/headless-call-shape-exemptions.json`. |
 | `--bare` | Already the lean flag on `agent-dispatch-evaluator.sh`. Not combined with `--strict-mcp-config` here; that pair was not measured. `--bare` also stays opt-in on seats (`THING_SEAT_BARE` / `ANTHROPIC_API_KEY`). This change does not flip that. |
 | `--safe-mode` | Not used. It skips hooks, and whether it beats `--strict-mcp-config` once hooks are counted was not measured on the owner's machine. |
 
@@ -33,9 +33,9 @@ Haiku 5.5 is $0.10 / $0.50 per million tokens at or under 100k prompt tokens, an
 
 | Site | Why it was left |
 |---|---|
-| `thing-decide.py` `_run_seat` and the evaluator shadow | No `--tools ""`. The full default tool set is what that path runs. Adding a lean flag would change behaviour. Security review has not signed off on stripping it. Usage is recorded. |
+| `thing-decide.py` `_run_seat` and the evaluator shadow | **Changed in 0.356.0** (pending security review): both calls now pass `--strict-mcp-config --tools ""`. The seats only ever return a verdict JSON, so they need no tools, and a seat that can call tools while reading untrusted decision text was a wider injection surface than needed. Live probe of the seat shape: ~4,825 input tokens. Usage is recorded. |
 | `agent-dispatch-evaluator.sh` | Already `--bare`. Combining with `--strict-mcp-config` is unmeasured. Usage is recorded. The model pin moved. |
-| `scripts/inventory-nuance-judge.py` | Repo-root script, not this plugin. |
+| `scripts/inventory-nuance-judge.py` | **Changed in 0.356.0:** `--strict-mcp-config --tools=` and a temp cwd, so the repo's `CLAUDE.md`, project hooks and project MCP config stay out of the judge's prompt. The model is still the CLI default. |
 | Both `rc-deep-research.js` copies | Already `--bare`. `opts.cache_control` / `opts.thinking` are still set but are not documented `agent()` options, so they are probably ignored (not re-probed). Since 0.355.10 the comments say so instead of claiming a 1-hour verify cache. Gate 126 keeps the two copies identical. Claude pins moved. |
 | Nonce in the seat system prompt | Moving it into the volatile tail (Phase 5 / D5) changes the security boundary. Not done. |
 | Secret handling | `THING_SEAT_BARE` and whether `ANTHROPIC_API_KEY` is set were not touched. |
@@ -69,4 +69,4 @@ Operator checklist, not a claim that a workspace already exists:
 
 ## Not done here
 
-Owner-machine Phase 0 baseline, a live `claude` flag probe (the CLI is not installed in every remote session), a new call-shape gate, nonce relocation, and shrinking the plugin `CLAUDE.md`. Those stay follow-ups.
+Owner-machine Phase 0 baseline, nonce relocation, and shrinking the plugin `CLAUDE.md`. Those stay follow-ups. (The call-shape gate shipped as Gate 306 in 0.356.0, with a live probe of the two new shapes.)
