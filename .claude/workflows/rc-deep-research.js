@@ -58,11 +58,21 @@ const _isoNow = () => "1970-01-01T00:00:00.000Z";
 //   balanced → claude-sonnet-5-5
 //   top      → claude-opus-5-5
 //
-// cache_control: {type:"ephemeral", ttl:"1h"} ONLY on verify phases. The 36-min
-// baseline run vastly exceeds the 5-min default TTL; eat the 2× write penalty once
-// to keep the verify system block warm for the full run (gap-delta C1, A6).
-// The classifier prompt is ~800 tokens — below Haiku 4.5's 4,096-token cache
-// minimum — so NO cache_control is applied there (pure write penalty, RM1).
+// cache_control / thinking on adapterOpts — UNVERIFIED, probably ignored (corrected
+// 2026-10-18). The design intent (gap-delta C1, A6) was a 1-hour TTL on the verify
+// phases. But `cache_control` and `thinking` are NOT documented agent() options:
+// the workflow-authoring reference lists only label, phase, schema, model, effort,
+// isolation and agentType. So these keys are passed through and almost certainly
+// ignored. Do not cite a "1-hour verify cache" from this file. Workflow agents get
+// Claude Code's own subagent TTL (5 min, even on a subscription; override with
+// CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL / subagentPromptCacheTtl), and the Workflow
+// tool already lets a matching sibling read the first one's cache
+// (CLAUDE_CODE_WORKFLOW_PREFIX_STAGGER_MS). See
+// docs/plans/2026-10-14-prompt-caching/analysis.md F9.
+// The run classifier gets no cache_control either (RM1). The original reason was a
+// ~800-token prompt under Haiku 4.5's 4,096-token minimum. The fast tier is now
+// Haiku 5.5 (512-token minimum per the playbook), so that reason is stale; the
+// option would be ignored anyway, for the reason above.
 
 function _dispatchHost() {
   try {
@@ -105,7 +115,7 @@ const TIER_MODEL = {
 // Tiers that support extended/adaptive thinking (Haiku 4.5 does not — RM6).
 const THINKING_TIERS = new Set(["balanced", "top"]);
 
-// Phases that get the 1-hour cache_control on their system block.
+// Phases that were MEANT to get a 1-hour cache (see the UNVERIFIED note above).
 const LONG_TTL_PHASES = new Set(["verify_default", "verify_judgment"]);
 
 function adapterOpts(phaseName, runCfg) {
@@ -123,7 +133,8 @@ function adapterOpts(phaseName, runCfg) {
     opts.thinking = { type: "adaptive" };
   }
 
-  // cache_control: 1-hour TTL only for long-running verify phases (gap-delta C1).
+  // cache_control: intended 1-hour TTL for verify phases (gap-delta C1). NOT a
+  // documented agent() option — probably ignored; see the UNVERIFIED note above.
   if (LONG_TTL_PHASES.has(phaseName)) {
     opts.cache_control = { type: "ephemeral", ttl: "1h" };
   }
@@ -211,9 +222,10 @@ async function loadDispatchConfig() {
 // Hard 2s wall-clock timeout. Returns a verdict envelope on success; null on
 // timeout / error (caller treats null as pass-through).
 //
-// The classifier call is intentionally NOT cached (prompt < 1,024 tokens — below
-// Haiku-4.5's 4,096-token cache minimum; setting cache_control would incur the
-// write penalty with zero chance of a cache hit — see SKILL.md §NO cache_control).
+// No cache_control is set here. This is a `claude -p` call, and Claude Code caches
+// those itself; there is no per-call cache_control knob. (The earlier reason, a
+// prompt under Haiku 4.5's 4,096-token minimum, went stale when the fast tier moved
+// to Haiku 5.5. Corrected 2026-10-18.)
 // ─────────────────────────────────────────────────────────────────────────────
 async function evaluateDispatch(
   { subagent_type, description, prompt_head, requested_model, caller_context },
@@ -580,7 +592,7 @@ const REPORT_SCHEMA = {
 // Step 2: if enabled:true and task_class missing, call the classifier (one Haiku
 //         Messages-API-shaped call via agent() with forced schema:).
 // Step 3: snapshot result — all subsequent code uses the frozen `runCfg`.
-// NO cache_control on classifier (~800 tokens < Haiku 4.5's 4,096-token minimum).
+// NO cache_control on classifier: agent() has no such option (see the note near the top).
 
 const RC_PATH = ".ravenclaude/run-config.json";
 const RC_READ_SCHEMA = {
@@ -626,8 +638,8 @@ if (!rcRead || !rcRead.found || !rcRead.content || rcRead.content.enabled !== tr
   } else {
     // Classifier: one Haiku call, forced tool_choice via schema: parameter.
     // Layout: stable system (classify instruction) above breakpoint; volatile
-    // question below. No cache_control — prompt is ~800 tokens, below Haiku 4.5
-    // minimum of 4,096 (RM1).
+    // question below. No cache_control: agent() has no such option (RM1; see the
+    // note near the top).
     const QUESTION_PRELIM =
       typeof args === "string"
         ? args.trim()
@@ -1108,8 +1120,8 @@ if (rankedClaims.length === 0) {
 }
 
 // ─── Verify: per-claim adversarial (policy-driven vote count + optional escalation) ─
-// cache_control {ttl:"1h"} applied via adapterOpts for verify_default and verify_judgment
-// (gap-delta C1 / A6 — 36-min run exceeds 5-min default TTL).
+// adapterOpts sets cache_control {ttl:"1h"} for verify_default and verify_judgment, but
+// it is not a documented agent() option — probably ignored (see the note near the top).
 phase("Verify");
 _phaseStart("verify_default");
 
