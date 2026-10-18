@@ -10,7 +10,7 @@ last_verified: 2026-10-18
 covers:
   - plugins/ravenclaude-core/scripts/thing-harden.py
   - plugins/ravenclaude-core/hooks/thing-orchestrator.sh
-covers_digest: "sha256:d158f506565adac363557fcfa8ef349400100b9f54136280882ce199933f5af9"
+covers_digest: "sha256:ba4a41e04409e76923ad77f92dd6a8f91be1881f2700d4d29f2ea360a960d46d"
 nuance: "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op."
 nuance_evidence:
   measured: 2026-09-16
