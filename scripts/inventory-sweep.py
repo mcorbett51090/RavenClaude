@@ -324,6 +324,37 @@ def _script_callgraph(root: Path, paths: list[str], ctx: dict) -> dict:
     return out
 
 
+_SECRET_NAME = re.compile(
+    r"TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|WEBHOOK|DATABASE_URL|CONNECTION_STRING",
+    re.IGNORECASE,
+)
+# ⛔ GIT'S ENV-INJECTED CONFIG IS ONE UNIT: drop all of it or none of it.
+# GIT_CONFIG_COUNT=N tells git to read GIT_CONFIG_KEY_0..N-1 and the matching
+# GIT_CONFIG_VALUE_n. _SECRET_NAME matches "KEY", so it used to drop the KEY_n
+# entries and keep COUNT. git then refused to start ("missing config key
+# GIT_CONFIG_KEY_0 / fatal: unable to parse command-line config"), so every git
+# call inside a probed --must-fail run failed. Measured 2026-10-18 in a container
+# that sets this family: _base_ref.py, check-ratchet-freshness.py and
+# inventory-census.py returned 1/0/1 instead of their declared 3, while CI (which
+# does not set it) stayed green. Keeping the family whole would also forward
+# GIT_CONFIG_VALUE_n, and a value can carry a credential under a name the
+# pattern cannot see (an http.extraHeader Authorization header). So the whole
+# family goes, and the child sees git as CI does. GIT_CONFIG_PARAMETERS is the
+# older single-variable form of the same channel.
+_GIT_ENV_CONFIG = re.compile(r"^GIT_CONFIG_(COUNT|KEY_\d+|VALUE_\d+|PARAMETERS)$")
+
+
+def _child_env(environ) -> dict:
+    """The environment a probed repo script runs with: secret-shaped names and
+    git's env-injected config removed, everything else (PATH, HOME, LANG, ...)
+    untouched so the child behaves as it does when run by hand."""
+    return {
+        k: v
+        for k, v in environ.items()
+        if not _SECRET_NAME.search(k) and not _GIT_ENV_CONFIG.match(k)
+    }
+
+
 @probe_class(
     "script-selftest",
     tier="effect",
@@ -356,12 +387,9 @@ def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
     # attacker-authored --must-fail run's env. Unanchored KEY subsumes _KEY$/API_KEY.
     # Every added token is credential-shaped and NAME-only: PATH/HOME/LANG/PWD/etc.
     # still never match, so child scripts' behavior stays unperturbed (the reason cwd
-    # and HOME are deliberately left untouched above).
-    _secret_name = re.compile(
-        r"TOKEN|SECRET|KEY|PASSWORD|PASSWD|CREDENTIAL|WEBHOOK|DATABASE_URL|CONNECTION_STRING",
-        re.IGNORECASE,
-    )
-    _scrubbed_env = {k: v for k, v in os.environ.items() if not _secret_name.search(k)}
+    # and HOME are deliberately left untouched above). The pattern and the git-config
+    # rule live in _child_env above, so _must_fail can test the same code.
+    _scrubbed_env = _child_env(os.environ)
     for p in paths:
         # ⛔ THE SWEEP DOES NOT PROBE ITSELF. Measured: script-selftest ran
         # `inventory-sweep.py --must-fail`, whose teeth run performs a full sweep,
@@ -1132,6 +1160,34 @@ def _must_fail(root: Path) -> int:
         print("  is not actually constraining the label vocabulary.")
         return 0
 
+    # 2b. The child env must keep git working: git's env-injected config is
+    # dropped whole, never half. Control first: the half-dropped shape (COUNT
+    # kept, KEY_0 gone) must break git, or this check could not see the defect.
+    base = {k: os.environ[k] for k in ("PATH", "HOME") if k in os.environ}
+    planted = dict(
+        base,
+        GIT_CONFIG_COUNT="1",
+        GIT_CONFIG_KEY_0="core.abbrev",
+        GIT_CONFIG_VALUE_0="12",
+        RC_CANARY_TOKEN=PLANTED_TOKEN,
+    )
+    probe = ["git", "-C", str(root), "rev-parse", "--git-dir"]
+    half = {k: v for k, v in planted.items() if k != "GIT_CONFIG_KEY_0"}
+    if _run(root, probe, timeout=30, env=half).returncode == 0:
+        print("✗ must-fail: control inert — git started with GIT_CONFIG_COUNT and no")
+        print("  GIT_CONFIG_KEY_0, so the git-config check below cannot see a half drop.")
+        return 0
+    child = _child_env(planted)
+    leftover = sorted(k for k in child if k.startswith("GIT_CONFIG_") or k == "RC_CANARY_TOKEN")
+    if leftover or "PATH" not in child:
+        print(f"✗ must-fail: _child_env kept {leftover or 'no PATH'} — the child env is")
+        print("  not git's CI shape (git config family whole-dropped, secrets gone, PATH kept).")
+        return 0
+    if _run(root, probe, timeout=30, env=child).returncode != 0:
+        print("✗ must-fail: git fails under _child_env. Every probed --must-fail run that")
+        print("  calls git would then report a convention-mismatch that is not real.")
+        return 0
+
     # 3. The permanently-red canary must be RED on the real tree.
     result = sweep(root, tier="T0")
     canary = [r for r in result["records"] if r["class"] == "canary-permanently-red"]
@@ -1144,7 +1200,8 @@ def _must_fail(root: Path) -> int:
         return 0
 
     print("✓ must-fail: every class control fires, the scrubber constrains the label")
-    print("  vocabulary, and the permanently-red canary is red.")
+    print("  vocabulary, the child env keeps git working, and the permanently-red")
+    print("  canary is red.")
     print("  Exiting 3, the DECLARED teeth code, so the auditor can compare.")
     return 3
 
