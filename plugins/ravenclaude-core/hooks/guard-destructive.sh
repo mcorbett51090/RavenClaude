@@ -1895,6 +1895,30 @@ EOF
   return 1
 }
 
+
+# P1-4 (2026-10-18): `git reset --hard` must be order-independent inside the
+# reset segment — the contiguous deny_patterns entry missed
+# `git reset HEAD~3 --hard` and `git reset -q --hard HEAD`. Mirrors
+# _is_dangerous_git_clean's force-flag-anywhere scan. Short-flag `h` is NOT
+# treated as hard (git has no -h hard synonym; -h is help).
+_is_dangerous_git_reset_hard() {
+  local cmd="$1" seg
+  while IFS= read -r seg; do
+    # Identify a `git … reset` segment (global flags like -C/-c may precede).
+    case "$seg" in
+      *git[[:space:]]*reset[[:space:]]*|*git[[:space:]]*reset) ;;
+      *) continue ;;
+    esac
+    # Require the reset subcommand (not a path named reset).
+    printf '%s' "$seg" | grep -Eq '(^|[[:space:]])git([[:space:]]+-[[:alnum:]=._/-]+)*[[:space:]]+reset([[:space:]]|$)' || continue
+    # --hard anywhere in the segment (not --help).
+    printf '%s' "$seg" | grep -Eq '(^|[[:space:]])--hard([[:space:]]|$)' && return 0
+  done <<EOFSEG
+$(printf '%s' "$cmd" | tr ';&|' '\n\n\n')
+EOFSEG
+  return 1
+}
+
 # --- Pattern array (matched against the normalized command) ----------------
 # The settings.json deny-list catches the top-level form; this catches them
 # when nested / wrapped / reordered.
@@ -1904,7 +1928,7 @@ deny_patterns=(
   'git[[:space:]]+push[[:space:]]+([^;&|]*[[:space:]])?-[A-Za-z]*f[A-Za-z]*([[:space:]]|$)'  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
   'git[[:space:]]+push[[:space:]][^;&|]*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
   'git[[:space:]]+push[[:space:]]+[^;&|]*--mirror([[:space:]]|$)'       # --mirror force-updates every ref + deletes remote refs absent locally
-  'git[[:space:]]+reset[[:space:]]+--hard([[:space:]]+|$)'
+  # git reset --hard: see _is_dangerous_git_reset_hard (order-independent)
   # NB: git force-branch-delete (_is_dangerous_git_branch_delete), remote-branch
   # deletion (_is_dangerous_git_push_delete), and `git clean` force
   # (_is_dangerous_git_clean) are handled by the order-independent structural
@@ -1958,6 +1982,7 @@ if _is_dangerous_truncate "$norm"; then _deny "truncate-zero-of-dangerous-target
 if _is_dangerous_git_branch_delete "$norm"; then _deny "git-branch-force-delete"; fi
 if _is_dangerous_git_push_delete "$norm";   then _deny "git-push-remote-branch-delete"; fi
 if _is_dangerous_git_clean "$norm";         then _deny "git-clean-force"; fi
+if _is_dangerous_git_reset_hard "$norm";    then _deny "git-reset-hard"; fi
 if _is_dangerous_merge "$norm" "$_norm_before_gitstrip";      then _deny "bypass-shaped-merge"; fi
 if _is_dangerous_update_ref "$norm"; then _deny "git-update-ref-delete"; fi
 if _is_dangerous_gh_curl_delete "$norm"; then _deny "destructive-delete-api-call"; fi
