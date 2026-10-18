@@ -304,6 +304,13 @@ def _run_seat(
                     "json",
                     "--model",
                     model,
+                    # JSON-only seat: no built-in tools, and no MCP tool definitions
+                    # in the prefix (same shape as thing-seat.sh). A seat that can
+                    # call tools while reading untrusted decision text is a wider
+                    # injection surface than this one needs.
+                    "--strict-mcp-config",
+                    "--tools",
+                    "",
                     "--append-system-prompt",
                     sys_prompt,
                     user_prompt,
@@ -423,6 +430,9 @@ def _evaluator_shadow(
                     *bare,
                     "--output-format",
                     "json",
+                    "--strict-mcp-config",
+                    "--tools",
+                    "",
                     "--model",
                     "claude-haiku-5-5",
                     instr + envelope,
