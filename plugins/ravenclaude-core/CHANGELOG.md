@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.355.7 — 2026-10-18
+
+### Security
+- **`hooks/guard-destructive.sh`: `git reset --hard` is now denied in any flag order (P1-4).** The single contiguous deny pattern missed `git reset HEAD~3 --hard` and `git reset -q --hard HEAD`. A structural check, `_is_dangerous_git_reset_hard`, now denies `--hard` anywhere in a `git … reset` segment (global `-C`/`-c` flags allowed before it), the same way `_is_dangerous_git_clean` handles its force flag. `-h` is help, not hard. `test-guard-destructive-shf6.sh` gains the reordered cases.
+
 ## 0.355.6 — 2026-10-18
 
 ### Security
