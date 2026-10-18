@@ -2,6 +2,13 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.358.0 — 2026-10-18
+
+### Added
+- **`rc ttl-advice`** (`scripts/subagent-ttl-advisor.py`, read-only). It reads the handoff-tax meter's `.ravenclaude/runs/<session>/dispatch-ledger.jsonl` files and, per agent type, counts same-session re-dispatches 5–60 minutes apart. An agent is listed when it has at least 5 dispatches and averages at least 0.65 in-window re-dispatches per 1-hour cache write: the break-even for `experimental.cacheTtl: 1h` (a 1-hour write costs 2.0x against 1.25x, and each in-window read saves 1.15x). Output is agent type names and numbers only. `--json` and `--min-dispatches N` are supported. With no ledgers it says so and exits 0. Run against this checkout: 0 dispatch rows, no ledgers.
+- **`knowledge/headless-claude-calls.md` § Subagent cache TTL**: the 5-minute subagent default, the per-agent key, the break-even, the advisor, and what happens to the key on Copilot and Codex (dropped by both projections, read from source). No shipped agent sets the key.
+- **Gate 307** now also runs the advisor's self-test (18 checks) and a `--must-fail` mutant that recommends a 1-hour TTL for every agent with enough data, which must be caught (exit 3).
+
 ## 0.357.0 — 2026-10-18
 
 ### Added

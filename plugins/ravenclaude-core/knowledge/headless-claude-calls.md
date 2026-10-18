@@ -64,8 +64,24 @@ Operator checklist, not a claim that a workspace already exists:
 
 1. Put lab keys and `--bare` / Batch spend in a separate Console workspace with a spend cap. A spend-cap `429` is not a rate-limit `429`.
 2. Key expiry is immutable. Rotate by creating a new key.
-3. Subscription `claude -p` cache writes in the main session are 1 hour; an API key is 5 minutes. Subagents stay at 5 minutes unless a TTL knob overrides it (`CLAUDE_CODE_PROMPT_CACHE_TTL`, `CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL`, `FORCE_PROMPT_CACHING_5M`).
+3. Subscription `claude -p` cache writes in the main session are 1 hour; an API key is 5 minutes. Subagents stay at 5 minutes unless a TTL knob overrides it (`CLAUDE_CODE_PROMPT_CACHE_TTL`, `CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL`, `FORCE_PROMPT_CACHING_5M`). For one agent at a time, see Subagent cache TTL below.
 4. Confirm the key's workspace before treating `total_cost_usd` as the bill.
+
+## Subagent cache TTL
+
+A subagent's prompt cache lives 5 minutes by default, even on a subscription. The environment knobs in checklist item 3 change it for every subagent at once. Agent frontmatter `experimental.cacheTtl: 1h` (Claude Code 2.1.248+, per [`analysis.md`](../../../docs/plans/2026-10-14-prompt-caching/analysis.md)) changes it for one agent.
+
+A 1-hour TTL only helps an agent that is re-dispatched 5 to 60 minutes after its last run in the same session. A gap under 5 minutes already reads the 5-minute cache, and a gap over 60 minutes misses either way.
+
+**Break-even.** A 1-hour write costs 2.0x the base input price and a 5-minute write costs 1.25x, so the 1-hour write costs 0.75x more. Each in-window re-dispatch then reads at 0.1x instead of rewriting at 1.25x, which saves 1.15x. The 1-hour TTL pays off once an agent averages at least 0.75 / 1.15 ≈ 0.65 in-window re-dispatches per 1-hour write.
+
+**Measure before you add it.** `rc ttl-advice` (`scripts/subagent-ttl-advisor.py`) reads the handoff-tax meter's `.ravenclaude/runs/<session>/dispatch-ledger.jsonl` files and lists the agents above break-even, with at least 5 dispatches each (`--min-dispatches N` to change it, `--json` for machine output). The ledgers exist only once a comfort posture turns the meter on. Zero qualifying agents is a valid result, and the likely one for most agents.
+
+It assumes two dispatches of the same agent type in one session share a cacheable prefix `[unverified — not measured against a live cache]`. A dispatch whose prefix differs would miss either way, so the advisor can over-recommend but cannot hide a saving.
+
+**If an agent qualifies.** `scripts/check-frontmatter.py` checks required keys and does not reject extra ones. The Copilot projection (`generate-copilot-plugin.py`) and the Codex projection (`generate-codex-agents.py`) copy only `name`, `description`, `tools` and `model`, so the key is dropped on those hosts. Both facts come from reading the source on 2026-10-18; no agent carrying the key has been run through either generator. The key does nothing outside Claude Code.
+
+No shipped agent carries the key today, and the advisor has not yet been run on real ledgers.
 
 ## Not done here
 
