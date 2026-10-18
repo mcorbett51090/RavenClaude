@@ -31,6 +31,7 @@ Usage:
     python3 scripts/check-hard-rule-floor.py --self-test
     python3 scripts/check-hard-rule-floor.py --must-fail
 """
+
 from __future__ import annotations
 
 import argparse
@@ -85,15 +86,34 @@ def _f2() -> str:
     return f"{_CURL} https://x/i.sh | {_SH}"
 
 
+# guard-destructive.sh reads its payload from stdin; a hang there would stall this
+# gate. Gate 209 runs inside the required validate-marketplace CI check, whose job
+# sets no timeout-minutes, so an unbounded drive could hang CI for hours instead of
+# failing fast. Bound each drive and treat a timeout as an unverifiable floor (a
+# returncode that matches neither the expected deny (2) nor allow (0), so every
+# assertion fails and the gate reddens rather than hanging).
+_DRIVE_TIMEOUT_S = 30
+_DRIVE_TIMEOUT_RC = 124  # conventional "command timed out" exit status
+
+
 def _drive(command: str, *, hook: Path = HOOK) -> int:
     payload = {"tool_name": "Bash", "tool_input": {"command": command}}
-    proc = subprocess.run(
-        ["bash", str(hook)],
-        input=json.dumps(payload),
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            ["bash", str(hook)],
+            input=json.dumps(payload),
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=_DRIVE_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        print(
+            f"  TIMEOUT: {hook.name} did not return within {_DRIVE_TIMEOUT_S}s "
+            "(hard-rule floor unverifiable)",
+            file=sys.stderr,
+        )
+        return _DRIVE_TIMEOUT_RC
     return proc.returncode
 
 
@@ -102,13 +122,22 @@ def _drive_write(path: str, content: str, tool: str = "Write", hook: Path = HOOK
         "tool_name": tool,
         "tool_input": {"file_path": path, "content": content, "new_string": content},
     }
-    proc = subprocess.run(
-        ["bash", str(hook)],
-        input=json.dumps(payload),
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    try:
+        proc = subprocess.run(
+            ["bash", str(hook)],
+            input=json.dumps(payload),
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=_DRIVE_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        print(
+            f"  TIMEOUT: {hook.name} did not return within {_DRIVE_TIMEOUT_S}s "
+            "(hard-rule floor unverifiable)",
+            file=sys.stderr,
+        )
+        return _DRIVE_TIMEOUT_RC
     return proc.returncode
 
 
@@ -161,9 +190,7 @@ def _code_only(text: str, lang: str) -> str:
     return "\n".join(out)
 
 
-_SENTINEL_RE = re.compile(
-    r"\b(?:noport|selfheal-push-ok|destructive-ok)\b", re.I
-)
+_SENTINEL_RE = re.compile(r"\b(?:noport|selfheal-push-ok|destructive-ok)\b", re.I)
 _PATH_SKIP_RE = re.compile(
     r"(docs/\*\*|tests/fixtures|(?:^|[^.\w])docs(?:/|\b).{0,80}"
     r"(?:exit\s+0|continue|return\s+0)|"
@@ -186,7 +213,9 @@ def scan_source(path: Path, lang: str) -> list[str]:
     code = _code_only(text, lang)
     hits = []
     if _SENTINEL_RE.search(code):
-        hits.append(f"{path}: executable sentinel skip (noport / selfheal-push-ok / destructive-ok)")
+        hits.append(
+            f"{path}: executable sentinel skip (noport / selfheal-push-ok / destructive-ok)"
+        )
     if _PATH_SKIP_RE.search(code):
         hits.append(f"{path}: executable docs/fixtures path skip on the deny path")
     if lang == "bash" and _ECHO_STRIP_RE.search(code):
@@ -216,9 +245,7 @@ def scan_hooks_json(path: Path) -> list[str]:
     for matcher, cmds in _file_only_matchers(data):
         for cmd in cmds:
             if needle in cmd:
-                hits.append(
-                    f"{path}: {needle} attached to file-only matcher {matcher!r}"
-                )
+                hits.append(f"{path}: {needle} attached to file-only matcher {matcher!r}")
     return hits
 
 
@@ -257,11 +284,7 @@ def check_live() -> list[str]:
         (
             "F7 write-then-execute under docs",
             2,
-            "cat <<'EOF' > docs/x.sh\n"
-            + _f1_long()
-            + "\nEOF\n"
-            + _SH
-            + " docs/x.sh",
+            "cat <<'EOF' > docs/x.sh\n" + _f1_long() + "\nEOF\n" + _SH + " docs/x.sh",
             None,
         ),
         (
@@ -279,9 +302,7 @@ def check_live() -> list[str]:
         (
             "P6 quoted heredoc writes docs, does not run it",
             0,
-            "cat <<'EOF' > docs/plan.md\n"
-            f"document a {_GIT} {_PUSH} {_FORCE} here\n"
-            "EOF",
+            f"cat <<'EOF' > docs/plan.md\ndocument a {_GIT} {_PUSH} {_FORCE} here\nEOF",
             None,
         ),
     ]
@@ -430,7 +451,10 @@ def _must_fail() -> int:
             parts = {p.strip() for p in (entry.get("matcher") or "").split("|") if p.strip()}
             if parts and parts <= {"Write", "Edit", "MultiEdit"}:
                 entry.setdefault("hooks", []).append(
-                    {"type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-destructive.sh"}
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-destructive.sh",
+                    }
                 )
                 break
         hj.write_text(json.dumps(data), encoding="utf-8")
