@@ -358,7 +358,20 @@ def load_samples(samples_dir: Path, now: float) -> list[dict]:
                 rec = json.loads(line)
             except ValueError:
                 continue
-            if isinstance(rec, dict) and float(rec.get("t") or 0) >= cutoff:
+            if not isinstance(rec, dict):
+                continue
+            # Coerce the timestamp at the single load boundary, in a try: a record
+            # whose `t` is non-numeric (a bad writer, or a collaborator on the data
+            # branch) must be DROPPED, never crash compute — otherwise `compute`
+            # raises, writes no reserve.json, and the hooks keep serving a stale
+            # one, violating the fail-safe contract. Downstream `float(rec["t"])`
+            # (session-meta, the trigger-latest scan) is then safe: every record
+            # here carries a numeric `t`. [1c-6]
+            try:
+                t = float(rec.get("t") or 0)
+            except (TypeError, ValueError):
+                continue
+            if t >= cutoff:
                 out.append(rec)
     return out
 
