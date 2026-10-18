@@ -233,17 +233,22 @@ def _claude_transcript_with_model(tmp: Path, entries) -> Path:
 
 class ModelAwareWindowTests(unittest.TestCase):
     """Added 2026-09-08 — the meter's window used to be hardcoded to 200000 for
-    every Claude Code session regardless of the actual running model, which is
-    wrong by 5x for every current model except haiku. See CLAUDE.md milestone
+    every Claude Code session. Current catalog ids, including Haiku 5.5, resolve
+    to 1_000_000. An unresolved haiku-shaped id, including the retired dated
+    Haiku 4.5 pin, stays on the 200_000 heuristic. See CLAUDE.md milestone
     "Context-usage meter becomes model-aware"."""
 
     def test_governed_sonnet_id_resolves_from_catalog(self):
-        r = meter.resolve_context_window_for_model("claude-sonnet-5")
+        r = meter.resolve_context_window_for_model("claude-sonnet-5-5")
         self.assertEqual(r, (1000000, "catalog"))
 
     def test_governed_haiku_id_resolves_from_catalog(self):
+        r = meter.resolve_context_window_for_model("claude-haiku-5-5")
+        self.assertEqual(r, (1000000, "catalog"))
+
+    def test_retired_dated_haiku_uses_heuristic(self):
         r = meter.resolve_context_window_for_model("claude-haiku-4-5-20251001")
-        self.assertEqual(r, (200000, "catalog"))
+        self.assertEqual(r, (200000, "heuristic"))
 
     def test_unresolved_haiku_shaped_id_uses_heuristic(self):
         r = meter.resolve_context_window_for_model("claude-haiku-9000-hypothetical")
@@ -260,14 +265,14 @@ class ModelAwareWindowTests(unittest.TestCase):
     def test_measure_uses_catalog_window_for_sonnet_session(self):
         with tempfile.TemporaryDirectory() as raw:
             transcript = _claude_transcript_with_model(
-                Path(raw), [({"input_tokens": 100}, "claude-sonnet-5")]
+                Path(raw), [({"input_tokens": 100}, "claude-sonnet-5-5")]
             )
             payload = {"transcript_path": str(transcript)}
             r = meter.measure(None, None, 70, None, claude_payload=payload)
             self.assertEqual(r["status"], "ok")
             self.assertEqual(r["window"], 1000000)
             self.assertEqual(r["window_source"], "catalog")
-            self.assertEqual(r["model_id"], "claude-sonnet-5")
+            self.assertEqual(r["model_id"], "claude-sonnet-5-5")
             # this is the whole point: 100 used / 1,000,000 window is nowhere
             # near the old (wrong) 200000-window percent of 0.05.
             self.assertEqual(r["percent"], round(100 / 1000000 * 100, 1))
@@ -286,7 +291,7 @@ class ModelAwareWindowTests(unittest.TestCase):
         """Explicit owner_window (rank 2) must beat model-aware resolution (rank 4)."""
         with tempfile.TemporaryDirectory() as raw:
             transcript = _claude_transcript_with_model(
-                Path(raw), [({"input_tokens": 100}, "claude-sonnet-5")]
+                Path(raw), [({"input_tokens": 100}, "claude-sonnet-5-5")]
             )
             payload = {"transcript_path": str(transcript)}
             r = meter.measure(None, 42, 70, None, claude_payload=payload)
@@ -309,13 +314,13 @@ class ModelAwareWindowTests(unittest.TestCase):
             transcript = _claude_transcript_with_model(
                 Path(raw),
                 [
-                    ({"input_tokens": 10}, "claude-haiku-4-5-20251001"),
-                    ({"input_tokens": 20}, "claude-sonnet-5"),
+                    ({"input_tokens": 10}, "claude-haiku-5-5"),
+                    ({"input_tokens": 20}, "claude-sonnet-5-5"),
                 ],
             )
             payload = {"transcript_path": str(transcript)}
             r = meter.measure(None, None, 70, None, claude_payload=payload)
-            self.assertEqual(r["model_id"], "claude-sonnet-5")
+            self.assertEqual(r["model_id"], "claude-sonnet-5-5")
             self.assertEqual(r["window"], 1000000)
 
     def test_grok_path_gets_no_model_id_or_effective_budget_regression(self):

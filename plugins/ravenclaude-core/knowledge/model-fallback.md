@@ -49,7 +49,7 @@ the mandatory Forseti security seat to a weaker model.** (The resolved-model re-
 ```yaml
 model_fallback:
   enabled: false          # absent/false ⇒ byte-identical to a single direct call
-  ladder: [claude-haiku-4-5, claude-sonnet-5, claude-opus-4-8]
+  ladder: [claude-haiku-5-5, claude-sonnet-5-5, claude-opus-5-5]
   max_retries: 2          # fallback attempts after the primary (hard cap 3 — the cost bound)
   on_exhausted: fail-safe # caller's existing abstain path; never silently wrong
 ```
@@ -59,9 +59,9 @@ Sourced (not executed). The caller provides a one-arg **runner** that runs its f
 --model <model> …`, prints stdout, writes stderr to `$_MF_ERRFILE`, and returns claude's exit code:
 ```bash
 . "$(dirname "$0")/_model-fallback.sh"
-_run() { claude -p --output-format json --model "$1" --tools "" --append-system-prompt "$sp" "$user" 2>"$_MF_ERRFILE"; }
+_run() { claude -p --output-format json --model "$1" --strict-mcp-config --tools "" --append-system-prompt "$sp" "$user" 2>"$_MF_ERRFILE"; }
 MODEL_FALLBACK_PRIMARY="$THING_MODEL" MODEL_FALLBACK_ENABLED=1 \
-MODEL_FALLBACK_LADDER="claude-sonnet-5,claude-opus-4-8" \
+MODEL_FALLBACK_LADDER="claude-sonnet-5-5,claude-opus-5-5" \
   _model_call_with_fallback --runner _run --exclude "$author_model"
 # on success: stdout = the winning model's result; $(cat "$_MF_RESOLVED_FILE") = the resolved model
 # on exhaustion / a STOP-class error: non-zero → caller maps to its abstain exit (5 / 6 / 3 / defer)
@@ -108,7 +108,7 @@ disabled-byte-identical, and a must-fail half (stripping the classifier ⇒ auth
   duplicates existing resilience and risks two gates.)
 
 ## Runbook — when the HARNESS layer is down (out of RavenClaude's control)
-If the **safety classifier** (`claude-opus-4-8`) or the **main-loop model** is unavailable — symptom:
+If the **safety classifier** (pinned to `claude-opus-4-8` when this section was written on 2026-06-24; whether the harness classifier has since moved was not re-probed) or the **main-loop model** is unavailable — symptom:
 *"<model> is temporarily unavailable, so auto mode cannot determine the safety of …"* gating Bash/MCP/
 agent-dispatch — RavenClaude code cannot route around it. The fallbacks are operator-level:
 1. **Run the command yourself** via the `!` prefix (user-invoked → not agent-classified).

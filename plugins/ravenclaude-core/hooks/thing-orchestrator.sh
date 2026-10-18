@@ -600,7 +600,7 @@ else
   # ── Fan the convened seats out in PARALLEL, bounded by the panel deadline. ──
   pids=()
   for role in $convened; do
-    model="$(printf '%s' "$decision" | jq -r --arg r "$role" '.panel[$r].model // "claude-haiku-4-5-20251001"')"
+    model="$(printf '%s' "$decision" | jq -r --arg r "$role" '.panel[$r].model // "claude-haiku-5-5"')"
     # Peer-exclude: the OTHER convened seats' models. Passed to the seat's
     # model-fallback so a fallback never lands on a peer's model — preserving the
     # >=2-distinct-backbone diversity invariant BY CONSTRUCTION (no post-hoc
@@ -719,7 +719,7 @@ else
                    --argjson cf "${SCONF[$(_ri "$role")]}" --argjson ci "${SCITED[$(_ri "$role")]}" --arg rs "${SREASON[$(_ri "$role")]}" \
                    '{seat:$r,verdict:$v,confidence:$cf,concerns_cited:$ci,reasoning:$rs}'
                done | jq -cs '.')"
-      thor_model="$(printf '%s' "$decision" | jq -r '.panel.thor.model // "claude-opus-4-8"')"
+      thor_model="$(printf '%s' "$decision" | jq -r '.panel.thor.model // "claude-opus-5-5"')"
       seats_run+=("thor")
       run_seat "thor" "$thor_model" "$tmp" "$peers"
       parse_seat "thor" "$tmp"

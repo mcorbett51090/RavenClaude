@@ -55,7 +55,7 @@
 #
 # ── TIER 1 — paid, one Haiku forced-tool-shaped call ──────────────────────────────
 # Mirrors plugins/ravenclaude-core/hooks/agent-dispatch-evaluator.sh's proven shape:
-# a `claude -p --output-format json --model claude-haiku-4-5-20251001 --tools ""`
+# a `claude -p --output-format json --model claude-haiku-5-5 --tools ""`
 # subprocess call, asked to emit ONLY a JSON object matching the classifier output
 # schema frozen in design-lock.md §1 (the "emit_prompt_classification" shape). Fails
 # open on ANY of: timeout, missing `claude` binary, missing `jq`, or unparseable
@@ -63,7 +63,7 @@
 #
 # ── DELIBERATE DEVIATION FROM THE LITERAL CITED COMMAND (documented, not silent) ──
 # design-lock.md quotes the pattern as `claude -p --bare --output-format json
-# --model claude-haiku-4-5-20251001 --tools ""` (agent-dispatch-evaluator.sh's
+# --model claude-haiku-5-5 --tools ""` (agent-dispatch-evaluator.sh's
 # hook literally uses --bare unconditionally). This script instead conditions --bare
 # on ANTHROPIC_API_KEY / PROMPT_OPTIMIZER_BARE=1, mirroring thing-seat.sh's *later*
 # and more careful pattern (thing-seat.sh:305 "--bare is only viable with an API
@@ -75,7 +75,7 @@
 # producing zero real classifications. Copying that literally here would make
 # Tier 1 permanently inert for the common case and would have made an honest
 # golden-set run (AT1) impossible. --tools "" is real from both cited files and
-# is used unconditionally (it disables ALL tools; the classifier only reasons and
+# is used unconditionally (it removes built-in tools; --strict-mcp-config keeps MCP out; the classifier only reasons and
 # returns JSON — same rationale as thing-seat.sh:334).
 #
 # ── SECOND DOCUMENTED DEVIATION: --tools="" (equals form), not --tools "" (space
@@ -96,7 +96,7 @@
 # embedded inside a SINGLE quoted string handed to a nested `claude -p` invocation, not
 # passed as bash's own separate argv entries, so bash's own variadic-swallowing never
 # applies there either). `--tools=""` is unambiguous under any argument ordering and
-# functionally identical (still disables ALL tools) — safer than relying on argument
+# functionally identical for built-in tools — safer than relying on argument
 # order, so it is used even though it is not the literal cited form. This is item (b) of
 # the two remediation options for this deviation: keep as-is, explicitly documented, not
 # silently switched to the space form.
@@ -431,16 +431,22 @@ if [ -n "$pg_scratch" ]; then
   pg_raw="$(cd "$pg_scratch" && _rc_timeout "$pg_timeout_s" claude -p \
     ${pg_bare_args[@]+"${pg_bare_args[@]}"} \
     --output-format json \
-    --model claude-haiku-4-5-20251001 \
+    --model claude-haiku-5-5 \
+    --strict-mcp-config \
     --tools="" \
     "$pg_instruction" </dev/null 2>/dev/null || true)"
 else
   pg_raw="$(_rc_timeout "$pg_timeout_s" claude -p \
     ${pg_bare_args[@]+"${pg_bare_args[@]}"} \
     --output-format json \
-    --model claude-haiku-4-5-20251001 \
+    --model claude-haiku-5-5 \
+    --strict-mcp-config \
     --tools="" \
     "$pg_instruction" </dev/null 2>/dev/null || true)"
+fi
+_hu="$(dirname "$0")/headless-usage.py"
+if [ -f "$_hu" ]; then
+  printf '%s' "$pg_raw" | python3 "$_hu" record --site prompt-optimizer-gate --model claude-haiku-5-5 >/dev/null 2>&1 || true
 fi
 pg_t1=$(date +%s 2>/dev/null || echo 0)
 pg_latency_s=$((pg_t1 - pg_t0))

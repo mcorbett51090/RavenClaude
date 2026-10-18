@@ -57,16 +57,16 @@ schema_version: 4
 panel:
   forseti: # Security Watch
     agent: security-reviewer
-    model: claude-opus-4-8
+    model: claude-opus-5-5
   mimir: # Correctness Watch
     agent: code-reviewer
-    model: claude-haiku-4-5-20251001
+    model: claude-haiku-5-5
   heimdall: # AlignmentCheck — prompt-injection detection
     agent: prompt-engineer
-    model: claude-haiku-4-5-20251001
+    model: claude-haiku-5-5
   thor: # Tie-breaker — convened only on a split or low-confidence panel
     agent: architect
-    model: claude-opus-4-8
+    model: claude-opus-5-5
 
 # ── Risk tiers (T5) ─────────────────────────────────────────────────────────
 # Every reviewed command resolves to ONE tier = its category's base tier (see

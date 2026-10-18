@@ -2859,7 +2859,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:4f434bf798b7ebcd3f1918e2b71ced069dc0b7d2fa8512c655c58401bd00c5e9",
+      "covers_digest": "sha256:00e7d287596c02d1bbc4876cad5e3bb3810dfc76b81d14da85b96dfe4cc01bf5",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2956,7 +2956,7 @@
         "plugins/ravenclaude-core/scripts/route-task.py",
         "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
       ],
-      "covers_digest": "sha256:66ab18c43c1bdf39a4058009d5b5bd79ca5ca8305996c5f192920ac9cdcdca1c",
+      "covers_digest": "sha256:c8999c98292a8e9d5d0ddf591d906e99fb3c9f7f725ac0627ade974f1a86185d",
       "nuance": "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model.",
       "nuance_evidence": {
         "measured": "2026-08-26",
@@ -3002,7 +3002,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:f9b634f06b917cd49b8fae06d8956a4276ec26b68f43ae2ba9f6ec75051be44b",
+      "covers_digest": "sha256:bb117cdf294343c23d2da2bb4b633b358958841f80b4d5ea35b6c20f3f3211e4",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3525,7 +3525,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:3a8444e515388436e4d9a6891adc8786e1a3f9f2d8a1083d41ac29a6644804be",
+      "covers_digest": "sha256:e4fe113ff21d1c3ae5a19078fc0d3cb1638d136058b1e519f013ba3c04f58bf6",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3974,7 +3974,7 @@
         "plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py",
         "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js"
       ],
-      "covers_digest": "sha256:aee7bd5d3c4d1486fd21e7c699982709c9e007803fb46bd92fb0d04322495b39",
+      "covers_digest": "sha256:918c30e0f0c57e10f103f09ba5840118f4f8a6a4c2188296cc3d2fbed8b3705b",
       "nuance": "A dedup key built from each finding's own title tokens misses two models describing one bug in different words at the same line -- keys differ, so exact-key merge misses it. The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the identical line) -- the single most common real shape cross-model review exists to catch.",
       "nuance_evidence": {
         "measured": "2026-09-02",
@@ -4266,7 +4266,7 @@
         "plugins/ravenclaude-core/skills/prompt-optimizer/SKILL.md",
         "plugins/ravenclaude-core/skills/prompt-optimizer/eval/golden-set.jsonl"
       ],
-      "covers_digest": "sha256:0cd423848dc86d2a1f3e83a031c27d8d7190a7922b4f3ca69842481db2ba9a66",
+      "covers_digest": "sha256:3610e56b91aa9b61d576836c109b540ec30f07d83c26df665748912cc7d008fa",
       "nuance": "A whitelist-based zero-anchor skip rule can be adversarially rephrased indefinitely — closing every demonstrated instance never closes the underlying gap, because the gap is a property of matching sentence shape, not meaning.",
       "nuance_evidence": {
         "measured": "2026-09-03",
@@ -4443,7 +4443,7 @@
           "url": "https://github.com/mcorbett51090/RavenClaude/pull/1161"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nThat a new tribunal-shaped script would need its own model/agent config — either a duplicated seat table or a fresh entry in `.ravenclaude/thing.yaml` — since it reviews a different payload (a diff, not a command or a question) from the Thing or decision-review.\n\n## The discriminator\n\ncontrol: ran `routine-review-tribunal.py --root . panels`; the returned seat->model mapping matched thing-decision's own built-in defaults for the same seat names, not a separately hardcoded pair.\n\nMeasured 2026-09-11: `resolve_panels()` loads `thing-decision.py` via `importlib.util.spec_from_file_location` and calls `resolve_panel_config(root, posture)` on it directly — the exact function the live command-review tribunal and decision-review already use. There is no second, parallel model table to keep in sync.\n\n## Why it matters\n\nIf `.ravenclaude/comfort-posture.yaml` or `.ravenclaude/thing.yaml` ever repoints a seat to a different model (e.g. to raise Forseti's reasoning effort), the routine-review tribunal picks that up automatically on its next `panels` call — the same way the Thing and decision-review would. A script that had instead hardcoded `\"agent\": \"security-reviewer\", \"model\": \"claude-opus-4-8\"` would silently keep reviewing routine diffs with a stale seat long after the rest of the marketplace moved on.\n\nFalsifier: a future edit to `routine-review-tribunal.py` that hardcodes a seat's model/agent instead of calling `resolve_panel_config`.",
+      "body_md": "## What a reader would have assumed instead\n\nThat a new tribunal-shaped script would need its own model/agent config — either a duplicated seat table or a fresh entry in `.ravenclaude/thing.yaml` — since it reviews a different payload (a diff, not a command or a question) from the Thing or decision-review.\n\n## The discriminator\n\ncontrol: ran `routine-review-tribunal.py --root . panels`; the returned seat->model mapping matched thing-decision's own built-in defaults for the same seat names, not a separately hardcoded pair.\n\nMeasured 2026-09-11: `resolve_panels()` loads `thing-decision.py` via `importlib.util.spec_from_file_location` and calls `resolve_panel_config(root, posture)` on it directly — the exact function the live command-review tribunal and decision-review already use. There is no second, parallel model table to keep in sync.\n\n## Why it matters\n\nIf `.ravenclaude/comfort-posture.yaml` or `.ravenclaude/thing.yaml` ever repoints a seat to a different model (e.g. to raise Forseti's reasoning effort), the routine-review tribunal picks that up automatically on its next `panels` call — the same way the Thing and decision-review would. A script that had instead hardcoded `\"agent\": \"security-reviewer\", \"model\": \"claude-opus-5-5\"` would silently keep reviewing routine diffs with a stale seat long after the rest of the marketplace moved on.\n\nFalsifier: a future edit to `routine-review-tribunal.py` that hardcodes a seat's model/agent instead of calling `resolve_panel_config`.",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -4492,7 +4492,7 @@
           "url": "https://code.claude.com/docs/en/sub-agents"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nThe meter reads the dispatched agent's `model:` frontmatter, so a `scout` (pinned `haiku`) can\nnever trip `frontier_readonly` — the frontmatter is the tier, and the gate on `model:` in\n`check-frontmatter.py` is what makes the flag unnecessary for shipped agents.\n\n## The discriminator\n\ncontrol: with `resolvedModel` held at `claude-opus-4-8` across three self-test payloads, `Explore`\nand `ravenclaude-core:scout` both returned `SIGNAL frontier_readonly` while `architect` returned\n`OK` — the role was the only input that changed between the flagged and the unflagged runs.\nMeasured 2026-09-14: the flag is computed from the `PostToolUse(Agent)` payload alone —\n`tool_response.resolvedModel` classified to a tier, crossed with the basename of\n`tool_input.subagent_type` against `READ_ONLY_TYPES = {explore, scout}` — and the agent file is\nnever opened, so a per-invocation `model` override that puts a scout on opus is caught while a\njudgment role on opus is deliberately not.\n\n## Why it matters\n\nThe `model:` frontmatter gate closes one door (a shipped agent cannot silently inherit the\nsession's model), but Claude Code resolves the model **per invocation first** — the Team Lead's\n`model` parameter, then the frontmatter, then `CLAUDE_CODE_SUBAGENT_MODEL`. A meter that trusted\nthe frontmatter would report every scout as haiku forever. Reading `resolvedModel` is what lets\nthe ledger's `tier` column be the tier the worker actually billed at, and what lets the built-in\n`Explore` (which has no frontmatter and since v2.1.198 inherits the main model) be flagged at all.\n\nFalsifier: an `architect` dispatch on an opus id emitting `frontier_readonly`, or a `scout`\ndispatch on an opus id staying silent.\n\nProbe: `plugins/ravenclaude-core/scripts/handoff-tax-meter.py --self-test` (exit 1 on any failed\ncheck; the three role-crossed payloads are named `Explore on opus`, `plugin-scoped scout on opus`,\n`architect on opus`).",
+      "body_md": "## What a reader would have assumed instead\n\nThe meter reads the dispatched agent's `model:` frontmatter, so a `scout` (pinned `haiku`) can\nnever trip `frontier_readonly` — the frontmatter is the tier, and the gate on `model:` in\n`check-frontmatter.py` is what makes the flag unnecessary for shipped agents.\n\n## The discriminator\n\ncontrol: with `resolvedModel` held at an opus-family id across three self-test payloads, `Explore`\nand `ravenclaude-core:scout` both returned `SIGNAL frontier_readonly` while `architect` returned\n`OK` — the role was the only input that changed between the flagged and the unflagged runs.\nMeasured 2026-09-14: the flag is computed from the `PostToolUse(Agent)` payload alone —\n`tool_response.resolvedModel` classified to a tier, crossed with the basename of\n`tool_input.subagent_type` against `READ_ONLY_TYPES = {explore, scout}` — and the agent file is\nnever opened, so a per-invocation `model` override that puts a scout on opus is caught while a\njudgment role on opus is deliberately not.\n\n## Why it matters\n\nThe `model:` frontmatter gate closes one door (a shipped agent cannot silently inherit the\nsession's model), but Claude Code resolves the model **per invocation first** — the Team Lead's\n`model` parameter, then the frontmatter, then `CLAUDE_CODE_SUBAGENT_MODEL`. A meter that trusted\nthe frontmatter would report every scout as haiku forever. Reading `resolvedModel` is what lets\nthe ledger's `tier` column be the tier the worker actually billed at, and what lets the built-in\n`Explore` (which has no frontmatter and since v2.1.198 inherits the main model) be flagged at all.\n\nFalsifier: an `architect` dispatch on an opus id emitting `frontier_readonly`, or a `scout`\ndispatch on an opus id staying silent.\n\nProbe: `plugins/ravenclaude-core/scripts/handoff-tax-meter.py --self-test` (exit 1 on any failed\ncheck; the three role-crossed payloads are named `Explore on opus`, `plugin-scoped scout on opus`,\n`architect on opus`).",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -4505,11 +4505,11 @@
         "plugins/ravenclaude-core/scripts/handoff-tax-meter.py",
         "plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh"
       ],
-      "covers_digest": "sha256:36c351e47c58a66a25a558b4a6dbfb41fbf79eb15dd09edc9281e63bc47ff0a5",
+      "covers_digest": "sha256:c8021dec3a012eddad53af6c96c42319c2741433b08d74bc9efa0edabf3f46d2",
       "nuance": "`frontier_readonly` fires on `tool_response.resolvedModel` × the basename of `tool_input.subagent_type` (`explore` / `scout`), never on the agent file's `model:` — so `scout` dispatched with a per-call `model: opus` override is flagged while `scout.md` still reads `haiku`, and `architect` on opus is not.",
       "nuance_evidence": {
         "measured": "2026-09-14",
-        "control": "same resolvedModel (claude-opus-4-8), three subagent_types: `Explore` -> SIGNAL frontier_readonly, `ravenclaude-core:scout` -> SIGNAL frontier_readonly, `architect` -> OK; the only input that changed between the flagged and unflagged runs was the role",
+        "control": "same resolvedModel (an opus-family id), three subagent_types: `Explore` -> SIGNAL frontier_readonly, `ravenclaude-core:scout` -> SIGNAL frontier_readonly, `architect` -> OK; the only input that changed between the flagged and unflagged runs was the role",
         "falsifier": "an `architect` dispatch on an opus id emitting frontier_readonly, or a `scout` dispatch on an opus id staying silent",
         "probe": "plugins/ravenclaude-core/scripts/handoff-tax-meter.py"
       },
@@ -4668,7 +4668,7 @@
         "plugins/ravenclaude-core/scripts/thing-harden.py",
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
       ],
-      "covers_digest": "sha256:235e28a63d0bf80a7d7c161231ee836cd3a2da6b5b20c5df386870d4f379fceb",
+      "covers_digest": "sha256:cc16c610d61b9b308ce0037ced4e461e0a3c6bea270a856b423cdcf39cd78a63",
       "nuance": "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op.",
       "nuance_evidence": {
         "measured": "2026-09-16",
@@ -4717,7 +4717,7 @@
         "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js",
         "plugins/ravenclaude-core/skills/repo-review/SKILL.md"
       ],
-      "covers_digest": "sha256:9b7b9f447605fa72915be31351bfcdc8f633c9b87eca2e37c3ec32006b3c5c83",
+      "covers_digest": "sha256:af04671e09808b00d97f8e8e9fc3563bfaf5728eaf561e2f3f38992acd299d74",
       "nuance": "_capacity() clamps every result to max(1, ...) so a block always covers at least one batch once it exists. The finalize-capacity guard read that ALREADY-CLAMPED value, so 'nothing fits at all' could never be observed -- the clamp and the check that needs the unclamped truth were reading the same variable.",
       "nuance_evidence": {
         "measured": "2026-09-16",
@@ -4955,6 +4955,53 @@
         "rationale": "This is an official-docs capacity fact, not offline-stageable in CI. Re-verification is re-reading the cited Apple Creating.html field section and Google Brand guidelines Content table, not a staged probe."
       },
       "strength_badge": "Unverified"
+    },
+    {
+      "id": "headless-usage-sidecar-not-verdict",
+      "title": "Headless usage metering sits beside the seat",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 944,
+      "summary": "Where a headless call's token and cost envelope goes after the call returns.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-10-17",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "2026-10-14 prompt-caching analysis — headless envelopes were not metered",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/analysis.md"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat recording token use means the seat's own JSON answer grows a usage object, and that a bad envelope fails the seat.\n\n## The discriminator\n\ncontrol: `headless-usage.py --self-test` writes a derived row and record mode exits 0 even when the envelope is not JSON.\n\nMeasured 2026-10-17: the recorder appends a sidecar and leaves the caller to print its own verdict. A missing envelope skips the write.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/headless-usage.py"
+      ],
+      "covers_digest": "sha256:782d83e52e13f3c6887208dc4f9f00be5e917c0b6cb94ee6298f97ba0b183e0b",
+      "nuance": "The caller still prints only its own verdict on `stdout`, and record mode returns exit 0 after it writes `.ravenclaude/runs/headless-usage.jsonl`. A missing envelope skips the append rather than replacing that verdict.",
+      "nuance_evidence": {
+        "measured": "2026-10-17",
+        "control": "headless-usage.py --self-test writes a row that keeps a present 0, omits an absent field, and drops result text, while record mode itself exits 0",
+        "falsifier": "a seat whose stdout is no longer the verdict JSON alone, or a record failure that changes the caller exit code",
+        "probe": "plugins/ravenclaude-core/scripts/headless-usage.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/headless-usage.py",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/scripts/headless-usage.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
     }
   ]
 }

@@ -100,10 +100,10 @@ const SINGLE_MODEL_ONLY_DIMENSIONS = new Set(["dead-code-simplification"]);
 // Deliberately 3 distinct backbones so the third-model verifier rule (below)
 // can always activate on an unqualified run — a caller-supplied args.models
 // under 3 entries correctly narrows what that rule can do.
-const DEFAULT_MODEL_POOL = ["claude-opus-4-8", "claude-sonnet-5", "claude-haiku-4-5-20251001"];
+const DEFAULT_MODEL_POOL = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"];
 // The cheap, fast model used ONLY for the cache-lookup pre-check step (never
 // for an actual review/verify/fix pass).
-const CACHE_CHECK_MODEL = "claude-haiku-4-5-20251001";
+const CACHE_CHECK_MODEL = "claude-haiku-5-5";
 
 // ─── The one severity scale, used everywhere ───────────────────────────────
 // SEVERITY_RANK previously diverged between this file (which had its own
@@ -533,7 +533,7 @@ const modelCount = resolveModelCount(EFFORT, crossModelActive);
 // NEAR_DUP_POLICY are already guarded at above. DEFAULT_MODEL_POOL is a
 // hardcoded literal and needs no check; only a caller-supplied args.models
 // can carry an unsafe value. Real model identifiers are always alphanumeric
-// with "." "_" "-" (e.g. "claude-opus-4-8", "claude-haiku-4-5-20251001"), so
+// with "." "_" "-" (e.g. "claude-opus-5-5", "claude-haiku-5-5"), so
 // a tight allow-list refuses cleanly rather than silently stripping — same
 // discipline as SAFE_PATH_RE/SAFE_RUN_ID_RE/SAFE_PATHSPEC_RE.
 const SAFE_MODEL_RE = /^[A-Za-z0-9._-]+$/;
@@ -872,8 +872,8 @@ async function runReviewPhase(findingsDir, idsToReview) {
     // Dedup at the dispatch site (not inside resolveModels()). resolveModels()
     // pads a caller-supplied args.models list shorter than the tier's
     // required model count by CYCLING through it, which can produce literal
-    // duplicate entries (e.g. args.models:['claude-sonnet-5'] at a 2-model
-    // tier yields ['claude-sonnet-5','claude-sonnet-5']). Without this dedup,
+    // duplicate entries (e.g. args.models:['claude-sonnet-5-5'] at a 2-model
+    // tier yields ['claude-sonnet-5-5','claude-sonnet-5-5']). Without this dedup,
     // a duplicated model string would fan out into two CONCURRENT thunks both
     // calling reviewBatch(dim, model, batchId) for the same (dim, model,
     // batchId) triple — both computing the identical shardPath and writing it

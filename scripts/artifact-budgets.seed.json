@@ -309,6 +309,11 @@
         "wallet-passes skill + inventory concept (core 0.345.0, PR #1337)",
         10993000,
         "PR #1337 adds wallet-passes skill (4 files) plus inventory concept wallet-passes-apple-has-no-slot-char-max. Regenerating dashboard.html after the concept + skill-index + covers_digest restamps measures 10,992,204 bytes > prior 10,990,000 by 2,204 (0.00 MB). Island payload 33,070 <= 33,100 unchanged under ceiling. Pure content-size raise. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "headless-usage sidecar inventory entry (core 0.353.0)",
+        11000000,
+        "core 0.353.0 adds inventory concept headless-usage-sidecar-not-verdict covering scripts/headless-usage.py, plus a cosmetic covers_digest restamp of prompt-optimizer-tier0-heuristic-limit. dashboard.html 10,998,237 bytes > prior 10,993,000 by 5,237 (0.00 MB). Island payload 33,097 <= 33,100 unchanged under ceiling. Same no-diagrams-for-inventory-entries shape. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [

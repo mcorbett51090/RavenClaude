@@ -5,7 +5,7 @@ allowed-tools: Bash, Read
 
 # decision-review
 
-Routes a **yes/no decision** through the tribunal's seats (Forseti / Mímir / Heimdall, + Thor on a split) and returns `yes` / `no` / `defer`. This is the decision-mode sibling of command review — it reuses the same panel config but never touches the live `PreToolUse(Bash)` path.
+Routes a **yes/no decision** through the tribunal's seats (Forseti / Mímir / Heimdall, + Thor on a split) and returns `yes` / `no` / `defer`. This is the decision-mode sibling of command review — it reuses the same panel config but never touches the live `PreToolUse(Bash)` path. Seat call shape and usage recording: [`headless-claude-calls.md`](../../knowledge/headless-claude-calls.md).
 
 ## When to use it
 

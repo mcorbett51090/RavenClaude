@@ -54,9 +54,9 @@ const _isoNow = () => "1970-01-01T00:00:00.000Z";
 //
 // Tier → model mapping (generated from substrate-tier-map.json — 2026-08-14).
 // Default host = claude so the disabled path stays Claude-SKU identical (behavioral invariant).
-//   fast     → claude-haiku-4-5-20251001   (no extended thinking — RM6)
-//   balanced → claude-sonnet-5
-//   top      → claude-opus-4-8
+//   fast     → claude-haiku-5-5   (no extended thinking — RM6)
+//   balanced → claude-sonnet-5-5
+//   top      → claude-opus-5-5
 //
 // cache_control: {type:"ephemeral", ttl:"1h"} ONLY on verify phases. The 36-min
 // baseline run vastly exceeds the 5-min default TTL; eat the 2× write penalty once
@@ -76,9 +76,9 @@ function _dispatchHost() {
 function resolveTier(host, tier) {
   const MAP = {
     claude: {
-      fast: "claude-haiku-4-5-20251001",
-      balanced: "claude-sonnet-5",
-      top: "claude-opus-4-8",
+      fast: "claude-haiku-5-5",
+      balanced: "claude-sonnet-5-5",
+      top: "claude-opus-5-5",
     },
     grok: {
       fast: { model: "grok-4.5", effort: "low", perspective: "scanner" },
@@ -150,9 +150,9 @@ function adapterOpts(phaseName, runCfg) {
 
 // ─── Tier → SKU map (Claude literals — Gate 52 extracts this block in isolation)
 const DISPATCH_TIER_MODEL = {
-  fast: "claude-haiku-4-5-20251001",
-  balanced: "claude-sonnet-5",
-  top: "claude-opus-4-8",
+  fast: "claude-haiku-5-5",
+  balanced: "claude-sonnet-5-5",
+  top: "claude-opus-5-5",
 };
 
 // ─── Audit log path template ──────────────────────────────────────────────────
@@ -251,7 +251,7 @@ async function evaluateDispatch(
   const envelopeShellSafe = classifierPrompt.replace(/'/g, "'\\''");
   const subprocPrompt =
     `You are a dispatch-routing shell runner. Execute this exact command and return its raw stdout:\n\n` +
-    `timeout 2 claude -p --bare --output-format json --model claude-haiku-4-5-20251001 ` +
+    `timeout 2 claude -p --bare --output-format json --model claude-haiku-5-5 ` +
     `'You are a dispatch evaluator. Given this dispatch envelope, return ONLY a JSON object with fields: ` +
     `verdict ("keep"|"upgrade"|"downgrade"), suggested_tier ("fast"|"balanced"|"top"), ` +
     `confidence ("low"|"medium"|"high"), rationale (one sentence). ` +
