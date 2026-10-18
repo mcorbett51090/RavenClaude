@@ -7680,7 +7680,12 @@ gate "copilot-hooks: every canonical hook wired or explicitly skipped" must_pass
 # must_fail: emptying the skip map must be CAUGHT, not silently tolerated. This is
 # the teeth for "explicitly skipped" — without it, the accounting could be
 # satisfied by a skip map that swallows anything.
-CPH_MUT="$TMP/generate-copilot-hooks-mutant.py"
+# The mutant MUST be repo-relative, NOT under $TMP: the generator resolves its
+# manifest via `_REPO = Path(__file__).parent.parent`, so a $TMP-located mutant
+# dies with FileNotFoundError at build() BEFORE --check runs, and this must_fail
+# would then pass for the WRONG reason (confirmed hollow 2026-10-14). scripts/.
+# keeps _REPO at the repo root, matching the aider mutant below; rm -f cleans up.
+CPH_MUT="scripts/.generate-copilot-hooks-mutant.py"
 python3 - "$CPH_MUT" <<'PYX'
 import re, sys, pathlib
 src = pathlib.Path("scripts/generate-copilot-hooks.py").read_text()
@@ -7689,7 +7694,20 @@ out = re.sub(r"_SKIP = \{.*?\n\}", "_SKIP = {}", src, count=1, flags=re.S)
 pathlib.Path(sys.argv[1]).write_text(out)
 PYX
 rc=0; python3 "$CPH_MUT" --check >/dev/null 2>&1 || rc=$?
+rm -f "$CPH_MUT"
 gate "copilot-hooks teeth: an emptied skip map is caught" must_fail "$rc"
+
+# Command-syntax floor teeth: appending a stray quote to _extra_args makes every
+# emitted command end in an unterminated quote (the exact PR #1316 regression);
+# --check's bash -n round-trip must catch it. chr(34) avoids embedding a literal
+# quote in the sed replacement. A no-match (anchor drift) leaves the copy
+# unchanged, --check then passes, and must_fail fails LOUD — never hollow.
+CPH_MUT2="scripts/.generate-copilot-hooks-cmdsyntax-mutant.py"
+sed 's|return tail.replace(_ARGV_TOKEN, "").strip()|return tail.replace(_ARGV_TOKEN, "").strip() + chr(34)|' \
+  scripts/generate-copilot-hooks.py >"$CPH_MUT2"
+rc=0; python3 "$CPH_MUT2" --check >/dev/null 2>&1 || rc=$?
+rm -f "$CPH_MUT2"
+gate "copilot-hooks teeth: a stray-quote _extra_args regression is caught by bash -n" must_fail "$rc"
 
 echo
 echo "── Gate 159: Cursor hook adapter — deny is unbreakable on a fail-OPEN host ─"
@@ -7710,7 +7728,9 @@ echo "── Gate 160: Cursor hook projection — accounting + enforcement floor
 rc=0; python3 scripts/generate-cursor-hooks.py --check >/dev/null 2>&1 || rc=$?
 gate "cursor-hooks: every canonical hook wired or explicitly skipped, + enforcement present" must_pass "$rc"
 
-CUR_MUT="$TMP/generate-cursor-hooks-mutant.py"
+# Repo-relative mutant (see the copilot note above): a $TMP copy dies with
+# FileNotFoundError at build() before --check runs, making this teeth hollow.
+CUR_MUT="scripts/.generate-cursor-hooks-mutant.py"
 python3 - "$CUR_MUT" <<'PYX'
 import re, sys, pathlib
 src = pathlib.Path("scripts/generate-cursor-hooks.py").read_text()
@@ -7720,6 +7740,7 @@ out = src.replace('if "Bash" not in matcher:', 'if True:')
 pathlib.Path(sys.argv[1]).write_text(out)
 PYX
 rc=0; python3 "$CUR_MUT" --check >/dev/null 2>&1 || rc=$?
+rm -f "$CUR_MUT"
 gate "cursor-hooks teeth: a lane that enforces NOTHING is caught" must_fail "$rc"
 
 echo
@@ -7823,7 +7844,9 @@ echo "── Gate 165: Gemini hook projection — accounting + enforcement floor
 rc=0; python3 scripts/generate-gemini-hooks.py --check >/dev/null 2>&1 || rc=$?
 gate "gemini-hooks: all hooks accounted for, matchers translated, enforcement present" must_pass "$rc"
 
-GEM_MUT="$TMP/generate-gemini-hooks-mutant.py"
+# Repo-relative mutant (see the copilot note above): a $TMP copy dies with
+# FileNotFoundError at build() before --check runs, making this teeth hollow.
+GEM_MUT="scripts/.generate-gemini-hooks-mutant.py"
 python3 - "$GEM_MUT" <<'PYX'
 import sys, pathlib
 src = pathlib.Path("scripts/generate-gemini-hooks.py").read_text()
@@ -7834,6 +7857,7 @@ out = src.replace("                gem_event, mode = _EVENT[event]",
 pathlib.Path(sys.argv[1]).write_text(out)
 PYX
 rc=0; python3 "$GEM_MUT" --check >/dev/null 2>&1 || rc=$?
+rm -f "$GEM_MUT"
 gate "gemini-hooks teeth: a lane that enforces NOTHING is caught" must_fail "$rc"
 
 echo "── Gate 166: Copilot agent tools — least privilege survives projection ────"

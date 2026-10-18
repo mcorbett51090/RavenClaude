@@ -29,9 +29,7 @@ def _session(tmp: Path, updates, signals=None) -> Path:
     if updates is not None:
         lines = []
         for used in updates:
-            lines.append(
-                json.dumps({"params": {"_meta": {"totalTokens": used}}}) + "\n"
-            )
+            lines.append(json.dumps({"params": {"_meta": {"totalTokens": used}}}) + "\n")
         (d / "updates.jsonl").write_text("".join(lines))
     if signals is not None:
         (d / "signals.json").write_text(json.dumps(signals))
@@ -103,7 +101,9 @@ class MeterTests(unittest.TestCase):
             self.assertEqual(r["used"], 10)
             src = (HERE / "scripts" / "context-usage-meter.py").read_text()
             # The live-used function must not mention contextTokensUsed as a read key.
-            live_fn = src.split("def last_total_tokens", 1)[1].split("def window_from_signals", 1)[0]
+            live_fn = src.split("def last_total_tokens", 1)[1].split("def window_from_signals", 1)[
+                0
+            ]
             self.assertNotIn("contextTokensUsed", live_fn)
 
 
@@ -112,9 +112,7 @@ def _claude_transcript(tmp: Path, usages) -> Path:
     path = tmp / "transcript.jsonl"
     lines = []
     for usage in usages:
-        lines.append(
-            json.dumps({"type": "assistant", "message": {"usage": usage}}) + "\n"
-        )
+        lines.append(json.dumps({"type": "assistant", "message": {"usage": usage}}) + "\n")
     path.write_text("".join(lines))
     return path
 
@@ -158,8 +156,16 @@ class ClaudeCodePathTests(unittest.TestCase):
             transcript = _claude_transcript(
                 Path(raw),
                 [
-                    {"input_tokens": 10, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0},
-                    {"input_tokens": 999, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0},
+                    {
+                        "input_tokens": 10,
+                        "cache_read_input_tokens": 0,
+                        "cache_creation_input_tokens": 0,
+                    },
+                    {
+                        "input_tokens": 999,
+                        "cache_read_input_tokens": 0,
+                        "cache_creation_input_tokens": 0,
+                    },
                 ],
             )
             payload = {"transcript_path": str(transcript)}
@@ -186,7 +192,11 @@ class ClaudeCodePathTests(unittest.TestCase):
             self.assertEqual(r["window"], meter.DEFAULT_CLAUDE_WINDOW)
 
     def test_claude_transcript_path_prefers_payload_field(self):
-        payload = {"transcript_path": "/tmp/does-not-matter.jsonl", "session_id": "x", "cwd": "/tmp"}
+        payload = {
+            "transcript_path": "/tmp/does-not-matter.jsonl",
+            "session_id": "x",
+            "cwd": "/tmp",
+        }
         p = meter.claude_transcript_path(payload)
         self.assertEqual(str(p), "/tmp/does-not-matter.jsonl")
 
@@ -349,6 +359,51 @@ class EffectiveBudgetTests(unittest.TestCase):
             r = meter.measure(sess, 1000, 70, 85)
             self.assertEqual(r["status"], "unknown")
             self.assertIsNone(r["effective_budget"])
+
+
+class PostureBlockTests(unittest.TestCase):
+    """read_posture must isolate the REAL context_handoff: block.
+
+    Regression (1c-7): a commented `# context_handoff:` template line must not
+    shadow a real block below it, and a stray `mode:` under some OTHER block
+    must not be misread as handoff config when there is no context_handoff block.
+    """
+
+    def _posture(self, tmp: Path, body: str) -> Path:
+        root = tmp / "proj"
+        (root / ".ravenclaude").mkdir(parents=True)
+        (root / ".ravenclaude" / "comfort-posture.yaml").write_text(body)
+        return root
+
+    def test_commented_block_does_not_shadow_the_real_block(self):
+        body = (
+            "# context_handoff:\n"
+            "#   mode: block   # template example, commented\n"
+            "some_other_key: 1\n"
+            "context_handoff:\n"
+            "  mode: nag\n"
+            "  threshold_percent: 60\n"
+        )
+        with tempfile.TemporaryDirectory() as raw:
+            root = self._posture(Path(raw), body)
+            out = meter.read_posture(root)
+            self.assertEqual(out["mode"], "nag")
+            self.assertEqual(out["threshold"], 60)
+
+    def test_no_block_reads_no_stray_mode_from_another_block(self):
+        body = "some_guard:\n  mode: nag\n  spawn: os-terminal\n"
+        with tempfile.TemporaryDirectory() as raw:
+            root = self._posture(Path(raw), body)
+            out = meter.read_posture(root)
+            self.assertEqual(out["mode"], "off")
+
+    def test_real_block_alone_parses(self):
+        body = "context_handoff:\n  mode: block\n  spawn: os-terminal\n"
+        with tempfile.TemporaryDirectory() as raw:
+            root = self._posture(Path(raw), body)
+            out = meter.read_posture(root)
+            self.assertEqual(out["mode"], "block")
+            self.assertEqual(out["spawn"], "os-terminal")
 
 
 if __name__ == "__main__":

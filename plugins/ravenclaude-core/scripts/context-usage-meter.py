@@ -101,18 +101,10 @@ _GENERIC_FALLBACK_WINDOW = 1000000
 DEFAULT_RESERVED_OUTPUT_TOKENS = 16000
 DEFAULT_OVERHEAD_MARGIN_PCT = 5
 
-_WINDOW_RE = re.compile(
-    r"(?m)^[ \t]*context_window[ \t]*=[ \t]*(\d+)\b"
-)
-_AUTO_RE = re.compile(
-    r"(?m)^[ \t]*auto_compact_threshold_percent[ \t]*=[ \t]*(\d+)\b"
-)
-_POSTURE_WINDOW_RE = re.compile(
-    r"(?m)^[ \t]*context_window_tokens[ \t]*:[ \t]*(\d+)\b"
-)
-_POSTURE_THRESH_RE = re.compile(
-    r"(?m)^[ \t]*threshold_percent[ \t]*:[ \t]*(\d+)\b"
-)
+_WINDOW_RE = re.compile(r"(?m)^[ \t]*context_window[ \t]*=[ \t]*(\d+)\b")
+_AUTO_RE = re.compile(r"(?m)^[ \t]*auto_compact_threshold_percent[ \t]*=[ \t]*(\d+)\b")
+_POSTURE_WINDOW_RE = re.compile(r"(?m)^[ \t]*context_window_tokens[ \t]*:[ \t]*(\d+)\b")
+_POSTURE_THRESH_RE = re.compile(r"(?m)^[ \t]*threshold_percent[ \t]*:[ \t]*(\d+)\b")
 
 
 def _int(value, lo=0, hi=10**12):
@@ -146,11 +138,7 @@ def encode_cwd(cwd: str) -> str:
 
 
 def session_dir_from_env(payload: dict) -> Path | None:
-    sid = (
-        os.environ.get("GROK_SESSION_ID")
-        or payload.get("sessionId")
-        or payload.get("session_id")
-    )
+    sid = os.environ.get("GROK_SESSION_ID") or payload.get("sessionId") or payload.get("session_id")
     if not isinstance(sid, str) or not sid.strip():
         return None
     cwd = (
@@ -202,9 +190,7 @@ def claude_transcript_path(payload: dict) -> Path | None:
         return Path(direct)
 
     sid = (
-        payload.get("session_id")
-        or payload.get("sessionId")
-        or os.environ.get("CLAUDE_SESSION_ID")
+        payload.get("session_id") or payload.get("sessionId") or os.environ.get("CLAUDE_SESSION_ID")
     )
     if not isinstance(sid, str) or not sid.strip():
         return None
@@ -451,8 +437,15 @@ def read_posture(root: Path) -> dict:
         text = text[:_CONFIG_SCAN_CAP]
     # Restrict to a context_handoff: block when present. The next block starts
     # at a column-0 key (indented children like `mode:` must stay inside).
-    block = text
-    start = re.search(r"(?m)^[ \t]*#?[ \t]*context_handoff[ \t]*:", text)
+    # Default to an EMPTY block (not the whole file) when there is no
+    # context_handoff: block, so a stray `mode:`/`spawn:`/`threshold_percent:`
+    # under some OTHER block is never misread as handoff config. And do NOT allow
+    # a leading `#` in the block-start match (was `#?`): the shipped balanced
+    # template seeds a COMMENTED `# context_handoff:` block, which would otherwise
+    # shadow a real block below it — the real `mode:` then falls outside the slice
+    # and the handoff nudge stays silently off.
+    block = ""
+    start = re.search(r"(?m)^[ \t]*context_handoff[ \t]*:", text)
     if start:
         rest = text[start.end() :]
         nxt = re.search(r"(?m)^[A-Za-z_]", rest)
@@ -460,9 +453,7 @@ def read_posture(root: Path) -> dict:
     mode_m = re.search(r"(?m)^[ \t]*mode[ \t]*:[ \t]*(off|nag|block)\b", block)
     if mode_m:
         out["mode"] = mode_m.group(1)
-    spawn_m = re.search(
-        r"(?m)^[ \t]*spawn[ \t]*:[ \t]*(copy-paste-only|os-terminal)\b", block
-    )
+    spawn_m = re.search(r"(?m)^[ \t]*spawn[ \t]*:[ \t]*(copy-paste-only|os-terminal)\b", block)
     if spawn_m:
         out["spawn"] = spawn_m.group(1)
     tw = _POSTURE_WINDOW_RE.search(block)
@@ -599,9 +590,7 @@ def main(argv=None) -> int:
     root = find_project_root(Path(args.project_root) if args.project_root else Path.cwd())
     posture = read_posture(root)
     owner_window = args.window if args.window is not None else posture.get("window")
-    owner_thresh = (
-        args.threshold if args.threshold is not None else posture.get("threshold")
-    )
+    owner_thresh = args.threshold if args.threshold is not None else posture.get("threshold")
     result = measure(
         session,
         owner_window,
