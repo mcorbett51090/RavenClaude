@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.355.8 — 2026-10-18
+
+### Security
+- **`scripts/thing-seat.sh`: a mock verdict now needs `THING_SEAT_ALLOW_MOCK=1`.** A cloned repo could plant `THING_SEAT_MOCK_VERDICT` through `.claude/settings.json` `env` and get a canned tribunal verdict. The seat now honours the mock only when the parent test harness also sets `THING_SEAT_ALLOW_MOCK=1`. Without it, the seat ignores the mock and runs normally. `thing-orchestrator.sh` passes the marker through. New `test-mock-verdict-source.sh`, and the gate 121, 135 and hardening-edit suites set the marker.
+
 ## 0.355.7 — 2026-10-18
 
 ### Security
