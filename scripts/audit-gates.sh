@@ -26,6 +26,11 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
+# Hook-env: hooks re-find a native-installer `claude` in the PASSWD home's
+# ~/.local/bin when PATH has none. Gates that strip claude from PATH to test the
+# "claude missing" branch must not reach a real one there: turn the lookup off for
+# every gate (tests that exercise the lookup itself unset this explicitly).
+export RC_CLAUDE_HOME_LOOKUP=0
 
 # ── Live-session marker is NOT inherited by this harness's children (#1370) ──
 # thing-seat.sh treats CLAUDECODE as a live session and lets a THING_SEAT_MOCK_VERDICT

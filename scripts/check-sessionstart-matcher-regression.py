@@ -85,11 +85,12 @@ _SOURCE_HOOKS = frozenset(
 # block; every other host's generator `_SKIP`s it (same reason in each).
 _ENV_GUARD = "env-integrity-guard.sh"
 
-# Check B exemption: the repo's OWN dev mirror (.claude/settings.json) carries
-# RAVENCLAUDE_TEAM_MODE / RAVENCLAUDE_WORKTREE_ROOT in its `env` block, which
-# the guard quarantines by design -- mirroring it there would lock the
-# maintainers out of their own repo. Tracked as an open decision.
-_SETTINGS_PARITY_EXEMPT = frozenset({_ENV_GUARD})
+# Check B exemption set: EMPTY. The repo's own dev mirror (.claude/settings.json)
+# no longer carries an `env` block (RAVENCLAUDE_TEAM_MODE was unread;
+# RAVENCLAUDE_WORKTREE_ROOT's value is rcwt's built-in default, see bin/rcwt), so
+# env-integrity-guard.sh is mirrored there and checked like every other hook.
+# Keep it empty: the guard is strict, with no allowlist.
+_SETTINGS_PARITY_EXEMPT: frozenset = frozenset()
 _COMPACT_HOOK = "compact-anchor.sh"
 
 # The full canonical SessionStart hook set, across ALL matcher lanes (the
@@ -579,9 +580,11 @@ def _session_start_groups(hooks_json_path: Path) -> dict:
             # The hardened launch line (`/usr/bin/env -u ... PATH=/usr/...
             # /bin/bash --noprofile --norc "${CLAUDE_PLUGIN_ROOT}/hooks/x.sh"`)
             # puts path-shaped tokens before the script: prefer the first
-            # token naming the plugin root, else the first path-shaped word.
+            # token naming the plugin root (hooks.json: ${CLAUDE_PLUGIN_ROOT};
+            # the dev mirror: ${CLAUDE_PROJECT_DIR}/plugins/...), else the
+            # first path-shaped word.
             toks = cmd.split()
-            rooted = [t for t in toks if "CLAUDE_PLUGIN_ROOT" in t]
+            rooted = [t for t in toks if "CLAUDE_PLUGIN_ROOT" in t or "CLAUDE_PROJECT_DIR}/plugins/" in t]
             for tok in rooted or toks:
                 if "/" in tok or tok.endswith(".sh"):
                     names.add(_basename(tok))

@@ -3159,7 +3159,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-gate264-caveman-routing.sh`
 
 **Sources:** [measured in the FORGE caveman-routing-decision-tree run](https://github.com/mcorbett51090/RavenClaude/pull/1095)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-10-18_
 
 
 ---
@@ -3299,7 +3299,7 @@ Falsifier: a future Tier-0 rewrite that classifies by parsed intent rather than 
 
 **Sources:** [SDD fix-loop ledger — round-2 re-review adversarial variants + the controller's ruling to close the loop with a disclosed residual rather than a round-3 fix](https://github.com/mcorbett51090/RavenClaude/pull/1098)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-10-18_
 
 
 ---

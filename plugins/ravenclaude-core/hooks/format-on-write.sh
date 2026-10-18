@@ -2,8 +2,9 @@
 # format-on-write.sh
 # PostToolUse hook for Edit | Write | MultiEdit.
 # Auto-format the file Claude just touched, using whatever formatter the
-# project defines. No-ops silently when a formatter isn't configured for
-# the file type — never blocks the agent's flow.
+# project defines. No-ops silently when the project declares no formatter for
+# the file type; warns once per session when it declares one that is missing
+# (prettier/biome, ruff/black, gofmt, rustfmt). Never blocks the agent's flow.
 
 set -euo pipefail
 
@@ -37,12 +38,47 @@ run() {
   "$@" >/dev/null 2>&1 || true
 }
 
+# AppSec hook-env: the hardened launch line pins PATH (/usr/local/bin:/usr/bin:/bin:
+# /opt/homebrew/bin), so a formatter installed elsewhere (npm prefix, nvm, ~/.local/bin,
+# cargo) is no longer found. When the PROJECT declares a formatter and it is missing,
+# say so once per session (systemMessage + stderr + <runtime>/missing-tools.log)
+# instead of skipping silently. A project that declares nothing stays silent.
+_rc_runtime_helper="$(dirname "${BASH_SOURCE[0]}")/_rc-runtime.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_runtime_helper" ] && . "$_rc_runtime_helper" 2>/dev/null || true
+command -v _rc_tool_missing >/dev/null 2>&1 || _rc_tool_missing() { echo "[RavenClaude] WARNING: $1 not found on the hook PATH - $2: $3" >&2; }
+command -v _rc_system_message >/dev/null 2>&1 || _rc_system_message() { :; }
+proj="${CLAUDE_PROJECT_DIR:-}"
+sid=""
+if [[ -n "${payload:-}" ]]; then
+  sid="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null || true)"
+fi
+# _declares <file-glob...> -- does the project root carry one of these files?
+_declares() {
+  local g
+  [[ -n "$proj" && -d "$proj" ]] || return 1
+  for g in "$@"; do
+    # shellcheck disable=SC2086
+    for f in "$proj"/$g; do [[ -e "$f" ]] && return 0; done
+  done
+  return 1
+}
+_mentions() { [[ -n "$proj" && -f "$proj/$1" ]] && grep -q "$2" "$proj/$1" 2>/dev/null; }
+_missing() { # <tool> -- warn (once per session) that a declared formatter is missing
+  _rc_system_message "$(_rc_tool_missing "$1" format-on-write.sh \
+    "the project declares $1 but it is not installed where hooks can see it, so $(basename "$abs") was not auto-formatted" "$sid")"
+}
+
 case "$file" in
   *.ts|*.tsx|*.js|*.jsx|*.mjs|*.cjs|*.json|*.css|*.scss|*.md|*.yml|*.yaml)
     if command -v prettier >/dev/null 2>&1; then
       run prettier --write "$abs"
     elif command -v biome >/dev/null 2>&1; then
       run biome format --write "$abs"
+    elif _declares '.prettierrc*' 'prettier.config.*' || _mentions package.json '"prettier"'; then
+      _missing prettier
+    elif _declares 'biome.json' 'biome.jsonc'; then
+      _missing biome
     fi
     ;;
   *.py)
@@ -51,14 +87,18 @@ case "$file" in
       run ruff check --fix --quiet "$abs"
     elif command -v black >/dev/null 2>&1; then
       run black --quiet "$abs"
+    elif _declares 'ruff.toml' '.ruff.toml' || _mentions pyproject.toml 'tool\.ruff'; then
+      _missing ruff
+    elif _mentions pyproject.toml 'tool\.black'; then
+      _missing black
     fi
     ;;
   *.go)
-    command -v gofmt >/dev/null 2>&1 && run gofmt -w "$abs"
+    if command -v gofmt >/dev/null 2>&1; then run gofmt -w "$abs"; elif _declares go.mod; then _missing gofmt; fi
     command -v goimports >/dev/null 2>&1 && run goimports -w "$abs"
     ;;
   *.rs)
-    command -v rustfmt >/dev/null 2>&1 && run rustfmt --quiet "$abs"
+    if command -v rustfmt >/dev/null 2>&1; then run rustfmt --quiet "$abs"; elif _declares Cargo.toml; then _missing rustfmt; fi
     ;;
   *.sh)
     command -v shfmt >/dev/null 2>&1 && run shfmt -w "$abs"

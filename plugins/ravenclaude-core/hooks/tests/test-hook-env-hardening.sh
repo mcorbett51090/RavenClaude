@@ -16,6 +16,10 @@
 #      owned by this uid, named by --seat-child <nonce>, does (4);
 #   D  a PostToolUse checker warns when the orchestrator's per-call record is
 #      missing ('pre-tool review did not run') (10).
+#   13-17 the pinned PATH drops ~/.local/bin: every claude caller re-finds it from
+#      the PASSWD home, never a planted $HOME (13, 13p, 14); a missing claude /
+#      declared formatter / node is reported, never skipped silently (14-16); this
+#      repo's own settings carry no env block and pass the guard (17);
 #   12 macOS: this file runs on macos-latest via the gate audit shards
 #      (validate-macos.yml); it was not run on a Mac locally.
 # Honest limit (3): a REAL shared object in LD_PRELOAD / DYLD_INSERT_LIBRARIES is
@@ -314,6 +318,160 @@ drive "$RCMD" "$P10" "$(payload Bash ls "$P10" toolu_rec_broke)"
 [ "$brc" -ne 0 ] && [ "$brc" -ne 2 ] && jq -e '.systemMessage' "$TMP/out" >/dev/null 2>&1 \
   && pass "10 orchestrator failed to launch (rc=$brc, non-blocking) → the PostToolUse check warns" \
   || fail "10 broken launch → brc=$brc out=$(head -c 160 "$TMP/out")"
+
+# ════════════════════════════════════════════════════════════════════════════
+# 13-16  claude lookup ignores a planted HOME; a missing tool is VISIBLE
+#   The pinned launch PATH drops ~/.local/bin. prompt-optimizer-gate.sh,
+#   agent-dispatch-evaluator.sh, thing-seat.sh and thing-decide.py re-find claude
+#   from the PASSWD home only (never $HOME, which a project's settings `env` can
+#   plant). A hook that cannot find claude / node / a declared formatter says so:
+#   stderr + <runtime>/missing-tools.log + a once-per-session systemMessage.
+# ════════════════════════════════════════════════════════════════════════════
+RT="$PLUGIN/hooks/_rc-runtime.sh"
+DECIDE="$PLUGIN/scripts/thing-decide.py"
+hook_cmd(){ jq -r --arg s "$1" '[.. | objects | select(has("command")) | .command | select(contains($s))][0] // empty' "$HJ"; }
+# A planted HOME whose ~/.local/bin/claude would leave a marker if anything ran it.
+PH="$TMP/plantedhome"; mkdir -p "$PH/.local/bin" "$PH/.claude/local"
+for c in "$PH/.local/bin/claude" "$PH/.claude/local/claude"; do
+  printf '#!/bin/sh\necho planted-claude-ran >>"%s/planted"\necho "{}"\n' "$MARK" >"$c"; chmod +x "$c"
+done
+# The REAL passwd home must have no claude for the end-to-end cases (else a hook
+# would legitimately run it). Hermetic runs (bwrap tmpfs over ~/.local/bin, CI) pass.
+REALHOME="$(getent passwd "$(id -u)" 2>/dev/null | cut -d: -f6)"
+[ -n "$REALHOME" ] || REALHOME="$(/usr/bin/dscl . -read "/Users/$(id -un)" NFSHomeDirectory 2>/dev/null | awk '{print $2}')"
+E2E=1
+for c in "$REALHOME/.local/bin/claude" "$REALHOME/.claude/local/claude"; do [ -x "$c" ] && E2E=0; done
+command -v claude >/dev/null 2>&1 && E2E=0
+
+echo "── 13. resolver: passwd home, never \$HOME (bash _rc_add_claude_to_path) ──"
+# Stub getent so the "passwd home" is a fixture dir; HOME is the planted one.
+GSTUB="$TMP/getentstub"; PWH="$TMP/pwhome"; mkdir -p "$GSTUB" "$PWH"
+printf '#!/bin/sh\necho "u:x:%s:%s::%s:/bin/sh"\n' "$(id -u)" "$(id -g)" "$PWH" >"$GSTUB/getent"; chmod +x "$GSTUB/getent"
+res(){ # res [VAR=val ...] -> prints the claude path the resolver picked, or NONE
+  env -i HOME="$PH" PATH="$GSTUB:$BASEPATH" "$@" /bin/bash --noprofile --norc -c \
+    '. "$1"; _rc_add_claude_to_path && command -v claude || echo NONE' _ "$RT" 2>/dev/null
+}
+r="$(res)"; [ "$r" = "NONE" ] && pass "13a planted HOME/.local/bin/claude is ignored when the passwd home has none" || fail "13a resolver picked '$r'"
+mkdir -p "$PWH/.local/bin"; printf '#!/bin/sh\nexit 0\n' >"$PWH/.local/bin/claude"; chmod +x "$PWH/.local/bin/claude"
+r="$(res)"; [ "$r" = "$PWH/.local/bin/claude" ] && pass "13b passwd-home ~/.local/bin/claude is found (not \$HOME's)" || fail "13b resolver picked '$r'"
+r="$(res CLAUDE_PROJECT_DIR="$PWH")"; [ "$r" = "NONE" ] && pass "13c a candidate inside CLAUDE_PROJECT_DIR is skipped" || fail "13c resolver picked '$r'"
+r="$(res RC_CLAUDE_HOME_LOOKUP=0)"; [ "$r" = "NONE" ] && pass "13d RC_CLAUDE_HOME_LOOKUP=0 turns the lookup off (audit hatch)" || fail "13d resolver picked '$r'"
+rm -f "$PWH/.local/bin/claude"
+
+echo "── 13p. resolver: passwd home, never \$HOME (thing-decide.py _claude_bin) ──"
+pyres(){ # pyres <pw_dir> [VAR=val ...]
+  local pw="$1"; shift
+  env -i HOME="$PH" PATH="$BASEPATH" "$@" /usr/bin/python3 -I -c '
+import importlib.util, pwd, sys
+spec = importlib.util.spec_from_file_location("td", sys.argv[1]); m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+class P: pw_dir = sys.argv[2]
+pwd.getpwuid = lambda uid: P()
+print(m._claude_bin() or "NONE")' "$DECIDE" "$pw" 2>/dev/null
+}
+r="$(pyres "$PWH")"; [ "$r" = "NONE" ] && pass "13p-a planted HOME is ignored by thing-decide.py when the passwd home has none" || fail "13p-a _claude_bin -> '$r'"
+mkdir -p "$PWH/.claude/local"; printf '#!/bin/sh\nexit 0\n' >"$PWH/.claude/local/claude"; chmod +x "$PWH/.claude/local/claude"
+r="$(pyres "$PWH")"; [ "$r" = "$PWH/.claude/local/claude" ] && pass "13p-b thing-decide.py finds the passwd-home claude" || fail "13p-b _claude_bin -> '$r'"
+r="$(pyres "$PWH" CLAUDE_PROJECT_DIR="$PWH")"; [ "$r" = "NONE" ] && pass "13p-c thing-decide.py skips a candidate inside CLAUDE_PROJECT_DIR" || fail "13p-c _claude_bin -> '$r'"
+r="$(pyres "$PWH" RC_CLAUDE_HOME_LOOKUP=0)"; [ "$r" = "NONE" ] && pass "13p-d thing-decide.py honours RC_CLAUDE_HOME_LOOKUP=0" || fail "13p-d _claude_bin -> '$r'"
+rm -f "$PWH/.claude/local/claude"
+
+echo "── 14. real hooks, planted HOME, no claude anywhere → skipped VISIBLY ──"
+if [ "$E2E" -eq 0 ]; then
+  pass "14 skipped: a real claude is reachable (PATH or passwd home) — run under the hermetic wrapper / CI"
+else
+  clear_marks; rm -f "$RUN"/ravenclaude-*/missing-tools.log
+  mlog(){ cat "$RUN"/ravenclaude-*/missing-tools.log 2>/dev/null; }
+  smsg(){ jq -r '.systemMessage // empty' "$TMP/out" 2>/dev/null; }
+  # 14a prompt-optimizer-gate.sh (UserPromptSubmit), opted in, a prompt that reaches Tier 1.
+  P14="$(proj po)"; mkdir -p "$P14/.ravenclaude"
+  printf 'prompt_optimizer:\n  enabled: true\n  mode: advisory\n' >"$P14/.ravenclaude/comfort-posture.yaml"
+  POPL="$(jq -cn '{session_id:"po14",hook_event_name:"UserPromptSubmit",prompt:"Fix the bug in `auth/session.py` and `auth/token.py`."}')"
+  drive "$(hook_cmd prompt-optimizer-gate.sh)" "$P14" "$POPL" HOME="$PH"
+  if [ "$DRC" -eq 0 ] && smsg | grep -q '`claude` was not found' && grep -q 'WARNING: claude not found' "$TMP/err" \
+    && mlog | grep -q 'claude not found hook=prompt-optimizer-gate.sh session=po14'; then
+    pass "14a prompt-optimizer-gate.sh: exit 0 + systemMessage + stderr WARNING + missing-tools.log"
+  else fail "14a prompt-optimizer-gate.sh rc=$DRC out=$(head -c 200 "$TMP/out") err=$(head -c 200 "$TMP/err")"; fi
+  drive "$(hook_cmd prompt-optimizer-gate.sh)" "$P14" "$POPL" HOME="$PH"
+  [ ! -s "$TMP/out" ] && grep -q 'WARNING: claude not found' "$TMP/err" \
+    && pass "14b same session again: no second systemMessage (once per session), stderr still warns" \
+    || fail "14b repeat out=$(head -c 200 "$TMP/out")"
+  # 14c agent-dispatch-evaluator.sh (SubagentStart), opted in, a non-allowlisted subagent.
+  P14d="$(proj de)"; mkdir -p "$P14d/.ravenclaude"
+  printf '{"schema_version":"1","enabled":true,"mode":"shadow","subagent_type_allowlist":[],"rationale":"test"}' >"$P14d/.ravenclaude/dispatch-config.json"
+  DEPL="$(jq -cn '{session_id:"de14",hook_event_name:"SubagentStart",subagent_type:"general-purpose",description:"x",prompt:"search the repo"}')"
+  drive "$(hook_cmd agent-dispatch-evaluator.sh)" "$P14d" "$DEPL" HOME="$PH"
+  if [ "$DRC" -eq 0 ] && smsg | grep -q '`claude` was not found' && grep -q 'WARNING: claude not found' "$TMP/err" \
+    && mlog | grep -q 'claude not found hook=agent-dispatch-evaluator.sh session=de14'; then
+    pass "14c agent-dispatch-evaluator.sh: exit 0 (audit-only allow) + systemMessage + WARNING + log"
+  else fail "14c agent-dispatch-evaluator.sh rc=$DRC out=$(head -c 200 "$TMP/out") err=$(head -c 200 "$TMP/err")"; fi
+  # 14d thing-decide.py (decision review), advisory, no mocks: defers and SAYS why.
+  P14t="$(proj td)"; mkdir -p "$P14t/.ravenclaude"; printf 'decision_review: advisory\n' >"$P14t/.ravenclaude/comfort-posture.yaml"
+  DRC=0
+  printf '%s' '{"question":"Should the docs-only change land?","context":"low risk","high_blast":false}' | \
+    env -i HOME="$PH" PATH="$BASEPATH" CLAUDE_PROJECT_DIR="$P14t" XDG_RUNTIME_DIR="$RUN" TMPDIR="$TMP" \
+    /usr/bin/python3 -I "$DECIDE" --root "$P14t" decide >"$TMP/out" 2>"$TMP/err" || DRC=$?
+  if [ "$(jq -r '.verdict' "$TMP/out" 2>/dev/null)" = "defer" ] && jq -r '.reasoning' "$TMP/out" | grep -q 'claude was not found' \
+    && grep -q 'WARNING: claude not found' "$TMP/err" && mlog | grep -q 'claude not found hook=thing-decide.py'; then
+    pass "14d thing-decide.py: defers, reasoning names claude-not-found, stderr WARNING + log"
+  else fail "14d thing-decide.py rc=$DRC out=$(head -c 300 "$TMP/out") err=$(head -c 200 "$TMP/err")"; fi
+  # 14e thing-seat.sh: exits 4 (seat abstains) with a WARNING, never the planted claude.
+  DRC=0
+  env -i HOME="$PH" PATH="$BASEPATH" CLAUDE_PROJECT_DIR="$P14t" XDG_RUNTIME_DIR="$RUN" TMPDIR="$TMP" \
+    THING_SEAT_ROLE=mimir THING_CMD="ls -la" \
+    /bin/bash --noprofile --norc "$PLUGIN/scripts/thing-seat.sh" </dev/null >"$TMP/out" 2>"$TMP/err" || DRC=$?
+  [ "$DRC" -eq 4 ] && grep -q 'WARNING: claude not found' "$TMP/err" \
+    && pass "14e thing-seat.sh: exit 4 (abstain) + stderr WARNING" || fail "14e thing-seat.sh rc=$DRC err=$(head -c 200 "$TMP/err")"
+  [ ! -e "$MARK/planted" ] && pass "14f the planted \$HOME claude never ran (14a-14e)" || fail "14f planted claude RAN: $(cat "$MARK/planted")"
+fi
+
+echo "── 15. declared formatter missing → visible (format-on-write.sh) ──"
+if command -v prettier >/dev/null 2>&1 || [ -x /usr/local/bin/prettier ] || [ -x /opt/homebrew/bin/prettier ] \
+  || command -v biome >/dev/null 2>&1; then
+  pass "15 skipped: prettier/biome is installed on the hook PATH here"
+else
+  FCMD="$(hook_cmd format-on-write.sh)"
+  P15="$(proj fw)"; printf '{"devDependencies":{"prettier":"^3"}}' >"$P15/package.json"; printf 'let a=1\n' >"$P15/a.js"
+  FPL="$(jq -cn --arg f "$P15/a.js" '{session_id:"fw15",hook_event_name:"PostToolUse",tool_name:"Write",tool_input:{file_path:$f}}')"
+  drive "$FCMD" "$P15" "$FPL"
+  [ "$DRC" -eq 0 ] && jq -r '.systemMessage' "$TMP/out" 2>/dev/null | grep -q 'prettier' && grep -q 'WARNING: prettier not found' "$TMP/err" \
+    && pass "15a project declares prettier, prettier missing → exit 0 + systemMessage + WARNING" \
+    || fail "15a rc=$DRC out=$(head -c 200 "$TMP/out") err=$(head -c 200 "$TMP/err")"
+  P15b="$(proj fwq)"; printf 'let a=1\n' >"$P15b/a.js"
+  FPL="$(jq -cn --arg f "$P15b/a.js" '{session_id:"fw15b",hook_event_name:"PostToolUse",tool_name:"Write",tool_input:{file_path:$f}}')"
+  drive "$FCMD" "$P15b" "$FPL"
+  [ "$DRC" -eq 0 ] && [ ! -s "$TMP/out" ] && [ ! -s "$TMP/err" ] \
+    && pass "15b project declares no formatter → silent (exit 0, no output)" || fail "15b out=$(head -c 200 "$TMP/out")"
+fi
+
+echo "── 16. caveman_routing: live, node missing → visible (caveman-route-hook.sh) ──"
+NN="$TMP/nonode"; mkdir -p "$NN"
+for d in /usr/bin /bin; do for f in "$d"/*; do b="${f##*/}"; [ "$b" = node ] || [ -e "$NN/$b" ] || ln -s "$f" "$NN/$b" 2>/dev/null; done; done
+P16="$(proj cv)"; mkdir -p "$P16/.ravenclaude"; printf 'caveman_routing: live\n' >"$P16/.ravenclaude/comfort-posture.yaml"
+CPL="$(jq -cn '{session_id:"cv16",hook_event_name:"UserPromptSubmit",prompt:"hello there"}')"
+CCMD="$(hook_cmd 'caveman-route-hook.sh" --event prompt' | sed "s|PATH=$BASEPATH |PATH=$NN |")"
+drive "$CCMD" "$P16" "$CPL"
+[ "$DRC" -eq 0 ] && jq -r '.systemMessage' "$TMP/out" 2>/dev/null | grep -q '`node` was not found' && grep -q 'WARNING: node not found' "$TMP/err" \
+  && pass "16a live caveman routing without node → exit 0 + systemMessage + WARNING" \
+  || fail "16a rc=$DRC out=$(head -c 200 "$TMP/out") err=$(head -c 300 "$TMP/err")"
+printf 'caveman_routing: shadow\n' >"$P16/.ravenclaude/comfort-posture.yaml"
+drive "$CCMD" "$P16" "$(jq -cn '{session_id:"cv16b",hook_event_name:"UserPromptSubmit",prompt:"hello"}')"
+[ "$DRC" -eq 0 ] && ! grep -q 'node not found' "$TMP/err" && ! grep -q 'node' "$TMP/out" \
+  && pass "16b shadow mode (never applies) → no node warning" || fail "16b out=$(head -c 200 "$TMP/out")"
+
+echo "── 17. this repo's own settings carry no env block and pass the guard ──"
+if [ -f "$REPO/.claude/settings.json" ] && [ -d "$REPO/plugins/ravenclaude-core" ]; then
+  jq -e 'has("env") | not' "$REPO/.claude/settings.json" >/dev/null 2>&1 \
+    && pass "17a .claude/settings.json has no env block (RAVENCLAUDE_* moved out; strict guard, no allowlist)" \
+    || fail "17a .claude/settings.json still has an env block"
+  drive "$GSES" "$REPO" '{"session_id":"self17","hook_event_name":"SessionStart","source":"startup"}'
+  ! denied && ! grep -qi quarantin "$TMP/out" "$TMP/err" && pass "17b the guard does not quarantine this repo" \
+    || fail "17b guard quarantined this repo: $(head -c 200 "$TMP/out")"
+  jq -e '[.hooks.SessionStart[]?.hooks[]?.command | select(test("env-integrity-guard.sh"))] | length == 1' "$REPO/.claude/settings.json" >/dev/null \
+    && pass "17c the dev mirror runs env-integrity-guard.sh at SessionStart (parity re-enabled)" || fail "17c guard not mirrored"
+else
+  pass "17 skipped: not running inside the RavenClaude repo"
+fi
 
 echo "── 12. platform ──"
 case "$(uname -s)" in

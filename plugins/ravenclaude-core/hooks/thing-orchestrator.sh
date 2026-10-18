@@ -657,6 +657,10 @@ else
   #    it only while this lock exists. Removed by the EXIT trap. No runtime dir -> no
   #    nonce: the nested session is then reviewed (seats run with --tools "", so it
   #    makes no tool calls) rather than trusted. ────────────────────────────────────
+  # Re-find a native-installer claude for the seats (pinned PATH; passwd home only).
+  command -v claude >/dev/null 2>&1 || { command -v _rc_add_claude_to_path >/dev/null 2>&1 && _rc_add_claude_to_path 2>/dev/null; } || true
+  _claude_missing_note=""
+  command -v claude >/dev/null 2>&1 || _claude_missing_note=" \`claude\` was not found on the hardened hook PATH (nor in ~/.local/bin of your passwd home), so no seat could run."
   _seat_nonce=""
   if command -v _rc_new_nonce >/dev/null 2>&1; then
     _seat_nonce="$(_rc_new_nonce)"
@@ -758,7 +762,10 @@ else
   # 1. Abstention gate: >=2 abstained, or the whole convened panel abstained.
   elif [ "$n_abstain" -ge 2 ] || { [ "$n_convened" -gt 0 ] && [ "$n_abstain" -eq "$n_convened" ]; }; then
     verdict="$posture"
-    reason="Command review: the panel abstained (timeout or error); ${posture_phrase} for ${category}."
+    reason="Command review: the panel abstained (timeout or error); ${posture_phrase} for ${category}.${_claude_missing_note:-}"
+    if [ -n "${_claude_missing_note:-}" ] && command -v _rc_tool_missing >/dev/null 2>&1; then
+      _rc_tool_missing claude thing-orchestrator.sh "the command-review panel abstained" "${session_id:-}" >/dev/null
+    fi
   # 2. Injection override (unilateral DENY).
   elif [ "$any_injection" = "true" ]; then
     verdict="deny"

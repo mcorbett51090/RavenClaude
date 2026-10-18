@@ -149,6 +149,17 @@ if [ -f "$_portable_helper" ]; then
 fi
 command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { local _s="$1"; shift; "$@"; }
 
+# AppSec hook-env: the hardened launch line pins PATH, dropping ~/.local/bin where the
+# native installer puts `claude`. _rc_add_claude_to_path re-finds it from the PASSWD
+# home (never $HOME, which project settings can plant); _rc_tool_missing makes a
+# missing tool visible instead of a silent skip. Absent helper -> inert stubs.
+_rc_runtime_helper="$(dirname "${BASH_SOURCE[0]}")/../hooks/_rc-runtime.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_runtime_helper" ] && . "$_rc_runtime_helper" 2>/dev/null || true
+command -v _rc_add_claude_to_path >/dev/null 2>&1 || _rc_add_claude_to_path() { return 1; }
+command -v _rc_tool_missing >/dev/null 2>&1 || _rc_tool_missing() { echo "[RavenClaude] WARNING: $1 not found on the hook PATH - $2: $3" >&2; }
+command -v _rc_system_message >/dev/null 2>&1 || _rc_system_message() { :; }
+
 project_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
 [ -d "$project_dir" ] || exit 0
 
@@ -404,8 +415,12 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────────
 # ── TIER 1 — paid, one Haiku forced-tool-shaped call ──────────────────────────────
 # ─────────────────────────────────────────────────────────────────────────────────
+command -v claude >/dev/null 2>&1 || _rc_add_claude_to_path 2>/dev/null || true
 command -v claude >/dev/null 2>&1 || {
   [ -n "${PROMPT_OPTIMIZER_DEBUG:-}" ] && printf 'prompt-optimizer-gate: TIER1_FAILOPEN reason=claude_missing\n' >&2
+  _rc_system_message "$(_rc_tool_missing claude prompt-optimizer-gate.sh \
+    "the prompt-optimizer classifier was skipped, so this prompt was not checked for a rewrite or dispatch plan" \
+    "$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)")"
   exit 0
 }
 

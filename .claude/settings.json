@@ -37,10 +37,6 @@
     "ask": [],
     "defaultMode": "default"
   },
-  "env": {
-    "RAVENCLAUDE_TEAM_MODE": "1",
-    "RAVENCLAUDE_WORKTREE_ROOT": ".claude/worktrees"
-  },
   "hooks": {
     "PostToolUse": [
       {
@@ -473,6 +469,12 @@
       {
         "matcher": "startup|resume|clear|fork",
         "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin RC_INHERITED_BASH_ENV=\"${BASH_ENV-}\" RC_INHERITED_LD_PRELOAD=\"${LD_PRELOAD-}\" RC_INHERITED_PATH=\"${PATH-}\" /bin/bash --noprofile --norc \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/env-integrity-guard.sh\" session",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json SessionStart entry). AppSec hook-env guard, SessionStart half: refuses to continue in a repo whose .claude/settings*.json `env` block plants execution-control keys (PATH, BASH_ENV, LD_*/DYLD_*, NODE_OPTIONS, PYTHON*, RAVENCLAUDE_*/THING_* ...). Mirrored here since this repo's own settings no longer carry an `env` block (RAVENCLAUDE_WORKTREE_ROOT/RAVENCLAUDE_TEAM_MODE moved out, decision 1), so the guard is strict for maintainers too. Hardened launch line, same as hooks.json."
+          },
           {
             "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/reapply-posture.sh\"",

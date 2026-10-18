@@ -2860,7 +2860,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:89b606cb6fa72b20360e8c6796b76a48e75482253c0332b6e5e0f72d204e50b5",
+      "covers_digest": "sha256:c587f4ef18e2aefab617aade1887afa518b0917f84f0346bd68cbf1c94747c93",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3065,7 +3065,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:53abe96f88fd8745e46db4f83d5f3ee1246abf695c1d78288adb54b0dfcc802b",
+      "covers_digest": "sha256:098868237feb9f96575a32b251babbee63f1e7ed1f8e0424398cc652697d7599",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4004,7 +4004,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -4025,7 +4025,7 @@
         "plugins/ravenclaude-core/scripts/caveman-route-hook.sh",
         "plugins/ravenclaude-core/scripts/caveman-route-engine.py"
       ],
-      "covers_digest": "sha256:e747cee327d3497794420abc9c1ce997eefd78df5ab43f66f216840bf368eb98",
+      "covers_digest": "sha256:7f9f9ff371c29ddc9a6492bdce0de6207b10637475c521f8327aa8ae9ebbae4c",
       "nuance": "caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh chmod is denied,\nsame reason ask-on-ambiguity.sh lives there. P7 live calls the applier (on→lite, off→off);\nshadow still records only. Absent/off is the default and writes nothing.",
       "nuance_evidence": {
         "measured": "2026-09-10",
@@ -4241,7 +4241,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -4267,7 +4267,7 @@
         "plugins/ravenclaude-core/skills/prompt-optimizer/SKILL.md",
         "plugins/ravenclaude-core/skills/prompt-optimizer/eval/golden-set.jsonl"
       ],
-      "covers_digest": "sha256:3610e56b91aa9b61d576836c109b540ec30f07d83c26df665748912cc7d008fa",
+      "covers_digest": "sha256:4953dac206b7b87fbf380c65340e16588baffd4c6805adc02247af4297f5f152",
       "nuance": "A whitelist-based zero-anchor skip rule can be adversarially rephrased indefinitely — closing every demonstrated instance never closes the underlying gap, because the gap is a property of matching sentence shape, not meaning.",
       "nuance_evidence": {
         "measured": "2026-09-03",
@@ -4669,7 +4669,7 @@
         "plugins/ravenclaude-core/scripts/thing-harden.py",
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
       ],
-      "covers_digest": "sha256:ba4a41e04409e76923ad77f92dd6a8f91be1881f2700d4d29f2ea360a960d46d",
+      "covers_digest": "sha256:58003eaa74ebbac1c462ca8b08a23e47097bb16639f52622e4d5e2d389151a42",
       "nuance": "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op.",
       "nuance_evidence": {
         "measured": "2026-09-16",
@@ -5040,7 +5040,7 @@
         "plugins/ravenclaude-core/hooks/pretool-record-check.sh",
         "scripts/check-hook-launch-line.py"
       ],
-      "covers_digest": "sha256:5abc09964ef9cb5ba15feab04c131ebf36a6acbeb984a7fa0ad5d2372f814e21",
+      "covers_digest": "sha256:0f2a9495d5aedd74a1ddb9dd5183ab4220e60b1ace16b74f16090b183dd84f02",
       "nuance": "Claude Code 2.1.260 exports project settings env into every hook (sh -c): a planted BASH_ENV ran in every bash hook, a planted PATH chose jq. The hardened launch line keeps them out; env-integrity-guard.sh denies every tool call. A real LD_PRELOAD library cannot be stopped, only refused.",
       "nuance_evidence": {
         "measured": "2026-10-18",

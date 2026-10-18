@@ -330,7 +330,13 @@ esac
 # passwd home's ~/.local/bin if it is not on that PATH (see hooks/_rc-runtime.sh).
 # shellcheck source=/dev/null
 . "$(dirname "$0")/../hooks/_rc-runtime.sh" 2>/dev/null && _rc_add_claude_to_path 2>/dev/null || true
-command -v claude >/dev/null 2>&1 || { echo '{"error":"claude CLI not found"}' >&2; exit 4; }
+if ! command -v claude >/dev/null 2>&1; then
+  # Visible, not silent: stderr + <runtime>/missing-tools.log (the orchestrator puts
+  # the same fact into the panel's abstain reason the user sees).
+  command -v _rc_tool_missing >/dev/null 2>&1 && \
+    _rc_tool_missing claude thing-seat.sh "this tribunal seat abstains" "${THING_SESSION_ID:-}" >/dev/null
+  echo '{"error":"claude CLI not found"}' >&2; exit 4
+fi
 
 # Role-specific evaluation axis + concern slice. The concern catalog
 # (knowledge/concerns-catalog.md) is the constitution; these are the ids each

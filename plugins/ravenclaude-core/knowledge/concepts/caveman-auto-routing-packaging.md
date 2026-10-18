@@ -6,13 +6,13 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 919
 summary: "The caveman auto-routing hook ships from scripts/ because a new hooks/*.sh chmod is denied. Since P7, live posture calls the mode applier (on→lite, off→off); shadow still never applies."
-last_verified: 2026-09-10
+last_verified: 2026-10-18
 covers:
   - plugins/ravenclaude-core/scripts/caveman-route.py
   - plugins/ravenclaude-core/scripts/caveman-apply-mode.sh
   - plugins/ravenclaude-core/scripts/caveman-route-hook.sh
   - plugins/ravenclaude-core/scripts/caveman-route-engine.py
-covers_digest: "sha256:e747cee327d3497794420abc9c1ce997eefd78df5ab43f66f216840bf368eb98"
+covers_digest: "sha256:7f9f9ff371c29ddc9a6492bdce0de6207b10637475c521f8327aa8ae9ebbae4c"
 nuance: "caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh chmod is denied,\nsame reason ask-on-ambiguity.sh lives there. P7 live calls the applier (on→lite, off→off);\nshadow still records only. Absent/off is the default and writes nothing."
 nuance_evidence:
   measured: 2026-09-10

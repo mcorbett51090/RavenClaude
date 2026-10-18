@@ -72,6 +72,10 @@ _rc_seat_child_ok() {
 # and prepend the directory that holds it. No-op if claude already resolves.
 _rc_add_claude_to_path() {
   command -v claude >/dev/null 2>&1 && return 0
+  # Test/audit escape hatch: RC_CLAUDE_HOME_LOOKUP=0 (audit-gates.sh exports it) keeps
+  # a test that removed claude from PATH from reaching a real one in the passwd home.
+  # Fail-safe direction: a planted 0 only makes claude "missing" (visible warning).
+  [ "${RC_CLAUDE_HOME_LOOKUP:-1}" = "0" ] && return 1
   local home="" c
   if command -v getent >/dev/null 2>&1; then
     home="$(getent passwd "$(id -u)" 2>/dev/null | cut -d: -f6)"
@@ -87,4 +91,37 @@ _rc_add_claude_to_path() {
     fi
   done
   return 1
+}
+
+# _rc_tool_missing <tool> <hook> <what-is-skipped> [session_id]
+# A hook that depends on <tool> (claude, node, prettier, gh, ...) and cannot find it
+# on the hardened hook PATH must say so, never skip silently. Always: one stderr
+# line + one line in <runtime>/missing-tools.log. Prints the user-facing message on
+# stdout the FIRST time per (session, hook, tool), so the caller can surface it as a
+# systemMessage once instead of on every call; prints nothing after that.
+_rc_tool_missing() {
+  local tool="$1" hook="$2" what="$3" sid msg d mk
+  sid="$(_rc_safe_id "${4:-}")"
+  [ -n "$sid" ] || sid="nosession-$(date -u +%Y%m%d)"
+  msg="RavenClaude: \`$tool\` was not found on the hardened hook PATH (/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin, plus ~/.local/bin for claude) - $hook: $what. Install $tool in one of those directories (or symlink it into /usr/local/bin)."
+  echo "[RavenClaude] WARNING: $tool not found on the hook PATH - $hook: $what" >&2
+  d="$(_rc_runtime_subdir missing-tools 2>/dev/null)" || { printf '%s' "$msg"; return 0; }
+  printf '%s %s not found hook=%s session=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$tool" "$hook" "$sid" \
+    >>"$(dirname "$d")/missing-tools.log" 2>/dev/null || true
+  mk="$d/$sid.$(_rc_safe_id "$hook").$(_rc_safe_id "$tool")"
+  [ -e "$mk" ] && return 0
+  (umask 077 && : >"$mk") 2>/dev/null || true
+  find "$d" -maxdepth 1 -type f -mmin +1440 -exec rm -f {} + 2>/dev/null || true
+  printf '%s' "$msg"
+}
+
+# _rc_system_message <message> — print a hook JSON output carrying a user-visible
+# systemMessage (no decision fields, so it never changes what the hook decided).
+_rc_system_message() {
+  [ -n "${1:-}" ] || return 0
+  if command -v jq >/dev/null 2>&1; then
+    jq -cn --arg m "$1" '{systemMessage:$m}'
+  elif [ -x /usr/bin/python3 ]; then
+    /usr/bin/python3 -I -c 'import json,sys; print(json.dumps({"systemMessage": sys.argv[1]}))' "$1"
+  fi
 }
