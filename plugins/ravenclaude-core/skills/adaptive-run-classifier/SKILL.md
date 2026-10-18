@@ -128,6 +128,8 @@ tools (stable — VERDICT_SCHEMA + classify_run tool def)
 
 ## Caching design
 
+> **Corrected 2026-10-18 — read this before the rest of the section.** In the shipped `rc-deep-research` workflow, the classifier and the verify agents run through the Workflow tool's `agent()`. `agent()` has no `cache_control` or `thinking` option: the workflow-authoring reference lists `label`, `phase`, `schema`, `model`, `effort`, `isolation` and `agentType`. So the 1-hour verify TTL described below is **not applied**, and the adapter's `cache_control` key is almost certainly ignored. Workflow agents get Claude Code's own subagent cache TTL, which is 5 minutes even on a subscription unless `CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL` or `subagentPromptCacheTtl` overrides it. The minimums below are also dated: the fast tier is now Haiku 5.5, whose minimum is 512 tokens per [`prompt-caching-playbook.md`](../../../claude-app-engineering/knowledge/prompt-caching-playbook.md). The section stays as the design for a direct Messages API implementation. Evidence: [`analysis.md`](../../../../docs/plans/2026-10-14-prompt-caching/analysis.md) F9.
+
 The classifier prompt is intentionally **small**. Per [`prompt-caching-playbook.md`](../../../claude-app-engineering/knowledge/prompt-caching-playbook.md) §"Minimum cacheable tokens":
 
 - **Haiku 4.5 minimum: 4,096 tokens.** Sonnet 5 minimum: 1,024 tokens. Below the minimum, a request runs **without** caching even when `cache_control` is set.
@@ -137,7 +139,7 @@ The classifier prompt is intentionally **small**. Per [`prompt-caching-playbook.
 **The verify-system-block discipline (RM1)** — this is the *consumer* workflow's caching concern, not the classifier's, but it's the load-bearing cache decision in the pipeline so it lives in this skill's adapter contract:
 
 - Verify-phase system block: layout `tools (VERDICT_SCHEMA) → system [BREAKPOINT] → user (claim+vote)`.
-- **`ttl: "1h"`** when expected workflow duration ≥ ~3 minutes (the rc-deep-research baseline was 36 min; 5-min TTL expires mid-run and every post-expiry call pays the 1.25× write tax again). Eat the 2× write penalty on call #1 to keep the cache warm.
+- **`ttl: "1h"`** when expected workflow duration ≥ ~3 minutes (the rc-deep-research baseline was 36 min; 5-min TTL expires mid-run and every post-expiry call pays the 1.25× write tax again). Eat the 2× write penalty on call #1 to keep the cache warm. **Not applied in the workflow** (see the 2026-10-18 note above).
 - If the verify system block is below the model's minimum, the cache silently doesn't fire — RM1 in the plan. Phase-5 eval reports `cache_read / (cache_read + input)` per phase; if verify-phase hit rate < 0.5, escalate the verify-default tier from `fast` (Haiku 4.5, min 4,096) to `balanced` (Sonnet 5, min 1,024).
 
 ## The feature flag
@@ -205,14 +207,14 @@ These are the rails. Violating any of them is a regression — every one is tied
      if (tierLabel !== "fast") {                                    // Haiku is fast; no thinking
        opts.thinking = { type: "adaptive" };                        // budget_tokens deprecated on Sonnet 5
      }
-     // cache_control set by the caller (verify-system-block has its own discipline)
+     // no cache_control here; in a workflow agent() it is not an option (§Caching design)
      return opts;
    }
    ```
 
    Unit test: `adapter.opts("fast", "low")` returns `{ model }` only — **no `thinking` key**. This test ships with the adapter.
 
-3. **Cache TTL `"1h"` on the verify system block when expected workflow duration ≥ ~3 min.** The rc-deep-research baseline runs 36 minutes — the 5-min default TTL expires mid-run and every post-expiry call eats the 1.25× write again. Switch to `"ttl": "1h"` (2× write on call #1, then 0.1× reads for the rest of the hour). For workflows known to finish in under 3 minutes, the 5-min default is correct.
+3. **Cache TTL `"1h"` on the verify system block when expected workflow duration ≥ ~3 min.** *(Design intent only. The workflow cannot apply it, because `agent()` has no `cache_control` option; see the 2026-10-18 note atop §Caching design.)* The rc-deep-research baseline runs 36 minutes — the 5-min default TTL expires mid-run and every post-expiry call eats the 1.25× write again. Switch to `"ttl": "1h"` (2× write on call #1, then 0.1× reads for the rest of the hour). For workflows known to finish in under 3 minutes, the 5-min default is correct.
 
 4. **`batch_verify: false` in MVP default — flag in schema but not flipped.** The field exists for forward compatibility. Phase 3 wires the threshold gate (`batch_verify && verifier_count>=10`) but the template config does NOT enable batch. Flipping it on requires either a polling loop or splitting the workflow into two invocations (synthesize consumes verify synchronously today); both are out of MVP scope and become a Phase-7+ follow-up after the synchronous path's savings are measured.
 

@@ -16,7 +16,7 @@
 //   - Fail-open: any timeout / error / disabled config → pass-through (original opts unchanged).
 //   - Mid-run freeze: dispatchCfg is the closure snapshot; it NEVER re-reads during a run.
 //   - Tribunal seats: verdicts are ALWAYS shadow (logged only); opts.model is NEVER mutated.
-//   - No cache_control: evaluator prompt is <1,024 tokens → below Haiku-4.5 minimum (4,096).
+//   - No cache_control: the evaluator is a `claude -p` call, which Claude Code caches itself.
 
 // ─── Resume-safe time source (added 2026-07 after the three-panel review) ───────
 // The dynamic-workflow runtime FORBIDS Date.now() / new Date() — they break
@@ -134,9 +134,10 @@ async function loadDispatchConfig() {
 // Hard 2s wall-clock timeout. Returns a verdict envelope on success; null on
 // timeout / error (caller treats null as pass-through).
 //
-// The classifier call is intentionally NOT cached (prompt < 1,024 tokens — below
-// Haiku-4.5's 4,096-token cache minimum; setting cache_control would incur the
-// write penalty with zero chance of a cache hit — see SKILL.md §NO cache_control).
+// No cache_control is set here. This is a `claude -p` call, and Claude Code caches
+// those itself; there is no per-call cache_control knob. (The earlier reason, a
+// prompt under Haiku 4.5's 4,096-token minimum, went stale when the fast tier moved
+// to Haiku 5.5. Corrected 2026-10-18.)
 // ─────────────────────────────────────────────────────────────────────────────
 async function evaluateDispatch(
   { subagent_type, description, prompt_head, requested_model, caller_context },

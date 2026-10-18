@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.355.10 — 2026-10-18
+
+### Fixed
+- **False "1-hour verify cache" claims.** Both `rc-deep-research.js` copies and `adaptive-run-classifier/SKILL.md` said the verify phases get a 1-hour cache through `cache_control` on the workflow `agent()` call. `agent()` has no `cache_control` or `thinking` option (the workflow-authoring reference lists `label`, `phase`, `schema`, `model`, `effort`, `isolation`, `agentType`), so the key is almost certainly ignored. Workflow agents get Claude Code's own 5-minute subagent TTL unless `CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL` / `subagentPromptCacheTtl` overrides it. Comments and the skill now say so. Code is unchanged.
+- **Stale "below Haiku 4.5's 4,096-token minimum" reasons** for not caching the run classifier and the dispatch evaluator. The fast tier is Haiku 5.5 now. The comments (both workflow copies and `agent-dispatch-evaluator/reference/evaluate-dispatch.js`) now give the reason that still holds: `agent()` has no cache option, and `claude -p` is cached by Claude Code itself.
+- **`knowledge/headless-claude-calls.md`** row for the workflow copies updated to match.
+- **`docs/research/2026-06-04-claude-features-gap-analysis/gap-analysis.md` §B3** gains a second dated correction: the call shape (`--tools ""` loading about 211,798 tokens of MCP definitions against about 3,470 with `--strict-mcp-config`) was a real lever, so "no correct code change" was wrong.
+
 ## 0.355.9 — 2026-10-18
 
 ### Security
