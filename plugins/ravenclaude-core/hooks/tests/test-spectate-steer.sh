@@ -12,6 +12,8 @@
 #   S8  interrupt → PreToolUse continue:false + deny
 #   S9  interrupt → PostToolUse continue:false
 #   S10 interrupt → PermissionRequest continue:false + deny
+#   S11 concurrent consume_steer_decision is single-winner (no double-grant)
+#   S12 concurrent interrupt+pause keeps both flags (no lost update)
 #
 # Run: bash plugins/ravenclaude-core/hooks/tests/test-spectate-steer.sh
 
@@ -333,6 +335,106 @@ assert d.get("behavior")=="deny"
   pass "interrupt => PermissionRequest continue:false + deny"
 else
   fail "interrupt PermissionRequest missing/wrong: $out"
+fi
+
+echo "── S11: concurrent consume_steer_decision is single-winner ────────────────"
+T11="$(mktemp -d)"
+mkdir -p "$T11/.ravenclaude/runs/s1"
+printf '%s\n' 'spectate_steer: on' >"$T11/.ravenclaude/comfort-posture.yaml"
+_seed_stream "$T11" s1
+if python3 - "$T11" "$STORE" <<'PY'
+import sys
+import threading
+import time
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[2])
+import spectate_store as s
+
+root = Path(sys.argv[1])
+code, body = s.apply_steer(root, session_id="s1", action="approve")
+assert code == 200, body
+
+orig = s.write_steer_pending
+
+def slow_write(*a, **k):
+    time.sleep(0.05)
+    return orig(*a, **k)
+
+s.write_steer_pending = slow_write
+got = []
+barrier = threading.Barrier(2)
+
+def worker():
+    barrier.wait()
+    got.append(s.consume_steer_decision(root, "s1"))
+
+ts = [threading.Thread(target=worker) for _ in range(2)]
+for t in ts:
+    t.start()
+for t in ts:
+    t.join()
+s.write_steer_pending = orig
+assert got.count("allow") == 1, got
+assert got.count(None) == 1, got
+print("ok")
+PY
+then
+  pass "one Approve grants exactly one waiter"
+else
+  fail "S11 double-grant: concurrent consume both returned allow"
+fi
+
+echo "── S12: concurrent interrupt+pause keeps both flags ───────────────────────"
+T12="$(mktemp -d)"
+mkdir -p "$T12/.ravenclaude/runs/s1"
+printf '%s\n' 'spectate_steer: on' >"$T12/.ravenclaude/comfort-posture.yaml"
+_seed_stream "$T12" s1
+if python3 - "$T12" "$STORE" <<'PY'
+import sys
+import threading
+import time
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[2])
+import spectate_store as s
+
+root = Path(sys.argv[1])
+orig = s.write_steer_pending
+
+def slow_write(*a, **k):
+    time.sleep(0.05)
+    return orig(*a, **k)
+
+s.write_steer_pending = slow_write
+barrier = threading.Barrier(2)
+codes = []
+
+def do_interrupt():
+    barrier.wait()
+    codes.append(s.apply_steer(root, session_id="s1", action="interrupt")[0])
+
+def do_pause():
+    barrier.wait()
+    codes.append(s.apply_steer(root, session_id="s1", action="pause")[0])
+
+t1 = threading.Thread(target=do_interrupt)
+t2 = threading.Thread(target=do_pause)
+t1.start()
+t2.start()
+t1.join()
+t2.join()
+s.write_steer_pending = orig
+assert codes == [200, 200], codes
+pending = s.read_steer_pending(root, "s1") or {}
+assert pending.get("interrupt_pending") is True, pending
+assert pending.get("paused") is True, pending
+print("ok")
+PY
+then
+  pass "interrupt+pause concurrent keeps both flags"
+else
+  fail "S12 lost-update: pause clobbered interrupt or interrupt clobbered pause"
 fi
 
 if [ "$FAILED" -ne 0 ]; then
