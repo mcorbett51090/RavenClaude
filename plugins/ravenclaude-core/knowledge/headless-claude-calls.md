@@ -36,7 +36,7 @@ Haiku 5.5 is $0.10 / $0.50 per million tokens at or under 100k prompt tokens, an
 | `thing-decide.py` `_run_seat` and the evaluator shadow | No `--tools ""`. The full default tool set is what that path runs. Adding a lean flag would change behaviour. Security review has not signed off on stripping it. Usage is recorded. |
 | `agent-dispatch-evaluator.sh` | Already `--bare`. Combining with `--strict-mcp-config` is unmeasured. Usage is recorded. The model pin moved. |
 | `scripts/inventory-nuance-judge.py` | Repo-root script, not this plugin. |
-| Both `rc-deep-research.js` copies | Already `--bare`. `opts.cache_control` / `opts.thinking` are still set but are not documented `agent()` options, so they are probably ignored (not re-probed). Since 0.355.10 the comments say so instead of claiming a 1-hour verify cache. Gate 126 keeps the two copies identical. Claude pins moved. |
+| Both `rc-deep-research.js` copies | Already `--bare`. `opts.cache_control` / `opts.thinking` are still set but are not documented `agent()` options, so they are probably ignored (not re-probed). Since 0.355.11 the comments say so instead of claiming a 1-hour verify cache. Gate 126 keeps the two copies identical. Claude pins moved. |
 | Nonce in the seat system prompt | Moving it into the volatile tail (Phase 5 / D5) changes the security boundary. Not done. |
 | Secret handling | `THING_SEAT_BARE` and whether `ANTHROPIC_API_KEY` is set were not touched. |
 

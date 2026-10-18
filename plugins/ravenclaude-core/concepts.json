@@ -3003,7 +3003,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:ad0de98a12bc80db1328d86cd25ddf5d01ca6113366134c36275a7b7bab6cda3",
+      "covers_digest": "sha256:756260c86b1c4c2683ef68d57d6fc2548c127170aa1584f43469e4e26db1badd",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4942,7 +4942,7 @@
         "plugins/ravenclaude-core/skills/wallet-passes/references/tap-to-share.md",
         "plugins/ravenclaude-core/skills/wallet-passes/references/verify.md"
       ],
-      "covers_digest": "sha256:2f8ee6083a6d606729c98d4699927a2abb971af6db79543692db953987a3ceb4",
+      "covers_digest": "sha256:218445871ada1779034940467b28fc6c94e64f085fc83475a1009e8b39617fb8",
       "nuance": "Apple `PassKit_PG/Creating.html` names `headerFields` counts and says overflow hides fields; it never publishes a per-slot character maximum. Google `generic/resources/brand-guidelines` Content does publish English caps. An invented Apple char-limit table is working guidance, not a contract.",
       "nuance_evidence": {
         "measured": "2026-10-11",
