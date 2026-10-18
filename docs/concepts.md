@@ -3426,7 +3426,7 @@ on `parsed_records == 0`, which `rc ledger init` never produces. The true fresh-
 
 **Sources:** [source-control-coordinator build (PR #1146), live CLI verification against a scratch ledger, 2026-09-09](https://github.com/mcorbett51090/RavenClaude/pull/1146)
 
-_Last verified: 2026-09-22_
+_Last verified: 2026-10-18_
 
 
 ---

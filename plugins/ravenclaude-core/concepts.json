@@ -2860,7 +2860,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:614d4394f0e17e87eb27607479ee4b24393b842783c5bfe7722eaab0f2102f2e",
+      "covers_digest": "sha256:2ad83a833c2d9986c5c254889a1bd5bc8975997c50982a34c7a018238a3ad987",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3003,7 +3003,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:d5dbc1aa0894f740db38135bfafd09c4f6dc76e61d592926e607e5a4bbce9a7a",
+      "covers_digest": "sha256:9664bf884c55aa88f55f593bae6d73b96bb767cc295560491858ec9322c09584",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3065,7 +3065,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:801cefaba5586717a6a87d05675c1ed0465153388df8ef7cc334da749abe4822",
+      "covers_digest": "sha256:ac44c9bbbca50ce6831f688672fd144cd3c75997e63c7827bea51ef189d54f37",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4386,7 +4386,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-22",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -4407,7 +4407,7 @@
         "plugins/ravenclaude-core/knowledge/coordinator-ledger-convention.md",
         "plugins/ravenclaude-core/scripts/ledger.py"
       ],
-      "covers_digest": "sha256:b7fd60ce46b957cafbe64b2c0ed23b737cabf282dfffe7deaf50274c478b973c",
+      "covers_digest": "sha256:983feeaa5cda1ad9db0b67c063002ed45ef2e016f7bb415cb3301225138faa18",
       "nuance": "--repo-root/--actor are ledger.py's TOP-LEVEL parser flags, added before add_subparsers(); a build plan citing them AFTER `append` fails with 'unrecognized arguments', verified live. A companion claim (fresh ledger = exit 2/UNKNOWN) was also wrong: cmd_init always appends a ledger_init event, so the true fresh state is exit 0/PASS.",
       "nuance_evidence": {
         "measured": "2026-09-09",
