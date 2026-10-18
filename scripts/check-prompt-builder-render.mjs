@@ -290,12 +290,12 @@ if (api) {
 
   // G09 — PB_MODELS ids match catalog current
   const CATALOG_IDS = [
-    "claude-opus-4-8",
-    "claude-sonnet-5",
-    "claude-haiku-4-5-20251001",
-    "claude-fable-5",
+    "claude-opus-5-5",
+    "claude-sonnet-5-5",
+    "claude-haiku-5-5",
+    "claude-fable-5-1",
   ];
-  const DEFAULT_MODEL = "claude-opus-4-8";
+  const DEFAULT_MODEL = "claude-opus-5-5";
   const modelIds = (api.PB_MODELS || []).map((m) => m.id);
   const missing = CATALOG_IDS.filter((id) => modelIds.indexOf(id) === -1);
   const extraIds = modelIds.filter((id) => CATALOG_IDS.indexOf(id) === -1);
@@ -340,8 +340,8 @@ if (api) {
 
   // 5h. Token estimate: per-model divisor actually changes the number.
   const txt = "a".repeat(360);
-  const eSonnet = api.pbEstimate(txt, "claude-sonnet-5").est; // ~100
-  const eHaiku = api.pbEstimate(txt, "claude-haiku-4-5-20251001").est; // ~90
+  const eSonnet = api.pbEstimate(txt, "claude-sonnet-5-5").est; // ~100
+  const eHaiku = api.pbEstimate(txt, "claude-haiku-5-5").est; // ~90
   if (Math.abs(eSonnet - 100) <= 5 && Math.abs(eHaiku - 90) <= 5)
     ok("token divisor: 360 chars → ~100 (3.6) / ~90 (4.0)");
   else fail("token estimate off: sonnet=" + eSonnet + " haiku=" + eHaiku);

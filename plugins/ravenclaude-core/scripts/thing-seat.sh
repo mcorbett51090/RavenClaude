@@ -37,7 +37,7 @@
 #                      (command|file|network|mcp; default "command").
 #   THING_CATEGORY     required — the comfort-posture category (e.g. shell_code_exec)
 #   THING_SEAT_ROLE    optional — forseti|mimir|heimdall|thor (default: mimir)
-#   THING_MODEL        optional — claude model alias/id (default: claude-haiku-4-5-20251001)
+#   THING_MODEL        optional — claude model alias/id (default: claude-haiku-5-5)
 #   THING_PEER_VERDICTS optional — JSON of the other seats' verdicts (Thor only)
 #   THING_SEAT_BARE    optional — "1" to force `--bare` (needs an API key)
 #   THING_SEAT_MOCK_VERDICT  optional — TEST HOOK. When set, NO real claude call
@@ -57,7 +57,7 @@ cmd="${THING_PAYLOAD:-${THING_CMD:-}}"
 shape="${THING_PAYLOAD_SHAPE:-command}"
 category="${THING_CATEGORY:-shell_readonly}"
 role="${THING_SEAT_ROLE:-mimir}"
-model="${THING_MODEL:-claude-haiku-4-5-20251001}"
+model="${THING_MODEL:-claude-haiku-5-5}"
 
 # §3a: the seat prompt is capped at SEAT_MAX_BYTES (with a [truncated] marker) —
 # but the egress backstop below + the orchestrator's local screen run on the FULL
@@ -360,11 +360,13 @@ _mf_helper="$(dirname "$0")/../hooks/_model-fallback.sh"
 [ -f "$_mf_helper" ] && . "$_mf_helper" 2>/dev/null || true
 
 _seat_run() {
-  # --tools "" disables ALL tools (a seat only reasons + returns JSON) — holds on
-  # the primary AND every fallback rung.
+  # --tools "" removes built-in tools only. --strict-mcp-config keeps MCP tool
+  # definitions out of the prefix. A seat returns JSON and was measured unable
+  # to call MCP. Holds on the primary AND every fallback rung.
   cd "$scratch" && claude -p ${bare_args[@]+"${bare_args[@]}"} \
     --output-format json \
     --model "$1" \
+    --strict-mcp-config \
     --tools "" \
     --append-system-prompt "$SEAT_SYSTEM" \
     "$user_prompt" 2>"${_MF_ERRFILE:-/dev/null}"
@@ -381,12 +383,20 @@ else
   raw="$(cd "$scratch" && claude -p ${bare_args[@]+"${bare_args[@]}"} \
     --output-format json \
     --model "$model" \
+    --strict-mcp-config \
     --tools "" \
     --append-system-prompt "$SEAT_SYSTEM" \
     "$user_prompt" 2>/dev/null)" || {
     echo '{"error":"claude invocation failed"}' >&2
     exit 5
   }
+fi
+
+# Usage sidecar. Fail-open: a logging error must not change the seat exit or the
+# verdict JSON on stdout. Recorded from this process's cwd, not the scratch dir.
+_hu="$(dirname "$0")/headless-usage.py"
+if [ -f "$_hu" ]; then
+  printf '%s' "$raw" | python3 "$_hu" record --site thing-seat --model "$model" >/dev/null 2>&1 || true
 fi
 
 # A non-zero is_error in the envelope (e.g. auth failure) is still exit-0 from

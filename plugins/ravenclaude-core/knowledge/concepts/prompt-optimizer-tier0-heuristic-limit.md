@@ -17,7 +17,7 @@ covers:
   - plugins/ravenclaude-core/scripts/prompt-optimizer-rewrite.sh
   - plugins/ravenclaude-core/skills/prompt-optimizer/SKILL.md
   - plugins/ravenclaude-core/skills/prompt-optimizer/eval/golden-set.jsonl
-covers_digest: "sha256:0cd423848dc86d2a1f3e83a031c27d8d7190a7922b4f3ca69842481db2ba9a66"
+covers_digest: "sha256:3610e56b91aa9b61d576836c109b540ec30f07d83c26df665748912cc7d008fa"
 nuance: "A whitelist-based zero-anchor skip rule can be adversarially rephrased indefinitely — closing every demonstrated instance never closes the underlying gap, because the gap is a property of matching sentence shape, not meaning."
 nuance_evidence:
   measured: 2026-09-03

@@ -53,6 +53,10 @@ Usage:
                                         [--recipe copy-paste|same-host|os-terminal]
   rc dispatch-summary [--session ID] [--json]   Per-session handoff-tax rollup: tier mix, brief/report
                                         sizes, flags — the "cost per completed task" shape.
+  rc cache-report [--days N] [--json] [--log PATH]
+                                        Sum headless claude -p usage from
+                                        .ravenclaude/runs/headless-usage.jsonl.
+                                        total_cost_usd is a client-side estimate.
                                         Print (and optionally spawn) a same-host
                                         successor from a run-dir handoff.md.
   rc forge-worktree init|checkpoint|path|--self-test
@@ -438,6 +442,14 @@ PY
       exit 1
     }
     exec python3 "$PLUGIN_ROOT/scripts/handoff-tax-meter.py" --summary "$@"
+    ;;
+  cache-report)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc cache-report' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/headless-usage.py" report "$@"
     ;;
   artifacts)
     shift

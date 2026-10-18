@@ -230,7 +230,7 @@ if [ "$mode" = "decide" ]; then
   # --tools "" is the non-negotiable structural recursion guard (layer 3):
   # the nested session has ZERO tools, so a prompt-injected session cannot
   # call spawn-team, read files, or invoke hooks regardless of env vars.
-  model="${THING_MODEL:-claude-haiku-4-5-20251001}"
+  model="${THING_MODEL:-claude-haiku-5-5}"
   system_prompt="You are the RavenClaude Team Lead orchestration planner. Read the task brief and agent roster and return ONLY a structured JSON dispatch plan — no prose, no markdown fences.
 
 Plan shape: {\"agents\":[{\"role\":\"<role>\",\"brief\":\"<brief>\",\"depends_on\":[]},...],\"parallelism\":\"sequential|parallel\",\"reasoning\":\"<= 200 chars\"}
@@ -257,7 +257,7 @@ else
   # full: reason through the whole task and return artifact content.
   # Still uses --tools "" to bound the blast radius (no tool calls from the
   # nested session, regardless of injection). Bounded cost; the host writes.
-  model="${THING_MODEL:-claude-sonnet-5}"
+  model="${THING_MODEL:-claude-sonnet-5-5}"
   system_prompt="You are the RavenClaude Team Lead. Reason through the full task in the brief and return the artifact content directly — code, markdown, JSON, or whatever the task produces. The host handles all file writes.
 
 Rules:
@@ -297,6 +297,7 @@ _orch_claude_run() {
     claude -p \
     --output-format json \
     --model "$1" \
+    --strict-mcp-config \
     --tools "" \
     --append-system-prompt "$system_prompt" \
     "$user_prompt" 2>"${_MF_ERRFILE:-/dev/null}"
@@ -316,6 +317,12 @@ else
     echo "claude-orchestrate.sh: claude invocation failed — fall back to host" >&2
     exit 3
   }
+fi
+
+# Usage sidecar. Fail-open, and it does not change the artifact printed below.
+_hu="$(dirname "$0")/headless-usage.py"
+if [ -f "$_hu" ]; then
+  printf '%s' "$raw" | python3 "$_hu" record --site claude-orchestrate --model "$model" >/dev/null 2>&1 || true
 fi
 
 # A non-zero is_error in the envelope (e.g. auth failure) still exits 0 from

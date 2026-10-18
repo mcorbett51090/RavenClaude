@@ -46,9 +46,9 @@ function _dispatchHost() {
 function resolveTier(host, tier) {
   const MAP = {
     claude: {
-      fast: "claude-haiku-4-5-20251001",
-      balanced: "claude-sonnet-5",
-      top: "claude-opus-4-8",
+      fast: "claude-haiku-5-5",
+      balanced: "claude-sonnet-5-5",
+      top: "claude-opus-5-5",
     },
     grok: {
       fast: { model: "grok-4.5", effort: "low", perspective: "scanner" },
@@ -174,7 +174,7 @@ async function evaluateDispatch(
   const envelopeShellSafe = classifierPrompt.replace(/'/g, "'\\''");
   const subprocPrompt =
     `You are a dispatch-routing shell runner. Execute this exact command and return its raw stdout:\n\n` +
-    `timeout 2 claude -p --bare --output-format json --model claude-haiku-4-5-20251001 ` +
+    `timeout 2 claude -p --bare --output-format json --model claude-haiku-5-5 ` +
     `'You are a dispatch evaluator. Given this dispatch envelope, return ONLY a JSON object with fields: ` +
     `verdict ("keep"|"upgrade"|"downgrade"), suggested_tier ("fast"|"balanced"|"top"), ` +
     `confidence ("low"|"medium"|"high"), rationale (one sentence). ` +

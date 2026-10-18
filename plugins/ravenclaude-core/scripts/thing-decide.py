@@ -249,6 +249,22 @@ def _mock_verdict(role: str) -> dict | None:
     return None
 
 
+def _record_headless_usage(site: str, model: str, envelope: str) -> None:
+    """Fail-open usage sidecar. Never changes a verdict or an exit code."""
+    script = Path(__file__).resolve().parent / "headless-usage.py"
+    try:
+        subprocess.run(
+            [sys.executable, str(script), "record", "--site", site, "--model", model],
+            input=envelope or "",
+            text=True,
+            capture_output=True,
+            timeout=5,
+            check=False,
+        )
+    except Exception:
+        return
+
+
 def _run_seat(
     role: str, model: str, question: str, context: str, timeout_s: int, peers: list | None = None
 ) -> dict:
@@ -298,6 +314,7 @@ def _run_seat(
             )
     except Exception:
         return dict(_ABSTAIN)
+    _record_headless_usage("thing-decide", model, proc.stdout or "")
     if proc.returncode != 0:
         return dict(_ABSTAIN)
     return _parse_seat(proc.stdout)
@@ -403,7 +420,7 @@ def _evaluator_shadow(
                     "--output-format",
                     "json",
                     "--model",
-                    "claude-haiku-4-5-20251001",
+                    "claude-haiku-5-5",
                     instr + envelope,
                 ],
                 cwd=scratch,
@@ -411,6 +428,7 @@ def _evaluator_shadow(
                 text=True,
                 timeout=min(timeout_s, 5),
             )
+        _record_headless_usage("thing-decide-shadow", "claude-haiku-5-5", proc.stdout or "")
         if proc.returncode != 0:
             return None
         raw = proc.stdout

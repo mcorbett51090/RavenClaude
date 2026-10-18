@@ -3760,17 +3760,17 @@ def _render_command_review_block() -> str:
 
 # Per-seat model choices offered by the dashboard's command-review panel section.
 _THING_MODEL_CHOICES = [
-    ("claude-opus-4-8", "Opus 4.8 — most capable"),
-    ("claude-sonnet-5", "Sonnet 5 — balanced"),
-    ("claude-haiku-4-5-20251001", "Haiku 4.5 — fast / cheap"),
-    ("claude-fable-5", "Fable 5 — fast reasoning"),
+    ("claude-opus-5-5", "Opus 5.5 — most capable"),
+    ("claude-sonnet-5-5", "Sonnet 5.5 — balanced"),
+    ("claude-haiku-5-5", "Haiku 5.5 — fast / cheap"),
+    ("claude-fable-5-1", "Fable 5.1 — hardest tail"),
 ]
 # (seat key, display label, default model) — mirrors thing-decision.py defaults.
 _THING_SEAT_META = [
-    ("forseti", "Forseti — Security", "claude-opus-4-8"),
-    ("mimir", "Mímir — Correctness", "claude-haiku-4-5-20251001"),
-    ("heimdall", "Heimdall — Injection watch", "claude-haiku-4-5-20251001"),
-    ("thor", "Thor — Tie-breaker", "claude-opus-4-8"),
+    ("forseti", "Forseti — Security", "claude-opus-5-5"),
+    ("mimir", "Mímir — Correctness", "claude-haiku-5-5"),
+    ("heimdall", "Heimdall — Injection watch", "claude-haiku-5-5"),
+    ("thor", "Thor — Tie-breaker", "claude-opus-5-5"),
 ]
 
 # gate_floor headline control — enum medium | high | extreme, default high.
@@ -9254,10 +9254,10 @@ _JS = r"""
      * false = all per-category reviews are paused (thing values preserved, not cleared).
      * Absent in storage / YAML ⇒ true (enabled). We only persist/emit when false. */
     enabled: true,
-    forseti: "claude-opus-4-8",
-    mimir: "claude-haiku-4-5-20251001",
-    heimdall: "claude-haiku-4-5-20251001",
-    thor: "claude-opus-4-8",
+    forseti: "claude-opus-5-5",
+    mimir: "claude-haiku-5-5",
+    heimdall: "claude-haiku-5-5",
+    thor: "claude-opus-5-5",
     confidence_threshold: 0.5,
     gate_floor: "high",
     /* Dev-repo lockout fix (v0.60.0): when true (and the gh-owner + marketplace.json
@@ -9266,7 +9266,7 @@ _JS = r"""
     dev_repo_exempt: false,
   });
   const CR_SEATS = ["forseti", "mimir", "heimdall", "thor"];
-  const CR_MODELS = ["claude-opus-4-8", "claude-sonnet-5", "claude-haiku-4-5-20251001", "claude-fable-5"];
+  const CR_MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5", "claude-fable-5-1"];
 
   /* gate_floor headline control — enum medium | high | extreme, default high. */
   const GATE_FLOORS = ["medium", "high", "extreme"];
@@ -15715,10 +15715,10 @@ function wireHostScopeFilter(root) {
   // Claude 4.7+/5-family tokenize ~30% heavier (4.2), hence the split. Verify with the
   // count_tokens API for billing-critical use; the number never gates any action.
   var PB_MODELS = [
-    { id: "claude-opus-4-8", label: "Opus (opus 4 8)", divisor: 3.6, hint: "Current catalog Opus. Prefer explicit output shape over stacked CRITICAL/MUST (5.2)." },
-    { id: "claude-sonnet-5", label: "Sonnet (sonnet 5)", divisor: 3.6, hint: "Current catalog Sonnet. Be explicit about the output you want, not emphatic about it." },
-    { id: "claude-haiku-4-5-20251001", label: "Haiku (haiku 4 5 20251001)", divisor: 4.0, hint: "Older tokenizer generation (pre-4.7 family). Smaller models can benefit from more explicit, decomposed instructions — heuristic (5.3)." },
-    { id: "claude-fable-5", label: "Fable (fable 5)", divisor: 3.6, hint: "Current catalog Fable; thinking depth is the effort parameter, not a prompt phrase (5.4)." },
+    { id: "claude-opus-5-5", label: "Opus 5.5", divisor: 3.6, hint: "Current catalog Opus. Prefer explicit output shape over stacked CRITICAL/MUST (5.2)." },
+    { id: "claude-sonnet-5-5", label: "Sonnet 5.5", divisor: 3.6, hint: "Current catalog Sonnet. Be explicit about the output you want, not emphatic about it." },
+    { id: "claude-haiku-5-5", label: "Haiku 5.5", divisor: 4.0, hint: "Divisor 4.0 is the prior Haiku chars-per-token heuristic, unverified for Haiku 5.5. Smaller models can benefit from more explicit, decomposed instructions — heuristic (5.3)." },
+    { id: "claude-fable-5-1", label: "Fable 5.1", divisor: 3.6, hint: "Current catalog Fable 5.1. Use it only after Opus at xhigh demonstrably fails. Thinking depth is the effort parameter, not a prompt phrase (5.4)." },
   ];
   var PB_BAND = 0.20; // +/-20% band (claim 4.5); widened on code/CJK content
 
@@ -15727,7 +15727,7 @@ function wireHostScopeFilter(root) {
   function pbEx() { return { input: "", output: "", reasoning: "" }; }
   function pbDefault() {
     return {
-      mode: "task", model: "claude-opus-4-8", reasoning: false, template: null,
+      mode: "task", model: "claude-opus-5-5", reasoning: false, template: null,
       task:    { directive: "", context: "", dataTag: "input", data: "", constraints: "", outputFormat: "", success: "" },
       system:  { role: "", rules: [""], tone: "", boundaries: "", outputPolicy: "" },
       fewshot: { directive: "", outputFormat: "", examples: [pbEx(), pbEx(), pbEx()] }
@@ -16038,7 +16038,7 @@ function wireHostScopeFilter(root) {
     (function () { var o = s[mode]; for (var k in o) { if (typeof o[k] === "string" && pbIsPrefill(o[k])) prefill = true; } })();
     if (prefill) { penalty += 20; issues.unshift({ sev: "bad", label: "Looks like response prefilling", why: "Prefilled assistant turns return a 400 error on Claude 4.6+ — use a Structured-output block instead (1.9).", key: null, claim: "1.9" }); }
     for (var i = 0; i < PB_FOLKLORE.length; i++) { if (PB_FOLKLORE[i].test(all)) { issues.push({ sev: "tip", label: "“Magic phrase” detected", why: "Folklore like “you are an expert” / “I'll tip $200” doesn't survive an A/B test on current models — it earns no credit (R.2).", key: null }); break; } }
-    if (mode === "task" && s.model === "claude-opus-4-8" && s.task.success.trim()) issues.push({ sev: "tip", label: "Self-check may be redundant on Opus 5", why: "Opus 5 self-verifies — an explicit success-check can over-trigger (5.2).", key: "success" });
+    if (mode === "task" && s.model === "claude-opus-5-5" && s.task.success.trim()) issues.push({ sev: "tip", label: "Self-check may be redundant on Opus 5", why: "Opus 5 self-verifies — an explicit success-check can over-trigger (5.2).", key: "success" });
     if (assembled.length / (pbModel(s.model).divisor) > 20000) issues.push({ sev: "tip", label: "Long prompt — consider data-first order", why: "Above ~20k tokens, putting long data at the top and the query at the end can improve quality up to ~30% (1.7).", key: null });
 
     score = Math.max(0, Math.min(100, Math.round(score - penalty)));
@@ -16281,7 +16281,7 @@ function wireHostScopeFilter(root) {
     });
     if (!def.system.rules.length) def.system.rules = [""];
     if (!def.fewshot.examples.length) def.fewshot.examples = [pbEx(), pbEx(), pbEx()];
-    if (pbModel(def.model).id !== def.model) def.model = "claude-opus-4-8";
+    if (pbModel(def.model).id !== def.model) def.model = "claude-opus-5-5";
     return def;
   }
 

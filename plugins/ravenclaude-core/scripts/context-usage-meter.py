@@ -87,11 +87,11 @@ _CTRL = re.compile(r"[\x00-\x1f\x7f]")
 _MODEL_CATALOG_PATH = Path(__file__).resolve().parent.parent / "knowledge" / "model-catalog.json"
 _CATALOG_MAX_BYTES = 256 * 1024
 # Fallback heuristic ONLY when a model id is resolved but is not one of the
-# catalog's governed ids (e.g. a dated snapshot id, or a model shipped after
-# this catalog was last updated). Per the claude-api skill's live table every
-# current-generation Claude model is 1,000,000 tokens except the haiku tier
-# (200,000) — this is a heuristic fallback, never a substitute for the
-# catalog, which is checked first.
+# catalog's governed ids (a retired dated Haiku 4.5 snapshot, or a model shipped after this catalog was last
+# updated). Current catalog ids, including Haiku 5.5, are 1,000,000. An
+# unresolved haiku-shaped id still uses 200,000 so a Haiku 4.5 session is not
+# told it has a 1,000,000 window. This is a heuristic fallback, never a
+# substitute for the catalog, which is checked first.
 _HAIKU_FALLBACK_WINDOW = 200000
 _GENERIC_FALLBACK_WINDOW = 1000000
 # Conservative, documented (not empirically measured) reservation subtracted

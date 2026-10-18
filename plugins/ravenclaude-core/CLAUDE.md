@@ -751,6 +751,10 @@ A third guardrail bounds **exploration breadth** (the runaway brake bounds *dept
 
 - **task-scope gate** (`enforce-layout.sh`, Gap 6) — the **existing** layout hook (`PreToolUse` on `Write`/`Edit`/`MultiEdit`, already wired under both hosts) gained a second, independent policy: an optional `.ravenclaude/task-scope.json` (`{"in_scope": [globs], "spec": "SPEC.md"}`) declaring the **current task's** write blast radius. A write to a path matching no `in_scope` glob is denied with the spec hint. It is independent of `.repo-layout.json` (repo *structure*) — either, both, or neither may be present, and they compose. **Zero new wiring** (the hook was already registered). **Fail-safe:** absent file / empty `in_scope` / unparseable JSON → no-op. Template: [`templates/task-scope.json`](templates/task-scope.json); copy to the consumer repo per task, delete when done. **Migration:** none — default no-op.
 
+## Headless Claude call shape (added 2026-10-17, v0.353.0)
+
+Catalog pins are Opus 5.5, Sonnet 5.5, Haiku 5.5, and Fable 5.1 (`knowledge/model-catalog.json`). Fable 5.1 is only for a case where Opus at `xhigh` has already failed. JSON-only `claude -p` sites that already disabled tools now also pass `--strict-mcp-config`. Usage from those envelopes is appended to `.ravenclaude/runs/headless-usage.jsonl` (`rc cache-report`). Rules, and the sites deliberately left unchanged, are in [`knowledge/headless-claude-calls.md`](knowledge/headless-claude-calls.md).
+
 ## Advisor checkpoints (added 2026-10-13, v0.352.0)
 
 When an advisor model is configured (`advisorModel` setting, `--advisor`, or `/advisor`; box fleet: Sonnet main + Opus advisor), consult it at three checkpoints:

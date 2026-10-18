@@ -11,7 +11,7 @@ covers:
   - plugins/ravenclaude-core/skills/repo-review/scripts/block_planner.py
   - plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js
   - plugins/ravenclaude-core/skills/repo-review/SKILL.md
-covers_digest: "sha256:9b7b9f447605fa72915be31351bfcdc8f633c9b87eca2e37c3ec32006b3c5c83"
+covers_digest: "sha256:af04671e09808b00d97f8e8e9fc3563bfaf5728eaf561e2f3f38992acd299d74"
 nuance: "_capacity() clamps every result to max(1, ...) so a block always covers at least
   one batch once it exists. The finalize-capacity guard read that ALREADY-CLAMPED value,
   so 'nothing fits at all' could never be observed -- the clamp and the check that needs

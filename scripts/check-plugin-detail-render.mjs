@@ -101,7 +101,10 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 64, // 63 -> 64: scripts/claim_grounding_scan.py (SH-F9 / core 0.339.3 — single-process
+  tools: 65, // 64 -> 65: scripts/headless-usage.py (core 0.353.0 — sidecar recorder for
+  //   headless claude -p usage envelopes). COUNTED, not inferred: the plugin-detail
+  //   island's scripts_index for ravenclaude-core -> 65 after generate-index-dashboard.py.
+  //        63 -> 64: scripts/claim_grounding_scan.py (SH-F9 / core 0.339.3 — single-process
   //   scan for claim-grounding-lint.sh). COUNTED, not inferred: the plugin-detail island's
   //   scripts_index for ravenclaude-core -> 64 after generate-index-dashboard.py regen.
   //        61 -> 63: scripts/spectate_store.py + scripts/spectate_demo.py (Harness Spectate

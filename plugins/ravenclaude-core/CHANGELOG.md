@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.353.0 — 2026-10-18
+
+### Changed
+- **Model catalog pins** (`knowledge/model-catalog.json`). Current ids are Opus 5.5 (`claude-opus-5-5`), Sonnet 5.5 (`claude-sonnet-5-5`), Haiku 5.5 (`claude-haiku-5-5`), and Fable 5.1 (`claude-fable-5-1`). The previous pins moved to `stale`. Haiku 5.5's catalog context window is 1,000,000; an unresolved haiku-shaped id, including the retired dated Haiku 4.5 pin, still uses the 200,000 heuristic. Fable 5.1 is the quality-escalation pin only after Opus at xhigh demonstrably fails. Legacy `claude-fable-5` is not a pin.
+- **Headless call shape.** JSON-only `claude -p` sites that already passed `--tools ""` and do not need MCP now also pass `--strict-mcp-config` (`thing-seat.sh`, `claude-orchestrate.sh`, the prompt-optimizer gate/rewrite/dispatch/judge-soak scripts, and `judge.sh`). `--bare` sites were left alone. `thing-decide.py` was left on the full tool set. `--safe-mode` was not adopted.
+- **`agent-dispatch-evaluator/SKILL.md`.** The claim that Phase 5 asserts `cache_creation_input_tokens` is 0 was false. The skill now matches the recorder: the probe appends derived usage when the envelope reports it, and it does not assert that count is 0.
+
+### Added
+- **`scripts/headless-usage.py`** and **`rc cache-report`**. Headless JSON envelopes record `usage` and `total_cost_usd` to `.ravenclaude/runs/headless-usage.jsonl`. Absent fields are omitted. Prompt and result text are not logged. `total_cost_usd` is a client-side estimate; subscription accounting is unverified.
+- **`knowledge/headless-claude-calls.md`.** Call-shape, effort, cache prefix, batches, and the Console checklist for this plugin's own `claude -p` sites.
+- **Inventory entry** `headless-usage-sidecar-not-verdict`. The usage row is a sidecar file. The seat still prints its own verdict.
+
 ## 0.352.3 — 2026-10-18
 
 ### Fixed

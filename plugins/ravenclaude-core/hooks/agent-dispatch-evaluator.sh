@@ -192,8 +192,14 @@ classifier_instr='You are a dispatch evaluator. Given this dispatch envelope, re
 # "Input must be provided either through stdin or as a prompt argument", while
 # `--tools=""` succeeds). See scripts/prompt-optimizer-gate.sh's own documented
 # deviation for the full repro.
-raw="$(_rc_timeout 3 claude -p --bare --output-format json --model claude-haiku-4-5-20251001 --tools="" \
+raw="$(_rc_timeout 3 claude -p --bare --output-format json --model claude-haiku-5-5 --tools="" \
   "${classifier_instr}${envelope}" 2>/dev/null || echo '')"
+# Already --bare (cache-lean). Do not also pass --strict-mcp-config: that combination
+# was not measured. Usage recording is fail-open and must not change the allow path.
+_hu="$(dirname "$0")/../scripts/headless-usage.py"
+if [ -n "$raw" ] && [ -f "$_hu" ]; then
+  printf '%s' "$raw" | python3 "$_hu" record --site agent-dispatch-evaluator --model claude-haiku-5-5 >/dev/null 2>&1 || true
+fi
 [ -n "$raw" ] || emit_allow
 
 # The --output-format json wrapper may nest the model text under .result; tolerate both

@@ -3447,7 +3447,7 @@ Measured 2026-09-11: `resolve_panels()` loads `thing-decision.py` via `importlib
 
 ## Why it matters
 
-If `.ravenclaude/comfort-posture.yaml` or `.ravenclaude/thing.yaml` ever repoints a seat to a different model (e.g. to raise Forseti's reasoning effort), the routine-review tribunal picks that up automatically on its next `panels` call — the same way the Thing and decision-review would. A script that had instead hardcoded `"agent": "security-reviewer", "model": "claude-opus-4-8"` would silently keep reviewing routine diffs with a stale seat long after the rest of the marketplace moved on.
+If `.ravenclaude/comfort-posture.yaml` or `.ravenclaude/thing.yaml` ever repoints a seat to a different model (e.g. to raise Forseti's reasoning effort), the routine-review tribunal picks that up automatically on its next `panels` call — the same way the Thing and decision-review would. A script that had instead hardcoded `"agent": "security-reviewer", "model": "claude-opus-5-5"` would silently keep reviewing routine diffs with a stale seat long after the rest of the marketplace moved on.
 
 Falsifier: a future edit to `routine-review-tribunal.py` that hardcodes a seat's model/agent instead of calling `resolve_panel_config`.
 
@@ -3470,7 +3470,7 @@ never trip `frontier_readonly` — the frontmatter is the tier, and the gate on 
 
 ## The discriminator
 
-control: with `resolvedModel` held at `claude-opus-4-8` across three self-test payloads, `Explore`
+control: with `resolvedModel` held at an opus-family id across three self-test payloads, `Explore`
 and `ravenclaude-core:scout` both returned `SIGNAL frontier_readonly` while `architect` returned
 `OK` — the role was the only input that changed between the flagged and the unflagged runs.
 Measured 2026-09-14: the flag is computed from the `PostToolUse(Agent)` payload alone —
@@ -3797,6 +3797,27 @@ add an Apple char-limit table without marking it non-contract.
 **Sources:** [Apple Wallet Developer Guide — Pass Design and Creation](https://developer.apple.com/library/archive/documentation/UserExperience/Conceptual/PassKit_PG/Creating.html) · [Google Wallet Brand guidelines — Generic](https://developers.google.com/wallet/generic/resources/brand-guidelines)
 
 _Last verified: 2026-10-13_
+
+
+---
+
+### Headless usage metering sits beside the seat · _RavenClaude-built_
+
+> Where a headless call's token and cost envelope goes after the call returns.
+
+## What a reader would have assumed instead
+
+That recording token use means the seat's own JSON answer grows a usage object, and that a bad envelope fails the seat.
+
+## The discriminator
+
+control: `headless-usage.py --self-test` writes a derived row and record mode exits 0 even when the envelope is not JSON.
+
+Measured 2026-10-17: the recorder appends a sidecar and leaves the caller to print its own verdict. A missing envelope skips the write.
+
+**Sources:** [2026-10-14 prompt-caching analysis — headless envelopes were not metered](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/analysis.md)
+
+_Last verified: 2026-10-17_
 
 
 ---
