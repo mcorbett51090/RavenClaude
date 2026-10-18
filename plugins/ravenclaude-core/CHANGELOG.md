@@ -2,6 +2,13 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.357.0 — 2026-10-18
+
+### Added
+- **Per-site cache hit rate in `rc cache-report`.** After the totals, each call site prints `site <name>: <rows>, hit_rate <rate>` (`n/a` when the site has no input tokens to divide by). The `--json` form gains `site_hit_rate`. Existing `by_site` counts are unchanged.
+- **The inventory nuance judge records its usage.** `scripts/inventory-nuance-judge.py` now asks for `--output-format json`, takes the verdict from the envelope's `result`, and appends a derived row (site `inventory-nuance-judge`) via `headless-usage.py`. Recording is fail-open and never changes a verdict. Live probe: verdict `nuance`, one row with token counts only.
+- **Gate 307** runs `headless-usage.py --self-test` (no prompt or result text stored, a present `0` kept, absent fields omitted, overall and per-site hit rate) and a new `--must-fail` mutant that also stores result text and must be caught (exit 3, declared via `--must-fail-convention`).
+
 ## 0.356.0 — 2026-10-18
 
 ### Changed
