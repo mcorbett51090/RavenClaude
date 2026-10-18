@@ -2,7 +2,7 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-## 0.357.2 — 2026-10-18
+## 0.358.1 — 2026-10-18
 
 ### Added
 - **`wallet-passes`: straight to Wallet from the QR and the tag.** `references/tap-to-share.md` gains § Straight to Wallet from the QR and the tag, the pattern built on 2026-10-18 in RavenPower-Website #685, ravenpower-app #18 and RavenPower-website-factory #102. The pass's QR and the NFC tag carry the card URL plus `#add-to-wallet`. The card page removes the fragment with `history.replaceState` and about 150 ms after paint opens this phone's Wallet link, with the card page left underneath. The section records why a fragment works better than a query parameter and the fail-closed rules from the security review: no auto-open unless `replaceState` succeeded, and only to a same-site path or an `https://` URL. It also records three measured limits. The Google Save JWT measured 1,791 of 1,800 characters, so the Google pass's QR stays unmarked. Changing the Apple barcode sends a silent Wallet push to every holder. An NTAG213 holds a 137-byte URI payload. `references/verify.md` adds **#38**: whether iOS shows the Add-to-Wallet sheet with no tap. The SKILL.md map gains a one-line pointer, and the ledger count is now 38.
@@ -13,6 +13,13 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 ### Testing
 - **Gate 305 (`hooks/tests/test-hook-env-hardening.sh`) adds cases 15c–15k.** Fake prettier, biome, ruff and black sit first on the hook's PATH and record each call. With no config nothing runs. A root `.prettierrc`, a subpackage `.prettierrc.yaml` above the file, and `package.json` devDependencies each run prettier, and a sibling package with no config does not. `biome.json` runs biome. Python covers undeclared, `[tool.ruff]` and `[tool.black]`. A file in another checkout uses that checkout's config, not the project's. Six hook mutants, including the pre-fix hook, are each caught.
+
+## 0.358.0 — 2026-10-18
+
+### Added
+- **`rc ttl-advice`** (`scripts/subagent-ttl-advisor.py`, read-only). It reads the handoff-tax meter's `.ravenclaude/runs/<session>/dispatch-ledger.jsonl` files and, per agent type, counts same-session re-dispatches 5–60 minutes apart. An agent is listed when it has at least 5 dispatches and averages at least 0.65 in-window re-dispatches per 1-hour cache write: the break-even for `experimental.cacheTtl: 1h` (a 1-hour write costs 2.0x against 1.25x, and each in-window read saves 1.15x). Output is agent type names and numbers only. `--json` and `--min-dispatches N` are supported. With no ledgers it says so and exits 0. Run against this checkout: 0 dispatch rows, no ledgers.
+- **`knowledge/headless-claude-calls.md` § Subagent cache TTL**: the 5-minute subagent default, the per-agent key, the break-even, the advisor, and what happens to the key on Copilot and Codex (dropped by both projections, read from source). No shipped agent sets the key.
+- **Gate 307** now also runs the advisor's self-test (18 checks) and a `--must-fail` mutant that recommends a 1-hour TTL for every agent with enough data, which must be caught (exit 3).
 
 ## 0.357.1 — 2026-10-18
 
