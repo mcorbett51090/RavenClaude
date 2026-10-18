@@ -54,6 +54,10 @@ import tempfile
 from pathlib import Path
 
 EXEMPTIONS_REL = "tests/fixtures/headless-call-shape-exemptions.json"
+# This file holds call-site fixtures as test data (and quotes the shapes in its own
+# docstring), so it is never scanned. Without this the gate flags itself once the
+# file is tracked.
+SELF_REL = "scripts/check-headless-call-shape.py"
 SCAN_ROOTS = ("plugins/", "scripts/", ".claude/workflows/")
 LEAN_FLAG = "--strict-mcp-config"
 TEETH_EXIT = 3
@@ -126,7 +130,7 @@ def _py_window(text: str, start: int) -> str:
 
 def discover(path: str, text: str) -> list[Site]:
     lang = _lang(path)
-    if lang is None:
+    if lang is None or path == SELF_REL:
         return []
     sites: list[Site] = []
     if lang == "py":
@@ -319,6 +323,10 @@ def _self_test() -> int:
         check("ignores python docstring mention", "doc.py" not in found)
         check("discovers python resolved-binary variable", "var.py" in found)
         check("discovers shell binary variable", "var.sh" in found)
+        check(
+            "never scans its own fixture text",
+            discover(SELF_REL, _FIX["trap.py"] + _FIX["missing.sh"]) == [],
+        )
 
         def probs(only: str, ex: dict | None = None) -> list[str]:
             return check_sites([s for s in sites if s.path == only], ex or {})
