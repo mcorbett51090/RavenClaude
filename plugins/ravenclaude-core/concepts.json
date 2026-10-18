@@ -2860,7 +2860,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:fa895125d52c2aac31a31b92e01fb2cf48462be742bd7abfc1cf8ae337538219",
+      "covers_digest": "sha256:4f452cf8fe26a97883d986399923a89cbf1b770522981d841069694a8c7cf591",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3003,7 +3003,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:865238b2cbc23717f073fa964d1dc6659cabac76c52e2a201b08e94f7b800f25",
+      "covers_digest": "sha256:7af0f57e3e3816380f80646309368154da0b30d5289c1338e521058c18c0f0da",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4669,7 +4669,7 @@
         "plugins/ravenclaude-core/scripts/thing-harden.py",
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
       ],
-      "covers_digest": "sha256:cc16c610d61b9b308ce0037ced4e461e0a3c6bea270a856b423cdcf39cd78a63",
+      "covers_digest": "sha256:245a8f75f9a3815aada891d0e56eadff53fe03269d2358da3ebde3da9c74e8a9",
       "nuance": "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op.",
       "nuance_evidence": {
         "measured": "2026-09-16",
