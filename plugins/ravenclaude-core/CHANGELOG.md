@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.358.2 — 2026-10-18
+
+### Changed
+- **`/wrap` and spawn-team's close-out run `rc ttl-advice`.** Both already read the dispatch ledger through `rc dispatch-summary`. They now also run the cache TTL advisor on the same ledgers and name any agent it lists as a candidate for `experimental.cacheTtl: 1h`, for the owner to apply. The advice therefore shows up where the ledgers are, on the owner's machine, without a separate step.
+
+### Fixed (marketplace tooling, not shipped in the plugin)
+- **`scripts/check-covers-completeness.py` failed locally after any suite run.** It flagged every existing path a concept's nuance names. The suite's live nuance-judge calls write the gitignored `.ravenclaude/runs/headless-usage.jsonl`, and a concept's nuance names that path, so `--check` exited 1 locally and passed in CI. A git-ignored path is now skipped: covers[] cannot watch it, because the digest is computed over committed files. A tracked file under an ignore pattern is still flagged. A new `--self-test` (6 fixtures, in a throwaway git repo) runs in Gate 237 in both the `--check 237` arm and the main sequence. A mutant that treats every path as ignored fails 3 of the 6.
+- **The directory edition's file list now includes `knowledge/headless-claude-calls.md`.** `/wrap` now links to it, so the builder pulls it into the edition, and Gate 301 failed until the committed list was regenerated.
+
+### Docs
+- **`docs/decisions/2026-10-18-decide-mock-guard-host-env-residual.md`** records why the medium finding from the #1377 security review is accepted rather than fixed, and the three conditions that would reopen it.
+
 ## 0.358.1 — 2026-10-18
 
 ### Added

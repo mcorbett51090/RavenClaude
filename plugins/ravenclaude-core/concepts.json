@@ -3003,7 +3003,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:446f2932dfab45ad9342ad8d9bf275632c4f582e18319596ffde3e0147f6057e",
+      "covers_digest": "sha256:f53da33c8ed889eb37264906c14231c34e838d9840d57cca5811edcb8c7bee70",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3065,7 +3065,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:6e690efd58c3b7cacf5a92a6c776630c305cb2750bb836df03633e7aa6415a99",
+      "covers_digest": "sha256:9308cc77b6da02e2bbae868845c3aebf759e8027f9fe51018a20b1774c71683e",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3373,7 +3373,7 @@
         "scripts/concepts.py",
         "scripts/check-covers-completeness.py"
       ],
-      "covers_digest": "sha256:48aa36caf02c197dc7a6db79325398e16f63f4e1b95555c2572a89e2eefef0bc",
+      "covers_digest": "sha256:1731e6c1fda35b36c264a8599615cb516fbf37b69b01f72e02cfdac2bf1773ce",
       "nuance": "`_staleness_violations` skipped on an OR, so a concept escaped for not being a `platform-fact` or merely for lacking `last_verified`; with 41 `ravenclaude-built` against 17 it gated only the minority kind.",
       "nuance_evidence": {
         "measured": "2026-08-19",

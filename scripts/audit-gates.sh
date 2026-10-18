@@ -1235,6 +1235,7 @@ PY
       rc=0
       bash plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh || rc=$?
       python3 scripts/check-covers-completeness.py --check || rc=$?
+      python3 scripts/check-covers-completeness.py --self-test || rc=$?
       rc_mustfail python3 scripts/check-covers-completeness.py || rc=$?
       exit $rc
       ;;
@@ -10159,6 +10160,9 @@ gate "inventory staleness closes BOTH escapes; drift blocks, calendar warns" mus
 rc=0
 python3 scripts/check-covers-completeness.py --check >/dev/null 2>&1 || rc=$?
 gate "covers[] completeness: no nuance names a path its digest does not watch" must_pass "$rc"
+rc=0
+python3 scripts/check-covers-completeness.py --self-test >/dev/null 2>&1 || rc=$?
+gate "covers-completeness skips git-ignored paths and still flags tracked ones" must_pass "$rc"
 rc=0
 rc_mustfail python3 scripts/check-covers-completeness.py >/dev/null 2>&1 || rc=$?
 gate "covers-completeness declares its must-fail convention AND honours it" must_pass "$rc"

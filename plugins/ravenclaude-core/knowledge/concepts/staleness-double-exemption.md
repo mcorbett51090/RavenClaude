@@ -10,7 +10,7 @@ last_verified: 2026-08-20
 covers:
   - scripts/concepts.py
   - scripts/check-covers-completeness.py
-covers_digest: "sha256:48aa36caf02c197dc7a6db79325398e16f63f4e1b95555c2572a89e2eefef0bc"
+covers_digest: "sha256:1731e6c1fda35b36c264a8599615cb516fbf37b69b01f72e02cfdac2bf1773ce"
 nuance: "`_staleness_violations` skipped on an OR, so a concept escaped for not being a `platform-fact` or merely for lacking `last_verified`; with 41 `ravenclaude-built` against 17 it gated only the minority kind."
 nuance_evidence:
   measured: 2026-08-19
