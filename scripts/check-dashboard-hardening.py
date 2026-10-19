@@ -185,6 +185,42 @@ def req(
         conn.close()
 
 
+_FQDN_PROBED = False
+
+
+def _fqdn_probe(env: dict) -> str:
+    """Time socket.getfqdn('127.0.0.1') — HTTPServer.server_bind calls it before
+    listen() — in the server's env + new session, and in the inherited env.
+    Diagnostic only, run once per process, on a hung server."""
+    global _FQDN_PROBED
+    if _FQDN_PROBED:
+        return "getfqdn probe: already reported above"
+    _FQDN_PROBED = True
+    code = (
+        "import socket,time;t=time.time();n=socket.getfqdn('127.0.0.1');"
+        "print(f'{time.time()-t:.2f}s -> {n}')"
+    )
+    out = []
+    for label, penv, new_session in (
+        ("server env + new session", env, True),
+        ("inherited env", dict(os.environ), False),
+    ):
+        try:
+            r = subprocess.run(
+                [sys.executable, "-c", code],
+                env=penv,
+                capture_output=True,
+                text=True,
+                timeout=25,
+                start_new_session=new_session,
+            )
+            res = (r.stdout.strip() or r.stderr.strip()[-120:]) or f"rc={r.returncode}"
+        except subprocess.TimeoutExpired:
+            res = "still blocked after 25s"
+        out.append(f"{label}: {res}")
+    return "getfqdn('127.0.0.1') " + "; ".join(out)
+
+
 class Server:
     """A live serve-dashboards.py child process."""
 
@@ -218,8 +254,13 @@ class Server:
                 self.proc.wait(timeout=5)
             except (OSError, subprocess.TimeoutExpired):
                 pass
-        tail = log.read_text(encoding="utf-8", errors="replace")[-2500:]
-        tail = " | ".join(line.strip() for line in tail.splitlines() if line.strip())
+        # Python 3.15 appends the C stack ("Binary file ..." lines), which pushed
+        # the Python frames out of the tail; keep only the Python-level lines.
+        lines = log.read_text(encoding="utf-8", errors="replace").splitlines()
+        lines = [ln.strip() for ln in lines if ln.strip() and "Binary file" not in ln]
+        tail = " | ".join(lines)[-2500:]
+        if exited is None:
+            tail += " || " + _fqdn_probe(env)
         self.stop()
         probe = (
             "never probed" if last is None else f"last /__csrf: {last.status} {last.error}".strip()
