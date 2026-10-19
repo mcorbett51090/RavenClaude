@@ -633,7 +633,7 @@ _is_dangerous_rm() {
   # A single-segment form (`.`, `..`, `./`, `../`, `.*`, `./*`, `../*`) is the `+`=1
   # case, so prior coverage is preserved. Scoped relative paths (`./tmp/build`,
   # `../build`) still fall through — a non-dot path segment breaks the trailing anchor.
-    [[ "$seg" =~ (^|[[:space:]])((\.{1,2}/?)+\*?|\*)([[:space:]]|$) ]] && return 0
+    [[ "$seg" =~ (^|[[:space:]])((\.{1,2}/?)+\*?|\*)${_CMD_END} ]] && return 0
   done <<EOF
 $(_cmd_segments "$c")
 EOF
@@ -719,11 +719,12 @@ _is_dangerous_git_branch_delete() {
   local c="$1"
   # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) — the narrower
   # class let `$(git branch -D main)` slip past (2026-07 review boundary gap).
-  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+branch([[:space:]]|$) ]] || return 1
-  # short combined flag containing D:  -D / -fD / -Df
-  [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*D[a-zA-Z]*([[:space:]]|$) ]] && return 0
+  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+branch${_CMD_END} ]] || return 1
+  # short combined flag containing D:  -D / -fD / -Df  (hooks-2: ${_CMD_END}
+  # terminator, so `-D;` / `-D)` count)
+  [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*D[a-zA-Z]*${_CMD_END} ]] && return 0
   # long form: both --delete and --force present, in any order
-  { [[ "$c" =~ (^|[[:space:]])--delete([[:space:]]|$) ]] && [[ "$c" =~ (^|[[:space:]])--force([[:space:]]|$) ]]; } && return 0
+  { [[ "$c" =~ (^|[[:space:]])--delete${_CMD_END} ]] && [[ "$c" =~ (^|[[:space:]])--force${_CMD_END} ]]; } && return 0
   return 1
 }
 
@@ -767,14 +768,16 @@ _is_dangerous_git_push_delete() {
   while IFS= read -r seg; do
     case "$seg" in *"git push"*) ;; *) continue ;; esac
     # long delete flag
-    [[ "$seg" =~ (^|[[:space:]])--delete([[:space:]]|$) ]] && { found=0; break; }
+    [[ "$seg" =~ (^|[[:space:]])--delete${_CMD_END} ]] && { found=0; break; }
     # short delete flag `-d`, standalone or bundled
-    [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*d[a-zA-Z]*([[:space:]]|$) ]] && { found=0; break; }
+    [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*d[a-zA-Z]*${_CMD_END} ]] && { found=0; break; }
     # colon-refspec deletion: a refspec whose SOURCE side is empty (`:<ref>`). A
     # normal refspec `src:dst` has no space before the colon, so requiring a
     # space immediately before `:` matches only the deletion form and never
     # `main:main` / `HEAD:refs/heads/main`.
-    [[ "$seg" =~ [[:space:]]:[A-Za-z0-9_./@^~*-]+([[:space:]]|$) ]] && { found=0; break; }
+    # hooks-2: all three terminate on ${_CMD_END} (a `)` / backtick / redirect
+    # glued to the token is still the end of it).
+    [[ "$seg" =~ [[:space:]]:[A-Za-z0-9_./@^~*-]+${_CMD_END} ]] && { found=0; break; }
   done <<EOF
 $(printf '%s' "$c" | tr ';&|' '\n\n\n')
 EOF
@@ -791,10 +794,11 @@ EOF
 # wipe (deletes files git never tracked — no history recovery).
 _is_dangerous_git_clean() {
   local c="$1"
-  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+clean([[:space:]]|$) ]] || return 1
-  # -f in ANY bundled short-flag cluster (-f / -fd / -df / -xf), any position
-  [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*f[a-zA-Z]*([[:space:]]|$) ]] && return 0
-  [[ "$c" =~ (^|[[:space:]])--force([[:space:]]|$) ]] && return 0
+  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+clean${_CMD_END} ]] || return 1
+  # -f in ANY bundled short-flag cluster (-f / -fd / -df / -xf), any position.
+  # hooks-2: terminated by ${_CMD_END} so `-fd;` / `-fd)` count.
+  [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*f[a-zA-Z]*${_CMD_END} ]] && return 0
+  [[ "$c" =~ (^|[[:space:]])--force${_CMD_END} ]] && return 0
   return 1
 }
 
@@ -1905,14 +1909,23 @@ _is_dangerous_git_reset_hard() {
   local cmd="$1" seg
   while IFS= read -r seg; do
     # Identify a `git … reset` segment (global flags like -C/-c may precede).
+    # Cheap prefilter only — the grep below is the precise test. It must not be
+    # narrower than that grep: `reset>/dev/null` (glued redirect) is a reset.
     case "$seg" in
-      *git[[:space:]]*reset[[:space:]]*|*git[[:space:]]*reset) ;;
+      *git*reset*) ;;
       *) continue ;;
     esac
     # Require the reset subcommand (not a path named reset).
-    printf '%s' "$seg" | grep -Eq '(^|[[:space:]])git([[:space:]]+-[[:alnum:]=._/-]+)*[[:space:]]+reset([[:space:]]|$)' || continue
-    # --hard anywhere in the segment (not --help).
-    printf '%s' "$seg" | grep -Eq '(^|[[:space:]])--hard([[:space:]]|$)' && return 0
+    # guards-new-1 (2026-10-19): the command anchor is ${_CMD_BOUNDARY}, not
+    # `(^|[[:space:]])`. PR 1369 anchored on whitespace only, so a subshell
+    # `(git reset <HARD> …)`, a `$( … )` / backtick substitution and a
+    # path-qualified `/usr/bin/git reset <HARD>` — all denied by the pattern it
+    # replaced — passed. _CMD_BOUNDARY is the same opener class every other git
+    # helper here already uses.
+    printf '%s' "$seg" | grep -Eq "${_CMD_BOUNDARY}git([[:space:]]+-[[:alnum:]=._/-]+)*[[:space:]]+reset${_CMD_END}" || continue
+    # --hard anywhere in the segment (not --help). hooks-2: terminated by
+    # ${_CMD_END} so `--hard)` / `--hard\`` / `--hard>/dev/null` still count.
+    printf '%s' "$seg" | grep -Eq "(^|[[:space:]])--hard${_CMD_END}" && return 0
   done <<EOFSEG
 $(printf '%s' "$cmd" | tr ';&|' '\n\n\n')
 EOFSEG
@@ -1922,12 +1935,20 @@ EOFSEG
 # --- Pattern array (matched against the normalized command) ----------------
 # The settings.json deny-list catches the top-level form; this catches them
 # when nested / wrapped / reordered.
+#
+# hooks-2 (2026-10-19): every dangerous-token TERMINATOR here is ${_CMD_END},
+# never `([[:space:]]|$)`. A dangerous flag or interpreter glued to a separator
+# or closer (`;` `&` `|` `<` `>` `)` or a backtick) used to fail OPEN, because
+# only whitespace / end-of-string counted as the end of the token. Entries are
+# written '<pattern>'"${_CMD_END}" so the variable expands. The lease forms stay
+# allowed: the character after the long force flag there is `-`, which is not in
+# _CMD_END.
 deny_patterns=(
   # git history / branch destruction
-  'git[[:space:]]+push[[:space:]]+[^;&|]*--force([[:space:]]|$)'        # --force (allows --force-with-lease)
-  'git[[:space:]]+push[[:space:]]+([^;&|]*[[:space:]])?-[A-Za-z]*f[A-Za-z]*([[:space:]]|$)'  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
+  'git[[:space:]]+push[[:space:]]+[^;&|]*--force'"${_CMD_END}"        # --force (allows --force-with-lease)
+  'git[[:space:]]+push[[:space:]]+([^;&|]*[[:space:]])?-[A-Za-z]*f[A-Za-z]*'"${_CMD_END}"  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
   'git[[:space:]]+push[[:space:]][^;&|]*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
-  'git[[:space:]]+push[[:space:]]+[^;&|]*--mirror([[:space:]]|$)'       # --mirror force-updates every ref + deletes remote refs absent locally
+  'git[[:space:]]+push[[:space:]]+[^;&|]*--mirror'"${_CMD_END}"       # --mirror force-updates every ref + deletes remote refs absent locally
   # git reset --hard: see _is_dangerous_git_reset_hard (order-independent)
   # NB: git force-branch-delete (_is_dangerous_git_branch_delete), remote-branch
   # deletion (_is_dangerous_git_push_delete), and `git clean` force
@@ -1935,13 +1956,13 @@ deny_patterns=(
   # helpers below, not a pattern — the old contiguous-anchor `git clean` pattern
   # missed the separated-token `git clean -d -f` form.
   # remote-code-exec via pipe / process- or command-substitution to an interpreter
-  '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
+  '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node)'"${_CMD_END}"
   # …and the multi-pipe / filter-then-execute evasion of the above: the single-pipe
   # form only inspects between curl/wget and the FIRST pipe, so `curl … | tee x | bash`
   # or `curl … | grep -v '#' | sh` slipped past. This catches an interpreter that is
   # the IMMEDIATE target of ANY pipe in a curl/wget chain (the interpreter right after
   # a `|`), so `… | grep python` is NOT matched (grep, not python, is the pipe target).
-  '(curl|wget).*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
+  '(curl|wget).*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node)'"${_CMD_END}"
   '<\([[:space:]]*(curl|wget)'                                    # bash <(curl …)
   '\$\([[:space:]]*(curl|wget)'                                   # sh -c "$(curl …)" (quotes stripped by norm)
   # whole-disk / filesystem destruction
