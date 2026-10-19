@@ -370,37 +370,56 @@ for c in \
   if [ "$GD_RC" -eq 2 ]; then pass "deny (function wrapper): $c"; else fail "deny expected 2, got $GD_RC: $c"; fi
 done
 long_tok="$(python3 -c 'print("a" * 32000, end="")')"
+# The bound catches the quadratic scan (~23 s on glibc without the precheck), not
+# a slow machine: the linear real hook measured 1.2 s under bash 5 and 2.0 s under
+# a local bash 3.2 build (2026-10-19), so 2 s sat at the edge of a flake.
 _time_gd "$long_tok"
-if [ "${GD_MS:-99999}" -lt 2000 ]; then
-  pass "guards-new-4: 32 KB single token scanned in ${GD_MS} ms (< 2000 ms)"
+if [ "${GD_MS:-99999}" -lt 5000 ]; then
+  pass "guards-new-4: 32 KB single token scanned in ${GD_MS} ms (< 5000 ms)"
 else
-  fail "guards-new-4: 32 KB single token took ${GD_MS} ms (>= 2000 ms)"
+  fail "guards-new-4: 32 KB single token took ${GD_MS} ms (>= 5000 ms)"
 fi
-# Teeth: without the precheck the same shape is quadratic. A 16 KB token keeps
-# the mutant run short while still being far past the 2 s bound.
-MUT4="$(mktemp)"
-if python3 - "$HOOK" "$MUT4" <<'PY'
+# Teeth: the precheck's job is to SKIP the scan when there is no literal `()`.
+# That is asserted with a trace line, not a clock. A timing teeth only worked
+# where the regex engine is super-linear on this input: on Linux (glibc) the
+# precheck-less mutant took ~9.7 s on a 16 KB token, on the macOS runner 320 ms
+# (2026-10-19), so a fixed 2 s bound failed there even though the mutant was
+# genuinely wrong. Both copies get the same trace line before the first scan;
+# the mutant additionally has the precheck replaced with `:`.
+TR4="$(mktemp)"; INS4="$(mktemp)"; MUT4="$(mktemp)"
+if python3 - "$HOOK" "$INS4" "$MUT4" <<'PY'
 import sys
 from pathlib import Path
 src = Path(sys.argv[1]).read_text()
 pre = '[[ "$c" == *"()"* ]] || remain=""'
-if src.count(pre) != 2:
+loop = '  while [[ "$remain" =~ ([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*\\(\\)[[:space:]]*\\{'
+if src.count(pre) != 2 or src.count(loop) != 1:
     sys.exit(2)
-Path(sys.argv[2]).write_text(src.replace(pre, ":"))
+traced = src.replace(loop, '  [ -n "$remain" ] && echo scan >>"$GD_TRACE"\n' + loop, 1)
+Path(sys.argv[2]).write_text(traced)
+Path(sys.argv[3]).write_text(traced.replace(pre, ":"))
 PY
 then
-  HOOK_SAVE="$HOOK"; HOOK="$MUT4"
-  _time_gd "$(python3 -c 'print("a" * 16000, end="")')"
-  HOOK="$HOOK_SAVE"
-  if [ "${GD_MS:-0}" -ge 2000 ]; then
-    pass "teeth (guards-new-4): without the precheck a 16 KB token takes ${GD_MS} ms"
-  else
-    fail "teeth (guards-new-4): mutant was fast (${GD_MS} ms) — the timing assertion is not measuring the precheck"
-  fi
+  _trace_run() { # $1=hook $2=command -> TRACED=yes|no
+    : >"$TR4"
+    jq -cn --arg c "$2" '{tool_name:"Bash",tool_input:{command:$c}}' \
+      | GD_TRACE="$TR4" bash "$1" >/dev/null 2>&1 || true
+    if [ -s "$TR4" ]; then TRACED=yes; else TRACED=no; fi
+  }
+  short_tok="echo $(python3 -c 'print("a" * 400, end="")')"   # no (), cheap for the mutant
+  _trace_run "$INS4" "$short_tok"
+  [ "$TRACED" = no ] && pass "guards-new-4: with the precheck a token with no () never reaches the scan" \
+    || fail "guards-new-4: the scan ran on a token with no () even with the precheck"
+  _trace_run "$INS4" "g() { git \"\$@\"; }; g status"
+  [ "$TRACED" = yes ] && pass "guards-new-4 control: the trace line fires when a () is present" \
+    || fail "guards-new-4 control: the trace never fired, so its silence above proves nothing"
+  _trace_run "$MUT4" "$short_tok"
+  [ "$TRACED" = yes ] && pass "teeth (guards-new-4): without the precheck the scan runs on a token with no ()" \
+    || fail "teeth (guards-new-4): the mutant skipped the scan too — the trace is not measuring the precheck"
 else
-  fail "teeth (guards-new-4): precheck lines not found (expected exactly 2)"
+  fail "teeth (guards-new-4): precheck (2) or scan-loop (1) anchors not found"
 fi
-rm -f "$MUT4"
+rm -f "$TR4" "$INS4" "$MUT4"
 
 # ── hooks-1 (2026-10-19): a newline is a separator; a continuation is not ────
 echo
