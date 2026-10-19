@@ -209,6 +209,14 @@ if not isinstance(tr, dict):
 cmd = str(ti.get("command", "") or "")
 if not cmd.strip():
     sys.exit(0)
+# hooks-19: a digest of the WHOLE whitespace-normalised command, taken before the
+# compound-attribution block below narrows `cmd` to one segment. The cause-gate
+# (scripts/guard-remediation-cause.sh, cmd_digest()) joins `cmd:` rows on this
+# digest. The readable `cmd:` subject is only the first 40 chars, so every
+# command opening with the same long `cd <path> &&` shared one subject and an
+# unrelated later command matched an open row. KEEP THE NORMALISATION IN SYNC.
+cmd_digest = hashlib.sha1(
+    re.sub(r"\s+", " ", cmd.strip()).encode("utf-8", "replace")).hexdigest()
 out = str(tr.get("stdout", "") or "")
 err = str(tr.get("stderr", "") or "")
 both = (err + "\n" + out)[:20000]
@@ -232,6 +240,23 @@ if mode not in ("off", "warn"):
     mode = "warn"
 if mode == "off":
     sys.exit(0)
+
+# ── HEALTH BEACON, FIRST (hooks-18). ────────────────────────────────────────
+# The cause-gate (guard-remediation-cause.sh) reads <sess>/triage-alive to tell
+# "the recorder ran and saw nothing" from "the recorder is not wired". It used to
+# be written only inside the ledger-write block, AFTER the clean early exit, so
+# a healthy session whose every Bash result was clean never had a beacon and the
+# gate printed a full I AM BLIND advisory on every call. Written here, after the
+# posture check and before any early exit, the beacon proves the recorder RAN,
+# which is what it was always meant to mean.
+try:
+    _sess_b = os.path.join(proj, ".ravenclaude", "runs", "cause-triage",
+                           str(d.get("session_id", "nosession") or "nosession"))
+    os.makedirs(_sess_b, exist_ok=True)
+    with open(os.path.join(_sess_b, "triage-alive"), "w") as fh:
+        fh.write(str(int(time.time())))
+except Exception:
+    pass
 
 # ── DERIVED STDERR LABELS. A closed vocabulary, matched by fixed patterns.
 # This is the injection boundary. Nothing past this block sees the raw text
@@ -434,11 +459,31 @@ if not subject:
 
 # ── TARGET for the probe templates. Whitelist charset, bounded length, drawn
 # ONLY from tool_input — text the model authored and already holds.
+# prior-extra-1: the charset is [A-Za-z0-9._/-] and the cap 40 (was _ and * too,
+# up to 60), so a probe line can carry a path or a binary name and nothing that
+# reads as an instruction, a glob, or a long quoted phrase.
 target = "<target>"
-for tok in reversed(re.findall(r"[A-Za-z0-9_./*-]{2,60}", subj_src)):
-    if not tok.startswith("-"):
-        target = tok
-        break
+for tok in reversed(re.findall(r"[A-Za-z0-9._/-]+", subj_src)):
+    # Whole tokens only: a token over the cap is skipped, never cut into a
+    # misleading fragment. A token with no letter or digit is not a target.
+    if len(tok) > 40 or tok.startswith("-") or not re.search(r"[A-Za-z0-9]", tok):
+        continue
+    target = tok
+    break
+
+
+# ── DISPLAY-SAFE SUBJECT (prior-extra-1). ───────────────────────────────────
+# The advisory reaches the model as a repo guard speaking. The `cmd:` fallback
+# subject is the first 40 chars of the RAW command, so a command embedding
+# untrusted text re-spoke it in the guard voice. guard-remediation-cause.sh had
+# already closed this path (emit_safe_subject: THIS WAS A LIVE INJECTION PATH);
+# this is the same transform, applied where this hook prints. The ledger keeps
+# the readable subject; only what leaves the process is transformed.
+def emit_safe_subject(s):
+    s = s or ""
+    if s.startswith("cmd:"):
+        return "cmd:" + hashlib.sha1(s[4:].encode("utf-8", "replace")).hexdigest()[:8]
+    return re.sub(r"[^A-Za-z0-9._/:@-]", "", s)[:80]
 
 # ── SCOPE: the git WORKTREE this triage belongs to. ─────────────────────────
 # ⛔ KEEP THIS BLOCK IN SYNC WITH ITS TWIN IN log-probe.sh AND guard-premise.sh.
@@ -527,11 +572,11 @@ try:
             "discriminated": None,
             "tool_use_id": d.get("tool_use_id", ""),
             "scope": scope,
+            "cmd_digest": cmd_digest,
         }) + "\n")
-    # Health beacon at SESSION level, not per scope. Per-scope would make a
-    # never-triaged worktree read the same as an unwired recorder.
-    with open(os.path.join(sess, "triage-alive"), "w") as fh:
-        fh.write(str(int(time.time())))
+    # The health beacon is written near the top (hooks-18), at SESSION level, not
+    # per scope: per-scope would make a never-triaged worktree read the same as
+    # an unwired recorder.
     # Repeat suppression lives HERE, in the display path, and never in the ledger.
     key = hashlib.sha1(("|".join([subject] + ids)).encode("utf-8", "replace")).hexdigest()[:16]
     seen = os.path.join(sess, "seen-" + key)
@@ -545,13 +590,13 @@ except Exception:
 if suppressed:
     print("[cause-triage] %s (%s) — same candidates as earlier this session: %s. "
           "The full advisory and its probes were emitted on the first occurrence."
-          % (subject, verdict, ", ".join(ids)))
+          % (emit_safe_subject(subject), verdict, ", ".join(ids)))
     sys.exit(0)
 
 lines = []
 lines.append("[cause-triage] a Bash result came back %s. Before naming a cause, run "
              "the probe that would tell the candidates apart." % verdict)
-lines.append("  subject:  %s" % subject)
+lines.append("  subject:  %s" % emit_safe_subject(subject))
 lines.append("  observed: stdout %s | stderr %s | labels: %s"
              % ("empty" if stdout_empty else "non-empty",
                 "non-empty" if stderr_nonempty else "empty",
