@@ -65,6 +65,16 @@ _pid_alive() { kill -0 "$1" 2>/dev/null; }
 # `claude`-named ancestor is found within that bound — matching this file's
 # own "ambiguous state is NOT-dead" fail-safe philosophy elsewhere.
 _resolve_session_pid() {
+  # Test-only override, same family as _COORD_TEST_REAP_SLEEP. The dead-holder
+  # self-test pins each contender to a live stand-in pid: with no `claude`
+  # ancestor (a CI runner) the walk below falls back to a short-lived $PPID, the
+  # winner's holder pid dies mid-trial, and a second contender reaps it.
+  # control: --self-test --dead-holder under setsid -> max winners 2 in 3/3 runs
+  # without this pin (2026-10-19).
+  if [ -n "${_COORD_TEST_HOLDER_PID:-}" ]; then
+    echo "$_COORD_TEST_HOLDER_PID"
+    return 0
+  fi
   local p="$PPID" hops=0 comm
   while [ "$hops" -lt 10 ] && [ -n "$p" ] && [ "$p" != "0" ] && [ "$p" != "1" ]; do
     comm="$(ps -o comm= -p "$p" 2>/dev/null | tr -d '[:space:]')"
@@ -322,12 +332,18 @@ self_test_dead_holder() {
     echo "$dead" > "$scratch/coordinator-lock/held/pid"
     local out="$scratch/results.log"
     : > "$out"
-    local i=0 pids=""
+    local i=0 pids="" standins=""
     while [ "$i" -lt "$concurrency" ]; do
+      # One live stand-in per contender, alive for the whole trial, so a
+      # winner's holder pid stays live like a real session's would.
+      sleep 300 &
+      local standin=$!
+      standins="$standins $standin"
       (
         export RC_WORKTREE_GUARD_HOME="$scratch"
         export _COORD_TEST_REAP_SLEEP=0.05
         export _COORD_DISABLE_REAP_MUTEX="$disable_mutex"
+        export _COORD_TEST_HOLDER_PID="$standin"
         bash "$0" acquire >> "$out" 2>&1 || true
       ) &
       pids="$pids $!"
@@ -335,6 +351,10 @@ self_test_dead_holder() {
     done
     # shellcheck disable=SC2086
     wait $pids 2>/dev/null || true
+    # shellcheck disable=SC2086
+    kill $standins 2>/dev/null || true
+    # shellcheck disable=SC2086
+    wait $standins 2>/dev/null || true
     local winners
     winners="$(grep -c '^ACQUIRED' "$out" 2>/dev/null || true)"
     winners="${winners:-0}"
