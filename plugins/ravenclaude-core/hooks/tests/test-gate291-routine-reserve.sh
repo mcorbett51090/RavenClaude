@@ -425,7 +425,11 @@ python3 "$ENGINE" check-staleness --dir "$EMPTY_DIR" --max-age-hours 3 >/dev/nul
 echo "── L: repo-review 2026-10-19 — run-2 metering, stale reserve.json, trailing estimate, bounded calibration (each with a mutant)"
 L_STATE="$TMP/usage-L"
 mkdir -p "$L_STATE"
-if out="$(RAVENCLAUDE_USAGE_DIR="$L_STATE" python3 - "$ENGINE" 2>&1 <<'PY'
+# The script is written to a file first: bash 3.2 (macOS /bin/bash) mis-parses a
+# heredoc nested inside $(...) when the body holds an apostrophe, and exits 2 with
+# "unexpected EOF while looking for matching `''" (Gate 3b's rule, for tests too).
+L_PY="$TMP/gate291-L.py"
+cat > "$L_PY" <<'PY'
 import datetime as dt, importlib.util, json, os, sys, tempfile, time
 from pathlib import Path
 
@@ -546,7 +550,7 @@ for label, fn, old, new in mutants:
 print("ok" if not bad else "FAILED: " + "; ".join(bad))
 sys.exit(1 if bad else 0)
 PY
-)"; then
+if out="$(RAVENCLAUDE_USAGE_DIR="$L_STATE" python3 "$L_PY" "$ENGINE" 2>&1)"; then
   pass "run-2 metered; stale reserve.json recomputed (or kept loud + stale); trailing estimate; bounded calibration — 4 mutants caught"
 else
   fail "repo-review 2026-10-19 checks:"

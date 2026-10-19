@@ -2431,6 +2431,18 @@ gate() {
   fi
 }
 
+# Run a test script quietly; on a non-zero exit, print the last lines of its
+# output so a CI log (macOS especially, which cannot be reproduced on Linux)
+# shows which assertion failed instead of only "exit=1".
+_run_test_tail() {
+  local out rc=0
+  out="$("$@" 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    printf '%s\n' "$out" | tail -25 | sed 's/^/    | /'
+  fi
+  return "$rc"
+}
+
 # A node/npx-dependent gate could not run because the interpreter is absent.
 # In CI this is a HARD FAILURE (the render/round-trip .mjs gates run ONLY inside
 # audit-gates.sh — there is no standalone CI step and no actions/setup-node — so
@@ -2613,7 +2625,7 @@ ok=0; [ "$GD_RC" -eq 2 ] || ok=1
 gate "guard-destructive blocks ANSI-C obfuscated destructive (SH-F3 stdin)" must_pass "$ok"
 
 # SH-F6 companion harness (segment-scoped dangerous-target).
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-guard-destructive-shf6.sh >/dev/null 2>&1 || rc=$?
+rc=0; _run_test_tail bash plugins/ravenclaude-core/hooks/tests/test-guard-destructive-shf6.sh || rc=$?
 gate "guard-destructive SH-F6 per-segment dangerous-target (allow/deny + teeth)" must_pass "$rc"
 
 gd_block=(
@@ -7241,7 +7253,7 @@ gate "workaround-exhaustion: silent when inert + fires on hand-back shapes + Sto
 # Registered in the --check dispatcher, this main sequence, the Supported: string
 # and the `hooks` suite.
 echo "── Gate 291: routine token reserve (projection fixtures + DOW mutant + allow-listed samples + advise hook + statusline) ──"
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh >/dev/null 2>&1 || rc=$?
+rc=0; _run_test_tail bash plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh || rc=$?
 gate "routine-reserve: fixtures match hand-derived projections + DOW-blind mutant rejected (teeth) + samples allow-listed + advise hook opt-in/once-per-band + statusline pass-through" must_pass "$rc"
 
 # A stock macOS python3 has no PyYAML. Without it the tribunal could not parse its
@@ -7522,7 +7534,7 @@ if command -v jq >/dev/null 2>&1; then
   gate "guard-destructive: DELETE-method deletes denied, benign controls allowed" must_pass "$rc"
   rc=0; bash plugins/ravenclaude-core/hooks/tests/test-enforce-layout-normalize.sh >/dev/null 2>&1 || rc=$?
   gate "enforce-layout: paths normalised before the allow-list match" must_pass "$rc"
-  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-web-host-parity.sh >/dev/null 2>&1 || rc=$?
+  rc=0; _run_test_tail bash plugins/ravenclaude-core/hooks/tests/test-web-host-parity.sh || rc=$?
   gate "web-access: guard and marker agree on every host shape" must_pass "$rc"
   rc=0; bash plugins/ravenclaude-core/hooks/tests/test-advisory-no-echo.sh >/dev/null 2>&1 || rc=$?
   gate "advisory hooks: file:line [rule-id] only, matched text never echoed" must_pass "$rc"
