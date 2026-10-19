@@ -418,6 +418,28 @@ def _settled(sid: str, series, meta, nxt: float | None) -> bool:
     return updated is not None and last_t - updated >= SETTLE_S
 
 
+# Clock slack between a trigger's fired_at and the session's own updated_at.
+_FIRED_UPDATED_SLACK_S = 300
+
+
+def _run_settled(sid: str, series, meta, fired: float) -> bool:
+    """Is THIS run's cost final? Only if a cost snapshot was taken AFTER the run
+    fired, that snapshot already reflects the run (updated_at at or after fired_at),
+    and the session had been idle >= SETTLE_S in it.
+
+    ⛔ Keying on the session alone (`_settled`) skipped every later run of a
+    persistent-session Routine: run 1's settled snapshot made run 2 look settled
+    before any snapshot of run 2 existed, so run 2's cost was never metered.
+    """
+    after = [t for (t, _c) in series if t > fired]
+    if not after:
+        return False
+    updated = parse_ts(meta.get(sid, {}).get("updated_at"))
+    if updated is None or updated < fired - _FIRED_UPDATED_SLACK_S:
+        return False
+    return after[-1] - updated >= SETTLE_S
+
+
 def meter_plan(raw: Path, samples: list[dict], now: float) -> list[str]:
     """Session ids the meter should `get_session` this firing: every trigger run seen
     in the last 48 h whose cost is not settled yet (including runs that are no longer
@@ -438,7 +460,7 @@ def meter_plan(raw: Path, samples: list[dict], now: float) -> list[str]:
     for fired, sid in sorted(candidates, reverse=True):
         if now - fired > POLL_RUNS_WITHIN_S:
             continue
-        if sid in series and _settled(sid, series[sid], meta, None):
+        if sid in series and _run_settled(sid, series[sid], meta, fired):
             continue
         wanted.append(sid)
     for sess in parse_session_list(_read_text(raw / "sessions-list.json")):
@@ -680,15 +702,15 @@ def remaining_firings(trig: dict, now: float, reset: float) -> int | None:
     return None  # neither schedule shape: not countable
 
 
-def window_spend(samples: list[dict], start: float) -> float:
-    """Metered spend since `start`, deliberately biased LOW: each session contributes
-    only growth it is known to have had inside the window. Its baseline is the last
-    snapshot before the window; failing that, zero if the session was created inside
-    the window; failing that, its first snapshot inside the window."""
+def window_spend(samples: list[dict], start: float, end: float | None = None) -> float:
+    """Metered spend in [start, end) (end None = open), deliberately biased LOW: each
+    session contributes only growth it is known to have had inside the window. Its
+    baseline is the last snapshot before the window; failing that, zero if the session
+    was created inside the window; failing that, its first snapshot inside the window."""
     meta = _session_meta(samples)
     spend = 0.0
     for sid, snaps in _cost_series(samples).items():
-        inside = [c for (t, c) in snaps if t >= start]
+        inside = [c for (t, c) in snaps if t >= start and (end is None or t < end)]
         if not inside:
             continue
         before = [c for (t, c) in snaps if t < start]
@@ -704,7 +726,11 @@ def window_spend(samples: list[dict], start: float) -> float:
 
 
 def calibrate(
-    samples: list[dict], reading: dict | None, history: list[dict], cfg: dict
+    samples: list[dict],
+    reading: dict | None,
+    history: list[dict],
+    cfg: dict,
+    now: float | None = None,
 ) -> tuple[float | None, str, list[dict]]:
     """k = percent of the weekly cap per dollar of metered spend.
 
@@ -718,9 +744,17 @@ def calibrate(
     history = list(history)
     if reading and reading.get("seven_day_pct") is not None and reading.get("resets_at"):
         resets = float(parse_ts(reading["resets_at"]) or 0)
-        spend = window_spend(samples, resets - WEEK_S)
+        # ⛔ The reading's percentage covers [resets - WEEK_S, captured_at]. Counting
+        # spend after that (an older reading, or a week that has since rolled
+        # over) adds dollars the percentage never saw and DEFLATES k — the unsafe
+        # direction (a smaller reserve). Bound the window at the capture time, and
+        # once the reading's week has rolled over, leave its history entry alone.
+        captured = parse_ts(reading.get("captured_at"))
+        end = resets if captured is None else min(resets, captured)
+        rolled_over = now is not None and resets and resets <= now
+        spend = window_spend(samples, resets - WEEK_S, end)
         pct = float(reading["seven_day_pct"])
-        if resets and pct >= MIN_PCT_FOR_WEEK_K and spend > 0:
+        if resets and not rolled_over and pct >= MIN_PCT_FOR_WEEK_K and spend > 0:
             history = [h for h in history if h.get("resets_at") != int(resets)]
             history.append({"resets_at": int(resets), "k": pct / spend, "pct": pct, "spend": spend})
             history = sorted(history, key=lambda h: h["resets_at"])[-8:]
@@ -802,12 +836,15 @@ def project(
             any_estimated = any_estimated or estimated
         routines.append(row)
 
-    k, k_source, history = calibrate(samples, reading, list(history or []), cfg)
+    k, k_source, history = calibrate(samples, reading, list(history or []), cfg, now)
     source = "statusline" if current is not None else None
     if current is None and k is not None and cfg.get("weekly_budget_usd", 0) > 0:
         # No live reading: estimate from metered spend. That spend is biased low, so
-        # this is labelled and never drives an ask.
-        current = min(100.0, k * window_spend(samples, horizon - WEEK_S))
+        # this is labelled and never drives an ask. ⛔ With no known reset, horizon is
+        # now + WEEK_S, so `horizon - WEEK_S` was NOW and the estimate always read ~0%:
+        # use a trailing week instead.
+        start = horizon - WEEK_S if reset is not None else now - WEEK_S
+        current = min(100.0, k * window_spend(samples, start))
         source = "estimated from metered spend"
 
     reserve_raw = None if k is None else k * reserve_usd
@@ -1065,8 +1102,50 @@ def ingest_statusline(stdin_text: str, now: float) -> None:
             pass
 
 
-def statusline_segment() -> str:
+RESERVE_MAX_AGE_S = 3600
+
+
+def current_reserve(cfg: dict | None = None, now: float | None = None) -> dict:
+    """reserve.json as the hooks and the statusline should see it.
+
+    ⛔ Only SessionStart refreshes reserve.json, and nothing read its computed_at,
+    so in a long session a 72 h-old file still drove the statusline, the advise
+    warning and the guard's ask. Older than RESERVE_MAX_AGE_S, it is recomputed IN
+    MEMORY from the local files (compute_and_save(save=False) — no network, no
+    write). If that fails or can no longer reach a verdict, the OLD state is kept
+    and marked stale — never "unknown => allow": this feature errs toward a larger
+    reserve. A file with no computed_at is used as-is.
+    """
     r = _read_json(state_dir() / "reserve.json") or {}
+    computed = parse_ts(r.get("computed_at"))
+    now = time.time() if now is None else now
+    if computed is None or now - computed <= RESERVE_MAX_AGE_S:
+        return r
+    run_cfg = dict(cfg) if cfg else load_config()
+    if not cfg and r.get("mode"):
+        run_cfg["mode"] = r["mode"]  # the statusline keeps the file's own mode
+    try:
+        fresh = compute_and_save(now, run_cfg, save=False)
+    except Exception:
+        fresh = None
+    if fresh and fresh.get("state") not in (None, "unknown"):
+        return fresh
+    stale = dict(r)
+    stale["reserve_stale"] = True
+    stale["reserve_age_h"] = round((now - computed) / 3600.0, 1)
+    stale["reading_stale"] = True
+    stale["estimated"] = True
+    return stale
+
+
+def _stale_note(r: dict) -> str:
+    if not r.get("reserve_stale"):
+        return ""
+    return f" (stale: last computed {r.get('reserve_age_h')}h ago)"
+
+
+def statusline_segment() -> str:
+    r = current_reserve()
     if r.get("mode", "off") == "off" or r.get("current_pct") is None:
         return ""
     seg = f"wk {r['current_pct']:.0f}%"
@@ -1074,6 +1153,8 @@ def statusline_segment() -> str:
         seg += f" · reserve {r['reserve_pct_effective']:.0f}%"
     if r.get("state") in ("warn", "over", "infeasible"):
         seg += f" · {r['state']}"
+    if r.get("reserve_stale"):
+        seg += " · stale"
     return seg
 
 
@@ -1087,7 +1168,7 @@ def hook_warn(payload: dict, cfg: dict) -> dict | None:
     reaches the user; `additionalContext` reaches the model."""
     if cfg["mode"] == "off":
         return None
-    r = _read_json(state_dir() / "reserve.json") or {}
+    r = current_reserve(cfg)
     state = r.get("state")
     if state not in ("warn", "over", "infeasible"):
         return None
@@ -1105,7 +1186,7 @@ def hook_warn(payload: dict, cfg: dict) -> dict | None:
     except OSError:
         pass
     runs = sum((row.get("remaining_firings") or 0) for row in r.get("routines", []))
-    est = " (estimated)" if r.get("estimated") else ""
+    est = (" (estimated)" if r.get("estimated") else "") + _stale_note(r)
     if state == "infeasible":
         msg = (
             f"Routine reserve: your Routines alone are projected to need "
@@ -1211,14 +1292,14 @@ def hook_guard(payload: dict, cfg: dict, env=None, now: float | None = None) -> 
         return None
     env = os.environ if env is None else env
     now = time.time() if now is None else now
-    r = _read_json(state_dir() / "reserve.json") or {}
+    r = current_reserve(cfg, now)
     state = r.get("state")
     if state not in ("warn", "over", "infeasible"):
         return None
     live = r.get("current_source") == "statusline" and not r.get("reading_stale")
     reset = str(r.get("reset_at") or "")
     runs = sum((row.get("remaining_firings") or 0) for row in r.get("routines", []))
-    est = "" if live else " (estimated — no live weekly reading)"
+    est = ("" if live else " (estimated — no live weekly reading)") + _stale_note(r)
     with _guard_record(_sid(payload)) as rec:
         if rec.get("reset_at") != reset:  # a new week starts clean
             rec.clear()

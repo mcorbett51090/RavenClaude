@@ -25,6 +25,11 @@
 #     a forbidden field (naming it). Teeth: a neutered verifier must accept the leak.
 #   K staleness check: check-staleness is quiet within the window, flags a sample older than
 #     the window, and flags an empty dir (a meter that never landed a sample) — not OK.
+#   L repo-review 2026-10-19: run 2 of a persistent-session Routine is metered (1c-1); a
+#     72 h-old reserve.json is recomputed in memory before it drives warn/statusline, and
+#     kept loud + marked stale when it cannot be (1c-2); the no-reset manual-budget estimate
+#     uses a trailing week (1c-3); calibration ignores spend after the reading's capture
+#     and leaves a rolled-over week alone (1c-4). Each has a mutant that must fail.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -417,9 +422,140 @@ python3 "$ENGINE" check-staleness --dir "$EMPTY_DIR" --max-age-hours 3 >/dev/nul
   && fail "an empty samples dir was reported OK" \
   || pass "an empty samples dir (meter never landed one) is flagged, not silently OK"
 
+echo "── L: repo-review 2026-10-19 — run-2 metering, stale reserve.json, trailing estimate, bounded calibration (each with a mutant)"
+L_STATE="$TMP/usage-L"
+mkdir -p "$L_STATE"
+if out="$(RAVENCLAUDE_USAGE_DIR="$L_STATE" python3 - "$ENGINE" 2>&1 <<'PY'
+import datetime as dt, importlib.util, json, os, sys, tempfile, time
+from pathlib import Path
+
+ENGINE = sys.argv[1]
+SRC = open(ENGINE, encoding="utf-8").read()
+STATE = Path(os.environ["RAVENCLAUDE_USAGE_DIR"])
+
+
+def load(src, name):
+    d = tempfile.mkdtemp()
+    p = os.path.join(d, name + ".py")
+    open(p, "w", encoding="utf-8").write(src)
+    spec = importlib.util.spec_from_file_location(name, p)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+def iso(t):
+    return dt.datetime.fromtimestamp(t, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+now = time.time()
+
+
+def l1(rr):  # 1c-1: run 2 of a persistent-session Routine must be metered
+    raw = Path(tempfile.mkdtemp())
+    (raw / "triggers.json").write_text("{}")
+    f1, f2 = now - 26 * 3600, now - 1800
+    samples = [
+        {"kind": "run", "t": f1 + 60, "trigger_id": "tp", "session_id": "PERSIST", "fired_at": f1},
+        {"kind": "cost", "t": f1 + 3 * 3600, "session_id": "PERSIST", "cost_usd": 1.0,
+         "created_at": iso(f1), "updated_at": iso(f1 + 600)},
+        {"kind": "run", "t": f2 + 60, "trigger_id": "tp", "session_id": "PERSIST", "fired_at": f2},
+    ]
+    return "session_PERSIST" in rr.meter_plan(raw, samples, now)
+
+
+def l2(rr):  # 1c-2: a 72 h-old over-state is recomputed before it drives warn/statusline
+    for f in STATE.iterdir():
+        if f.is_file():
+            f.unlink()
+    (STATE / "reserve.json").write_text(json.dumps({
+        "mode": "advise", "state": "over", "current_pct": 91, "line_pct": 80,
+        "reserve_pct_effective": 20, "routines": [], "reset_at": iso(now + 2 * 86400),
+        "computed_at": iso(now - 72 * 3600), "current_source": "statusline",
+        "reading_stale": False}))
+    (STATE / "rate-limits.json").write_text(json.dumps(
+        {"seven_day_pct": 10.0, "resets_at": iso(now + 2 * 86400), "captured_at": now - 60}))
+    cfg = {"mode": "advise", "home": "", **rr.DEFAULTS, "weekly_budget_usd": 100.0}
+    quiet = rr.hook_warn({"session_id": "L2"}, cfg) is None
+    return quiet and rr.current_reserve(cfg, now).get("state") == "ok"
+
+
+def l2_stale(rr):  # ...and when it cannot be recomputed, it stays loud and says stale
+    (STATE / "rate-limits.json").unlink()
+    cfg = {"mode": "advise", "home": "", **rr.DEFAULTS}
+    r = rr.current_reserve(cfg, now)
+    msg = (rr.hook_warn({"session_id": "L2s"}, cfg) or {}).get("systemMessage", "")
+    return r.get("state") == "over" and r.get("reserve_stale") is True and "stale" in msg
+
+
+def l3(rr):  # 1c-3: $40 of a $100 manual budget with no known reset is ~40%, not 0
+    cfg = {"mode": "advise", "home": "", **rr.DEFAULTS, "weekly_budget_usd": 100.0}
+    t0 = now - 3 * 86400
+    samples = [
+        {"kind": "cost", "t": t0 + 60, "session_id": "a", "cost_usd": 0.0,
+         "created_at": iso(t0), "updated_at": iso(t0)},
+        {"kind": "cost", "t": now - 3600, "session_id": "a", "cost_usd": 40.0,
+         "created_at": iso(t0), "updated_at": iso(now - 3700)},
+    ]
+    r = rr.project(samples, None, None, cfg, now, [])
+    return r["current_pct"] is not None and abs(r["current_pct"] - 40.0) < 0.5
+
+
+def l4(rr):  # 1c-4: spend after the reading's capture must not deflate k
+    cfg = {"mode": "advise", "home": "", **rr.DEFAULTS}
+    resets, captured = now + 2 * 86400, now - 5 * 3600
+    start = resets - rr.WEEK_S
+    reading = {"seven_day_pct": 50.0, "resets_at": iso(resets), "captured_at": captured}
+    samples = [
+        {"kind": "cost", "t": start + 60, "session_id": "w", "cost_usd": 0.0,
+         "created_at": iso(start + 30), "updated_at": iso(start + 30)},
+        {"kind": "cost", "t": captured - 120, "session_id": "w", "cost_usd": 25.0,
+         "created_at": iso(start + 30), "updated_at": iso(captured - 200)},
+        {"kind": "cost", "t": now - 60, "session_id": "w", "cost_usd": 50.0,
+         "created_at": iso(start + 30), "updated_at": iso(now - 100)},
+    ]
+    k, _src, _hist = rr.calibrate(samples, reading, [], cfg, now)
+    if k is None or abs(k - 2.0) > 0.01:
+        return False
+    # a rolled-over week leaves its recorded history entry alone
+    old = {"seven_day_pct": 50.0, "resets_at": iso(now - 3600), "captured_at": now - 7200}
+    hist = [{"resets_at": int(now - 3600), "k": 2.0, "pct": 50.0, "spend": 25.0}]
+    _k, _s, hist2 = rr.calibrate(samples, old, hist, cfg, now)
+    return hist2 == hist
+
+
+real = load(SRC, "rr_L_real")
+checks = [("l1 run 2 of a persistent session is metered", l1),
+          ("l2 a 72 h-old reserve.json is recomputed (over -> ok)", l2),
+          ("l2 unrecomputable: old state kept, marked stale", l2_stale),
+          ("l3 trailing-week estimate is ~40%", l3),
+          ("l4 calibration ignores post-capture spend; rolled-over week left alone", l4)]
+bad = [name for name, fn in checks if not fn(real)]
+mutants = [
+    ("l1", l1, "_run_settled(sid, series[sid], meta, fired)", "_settled(sid, series[sid], meta, None)"),
+    ("l2", l2, "if computed is None or now - computed <= RESERVE_MAX_AGE_S:", "if True:"),
+    ("l3", l3, "start = horizon - WEEK_S if reset is not None else now - WEEK_S", "start = horizon - WEEK_S"),
+    ("l4", l4, "spend = window_spend(samples, resets - WEEK_S, end)", "spend = window_spend(samples, resets - WEEK_S)"),
+]
+for label, fn, old, new in mutants:
+    if old not in SRC:
+        bad.append("teeth %s: mutation anchor missing" % label)
+        continue
+    if fn(load(SRC.replace(old, new, 1), "rr_L_mut_" + label)):
+        bad.append("teeth %s: the mutant passed" % label)
+print("ok" if not bad else "FAILED: " + "; ".join(bad))
+sys.exit(1 if bad else 0)
+PY
+)"; then
+  pass "run-2 metered; stale reserve.json recomputed (or kept loud + stale); trailing estimate; bounded calibration — 4 mutants caught"
+else
+  fail "repo-review 2026-10-19 checks:"
+  printf '%s\n' "$out" | tail -5 | sed 's/^/      /'
+fi
+
 echo ""
 if [ "$fails" -eq 0 ]; then
-  echo "Gate 291 PASS — routine token reserve: fixtures match, DOW mutant rejected, samples allow-listed, advise hook opt-in + once-per-band, statusline pass-through, guard asks only where a person can answer, far-future resets_at clamped, meter prompt fails loudly, check-sample rejects a leak (teeth), check-staleness flags a dead meter."
+  echo "Gate 291 PASS — routine token reserve: fixtures match, DOW mutant rejected, samples allow-listed, advise hook opt-in + once-per-band, statusline pass-through, guard asks only where a person can answer, far-future resets_at clamped, meter prompt fails loudly, check-sample rejects a leak (teeth), check-staleness flags a dead meter, run-2/stale-reserve/trailing-estimate/bounded-calibration (teeth)."
   exit 0
 else
   echo "Gate 291 FAIL — $fails subtest(s) failed."
