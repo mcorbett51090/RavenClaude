@@ -246,9 +246,15 @@ Back returns to the marked URL and runs it again. Navigate only to a same-site p
 | **Apple: a barcode change is a Wallet push** | MEAS (2026-10-18): changing the barcode `message` changes `pass.json`, so the update-service version moves and every holder gets an update push on the pass's next build — silent, since there is no `changeMessage`. A key-by-key diff of 8 builds showed exactly one changed key (`barcodes[0].message`); images and `rev` unchanged. | Treat it as a Wallet push that needs the owner's GO before the production deploy. |
 | **NFC tag capacity (NTAG213)** | 144 bytes of user memory − 3 (Type-2 TLV: type, length, terminator) − 4 (NDEF short-record header: flags, type length, payload length, type `U`) = a **137-byte URI payload** (the identifier code plus the URL after the abbreviated prefix). DOC (NXP datasheet; NFC Forum Type 2 / NDEF formats), not re-read 2026-10-18. Which tag type to buy is still #13. | Keep the marker only while the marked record still fits; otherwise write the plain URL. The marker must never be what makes a tag unwritable. |
 
-**Still unverified (#38):** whether iOS Safari shows the Add-to-Wallet sheet for a
-script-initiated navigation to a `.pkpass` with no user activation (opened from Camera's QR banner
-or an NFC notification). If it does not, the person simply lands on the card.
+**Measured (#38, partly resolved):** MEAS (owner device test on a real iPhone, 2026-10-18): a card
+URL ending `#add-to-wallet`, opened directly in Safari on RavenPower's preview
+(`preview.ravenpower-sites.pages.dev/connect`) and on production (`www.ravenpower.net/connect`),
+showed Wallet's pass sheet (Add / review) with **no tap**. So iOS Safari does present the
+Add-to-Wallet sheet for the script-initiated `location.assign()` to the `.pkpass`, about 150 ms
+after page load, without user activation. **Not yet recorded:** the iOS version, the Camera QR
+banner and NFC-tag notification entry points themselves (the test opened the URL directly in
+Safari), and a non-Safari default browser. If it does not fire on one of those, the person simply
+lands on the card.
 
 ### Google: the second person to save the card
 
