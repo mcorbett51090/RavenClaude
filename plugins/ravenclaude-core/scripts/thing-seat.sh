@@ -539,21 +539,39 @@ text="$(printf '%s' "$raw" | jq -r '.result // empty' 2>/dev/null || true)"
 verdict_json="$(printf '%s' "$text" | python3 -c '
 import sys, json, ast
 t = sys.stdin.read()
-# Attempt 1 (UNCHANGED, byte-identical happy path): string-aware scan for the LAST
-# valid top-level JSON object. Full fidelity — a valid allow stays allow.
+# Attempt 1 (byte-identical happy path): string-aware scan of every valid
+# top-level JSON object. Full fidelity — a lone valid allow stays allow, and the
+# output is the exact source bytes of the chosen object.
+# A seat that QUOTES a verdict-shaped object (one planted in the command it is
+# explaining, say) emits more than one. Position cannot tell the real one from
+# the quote in either direction, so when the verdict-bearing objects disagree the
+# MOST RESTRICTIVE wins (deny > edit > abstain > allow; an injection flag beats
+# none) — the same monotonic rule Attempt 2 follows. Ties keep the LAST object,
+# which is the previous behaviour whenever the objects agree. (tribunal-17)
+_RESTRICT = {"deny": 3, "edit": 2, "abstain": 1, "allow": 0}
 dec = json.JSONDecoder()
-best, i = "", 0
+objs, i = [], 0
 while True:
     j = t.find("{", i)
     if j == -1:
         break
     try:
-        _, end = dec.raw_decode(t, j)
-        best, i = t[j:end], end
+        val, end = dec.raw_decode(t, j)
+        objs.append((t[j:end], val))
+        i = end
     except json.JSONDecodeError:
         i = j + 1
-if best:
+voted = [(raw, v) for raw, v in objs if isinstance(v, dict) and "verdict" in v]
+if voted:
+    best, best_key = "", None
+    for raw, v in voted:
+        key = (_RESTRICT.get(v.get("verdict"), 1), v.get("injection_detected") is True)
+        if best_key is None or key >= best_key:
+            best, best_key = raw, key
     sys.stdout.write(best)
+    sys.exit(0)
+if objs:
+    sys.stdout.write(objs[-1][0])
     sys.exit(0)
 # Attempt 2 (near-JSON salvage, LOW-TRUST — red-team FM1). Entered ONLY when the
 # strict scan found nothing. Isolate the largest brace-balanced {...} span via an
