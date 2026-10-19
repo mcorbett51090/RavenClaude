@@ -921,6 +921,20 @@ else
   fi
 fi
 
+# ── tribunal-6: an EDIT (from the panel OR a cache hit) is emitted as an allow with
+#    the revised command, so the revision gets the same category-independent hard
+#    screen the original got. Any hit, an engine error, or no output -> DENY.
+if [ "$verdict" = "edit" ] && [ -n "$revised" ] && [ "$revised" != "null" ]; then
+  rscreen="$(THING_SEAT_ACTIVE= _rc_timeout 60 python3 "$CONCERNS" screen-always "$revised" 2>/dev/null || true)"
+  rs_hit="$(printf '%s' "$rscreen" | jq -r 'if (type == "object") and (.error == null) then ((.self_disable_concern // .hard_rule_concern) // "") else "unscreenable" end' 2>/dev/null || echo unscreenable)"
+  [ -z "$rscreen" ] && rs_hit="unscreenable"
+  if [ -n "$rs_hit" ]; then
+    verdict="deny"; revised=""
+    reason="Command review: DENIED — the proposed EDIT matches an always-screen rule (${rs_hit}); a rewrite may not introduce one."
+    phase="T3-edit-rescreen"
+  fi
+fi
+
 # ── gate_floor (T5): surface a confident panel-ALLOW to you (ask) when the
 #    command's tier is at/above the configured floor, OR when it is high-blast
 #    (irreversible) regardless of floor. Reads are never surfaced. A DENY blocks

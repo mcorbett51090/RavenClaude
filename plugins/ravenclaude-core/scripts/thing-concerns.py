@@ -372,18 +372,72 @@ def revalidate(
             "reason": f"cited concern '{cited}' is not deterministically verifiable",
         }
 
-    orig_ids = set(evaluate(catalog, original, category)["concerns"])
-    rev_ids = set(evaluate(catalog, revised, category)["concerns"])
+    # The revision is matched against EVERY category's concerns, not only the
+    # original's (tribunal-6). classify() routes by the first segment only, so a
+    # revision that appends `&& <global install>` or `; <fetch> | <shell>` keeps the
+    # original's category; scoring it against that category alone let a cross-
+    # category hard rule through the invariant, and the orchestrator then emitted
+    # the revision as an allow.
+    orig_ids = _ids_all(catalog, original)
+    rev_ids = _ids_all(catalog, revised)
     allowed = orig_ids - {cited}
     new_concerns = sorted(rev_ids - allowed)
     cited_resolved = cited not in rev_ids
-    ok = cited_resolved and not new_concerns
+    screen = screen_always(catalog, revised)
+    screen_hit = screen["self_disable_concern"] or screen["hard_rule_concern"]
+    # Shape rule: a revision may not ADD a chained command or a substitution. It
+    # catches an appended command for which the catalog has no trigger at all (a
+    # POST of a dotfile, say). Counted over the raw text, quotes included: a quoted
+    # separator in the revision is rejected too, which only ever denies an edit.
+    shape_grew = _chain_count(revised) > _chain_count(original)
+    ok = cited_resolved and not new_concerns and not screen_hit and not shape_grew
+    if ok:
+        reason = ""
+    elif screen_hit:
+        reason = f"edit matches an always-screen hard rule ({screen_hit})"
+    elif shape_grew:
+        reason = "edit adds a chained command or a substitution"
+    else:
+        reason = "edit introduces new concerns or fails to remove the cited one"
     return {
         "ok": ok,
         "cited_resolved": cited_resolved,
         "new_concerns": new_concerns,
-        "reason": "" if ok else "edit introduces new concerns or fails to remove the cited one",
+        "reason": reason,
     }
+
+
+# Top-level command separators and substitutions, for the EDIT shape rule:
+# `;` `&&` `||` `|` newline, a lone `&` (background: it starts a second command,
+# so it is a separator too), `$(`, a backtick, and process substitution.
+_CHAIN_TOKEN = re.compile(r"&&|\|\||[|;\n`]|\$\(|[<>]\(|(?<![>&])&(?![&>])")
+
+
+def _chain_count(command: str) -> int:
+    return len(_CHAIN_TOKEN.findall(command))
+
+
+def _ids_all(catalog: dict, command: str) -> set[str]:
+    """Every concern id the command matches, across cross-cutting AND every
+    category, including concerns hidden in a base64 payload (as evaluate() does)."""
+    pools: list[list] = [catalog.get("cross_cutting") or []]
+    for lst in (catalog.get("categories") or {}).values():
+        if isinstance(lst, list):
+            pools.append(lst)
+    variants = _match_variants(command)
+    ids = {c["id"] for pool in pools for c in pool if _matches_variants(c, variants)}
+    decoded: set[str] = set()
+    for text in _iter_decoded_texts(command):
+        tv = _match_variants(text)
+        decoded |= {
+            c["id"]
+            for pool in pools
+            for c in pool
+            if c["id"] != "sce.embedded-base64-payload" and _matches_variants(c, tv)
+        }
+    if decoded:
+        ids |= decoded | {"sce.embedded-base64-payload"}
+    return ids
 
 
 _SELF_DISABLE_ID = "xc.tribunal-self-disable"
