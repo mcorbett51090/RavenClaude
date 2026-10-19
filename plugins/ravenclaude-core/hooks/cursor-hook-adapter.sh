@@ -46,6 +46,15 @@
 # See knowledge/cursor-customization.md.
 set -uo pipefail
 
+# Shared secret scrub for anything printed to STDERR (never the deny literal).
+# Fail-safe: if the helper is absent, a passthrough stands in.
+_adapter_scrub_helper="$(dirname "${BASH_SOURCE[0]:-$0}")/_scrub.sh"
+if [ -f "$_adapter_scrub_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_adapter_scrub_helper" 2>/dev/null || true
+fi
+command -v _scrub_reason >/dev/null 2>&1 || _scrub_reason() { printf '%s' "${1:-}"; }
+
 # The literal deny. Kept as ONE constant so there is exactly one thing to get right,
 # and so a reader can see at a glance that nothing interpolates into it.
 _RC_DENY='{"permission":"deny","user_message":"Blocked by a RavenClaude guardrail. Run the same command under Claude Code or check .ravenclaude/runs/ for the recorded reason.","agent_message":"Blocked by a RavenClaude guardrail. Do not retry verbatim; adjust the command to satisfy the guard, or ask the user.","userMessage":"Blocked by a RavenClaude guardrail. Run the same command under Claude Code or check .ravenclaude/runs/ for the recorded reason.","agentMessage":"Blocked by a RavenClaude guardrail. Do not retry verbatim; adjust the command to satisfy the guard, or ask the user."}'
@@ -248,6 +257,22 @@ case "$mode" in
     if [ -n "$out" ] && command -v jq >/dev/null 2>&1; then
       dec="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)"
       [ "$dec" = "deny" ] && _rc_deny
+      # A tribunal EDIT arrives as allow + updatedInput.command (a safer rewrite).
+      # The beforeShellExecution output contract carries permission + messages and
+      # no rewrite field (see generate-cursor-hooks.py's explore-tier-pin _SKIP
+      # entry). Block instead of dropping it; the revised command goes to stderr
+      # (scrubbed, capped) so the agent can re-issue it. The deny stays the
+      # byte-fixed literal (Cursor fails OPEN on bad JSON). An updatedInput WITHOUT
+      # a command (explore-tier-pin's model-pin shape) passes through unchanged.
+      rev="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.updatedInput.command // empty' 2>/dev/null)"
+      if [ -n "$rev" ] && [ "$rev" != "$cmd" ]; then
+        rev="$(_scrub_reason "$rev")"
+        [ "${#rev}" -gt 512 ] && rev="${rev:0:509}..."
+        # control: allow+updatedInput stub through this adapter before the fix ->
+        # rc=0 and no stdout, so Cursor ran the original (repo-review WS-C 1a-5).
+        printf 'RavenClaude: command review proposed a revised command; Cursor cannot apply rewrites, so the original is blocked. Revised: %s\n' "$rev" >&2
+        _rc_deny
+      fi
     fi
     exit 0
     ;;
