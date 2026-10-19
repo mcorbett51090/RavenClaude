@@ -235,8 +235,8 @@ rm -f "$ALLOW_FILE"
 
 # Teeth. Each mutant reverts ONE fix; the case it guards must then be ALLOWED,
 # proving the matrix above is measuring the fix and not passing by accident.
-_teeth() { # $1=label $2=python-old $3=python-new $4=command-that-must-flip-to-0
-  local mut
+_teeth() { # $1=label $2=python-old $3=python-new $4=command $5=rc the mutant must give (default 0)
+  local mut want="${5:-0}"
   mut="$(mktemp)"
   if ! python3 - "$HOOK" "$mut" "$2" "$3" <<'PY'
 import sys
@@ -258,10 +258,10 @@ PY
   _gd "$4"
   HOOK="$save"
   rm -f "$mut"
-  if [ "$GD_RC" -eq 0 ]; then
-    pass "teeth ($1): mutant lets it through, so the fix is load-bearing"
+  if [ "$GD_RC" -eq "$want" ]; then
+    pass "teeth ($1): mutant gives rc $want, so the fix is load-bearing"
   else
-    fail "teeth ($1): mutant still denied (rc=$GD_RC) — the assertion is not measuring the fix"
+    fail "teeth ($1): mutant gave rc $GD_RC, expected $want — the assertion is not measuring the fix"
   fi
 }
 
@@ -393,6 +393,47 @@ else
   fail "teeth (guards-new-4): precheck lines not found (expected exactly 2)"
 fi
 rm -f "$MUT4"
+
+# ── hooks-1 (2026-10-19): a newline is a separator; a continuation is not ────
+echo
+echo "── hooks-1: newline-separated commands are separate segments ──────────────"
+NL=$'\n'
+RMW="r""m"
+nl_allow=(
+  "cd /tmp/build${NL}$RMW -rf dist"
+  "cd /tmp/build${NL}$RMW -f dist/out.o"
+  "$G $PUSH origin main${NL}$RMW -f /tmp/x.txt"
+  "$G $PUSH origin main${NL}grep -f patterns.txt src"
+  "cd /etc"$'\r'"${NL}$RMW -rf dist"
+  "cd /tmp/build"$'\t'"${NL}$RMW -rf dist"
+  "echo one${NL}echo two${NL}"
+)
+for c in "${nl_allow[@]}"; do
+  _gd "$c"
+  if [ "$GD_RC" -eq 0 ]; then pass "allow (multi-line): ${c//$NL/\\n}"; else fail "allow expected 0, got $GD_RC: ${c//$NL/\\n}"; fi
+done
+nl_deny=(
+  "$G $PUSH origin main \\${NL}$FL"
+  "$G $PUSH origin \\${NL}  main \\${NL}  $FL"
+  "$RMW -rf \\${NL}/"
+  "$RMW \\${NL}-rf /"
+  "$SHL <<EOF${NL}$RMW -rf /${NL}EOF"
+  "sh <<EOF${NL}$G $PUSH $FL origin main${NL}EOF"
+  "echo hi${NL}$G $BRN -D main"
+  "true${NL}$RMW -rf /"
+  "cd /tmp${NL}$RMW -rf ~"
+  "echo ok${NL}$G $RST $HARD HEAD~1"
+)
+for c in "${nl_deny[@]}"; do
+  _gd "$c"
+  if [ "$GD_RC" -eq 2 ]; then pass "deny (multi-line): ${c//$NL/\\n}"; else fail "deny expected 2, got $GD_RC: ${c//$NL/\\n}"; fi
+done
+_teeth "hooks-1 newline separator" \
+  'norm="${norm//${_GD_NL}/ ; }"       # newline -> separator' '' \
+  "cd /tmp/build${NL}$RMW -rf dist" 2
+_teeth "hooks-1 continuation join (before the split)" \
+  'norm="${norm//\\${_GD_NL}/ }"       # line continuation -> one command' '' \
+  "$G $PUSH origin main \\${NL}$FL" 0
 
 echo
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"

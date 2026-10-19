@@ -320,6 +320,17 @@ norm="${norm//\$\{HOME\}/\$HOME}"   # ${HOME} -> $HOME  (one form to match)
 # whitespace collapse so the matchers see the same command the shell would run.
 norm="${norm//\$\{IFS\}/ }"         # ${IFS} -> space
 norm="${norm//\$IFS/ }"             # $IFS  -> space
+# hooks-1 (2026-10-19): a NEWLINE is a command separator, not whitespace. The
+# whitespace collapse below used to turn it into a space, gluing two commands
+# into one segment — `cd /abs` on one line made a relative delete on the next
+# look like a delete of /abs, and a short flag on a later line looked like the
+# previous line's push flag. ORDER MATTERS: join backslash-newline continuations
+# first (they are still ONE command, and must not be split from the flag they
+# carry), then turn every remaining newline into ` ; `, and only then drop the
+# backslashes.
+_GD_NL=$'\n'
+norm="${norm//\\${_GD_NL}/ }"       # line continuation -> one command
+norm="${norm//${_GD_NL}/ ; }"       # newline -> separator
 norm="${norm//\\/}"                 # drop backslashes:  \rm -rf /  -> rm -rf /
 norm="$(printf '%s' "$norm" | tr -s '[:space:]' ' ')"   # collapse whitespace runs
 
