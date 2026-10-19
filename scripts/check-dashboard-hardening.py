@@ -210,7 +210,16 @@ class Server:
                 return
             time.sleep(0.2)
         exited = self.proc.poll()
-        tail = log.read_text(encoding="utf-8", errors="replace")[-1500:]
+        if exited is None:
+            # A hung server prints nothing, so ask it where it is: with
+            # PYTHONFAULTHANDLER=1 a SIGABRT dumps every thread's stack to the log.
+            try:
+                os.kill(self.proc.pid, signal.SIGABRT)
+                self.proc.wait(timeout=5)
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        tail = log.read_text(encoding="utf-8", errors="replace")[-2500:]
+        tail = " | ".join(line.strip() for line in tail.splitlines() if line.strip())
         self.stop()
         probe = (
             "never probed" if last is None else f"last /__csrf: {last.status} {last.error}".strip()
@@ -258,6 +267,7 @@ def base_env(scratch: Path) -> dict:
         # Unbuffered, so a server that never comes up leaves its real output in
         # the log (a buffered startup line made the macOS log read as empty).
         "PYTHONUNBUFFERED": "1",
+        "PYTHONFAULTHANDLER": "1",
     }
 
 
