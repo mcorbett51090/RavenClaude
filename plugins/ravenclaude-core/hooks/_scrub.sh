@@ -110,18 +110,26 @@ _secret_patterns=(
 # `max_tokens=4096` or `def f(password=None)`. As a hard deny they are the
 # false-positive class the deny sets exclude (secret_spec D-set rule). _scrub_reason
 # itself uses case-sensitive sed, which is where they belong.
-#   - Bearer/token: an opaque value of 20+ chars. `Bearer $T` is not matched
-#     ('$' is outside the value class).
-#   - `-u user:pass`: the password half must contain a non-digit, the same rule
-#     as `-p` above, so `docker run -u 1000:1000` is not a credential.
-#   - A literal-value env assignment (PGPASSWORD=…, API_KEY=…). The value may
-#     open with one double quote; it must not open with '$' (an env reference
-#     such as TOKEN=${TOKEN} or TOKEN="$X") and must contain a non-digit (so a
-#     numeric setting such as MAX_TOKENS=4096 is not redacted).
+#   - Bearer, or `Authorization: token`, then an opaque value of 20+ chars.
+#     `Bearer $T` is not matched ('$' is outside the value class), and a bare
+#     "token" is not a keyword (prose such as "token signing/verification").
+#   - `-u user:pass`: the user half must start with a letter, digit or _ (so
+#     `date -u +%Y-%m-%dT%H:%M:%SZ` is not a credential) and the password half
+#     must contain a non-digit, the same rule as `-p` above (so
+#     `docker run -u 1000:1000` is not one either). One leading " is allowed.
+#   - A literal-value env assignment (PGPASSWORD=…, API_KEY=…). After an
+#     optional " and any digits, the value must continue with a letter or _,
+#     so an env reference (TOKEN=${TOKEN}, TOKEN="$X"), a numeric setting
+#     (MAX_TOKENS=4096) and a doc placeholder (API_KEY=..., TOKEN=<key>) are
+#     not redacted.
+#   Measured 2026-10-19 over every tracked file: the first-draft forms matched
+#   `date -u +FORMAT` in 18 files, "token <phrase>" prose in 11 and doc
+#   placeholders in 40; the delegates refuse anything _scrub_reason changes, so
+#   those were refusals, not just cosmetic redactions.
 _secret_redact_patterns=(
-  '(Bearer|bearer|token)[[:space:]]+[A-Za-z0-9._~+/-]{20,}'
-  '-u[[:space:]]+[^[:space:]:$]+:[^[:space:]$]*[^[:space:]$0-9][^[:space:]$]*'
-  '(PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*="?[0-9]*[^[:space:]$"0-9][^[:space:]]*'
+  '(Bearer|bearer|[Aa]uthorization:[[:space:]]*token)[[:space:]]+[A-Za-z0-9._~+/-]{20,}'
+  '-u[[:space:]]+"?[A-Za-z0-9_][^[:space:]:$"]*:[^[:space:]$"]*[^[:space:]$"0-9][^[:space:]$"]*'
+  '(PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*="?[0-9]*[A-Za-z_][^[:space:]"]*'
 )
 
 # _scrub_pem_blocks: replace every line from a `-----BEGIN … PRIVATE KEY-----`

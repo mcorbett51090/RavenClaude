@@ -127,9 +127,9 @@ _SECRET_RES = [
         # literal `-u user:pass` (password half must contain a non-digit, so
         # `docker run -u 1000:1000` is untouched), and a literal-value env
         # assignment (never one opening with '$', never a pure-digit value).
-        r"(?:Bearer|bearer|token)\s+[A-Za-z0-9._~+/-]{20,}",
-        r"-u\s+[^\s:$]+:[^\s$]*[^\s$0-9][^\s$]*",
-        r'(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*="?[0-9]*[^\s$"0-9]\S*',
+        r"(?:Bearer|bearer|[Aa]uthorization:\s*token)\s+[A-Za-z0-9._~+/-]{20,}",
+        r'-u\s+"?[A-Za-z0-9_][^\s:$"]*:[^\s$"]*[^\s$"0-9][^\s$"]*',
+        r'(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*="?[0-9]*[A-Za-z_][^\s"]*',
     )
 ]
 _SECRET_P_FLAG = re.compile(r"(^|\s)-p[^\s\d]\S{15,}")

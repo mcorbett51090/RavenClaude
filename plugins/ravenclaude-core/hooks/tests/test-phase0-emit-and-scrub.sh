@@ -383,6 +383,8 @@ for case_ in \
   "xapp|t xa""pp-1-${A30}" \
   "bearer|Authorization: Bea""rer 8f2a${A30}" \
   "curl-u|curl -u admin:Super""Secret${A30} https://x" \
+  "curl-u-quoted|curl -u \"admin:Super""Secret${A30}\" https://x" \
+  "auth-token-header|Authorization: tok""en 9f8e${A30}" \
   "env|PGPASS""WORD=Super""Secret${A30} psql"; do
   label="${case_%%|*}"; text="${case_#*|}"
   out="$(_scrub_one "$SCRUB_SH" "$text")"
@@ -397,6 +399,11 @@ for case_ in \
   'env-quoted-ref|TOKEN="${TOKEN}" run' \
   'numeric-setting|MAX_TOKENS=4096 run' \
   'uid-gid|docker run -u 1000:1000 img' \
+  'date-utc|ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)' \
+  'date-utc-quoted|date -u "+%Y-%m-%dT%H:%M:%SZ"' \
+  'token-prose|review any token signing/verification change' \
+  'env-placeholder|export SEARCH_API_KEY=...   # yours here' \
+  'env-angle-placeholder|ANTHROPIC_AUTH_TOKEN=<key> is sent' \
   'bearer-ref|curl -H "Authorization: Bearer $T" x'; do
   label="${case_%%|*}"; text="${case_#*|}"
   out="$(_scrub_one "$SCRUB_SH" "$text")"

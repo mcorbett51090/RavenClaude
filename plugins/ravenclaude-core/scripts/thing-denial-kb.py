@@ -157,9 +157,9 @@ _SECRET_RES = [
         r"--token[=\s]\S+",
         r"(?:https?|postgres(?:ql)?|mysql|mongodb|redis|amqp|smtp)s?://"
         r"[A-Za-z0-9._-]{2,}:[A-Za-z0-9._%+-]{4,}@",
-        r"(?:Bearer|bearer|token)\s+[A-Za-z0-9._~+/-]{20,}",
-        r"-u\s+[^\s:$]+:[^\s$]*[^\s$0-9][^\s$]*",
-        r'(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*="?[0-9]*[^\s$"0-9]\S*',
+        r"(?:Bearer|bearer|[Aa]uthorization:\s*token)\s+[A-Za-z0-9._~+/-]{20,}",
+        r'-u\s+"?[A-Za-z0-9_][^\s:$"]*:[^\s$"]*[^\s$"0-9][^\s$"]*',
+        r'(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*="?[0-9]*[A-Za-z_][^\s"]*',
     )
 ]
 # The short `-p<value>` flag keeps its leading boundary; only the value redacts.

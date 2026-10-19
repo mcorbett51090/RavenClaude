@@ -553,9 +553,9 @@ _SECRET_SHAPES = (
     r"npm_[A-Za-z0-9]{30,}",
     r"hf_[A-Za-z0-9]{30,}",
     r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}",
-    r"(?:Bearer|bearer|token)\s+[A-Za-z0-9._~+/-]{20,}",
-    r"-u\s+[^\s:$]+:[^\s$]*[^\s$0-9][^\s$]*",
-    r"(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*=\"?[0-9]*[^\s$\"0-9]\S*",
+    r"(?:Bearer|bearer|[Aa]uthorization:\s*token)\s+[A-Za-z0-9._~+/-]{20,}",
+    r"-u\s+\"?[A-Za-z0-9_][^\s:$\"]*:[^\s$\"]*[^\s$\"0-9][^\s$\"]*",
+    r"(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*=\"?[0-9]*[A-Za-z_][^\s\"]*",
 )
 for _pat in _SECRET_SHAPES:
     subject = re.sub(_pat, "[REDACTED]", subject)
