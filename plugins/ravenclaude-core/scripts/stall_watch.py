@@ -120,19 +120,21 @@ PROGRESS_TYPES = frozenset({"assistant"})
 
 # Named individually so the RT-2 mutant battery can assert each one. These are
 # the record types MEASURED resetting a last-any-entry clock without progress.
-NON_PROGRESS_TYPES = frozenset({
-    "user",                 # a human typing into the stall — reset 8f8fbacd 44 min
-    "attachment",
-    "queue-operation",      # queued prompts stacking behind the wedged turn
-    "system",               # incl. subtype away_summary — a PRODUCT-generated reset
-    "file-history-snapshot",
-    "file-history-delta",
-    "last-prompt",          # untimestamped; ends 99.03% of transcripts
-    "ai-title",
-    "mode",
-    "permission-mode",
-    "atis-latch",
-})
+NON_PROGRESS_TYPES = frozenset(
+    {
+        "user",  # a human typing into the stall — reset 8f8fbacd 44 min
+        "attachment",
+        "queue-operation",  # queued prompts stacking behind the wedged turn
+        "system",  # incl. subtype away_summary — a PRODUCT-generated reset
+        "file-history-snapshot",
+        "file-history-delta",
+        "last-prompt",  # untimestamped; ends 99.03% of transcripts
+        "ai-title",
+        "mode",
+        "permission-mode",
+        "atis-latch",
+    }
+)
 
 # A genuine compaction record is type=system, subtype=compact_boundary. A plain
 # substring probe for "compact_boundary" returns 132 hits across this tree where
@@ -140,8 +142,7 @@ NON_PROGRESS_TYPES = frozenset({
 COMPACT_TYPE = "system"
 COMPACT_SUBTYPE = "compact_boundary"
 
-_TS_RE = re.compile(
-    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$")
+_TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})$")
 
 
 class TickTimeout(Exception):
@@ -174,7 +175,7 @@ def parse_ts(value) -> float:
         sign = 1 if tz[0] == "+" else -1
         digits = tz[1:].replace(":", "")
         offset = sign * (int(digits[:2]) * 3600 + int(digits[2:]) * 60)
-        stamp = value[:-len(tz)]
+        stamp = value[: -len(tz)]
     base = stamp.split(".")[0]
     return float(calendar.timegm(time.strptime(base, "%Y-%m-%dT%H:%M:%S"))) - offset
 
@@ -258,24 +259,71 @@ def pid_alive(pid) -> bool:
         return False
 
 
-def proc_identity_ok(pid, recorded) -> bool | None:
+# A live pid whose process is this much YOUNGER than the registry's recorded
+# session start is a different process that reused the pid.
+IDENTITY_TOLERANCE_SEC = 120
+
+
+def _parse_etime(text) -> int | None:
+    """`ps -o etime=` ([[dd-]hh:]mm:ss) -> seconds, or None if not that shape."""
+    s = (text or "").strip()
+    if not s:
+        return None
+    days = 0
+    if "-" in s:
+        d, _, s = s.partition("-")
+        if not d.isdigit():
+            return None
+        days = int(d)
+    parts = s.split(":")
+    if not 2 <= len(parts) <= 3 or not all(p.isdigit() for p in parts):
+        return None
+    nums = [int(p) for p in parts]
+    while len(nums) < 3:
+        nums.insert(0, 0)
+    h, m, sec = nums
+    return ((days * 24 + h) * 60 + m) * 60 + sec
+
+
+def proc_identity_ok(pid, started_at_ms, now=None) -> bool | None:
     """Guard against PID reuse.
 
     Plan A proposed comparing the registry's `procStart` against `ps` output.
     That check would have FAILED ON EVERY SESSION, and failed toward SILENCE:
     `procStart` renders in UTC ('Tue Aug 25 15:19:22') while `ps` prints local
     time (11:19 EDT). We use `ps -o etime=` — an ELAPSED duration, timezone
-    free. Returns None when unknown, and an unknown NEVER suppresses an alert,
-    because suppression is the failing-toward-clean direction.
+    free — against `now - startedAt/1000` (registry epoch milliseconds).
+
+    ⛔ An earlier version returned bool(ps output), i.e. "the pid exists", and
+    nobody read the result, so a reused pid kept a dead session's registry
+    entry alive. The check is ONE-directional on purpose: a reused pid is
+    always YOUNGER than the recorded start, so only etime + tolerance <
+    expected is a mismatch (False). An older-than-recorded process is not
+    reuse evidence. Returns None when unknown, and an unknown NEVER suppresses
+    an alert, because suppression is the failing-toward-clean direction.
     """
-    if not recorded:
+    try:
+        started = float(started_at_ms) / 1000.0
+    except (TypeError, ValueError):
+        return None
+    expected = (time.time() if now is None else now) - started
+    if expected < 0:
         return None
     try:
-        out = subprocess.run(["ps", "-o", "etime=", "-p", str(pid)],
-                             capture_output=True, text=True, timeout=5).stdout.strip()
-        return bool(out)
+        out = subprocess.run(
+            ["ps", "-o", "etime=", "-p", str(pid)], capture_output=True, text=True, timeout=5
+        ).stdout
     except Exception:
         return None
+    etime = _parse_etime(out)
+    if etime is None:
+        return None
+    return etime + IDENTITY_TOLERANCE_SEC >= expected
+
+
+def _session_live(sess) -> bool:
+    """Alive AND not proven to be a reused pid (identity_ok False)."""
+    return bool(sess.get("alive")) and sess.get("identity_ok") is not False
 
 
 def read_registry() -> tuple[list[dict], list[str]]:
@@ -299,21 +347,23 @@ def read_registry() -> tuple[list[dict], list[str]]:
             continue
         pid = rec.get("pid")
         alive = pid_alive(pid)
-        out.append({
-            "pid": pid,
-            "session_id": rec.get("sessionId"),
-            "status": rec.get("status") or "unknown",   # SDK-orphan shape
-            "cwd": rec.get("cwd") or "",
-            "alive": alive,
-            "identity_ok": proc_identity_ok(pid, rec.get("procStart")) if alive else None,
-            # ADDITIVE (P3, launch-hang detector): raw epoch-millisecond fields
-            # the general evaluate() path never needed. Carried through here —
-            # rather than a second directory scan — so the launch-hang pass
-            # reuses this same read, exactly like every other consumer of
-            # read_registry(). Extra keys are inert to evaluate().
-            "started_at_ms": rec.get("startedAt"),
-            "status_updated_at_ms": rec.get("statusUpdatedAt"),
-        })
+        out.append(
+            {
+                "pid": pid,
+                "session_id": rec.get("sessionId"),
+                "status": rec.get("status") or "unknown",  # SDK-orphan shape
+                "cwd": rec.get("cwd") or "",
+                "alive": alive,
+                "identity_ok": proc_identity_ok(pid, rec.get("startedAt")) if alive else None,
+                # ADDITIVE (P3, launch-hang detector): raw epoch-millisecond fields
+                # the general evaluate() path never needed. Carried through here —
+                # rather than a second directory scan — so the launch-hang pass
+                # reuses this same read, exactly like every other consumer of
+                # read_registry(). Extra keys are inert to evaluate().
+                "started_at_ms": rec.get("startedAt"),
+                "status_updated_at_ms": rec.get("statusUpdatedAt"),
+            }
+        )
     return out, notes
 
 
@@ -451,18 +501,20 @@ def append_soak(payload: dict):
     _ensure_state_dir()
     try:
         findings = payload.get("findings") or []
-        line = json.dumps({
-            "ts": int(payload.get("ts") or time.time()),
-            "ok": bool(payload.get("ok")),
-            "sessions": int(payload.get("sessions") or 0),
-            "findings": len(findings),
-            "alerts": len(payload.get("alerts") or []),
-            "slept": bool(payload.get("slept")),
-            "silent_min": sorted(int(round(float(f.get("silent_min") or 0)))
-                                 for f in findings),
-            "notes": len(payload.get("notes") or []),
-            "receipted": bool((payload.get("reach") or {}).get("any_accepted")),
-        }, sort_keys=True)
+        line = json.dumps(
+            {
+                "ts": int(payload.get("ts") or time.time()),
+                "ok": bool(payload.get("ok")),
+                "sessions": int(payload.get("sessions") or 0),
+                "findings": len(findings),
+                "alerts": len(payload.get("alerts") or []),
+                "slept": bool(payload.get("slept")),
+                "silent_min": sorted(int(round(float(f.get("silent_min") or 0))) for f in findings),
+                "notes": len(payload.get("notes") or []),
+                "receipted": bool((payload.get("reach") or {}).get("any_accepted")),
+            },
+            sort_keys=True,
+        )
         with open(SOAK_PATH, "a") as fh:
             fh.write(line + "\n")
         _trim_soak()
@@ -510,16 +562,19 @@ def evaluate(now: float, slept: bool, state: dict) -> dict:
     # There is deliberately NO acknowledge/mute. A mute button on a detector is
     # the thing that gets used, and a muted detector protects nothing; every one
     # of these three closes on evidence instead.
-    live_now = {str(s["pid"]) for s in sessions if s["alive"] and s["status"] != "idle"}
+    # A reused pid (identity_ok False) is not this session's process: treat it
+    # as gone, so its episode resolves and it is never reported as stalled.
+    live_now = {str(s["pid"]) for s in sessions if _session_live(s) and s["status"] != "idle"}
     for gone in [k for k in list(episodes) if k not in live_now]:
         episodes.pop(gone, None)
         notes.append("episode_resolved:%s:session-gone-or-idle" % gone)
 
     for sess in sessions:
-        if not sess["alive"]:
+        if not _session_live(sess):
             # SIGKILL ORPHANS the registry file — measured: .json/.key/.sock all
             # survive kill -9, with a clean-exit positive control that DID remove
-            # them. Registry presence therefore never proves the session runs.
+            # them. Registry presence therefore never proves the session runs,
+            # and a live pid that another process reused proves it even less.
             continue
         if sess["status"] == "idle":
             continue
@@ -535,16 +590,18 @@ def evaluate(now: float, slept: bool, state: dict) -> dict:
             episodes.pop(str(sess["pid"]), None)
             continue
         last_any = info["last_any_age_min"]
-        findings.append({
-            "pid": sess["pid"],
-            "session": str(sess["session_id"])[:8],
-            "project": project_key(sess["cwd"]),
-            "status": sess["status"],
-            "silent_min": round(age, 1),
-            "last_any_min": round(last_any, 1) if last_any is not None else None,
-            "masked_min": round(age - last_any, 1) if last_any is not None else None,
-            "compactions": count_compact_boundaries(path),
-        })
+        findings.append(
+            {
+                "pid": sess["pid"],
+                "session": str(sess["session_id"])[:8],
+                "project": project_key(sess["cwd"]),
+                "status": sess["status"],
+                "silent_min": round(age, 1),
+                "last_any_min": round(last_any, 1) if last_any is not None else None,
+                "masked_min": round(age - last_any, 1) if last_any is not None else None,
+                "compactions": count_compact_boundaries(path),
+            }
+        )
 
     alerts = []
     for finding in findings:
@@ -564,8 +621,13 @@ def evaluate(now: float, slept: bool, state: dict) -> dict:
     # a sink has actually accepted.
     state["episodes"] = episodes
     state["last_run"] = now
-    return {"sessions": len(sessions), "findings": findings,
-            "alerts": alerts, "notes": notes, "slept": slept}
+    return {
+        "sessions": len(sessions),
+        "findings": findings,
+        "alerts": alerts,
+        "notes": notes,
+        "slept": slept,
+    }
 
 
 def advance_ladder(state: dict, alerts: list[dict], now: float):
@@ -574,8 +636,7 @@ def advance_ladder(state: dict, alerts: list[dict], now: float):
     episodes = state.setdefault("episodes", {})
     for finding in alerts:
         key = str(finding["pid"])
-        episode = episodes.setdefault(
-            key, {"rung": 0, "last_alert_at": 0.0, "opened_at": now})
+        episode = episodes.setdefault(key, {"rung": 0, "last_alert_at": 0.0, "opened_at": now})
         episode["last_alert_at"] = now
         episode["rung"] = min(int(episode.get("rung", 0)) + 1, len(LADDER_MIN) - 1)
 
@@ -646,7 +707,9 @@ def _outside_git_work_tree(cwd) -> bool:
     try:
         proc = subprocess.run(
             ["git", "-C", cwd, "rev-parse", "--is-inside-work-tree"],
-            capture_output=True, text=True, timeout=GIT_PROBE_TIMEOUT_SEC,
+            capture_output=True,
+            text=True,
+            timeout=GIT_PROBE_TIMEOUT_SEC,
         )
     except Exception:
         return False
@@ -684,7 +747,7 @@ def evaluate_launch_hangs(now: float, state: dict) -> dict:
     # find_transcript(), never inferred.
     still_open = set()
     for sess in sessions:
-        if not sess["alive"]:
+        if not _session_live(sess):
             continue
         if find_transcript(sess["session_id"] or ""):
             continue
@@ -693,7 +756,9 @@ def evaluate_launch_hangs(now: float, state: dict) -> dict:
         if started_ms is None or status_updated_ms is None:
             continue
         try:
-            moved = abs(float(status_updated_ms) - float(started_ms)) > LAUNCH_HANG_STATUS_EPSILON_MS
+            moved = (
+                abs(float(status_updated_ms) - float(started_ms)) > LAUNCH_HANG_STATUS_EPSILON_MS
+            )
         except (TypeError, ValueError):
             continue
         if moved:
@@ -704,9 +769,9 @@ def evaluate_launch_hangs(now: float, state: dict) -> dict:
         notes.append("launch_episode_resolved:%s" % gone)
 
     for sess in sessions:
-        if not sess["alive"]:                                      # conjunct 1
+        if not _session_live(sess):  # conjunct 1 (alive, and not a reused pid)
             continue
-        if sess["status"] != "idle":                                # conjunct 2
+        if sess["status"] != "idle":  # conjunct 2
             continue
         started_ms = sess.get("started_at_ms")
         status_updated_ms = sess.get("status_updated_at_ms")
@@ -719,30 +784,32 @@ def evaluate_launch_hangs(now: float, state: dict) -> dict:
             continue
         if abs(status_updated_ms - started_ms) > LAUNCH_HANG_STATUS_EPSILON_MS:  # conjunct 3
             continue
-        path = find_transcript(sess["session_id"] or "")            # conjunct 4
+        path = find_transcript(sess["session_id"] or "")  # conjunct 4
         if path:
             continue
         elapsed_min = (now - started_ms / 1000.0) / 60.0
-        if elapsed_min <= LAUNCH_HANG_MIN:                           # conjunct 5 (cheap)
+        if elapsed_min <= LAUNCH_HANG_MIN:  # conjunct 5 (cheap)
             continue
-        if not _outside_git_work_tree(sess["cwd"]):                  # conjunct 6 (shells out — LAST)
+        if not _outside_git_work_tree(sess["cwd"]):  # conjunct 6 (shells out — LAST)
             continue
-        findings.append({
-            "pid": sess["pid"],
-            "session": str(sess["session_id"])[:8],
-            # ADDITIVE (P4): the FULL sessionId, not just the 8-char display
-            # prefix above — needed to locate `~/.claude/debug/<sessionId>.txt`
-            # below. Not itself a leak: it is the same value already exposed
-            # (truncated) in "session", and it is registry-sourced, not
-            # debug-log content — the P4 leak invariant governs the LOG's
-            # content, not the session identifier P3 already carries.
-            "session_id": sess["session_id"],
-            "project": project_key(sess["cwd"]),
-            "status": sess["status"],
-            "silent_min": round(elapsed_min, 1),
-            "kind": "launch-hang",
-            "issue": LAUNCH_HANG_ISSUE_REF,
-        })
+        findings.append(
+            {
+                "pid": sess["pid"],
+                "session": str(sess["session_id"])[:8],
+                # ADDITIVE (P4): the FULL sessionId, not just the 8-char display
+                # prefix above — needed to locate `~/.claude/debug/<sessionId>.txt`
+                # below. Not itself a leak: it is the same value already exposed
+                # (truncated) in "session", and it is registry-sourced, not
+                # debug-log content — the P4 leak invariant governs the LOG's
+                # content, not the session identifier P3 already carries.
+                "session_id": sess["session_id"],
+                "project": project_key(sess["cwd"]),
+                "status": sess["status"],
+                "silent_min": round(elapsed_min, 1),
+                "kind": "launch-hang",
+                "issue": LAUNCH_HANG_ISSUE_REF,
+            }
+        )
 
     # =========================================================================
     # ADDITIVE — P4: optional debug-log confirmatory enrichment (see the block
@@ -769,8 +836,7 @@ def evaluate_launch_hangs(now: float, state: dict) -> dict:
             alerts.append(finding)
 
     state["launch_episodes"] = episodes
-    return {"sessions": len(sessions), "findings": findings,
-            "alerts": alerts, "notes": notes}
+    return {"sessions": len(sessions), "findings": findings, "alerts": alerts, "notes": notes}
 
 
 # =============================================================================
@@ -815,6 +881,7 @@ RG_TCC_SIGNATURE = "rg-tcc"
 # never actually seen firsthand.
 _RG_INVOCATION_RE = re.compile(r"\brg\b|ripgrep", re.IGNORECASE)
 _RG_TCC_ERROR_RE = re.compile(r"Operation not permitted(?: \(os error 1\))?")
+
 
 # ⛔ observed against Claude Code 2.1.263, 2026-09-08 — re-verify the rg/TCC
 # log signature against a fresh --debug capture on any Claude Code version
@@ -897,6 +964,7 @@ def main(argv: list[str]) -> int:
             try:
                 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
                 import stall_reach
+
                 reach = stall_reach.dispatch(result["alerts"])
                 result["reach"] = reach
                 if reach.get("any_accepted"):
@@ -922,6 +990,7 @@ def main(argv: list[str]) -> int:
             if launch_result["alerts"] and "--no-send" not in argv:
                 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
                 import stall_reach
+
                 launch_reach = stall_reach.dispatch(launch_result["alerts"])
                 result["launch_reach"] = launch_reach
                 # Reuses advance_ladder() itself (not a reimplementation) via a
@@ -941,7 +1010,8 @@ def main(argv: list[str]) -> int:
                     advance_ladder(wrapper, launch_result["alerts"], now)
         except Exception as exc:
             result.setdefault("launch_notes", []).append(
-                "launch_hang_pass_error:%s:%s" % (type(exc).__name__, exc))
+                "launch_hang_pass_error:%s:%s" % (type(exc).__name__, exc)
+            )
 
         save_state(state)
         if "--json" in argv:
