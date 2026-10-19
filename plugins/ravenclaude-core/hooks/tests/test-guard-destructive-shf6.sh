@@ -435,6 +435,41 @@ _teeth "hooks-1 continuation join (before the split)" \
   'norm="${norm//\\${_GD_NL}/ }"       # line continuation -> one command' '' \
   "$G $PUSH origin main \\${NL}$FL" 0
 
+# ── hooks-9 (2026-10-19): clean / branch-delete / chmod scored per segment ───
+echo
+echo "── hooks-9: clean / branch -D / chmod flags belong to their own segment ────"
+CHM="ch""mod"
+H9_ALLOW="$(mktemp)"
+printf '%s\n' \
+  "$G $CLN -fdn" "$G $CLN -nfd" "$G $CLN --dry-run -f" "$G $CLN -f -n" \
+  "$G $CLN -n && make -f Makefile" "$G $CLN -n; make -f Makefile all" \
+  "$G $BRN --show-current && npm i -D foo" "$G $BRN -a; ls -D" "$G $BRN | grep -D x" \
+  "$G $BRN -d merged-branch" "$G $BRN -f topic main" "$G $CLN -fd -n -- build" \
+  "$CHM 755 script.sh && $RMW -r ./build" "$CHM -R 755 ./src; echo 777" \
+  "$CHM 777 file.sh && ls -R" "($G $CLN -n)" "$G $CLN -fxn" > "$H9_ALLOW"
+_gd_batch 0 "hooks-9 benign (allow)" "$H9_ALLOW"
+rm -f "$H9_ALLOW"
+H9_DENY="$(mktemp)"
+printf '%s\n' \
+  "$G $CLN -fd && make -n" "$G $CLN -fd; make -n all" "$G $BRN main -D;;" \
+  "($G $BRN -D main)" "$G $BRN -d --force main" "$G $BRN --delete -f main" \
+  "$G $BRN -d -f main" "$G $BRN -df main" "$G $CLN -fd -e -n" \
+  "$G $CLN -fd --exclude -n" "$G $CLN -fen" "$G $CLN -fd -- -n" \
+  "$G $CLN -n --no-dry-run -f" "$G $CLN -fd" "($G $CLN -fd)" "$G $CLN -d -f ." \
+  "$CHM -R 777 /etc" "($CHM -R 0777 /etc)" "$CHM 777 -R /etc" \
+  "echo ok && $CHM -R 000 /" "($RMW / -rf)" "$RMW / -rf" > "$H9_DENY"
+_gd_batch 2 "hooks-9 destructive (deny)" "$H9_DENY"
+rm -f "$H9_DENY"
+_teeth "hooks-9 clean dry-run" \
+  '_git_clean_is_dry_run "${seg#*git clean}" && continue' ':' \
+  "$G $CLN -f -n" 2
+_teeth "hooks-9 exclude value is not a dry run" \
+  '            e*) break ;;' '            e*) ;;' \
+  "$G $CLN -fen" 0
+_teeth "hooks-9 branch flags owned by the branch segment" \
+  '    [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+branch${_CMD_END} ]] || continue' ':' \
+  "$G $BRN --show-current && npm i -D foo" 2
+
 echo
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1

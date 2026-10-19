@@ -384,7 +384,8 @@ _CMD_BOUNDARY='(^|[;&|(`/[:space:]])'
 _CMD_END='([[:space:];&|<>)`]|$)'
 
 # A recursive flag in ANY spelling/order: -r, -R, -rf, -fr, -Rf, --recursive.
-_has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)([[:space:]]|$) ]]; }
+# (hooks-2/hooks-9: terminated by ${_CMD_END}, so `rm / -rf)` still counts.)
+_has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)${_CMD_END} ]]; }
 
 # Round 15 (2026-09-23, Bugbot): `_is_dangerous_merge`'s git+(merge|pull)
 # gates and `_is_dangerous_update_ref`'s git+update-ref gates required a
@@ -660,16 +661,24 @@ EOF
 # chmod recursively to a world-writable / lockout octal mode (777/666/000), in
 # any flag order, octal prefix tolerated (0777). Symbolic modes are out of scope.
 _is_dangerous_chmod() {
-  local c="$1"
+  local c="$1" seg
   # _CMD_BOUNDARY also covers path-qualified `/usr/bin/chmod` (see _is_dangerous_rm).
   [[ "$c" =~ ${_CMD_BOUNDARY}chmod[[:space:]] ]] || return 1
-  _has_recursive "$c" || return 1
-  # A leading special-permission digit `[0-7]?` (not just `0?`) so setuid/setgid/
-  # sticky forms — `chmod -R 4777`/`2777`/`6777`/`1777` (world-writable PLUS an
-  # elevated-privilege bit, strictly WORSE than a plain 777) — are caught, not only
-  # the plain-octal `0777` prefix. Benign modes (644/755/…) still don't match.
-  [[ "$c" =~ (^|[[:space:]])[0-7]?(7{3}|6{3}|0{3})([[:space:]]|$) ]] || return 1
-  return 0
+  # hooks-9 (2026-10-19): the recursive flag and the mode are scored on the
+  # `chmod` segment only — a `-R` or a `777` belonging to another command in the
+  # same line is not this chmod's.
+  while IFS= read -r seg; do
+    [[ "$seg" =~ ${_CMD_BOUNDARY}chmod[[:space:]] ]] || continue
+    _has_recursive "$seg" || continue
+    # A leading special-permission digit `[0-7]?` (not just `0?`) so setuid/setgid/
+    # sticky forms — `chmod -R 4777`/`2777`/`6777`/`1777` (world-writable PLUS an
+    # elevated-privilege bit, strictly WORSE than a plain 777) — are caught, not only
+    # the plain-octal `0777` prefix. Benign modes (644/755/…) still don't match.
+    [[ "$seg" =~ (^|[[:space:]])[0-7]?(7{3}|6{3}|0{3})${_CMD_END} ]] && return 0
+  done <<EOF
+$(_cmd_segments "$c")
+EOF
+  return 1
 }
 
 # `find` with a destructive action (-delete, or -exec rm/unlink/shred/truncate)
@@ -733,15 +742,30 @@ EOF
 # short force-delete flag (contains an uppercase D) OR the co-occurrence of
 # `--delete` and `--force` anywhere. (git global options are already stripped above.)
 _is_dangerous_git_branch_delete() {
-  local c="$1"
+  local c="$1" seg
   # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) — the narrower
   # class let `$(git branch -D main)` slip past (2026-07 review boundary gap).
   [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+branch${_CMD_END} ]] || return 1
-  # short combined flag containing D:  -D / -fD / -Df  (hooks-2: ${_CMD_END}
-  # terminator, so `-D;` / `-D)` count)
-  [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*D[a-zA-Z]*${_CMD_END} ]] && return 0
-  # long form: both --delete and --force present, in any order
-  { [[ "$c" =~ (^|[[:space:]])--delete${_CMD_END} ]] && [[ "$c" =~ (^|[[:space:]])--force${_CMD_END} ]]; } && return 0
+  # hooks-9 (2026-10-19): flags are scored on the `git branch` segment only.
+  # A `-D` belonging to another command (`npm i -D`, `ls -D`, `grep -D`) in the
+  # same line used to read as a force delete.
+  while IFS= read -r seg; do
+    [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+branch${_CMD_END} ]] || continue
+    # short combined flag containing D:  -D / -fD / -Df  (hooks-2: ${_CMD_END}
+    # terminator, so `-D;` / `-D)` count)
+    [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*D[a-zA-Z]*${_CMD_END} ]] && return 0
+    # delete + force in ANY spelling: --delete/-d with --force/-f, in any order
+    # (`-D` is git's own shortcut for exactly that pair, so `-d --force` and
+    # `-d -f` are the same force delete).
+    if { [[ "$seg" =~ (^|[[:space:]])--delete${_CMD_END} ]] \
+         || [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*d[a-zA-Z]*${_CMD_END} ]]; } \
+       && { [[ "$seg" =~ (^|[[:space:]])--force${_CMD_END} ]] \
+         || [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*f[a-zA-Z]*${_CMD_END} ]]; }; then
+      return 0
+    fi
+  done <<EOF
+$(_cmd_segments "$c")
+EOF
   return 1
 }
 
@@ -809,13 +833,62 @@ EOF
 # invocation for a force flag anywhere, mirroring _has_recursive. `git clean`
 # is a no-op without a force flag, so any force flag = a real untracked-file
 # wipe (deletes files git never tracked — no history recovery).
+# hooks-9 (2026-10-19): is the `git clean` invocation in $1 (the text AFTER the
+# `git clean` words of its own segment) a dry run? git honours -n / --dry-run
+# over -f, so `git clean -f -n` only lists. Token-aware on purpose:
+#  - a short cluster is read letter by letter; once `e` (exclude) is reached the
+#    REST of the cluster is the exclude pattern (`-fen` excludes "n" and is NOT a
+#    dry run), and a bare trailing `e` makes the NEXT token the pattern;
+#  - `--exclude PAT` consumes PAT; `--exclude=PAT` is one token;
+#  - `--` ends option parsing (a later `-n` is a pathspec);
+#  - last one wins, so `--no-dry-run` after `-n` re-arms the delete.
+# Anything it does not recognise leaves the verdict where it was.
+_git_clean_is_dry_run() {
+  local rest="$1" tok cl dry=1 want_val=0 _gf=0
+  case "$-" in *f*) _gf=1 ;; *) set -f ;; esac
+  for tok in $rest; do
+    tok="${tok%%[\`)<>]*}"
+    if [ "$want_val" = 1 ]; then want_val=0; continue; fi
+    case "$tok" in
+      --) break ;;
+      --dry-run) dry=0 ;;
+      --no-dry-run) dry=1 ;;
+      --exclude) want_val=1 ;;
+      --*) ;;
+      -?*)
+        cl="${tok#-}"
+        while [ -n "$cl" ]; do
+          case "$cl" in
+            n*) dry=0 ;;
+            e) want_val=1; break ;;
+            e*) break ;;
+          esac
+          cl="${cl#?}"
+        done
+        ;;
+    esac
+  done
+  [ "$_gf" = 1 ] || set +f
+  return $dry
+}
+
 _is_dangerous_git_clean() {
-  local c="$1"
+  local c="$1" seg
   [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+clean${_CMD_END} ]] || return 1
-  # -f in ANY bundled short-flag cluster (-f / -fd / -df / -xf), any position.
-  # hooks-2: terminated by ${_CMD_END} so `-fd;` / `-fd)` count.
-  [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*f[a-zA-Z]*${_CMD_END} ]] && return 0
-  [[ "$c" =~ (^|[[:space:]])--force${_CMD_END} ]] && return 0
+  # hooks-9: scored on the `git clean` segment only — a `-f` or `-n` that
+  # belongs to `make -f` / `make -n` in the same line is not git's.
+  while IFS= read -r seg; do
+    [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+clean${_CMD_END} ]] || continue
+    # -f in ANY bundled short-flag cluster (-f / -fd / -df / -xf), any position.
+    # hooks-2: terminated by ${_CMD_END} so `-fd;` / `-fd)` count.
+    { [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*f[a-zA-Z]*${_CMD_END} ]] \
+      || [[ "$seg" =~ (^|[[:space:]])--force${_CMD_END} ]]; } || continue
+    # A forced clean that is ALSO a dry run only lists (git -n beats -f).
+    _git_clean_is_dry_run "${seg#*git clean}" && continue
+    return 0
+  done <<EOF
+$(_cmd_segments "$c")
+EOF
   return 1
 }
 
