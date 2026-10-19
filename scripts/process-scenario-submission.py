@@ -29,9 +29,10 @@ Purity contract (mirrors sanitize-webfetch-body.py):
     - deterministic (same input -> same output)
     - no network, no subprocess, no eval/exec/dynamic import
     - reads only environment variables (never argv content)
-    - the injection-strip + secret patterns are the canonical marketplace patterns,
-      kept in sync with hooks/_scrub.sh and
-      plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py
+    - the secret patterns are the SECRET_SPEC deny ("D") set, and the injection-strip
+      patterns are VENDORED byte-for-byte from
+      plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py — the parity is
+      asserted by scripts/check-intake-sanitizer-parity.py, not by this comment
 """
 
 from __future__ import annotations
@@ -48,21 +49,29 @@ MAX_PRODUCT = 120
 MAX_FREETEXT = 500
 MAX_BODY_BYTES = 64 * 1024  # an issue body over this is refused outright
 
-# --- Secret-shape patterns (mirror of hooks/_scrub.sh _secret_patterns) ---------------
+# --- Secret-shape patterns (the SECRET_SPEC "D set" — deny/refusal gates) -------------
 # On ANY match the submission is REJECTED (not scrubbed-and-staged): a secret in an
 # external submission is a security event, so we close the issue and stage nothing.
+# Compiled with re.IGNORECASE, so the vendor prefixes that are case-sensitive in
+# reality are pinned with a scoped `(?-i:…)`. repo-review 2026-10-19:
+#   corescripts-1 — `sk-` now has a LEFT boundary. Unanchored, it matched any word
+#     ENDING in "sk" plus a 20+ char kebab tail ("ta" + "sk-management-and-planning"),
+#     so an ordinary kebab-case phrase was rejected as a secret.
+#   hooks-13 — every GitHub token class (gho_/ghu_/ghs_/ghr_), not only ghp_.
+# The Bearer / `-u user:pass` / env-assignment shapes are deliberately NOT here: as
+# hard rejects they false-positive on `docker run -u 1000:1000` and on a header that
+# references `$TOKEN`; they belong to the redaction set, not a refusal gate.
 SECRET_PATTERNS = [
     r"AKIA[0-9A-Z]{12,}",
-    r"sk-(ant-)?[A-Za-z0-9-]{20,}",
-    r"sk_live_[A-Za-z0-9]{24,}",
-    r"rk_live_[A-Za-z0-9]{24,}",
-    r"ghp_[A-Za-z0-9]{30,}",
+    r"(?<![A-Za-z0-9])(?-i:sk-)(?:ant-|proj-)?[A-Za-z0-9_-]{20,}",
+    r"(?-i:[sr]k_live_)[A-Za-z0-9]{24,}",
+    r"(?-i:gh[pousr]_)[A-Za-z0-9]{30,}",
     r"github_pat_[A-Za-z0-9_]{20,}",
     r"glpat-[A-Za-z0-9_-]{15,}",
     r"xox[baprs]-[A-Za-z0-9-]{10,}",
     r"AIza[0-9A-Za-z_-]{30,}",
-    r"npm_[A-Za-z0-9]{30,}",
-    r"hf_[A-Za-z0-9]{30,}",
+    r"(?-i:npm_)[A-Za-z0-9]{30,}",
+    r"(?-i:hf_)[A-Za-z0-9]{30,}",
     r"AccountKey=[A-Za-z0-9+/=]{20,}",
     r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}",
     r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
@@ -71,6 +80,28 @@ SECRET_PATTERNS = [
     r"(^|\s)-p[^\s\d][^\s]{15,}",
     r"(https?|postgres(ql)?|mysql|mongodb|redis|amqp|smtp)s?://[A-Za-z0-9._-]{2,}:[A-Za-z0-9._%+-]{4,}@",
 ]
+# The pattern CLASS named in a rejection (never the matched text), index-aligned
+# with SECRET_PATTERNS.
+SECRET_CLASSES = [
+    "aws-access-key-id",
+    "sk-api-key",
+    "stripe-live-key",
+    "github-token",
+    "github-fine-grained-pat",
+    "gitlab-pat",
+    "slack-token",
+    "google-api-key",
+    "npm-token",
+    "huggingface-token",
+    "azure-storage-account-key",
+    "jwt",
+    "pem-private-key",
+    "password-flag",
+    "token-flag",
+    "short-p-password-flag",
+    "url-embedded-credential",
+]
+assert len(SECRET_CLASSES) == len(SECRET_PATTERNS), "SECRET_CLASSES must align"
 SECRET_RE = [re.compile(p, re.IGNORECASE) for p in SECRET_PATTERNS]
 
 # A few high-confidence PII shapes the secret list doesn't cover. Like secrets, a
@@ -84,29 +115,84 @@ PII_PATTERNS = [
     r"\b[A-Za-z0-9._%+-]+@(?!(?:example\.com|example\.org|contoso\.com|test\.com)(?![A-Za-z0-9.-]))[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b",
 ]
 PII_RE = [re.compile(p, re.IGNORECASE) for p in PII_PATTERNS]
+PII_CLASSES = ["us-ssn", "email-address"]
 
-# --- Injection-strip patterns (mirror of plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py) ---
+# --- Injection-strip patterns (VENDORED from plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py) ---
 # These are STRIPPED (not rejected) — they neuter prompt-injection machinery so the
 # staged file, when later read by a maintainer's Claude session, can't carry an
 # instruction. The content survives; only the injection scaffolding is removed.
+#
+# repo-review 2026-10-19 (cicd-2): this list had silently drifted from the canonical
+# sanitizer it claims to mirror — non-greedy `.*?` (a NESTED DECOY strips only to
+# the inner close and leaves the real payload bare) and none of the four
+# UNTERMINATED-tag arms (omit the closing tag and nothing is stripped at all).
+# Patterns 1-9 below are now the canonical patterns byte-for-byte (pattern 4 in its
+# line-local `^[ \t]*` form). They are VENDORED, not imported, because this file's
+# purity contract forbids dynamic import; scripts/check-intake-sanitizer-parity.py
+# imports BOTH modules and fails if any canonical pattern or flag is missing here.
 INJECTION_PATTERNS = [
-    re.compile(r"<system-reminder\b[^>]*>.*?</system-reminder>", re.DOTALL | re.IGNORECASE),
-    re.compile(r"<system-instruction\b[^>]*>.*?</system-instruction>", re.DOTALL | re.IGNORECASE),
+    # 1-3, 5: paired tags/fences — GREEDY, so a nested decoy is removed to the LAST close.
+    re.compile(r"<system-reminder\b[^>]*>.*</system-reminder>", re.DOTALL | re.IGNORECASE),
+    re.compile(r"<system-instruction\b[^>]*>.*</system-instruction>", re.DOTALL | re.IGNORECASE),
     re.compile(
-        r"<important\b[^>]*>\s*(?:IMPORTANT|MUST|NEVER|ALWAYS)[:\s].*?</important>",
+        r"<important\b[^>]*>\s*(?:IMPORTANT|MUST|NEVER|ALWAYS)[:\s].*</important>",
         re.DOTALL | re.IGNORECASE,
     ),
     re.compile(
-        r"(?m)^\s*(?:SYSTEM|INSTRUCTION|SYSTEM PROMPT|NEW INSTRUCTIONS?)\s*[:>][^\n]*\n?",
+        r"(?m)^[ \t]*(?:SYSTEM|INSTRUCTION|SYSTEM PROMPT|NEW INSTRUCTIONS?)\s*[:>][^\n]*\n?",
         re.IGNORECASE,
     ),
-    re.compile(r"```\s*system\b[^\n]*\n.*?```", re.DOTALL | re.IGNORECASE),
-    # The classic role-reset / disregard shapes (from review-staged-contributions).
-    # `ignore … instructions` allows intervening words (e.g. "ignore all previous instructions").
-    re.compile(r"(?im)^.*\bignore\b[^.\n]*\b(?:instructions|prompts)\b.*$\n?"),
+    re.compile(
+        r"(?m)^[ \t]*```[ \t]*system\b[^\n]*\n.*```",
+        re.DOTALL | re.IGNORECASE,
+    ),
+    # 6-9: UNTERMINATED opening tags/fences, stripped through end-of-input.
+    re.compile(r"<system-reminder\b[^>]*>.*\Z", re.DOTALL | re.IGNORECASE),
+    re.compile(r"<system-instruction\b[^>]*>.*\Z", re.DOTALL | re.IGNORECASE),
+    re.compile(
+        r"<important\b[^>]*>\s*(?:IMPORTANT|MUST|NEVER|ALWAYS)[:\s].*\Z",
+        re.DOTALL | re.IGNORECASE,
+    ),
+    re.compile(r"(?m)^[ \t]*```[ \t]*system\b.*\Z", re.DOTALL | re.IGNORECASE),
+    # Intake-only line rules: the classic role-reset / disregard shapes (from
+    # review-staged-contributions). The `ignore … instructions` rule is NOT here:
+    # see _drop_ignore_instruction_lines (scripts-25).
     re.compile(r"(?im)^.*\bdisregard (?:the above|all previous|previous)\b.*$\n?"),
     re.compile(r"(?im)^.*\byou are now\b.*$\n?"),
 ]
+
+# `ignore … instructions|prompts`, applied PER LINE with a BOUNDED gap (scripts-25).
+# The old whole-text form `^.*\bignore\b[^.\n]*\b(?:instructions|prompts)\b.*$`
+# backtracked once per "ignore" over the rest of the line — quadratic: a 32 KB
+# single line of repeated "ignore " cost ~2 s per call, on an endpoint any GitHub
+# account can feed. Bounded to 200 chars, each line is searched in linear time.
+_IGNORE_INSTRUCTIONS = re.compile(
+    r"\bignore\b[^.\n]{0,200}\b(?:instructions|prompts)\b", re.IGNORECASE
+)
+
+
+def _drop_ignore_instruction_lines(text: str) -> str:
+    """Remove every line (and its newline) that carries an ignore-instructions phrase."""
+    parts = text.split("\n")
+    out = []
+    for idx, part in enumerate(parts):
+        if _IGNORE_INSTRUCTIONS.search(part):
+            continue
+        out.append(part if idx == len(parts) - 1 else part + "\n")
+    return "".join(out)
+
+
+def _defang_links(text: str) -> str:
+    """Neutralise markdown link/image syntax in staged free text (cicd-3).
+
+    A relative link a submitter types into Problem/Resolution survived into
+    docs/staging/incoming/external/, where the whole-tree md-links gate (inside the
+    required `Validate manifests and hooks` check) reads it — one broken target turned
+    every later PR red. `](` -> `] (` is no longer a link (CommonMark allows no space
+    there), covers `![alt](src)` too, and keeps the text readable.
+    """
+    return text.replace("](", "] (")
+
 
 # Banned frontmatter field NAMES — these must NEVER appear in a staged file even if
 # the parser is extended later. Defense for R-PRIV's never-capture rule.
@@ -144,17 +230,20 @@ def _strip_injection(text: str) -> str:
     out = _normalize_intake(text)
     for pat in INJECTION_PATTERNS:
         out = pat.sub("", out)
-    return out
+    return _drop_ignore_instruction_lines(out)
 
 
 def _has_secret_or_pii(text: str) -> str | None:
-    """Return a redacted reason string if a secret/PII shape is present, else None."""
-    for rx in SECRET_RE:
+    """Return a redacted reason string if a secret/PII shape is present, else None.
+
+    The reason names the pattern CLASS (corescripts-1) so a false positive is
+    diagnosable from the issue comment — never the matched text itself."""
+    for cls, rx in zip(SECRET_CLASSES, SECRET_RE):
         if rx.search(text):
-            return "secret-shaped content detected"
-    for rx in PII_RE:
+            return f"secret-shaped content detected ({cls})"
+    for cls, rx in zip(PII_CLASSES, PII_RE):
         if rx.search(text):
-            return "personal-identifier-shaped content detected"
+            return f"personal-identifier-shaped content detected ({cls})"
     return None
 
 
@@ -292,10 +381,12 @@ def main() -> int:
         return 0
 
     # --- Normalize + cap (the form caps these; we re-cap as defense in depth). ---
-    title = _strip_injection(fields["scenario_title"]).strip()[:MAX_TITLE]
-    product = _strip_injection(fields["product"]).strip()[:MAX_PRODUCT]
-    problem = _strip_injection(fields["problem"]).strip()[:MAX_FREETEXT]
-    resolution = _strip_injection(fields["resolution"]).strip()[:MAX_FREETEXT]
+    # _defang_links AFTER the strip (cicd-3): staged free text carries no live
+    # markdown link, so a submitter's relative link cannot break the md-links gate.
+    title = _defang_links(_strip_injection(fields["scenario_title"])).strip()[:MAX_TITLE]
+    product = _defang_links(_strip_injection(fields["product"])).strip()[:MAX_PRODUCT]
+    problem = _defang_links(_strip_injection(fields["problem"])).strip()[:MAX_FREETEXT]
+    resolution = _defang_links(_strip_injection(fields["resolution"])).strip()[:MAX_FREETEXT]
     # Re-gate the EXACT capped text that will be written (defense in depth).
     staged_reason = _has_secret_or_pii("\n".join((title, product, problem, resolution)))
     if staged_reason:
