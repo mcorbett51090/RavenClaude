@@ -33,7 +33,13 @@ cleanup() {
   done
   rm -rf "$TMP"
 }
-trap cleanup EXIT INT TERM
+# Three traps, not one: a handler registered for INT/TERM that does not exit
+# RETURNS, and the script resumes — so a Ctrl-C or a CI cancel deleted $TMP and
+# the remaining gates kept running against it. INT/TERM now exit (130/143) and
+# the EXIT trap runs cleanup exactly once on the way out.
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 gate() {
   local name=$1
