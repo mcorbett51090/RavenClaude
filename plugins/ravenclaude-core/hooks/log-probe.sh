@@ -73,7 +73,9 @@ sid  = d.get("session_id", "nosession")
 
 if not isinstance(tr, dict):
     tr = {"stdout": str(tr)}
-out = (str(tr.get("stdout", "")) + "\n" + str(tr.get("stderr", "")))[:20000]
+stdout_s = str(tr.get("stdout", ""))[:20000]
+stderr_s = str(tr.get("stderr", ""))[:20000]
+out = (stdout_s + "\n" + stderr_s)[:20000]
 
 # ── SUBJECT: what was probed. Derived, never the raw command. ───────────────
 cmd = str(ti.get("command", "") or ti.get("url", ""))
@@ -128,6 +130,62 @@ is_http = (
     or bool(_HTTP_CLIENT.search(cmd))
 )
 
+# ── WAS THIS A DISPLAY OF CONTENT, NOT A PROBE? (hooks-3, 2026-10-19) ───────
+# A reader or search tool prints FILE CONTENT on stdout. A source file or doc
+# that merely contains the words "does not exist" or "not found" is not a
+# failed probe, but the text arms below matched it as one: an ordinary sed -n
+# of a script recorded `negative/does-not-exist`, and guard-premise.sh then
+# denied creating any new module, citing a read nobody meant as a probe.
+#
+# So when the first word (after env/sudo/cd wrappers) is a reader or search
+# tool AND stdout is non-empty, stdout is CONTENT: the text arms run on stderr
+# only. Two things keep this from becoming a false CLEAR, which is the
+# dangerous direction for this gate:
+#   - when the command merges streams (2>&1, &>, |&) the real error lands on
+#     stdout and stderr is empty, so on stdout we still match anchored
+#     shell-error LINES of the form <tool>: <path>: No such file or directory;
+#   - the empty-search arm (a grep that printed nothing) is untouched, because
+#     display requires non-empty stdout.
+# The bare-status (HTTP) arms run on a display command only when a real network
+# client is in it: a URL inside a grep pattern does not make the grep a fetch.
+_DISPLAY_TOOLS = {"cat", "sed", "head", "tail", "awk", "gawk", "mawk", "nawk",
+                  "less", "bat", "nl", "jq", "grep", "egrep", "fgrep", "rg", "ag"}
+_WRAPPERS = {"env", "sudo", "command", "nice", "nohup", "time", "exec"}
+
+def first_word(c):
+    toks = c.strip().split()
+    i = 0
+    while i < len(toks):
+        t = toks[i]
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", t):
+            i += 1
+            continue
+        base = os.path.basename(t)
+        if base in _WRAPPERS:
+            i += 1
+            while i < len(toks) and toks[i].startswith("-"):
+                i += 1
+            continue
+        if base == "cd" and i + 2 < len(toks) and toks[i + 2] in ("&&", ";"):
+            i += 3
+            continue
+        return base
+    return ""
+
+display = first_word(cmd) in _DISPLAY_TOOLS and bool(stdout_s.strip())
+merged = bool(re.search(r"2>&1|&>|\|&", cmd))
+_SHELL_ERR_LINE = re.compile(
+    r"^[\w.+-]+: .*(?:No such file or directory|Permission denied)\)?\s*$", re.M)
+if display:
+    text_out = stderr_s
+    if merged:
+        text_out = text_out + "\n" + "\n".join(
+            mm.group(0) for mm in _SHELL_ERR_LINE.finditer(stdout_s))
+    http_arms = tool == "WebFetch" or bool(_HTTP_CLIENT.search(cmd))
+else:
+    text_out = out
+    http_arms = is_http
+
 # ── VERDICT: negative | positive | indeterminate | neutral ──────────────────
 # A NEGATIVE is a result that invites the inference "X is broken/absent".
 _NEG_STATUS = [
@@ -141,7 +199,11 @@ _NEG_TEXT = [
     (r"\bPermission denied\b", "permission-denied"),
     (r"\b(?:0 hits|no matches found|0 results)\b", "zero-match"),
 ]
-NEG = (_NEG_STATUS + _NEG_TEXT) if is_http else _NEG_TEXT
+# (pattern, label, text-to-search). Status arms read the whole output and run
+# only for an HTTP probe; text arms read `text_out`, which is the whole output
+# unless this was a display command (see the display block above).
+NEG = ([(p, lab, out) for p, lab in _NEG_STATUS] if http_arms else []) \
+    + [(p, lab, text_out) for p, lab in _NEG_TEXT]
 
 # ── INDETERMINATE, CHECKED FIRST — a NON-result, not a negative result. ─────
 # The probe never reached the question: rate-limited, the server errored, the
@@ -165,11 +227,12 @@ _INDET_TEXT = [
     (r"\b(?:Connection refused|Connection reset|Could not resolve host"
      r"|Temporary failure in name resolution|Network is unreachable)\b", "unreachable"),
 ]
-INDET = (_INDET_STATUS + _INDET_TEXT) if is_http else _INDET_TEXT
+INDET = ([(p, lab, out) for p, lab in _INDET_STATUS] if http_arms else []) \
+    + [(p, lab, text_out) for p, lab in _INDET_TEXT]
 
 verdict, label = "neutral", ""
-for pat, lab in INDET:
-    mm = re.search(pat, out, re.I | re.M)
+for pat, lab, txt in INDET:
+    mm = re.search(pat, txt, re.I | re.M)
     if mm:
         verdict, label = "indeterminate", lab
         break
@@ -180,12 +243,12 @@ for pat, lab in INDET:
 # nobody probed, which is the false-clear twin of the false-deny. A non-HTTP
 # Bash call that produced output still records `positive/ok` through the
 # fallback below, so nothing that used to clear stops clearing.
-_pos = bool(is_http and re.search(r"(?:^|\s|\b)(2\d\d|3\d\d)(?:\s|$)", out, re.M))
+_pos = bool(http_arms and re.search(r"(?:^|\s|\b)(2\d\d|3\d\d)(?:\s|$)", out, re.M))
 
 if verdict == "neutral":
     _neg = None
-    for pat, lab in NEG:
-        mm = re.search(pat, out, re.I | re.M)
+    for pat, lab, txt in NEG:
+        mm = re.search(pat, txt, re.I | re.M)
         if mm:
             _neg = lab.format(*mm.groups()) if "{0}" in lab else lab
             break
