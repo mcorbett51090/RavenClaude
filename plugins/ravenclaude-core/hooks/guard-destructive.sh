@@ -564,6 +564,11 @@ _scan_git_alias_names() {
   # name from the first).
   local fname fbody
   remain="$c"
+  # guards-new-4: both function-definition scans below need a literal `()`. On a
+  # long command with none, the unanchored `NAME[[:space:]]*\(\)` regex alone
+  # cost tens of seconds (a 32 KB single token took ~23 s), so skip the scan
+  # outright — exact, not a heuristic, because no match is possible.
+  [[ "$c" == *"()"* ]] || remain=""
   while [[ "$remain" =~ ([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*\(\)[[:space:]]*\{([^}]*)\} ]]; do
     whole="${BASH_REMATCH[0]}"
     [ -z "$whole" ] && break
@@ -575,6 +580,7 @@ _scan_git_alias_names() {
     remain="${remain#*"$whole"}"
   done
   remain="$c"
+  [[ "$c" == *"()"* ]] || remain=""   # guards-new-4 (see above)
   while [[ "$remain" =~ ([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*\(\)[[:space:]]*\(([^\)]*)\) ]]; do
     whole="${BASH_REMATCH[0]}"
     [ -z "$whole" ] && break

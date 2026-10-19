@@ -352,6 +352,48 @@ for spec in "sudo:-u r :11000" "pipe:x | env :6900"; do
   fi
 done
 
+# ── guards-new-4 (2026-10-19): the function-definition scans need a literal `()`
+echo
+echo "── guards-new-4: no \`()\` -> the alias/function scan is skipped ────────────"
+for c in \
+  "g() { $G \"\$@\"; }; g checkout main && g merge feature" \
+  "g() ( $G \"\$@\" ); g checkout main && g merge feature"; do
+  _gd "$c"
+  if [ "$GD_RC" -eq 2 ]; then pass "deny (function wrapper): $c"; else fail "deny expected 2, got $GD_RC: $c"; fi
+done
+long_tok="$(python3 -c 'print("a" * 32000, end="")')"
+_time_gd "$long_tok"
+if [ "${GD_MS:-99999}" -lt 2000 ]; then
+  pass "guards-new-4: 32 KB single token scanned in ${GD_MS} ms (< 2000 ms)"
+else
+  fail "guards-new-4: 32 KB single token took ${GD_MS} ms (>= 2000 ms)"
+fi
+# Teeth: without the precheck the same shape is quadratic. A 16 KB token keeps
+# the mutant run short while still being far past the 2 s bound.
+MUT4="$(mktemp)"
+if python3 - "$HOOK" "$MUT4" <<'PY'
+import sys
+from pathlib import Path
+src = Path(sys.argv[1]).read_text()
+pre = '[[ "$c" == *"()"* ]] || remain=""'
+if src.count(pre) != 2:
+    sys.exit(2)
+Path(sys.argv[2]).write_text(src.replace(pre, ":"))
+PY
+then
+  HOOK_SAVE="$HOOK"; HOOK="$MUT4"
+  _time_gd "$(python3 -c 'print("a" * 16000, end="")')"
+  HOOK="$HOOK_SAVE"
+  if [ "${GD_MS:-0}" -ge 2000 ]; then
+    pass "teeth (guards-new-4): without the precheck a 16 KB token takes ${GD_MS} ms"
+  else
+    fail "teeth (guards-new-4): mutant was fast (${GD_MS} ms) — the timing assertion is not measuring the precheck"
+  fi
+else
+  fail "teeth (guards-new-4): precheck lines not found (expected exactly 2)"
+fi
+rm -f "$MUT4"
+
 echo
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1
