@@ -1897,9 +1897,49 @@ _looks_unresolvable_method_value() {
   return 1
 }
 
+# hooks-8 (2026-10-19): a few everyday tools use `-X` for something that is not an
+# HTTP method — `mvn -X` / `gradle -X` (debug), `ls -X` / `sort -X` (sort by
+# extension / version), `java -X` and `java -Xmx$HEAP` (non-standard options).
+# For a PIPE STAGE whose command word is one of those, the two AMBIGUOUS arms are
+# skipped: a bare trailing `-X`, and `-X` followed (spaced or glued) by a value we
+# cannot resolve. A literal DELETE is never suppressed, the `--method` /
+# `--request` / `-X=` forms are never suppressed, and the exemption is decided per
+# pipe stage, so `ls | xargs <client> -X` is still the xargs stage's `-X`. Command
+# runners (ssh, sudo, env, xargs, nohup, sh -c, python -c) are deliberately NOT in
+# the list: their `-X` may well belong to a client they launch.
+_DELETE_X_EXEMPT=" mvn mvnw gradle gradlew ls java sort "
+_delete_x_stage_exempt() { # $1 = the first word of a pipe stage -> 0 if exempt
+  local w="$1"
+  # `x=$(ls -X)`: the command is inside the assignment's substitution. A plain
+  # `FOO=1 ls -X` leaves `1` here, which is simply not exempt (conservative).
+  case "$w" in [A-Za-z_]*=*) w="${w#*=}" ;; esac
+  while :; do
+    case "$w" in
+      '$('*) w="${w#??}" ;;
+      '('*|'{'*|'`'*|'!'*) w="${w#?}" ;;
+      *) break ;;
+    esac
+  done
+  w="${w##*/}"
+  [ -n "$w" ] || return 1
+  case "$_DELETE_X_EXEMPT" in *" $w "*) return 0 ;; esac
+  return 1
+}
+
 _seg_has_delete_method() {
-  local seg="$1" word prev=""
+  local seg="$1" word w prev="" new_stage=1 exempt=1 _gf=0 after
+  # 1012-guard-glob: word-split without pathname expansion (a literal `*` token
+  # must scan as itself, not as the file names in the hook's cwd).
+  case "$-" in *f*) _gf=1 ;; *) set -f ;; esac
   for word in $seg; do
+    if [ "$new_stage" = 1 ]; then
+      exempt=1
+      _delete_x_stage_exempt "$word" && exempt=0
+      new_stage=0
+    fi
+    # The word with any glued closer / redirect / pipe tail removed, for flag
+    # NAME comparison only (`-X)`, `-X>/dev/null`, `-X|cat` are a bare `-X`).
+    w="${word%%[\`)<>|]*}"
     case "$prev" in
       -X|--method|--request)
         case "$word" in
@@ -1911,9 +1951,12 @@ _seg_has_delete_method() {
           # already-fixed glued `-XDELETE|cat` case (round 14), but this
           # is the SPACED flag form, which that fix didn't reach. Widened
           # to accept anything glued after the literal DELETE.
-          [Dd][Ee][Ll][Ee][Tt][Ee]*) return 0 ;;
+          [Dd][Ee][Ll][Ee][Tt][Ee]*) [ "$_gf" = 1 ] || set +f; return 0 ;;
         esac
-        _looks_unresolvable_method_value "$word" && return 0
+        # hooks-8: in an exempt stage a spaced `-X <unresolvable>` is ambiguous.
+        if [ "$prev" != "-X" ] || [ "$exempt" != 0 ]; then
+          _looks_unresolvable_method_value "$word" && { [ "$_gf" = 1 ] || set +f; return 0; }
+        fi
         ;;
     esac
     case "$word" in
@@ -1934,9 +1977,9 @@ _seg_has_delete_method() {
         # pre-fix. Widened to accept anything glued after DELETE, exactly
         # like the spaced-form fix.
         case "${word#*=}" in
-          [Dd][Ee][Ll][Ee][Tt][Ee]*) return 0 ;;
+          [Dd][Ee][Ll][Ee][Tt][Ee]*) [ "$_gf" = 1 ] || set +f; return 0 ;;
         esac
-        _looks_unresolvable_method_value "${word#*=}" && return 0
+        _looks_unresolvable_method_value "${word#*=}" && { [ "$_gf" = 1 ] || set +f; return 0; }
         ;;
       # Round 14 (2026-09-23, Bugbot): the old exact-match glued arm
       # (`-X[Dd][Ee][Ll][Ee][Tt][Ee]` with no trailing `*`) required the
@@ -1947,13 +1990,31 @@ _seg_has_delete_method() {
       # match. Widened to accept anything glued after DELETE. Also covers
       # the glued-but-unresolvable spellings (`-X$M`, `-X$(...)`, `-X{}`)
       # by checking the remainder after stripping the "-X" prefix.
-      -X[Dd][Ee][Ll][Ee][Tt][Ee]*) return 0 ;;  # curl's glued -XDELETE form, with or without a glued redirect/pipe suffix
+      -X[Dd][Ee][Ll][Ee][Tt][Ee]*) [ "$_gf" = 1 ] || set +f; return 0 ;;  # curl's glued -XDELETE form, with or without a glued redirect/pipe suffix
       -X?*)
-        _looks_unresolvable_method_value "${word#-X}" && return 0
+        # hooks-8: in an exempt stage a glued `-X<unresolvable>` is ambiguous
+        # (`java -Xmx$HEAP`).
+        if [ "$exempt" != 0 ]; then
+          _looks_unresolvable_method_value "${word#-X}" && { [ "$_gf" = 1 ] || set +f; return 0; }
+        fi
         ;;
     esac
-    prev="$word"
+    prev="$w"
+    # A `|` in this word starts a new pipe stage; text glued after the last `|`
+    # is that stage's first word.
+    case "$word" in
+      *'|'*)
+        after="${word##*|}"
+        if [ -n "$after" ]; then
+          exempt=1
+          _delete_x_stage_exempt "$after" && exempt=0
+        else
+          new_stage=1
+        fi
+        ;;
+    esac
   done
+  [ "$_gf" = 1 ] || set +f
   # Round 14 (2026-09-23, Bugbot): a BARE trailing -X/--method/--request
   # (no value at all in the visible text -- `printf DELETE | xargs curl
   # -X`) leaves $prev set to the flag with the loop simply ending, so the
@@ -1964,7 +2025,8 @@ _seg_has_delete_method() {
   # danger is expressed in content we can't inspect), treat a trailing
   # bare method flag as dangerous too.
   case "$prev" in
-    -X|--method|--request) return 0 ;;
+    -X) [ "$exempt" = 0 ] || return 0 ;;   # hooks-8: ambiguous in an exempt stage
+    --method|--request) return 0 ;;
   esac
   return 1
 }

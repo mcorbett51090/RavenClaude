@@ -70,6 +70,12 @@ deny=(
   "mvn -X clean | xargs $C $U -X"
   "echo x > m; ls m | xargs $C $U -X"
   "(ls; $C -X $D $U)"
+  # a bare trailing -X glued to a closer / redirect is still a bare -X
+  "(printf $D | xargs $C $U -X)"
+  "x=\$(printf $D | xargs $C $U -X)"
+  "printf $D | xargs $C $U -X>/dev/null"
+  "($C -X \$M $U)"
+  "java -Xmx1g -jar a.jar; $C -X \$M $U"
 )
 for c in "${deny[@]}"; do
   _gd "$c"
@@ -104,6 +110,40 @@ if [ "$GD_RC" -eq 0 ]; then
   pass "teeth: without the detector the plainest DELETE is allowed (the table measures it)"
 else
   fail "teeth: detector-removed mutant gave rc $GD_RC (expected 0)"
+fi
+
+echo
+echo "── hooks-8: -X on tools where it is not an HTTP method is allowed ──────────"
+XF="-""X"
+allow=(
+  "mvn $XF clean"
+  "mvn clean install $XF"
+  "./mvnw $XF package"
+  "gradle build $XF"
+  "./gradlew $XF test"
+  "ls $XF"
+  "ls -l$XF"
+  "java $XF"
+  "java ${XF}mx\$HEAP -jar app.jar"
+  "java ${XF}ss\$STACK -cp . Main"
+  "sort $XF file.txt"
+  "sort $XF \$M"
+  "mvn $XF \$GOALS"
+  "(ls $XF)"
+  "(mvn $XF clean)"
+  "x=\$(ls $XF)"
+  "ls $XF | head"
+)
+for c in "${allow[@]}"; do
+  _gd "$c"
+  if [ "$GD_RC" -eq 0 ]; then pass "allow: $c"; else fail "allow expected 0, got $GD_RC: $c"; fi
+done
+_mutant_rc '_DELETE_X_EXEMPT=" mvn mvnw gradle gradlew ls java sort "' '_DELETE_X_EXEMPT=" "' \
+  "mvn clean install $XF"
+if [ "$GD_RC" -eq 2 ]; then
+  pass "teeth: with an empty exemption list the trailing mvn -X is denied again"
+else
+  fail "teeth: empty-exemption mutant gave rc $GD_RC (expected 2)"
 fi
 
 echo
