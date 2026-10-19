@@ -46,7 +46,8 @@ unset CLAUDECODE
 # ONE resolver, reused — do NOT re-solve. Called by Gate 10 AND Gate 188 (and
 # their --check dispatcher entries, which run before the main helper defs, so
 # these must live above the dispatcher). Resolves a RUNNABLE actionlint binary
-# from PATH -> /tmp cache -> a checksum-pinned per-platform download
+# from PATH -> a per-user cache of the pinned tarball (sha256 re-checked on every
+# use) -> a checksum-pinned per-platform download
 # (rhysd/actionlint v1.7.7), setting the global AL_BIN ("" if unresolvable).
 # Idempotent + runnability-probed: a binary we cannot EXECUTE (wrong arch,
 # corrupt, Gatekeeper) is dropped, never treated as usable — that exact false
@@ -75,18 +76,30 @@ _resolve_actionlint() { # sets global AL_BIN
     *)                         AL_ASSET=""; AL_SHA="" ;;   # unknown platform -> do not download
   esac
   AL_BIN=""
+  # scripts-11 (repo-review 2026-10-19): the old second arm executed ANY file at
+  # the world-writable, predictable /tmp/actionlint with no checksum — a binary
+  # another local user could plant. The cache is now per-user and holds the
+  # pinned TARBALL; its sha256 is re-checked on every use and the binary is
+  # extracted to a fresh mktemp dir, so a swapped cache file is never executed.
+  local al_cache="${XDG_CACHE_HOME:-${HOME:-/nonexistent}/.cache}/ravenclaude/actionlint-${AL_VER}/actionlint_${AL_VER}_${AL_ASSET:-none}.tar.gz"
+  local d tgz
   if command -v actionlint >/dev/null 2>&1; then
     AL_BIN="$(command -v actionlint)"
-  elif [[ -x /tmp/actionlint ]]; then
-    AL_BIN=/tmp/actionlint
+  elif [[ -n "$AL_ASSET" && -f "$al_cache" ]] && _al_sha_ok "$AL_SHA" "$al_cache"; then
+    d="$(mktemp -d)"
+    if tar -xzf "$al_cache" -C "$d" actionlint 2>/dev/null; then
+      chmod +x "$d/actionlint"
+      AL_BIN="$d/actionlint"
+    fi
   elif [[ -n "$AL_ASSET" ]]; then
-    local d tgz
     d="$(mktemp -d)"; tgz="$d/actionlint.tgz"
     if curl -fsSL --connect-timeout 5 -m 30 "https://github.com/rhysd/actionlint/releases/download/v${AL_VER}/actionlint_${AL_VER}_${AL_ASSET}.tar.gz" -o "$tgz" 2>/dev/null \
       && _al_sha_ok "$AL_SHA" "$tgz" \
       && tar -xzf "$tgz" -C "$d" actionlint 2>/dev/null; then
       chmod +x "$d/actionlint"
       AL_BIN="$d/actionlint"
+      # Cache the VERIFIED tarball (best-effort; a cache write failure is harmless).
+      mkdir -p "$(dirname "$al_cache")" 2>/dev/null && cp "$tgz" "$al_cache" 2>/dev/null || true
     fi
   fi
   # Runnability probe — the load-bearing false-green fix.
@@ -128,6 +141,29 @@ _gate188_file_ok() { # $1=rendered .yml — returns 0 if hygienic, prints reason
     echo "  ✗ $(basename "$f"): carries a paths/branches filter" >&2; rc=1
   fi
   return "$rc"
+}
+
+# ── Gate 308 helper: the Codex projector with its FIRST _SKIP entry dropped ──
+# Shared by the --check dispatcher and the main sequence (both run it, so it
+# must live above the dispatcher). The mutant path is REPO-RELATIVE
+# (scripts/.<name>): the generator resolves its manifest through
+# Path(__file__).resolve().parent.parent, so a $TMP mutant would die at build()
+# before --check runs and the teeth would pass for the wrong reason (the hollow
+# shape Gate 158 records). Returns non-zero when no entry was removed (anchor
+# drift); both callers treat that as a hard failure, never a skip.
+# (\x7b, not a literal brace: check-gate-registration.py finds a function's end
+# by counting braces, and an unbalanced one in this body swallowed the rest of
+# the file — every later gate read as "unreachable".)
+_gate308_build_mutant() { # $1=output path
+  python3 - "$1" <<'PYX'
+import re, sys, pathlib
+src = pathlib.Path("scripts/generate-codex-hooks.py").read_text(encoding="utf-8")
+out, n = re.subn(
+    r'(_SKIP = \x7b\n(?:[ \t]*#[^\n]*\n)*)[ \t]*"[^"\n]+":[^\n]*\n', r"\1", src, count=1
+)
+pathlib.Path(sys.argv[1]).write_text(out, encoding="utf-8")
+sys.exit(0 if n == 1 else 1)
+PYX
 }
 
 # ── Gate 192 helpers: `ravenclaude init-agent-ci` scaffold runnability ────────
@@ -467,7 +503,9 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # scaffolding), 255 (agent-routing-matrix — routes tasks across host
       # CLIs/models), 256 (VSCode-extension configurationDefaults — VSCode
       # is a host surface).
-      echo "20 26 80 126 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 188 191 192 207 208 211 255 256 257"
+      # 308 (Codex hook projection accounting, the sibling of 158/160/165) and 309
+      # (installer lanes end to end) — repo-review 2026-10-19.
+      echo "20 26 80 126 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 188 191 192 207 208 211 255 256 257 308 309"
       ;;
     streams)
       echo "110 111 112 113 114"
@@ -2158,9 +2196,34 @@ PY
       rc_mustfail python3 plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py || rc=$?
       exit $rc
       ;;
+    308)
+      echo "── Gate 308: Codex hook projection accounting (per-gate run) ──"
+      rc=0
+      python3 scripts/generate-codex-hooks.py --check || rc=$?
+      _cdxh_mut="scripts/.generate-codex-hooks-mutant.py"
+      if _gate308_build_mutant "$_cdxh_mut"; then
+        mrc=0; python3 "$_cdxh_mut" --check >/dev/null 2>&1 || mrc=$?
+        if [ "$mrc" -eq 0 ]; then
+          echo "  ✗ teeth: a dropped _SKIP entry was NOT caught"; rc=1
+        else
+          echo "  ✓ teeth: a dropped _SKIP entry is caught (exit $mrc)"
+        fi
+      else
+        echo "  ✗ teeth: the dropped-_SKIP-entry mutant could not be built (anchor drift)"; rc=1
+      fi
+      rm -f "$_cdxh_mut"
+      exit $rc
+      ;;
+    309)
+      echo "── Gate 309: installer lanes end to end (scratch HOME + project; per-gate run) ──"
+      rc=0
+      python3 scripts/check-installer-lanes.py --check || rc=$?
+      rc_mustfail python3 scripts/check-installer-lanes.py || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2175,7 +2238,16 @@ SKIP=0
 FAILED_GATES=()
 SKIPPED_GATES=()
 TMP=$(mktemp -d)
-trap 'cleanup' EXIT INT TERM
+# ⛔ Split traps (repo-review 2026-10-19, scripts-10). The single
+# `trap 'cleanup' EXIT INT TERM` ran cleanup on a signal and then RESUMED: a
+# trapped signal's handler returns, and nearly every gate is `cmd || rc=$?`, so
+# set -e never saw the child's 130/143. Ctrl-C / a CI cancel / `timeout` killed
+# one child, deleted $TMP, and the suite ran on to the end with spurious failures.
+# Now INT/TERM exit with the conventional status and the EXIT trap runs cleanup
+# exactly once on the way out.
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 BACKUPS=()
 
@@ -2737,7 +2809,8 @@ echo "── Gate 10: Actionlint (parse + lint) ──────────�
 # Hub dependency (eliminates the image-pull rate-limit flakiness that broke
 # validate-marketplace on PR #93). Mirrors the real CI step. The binary exits
 # non-zero on findings (1) and 0 only when clean, so we gate on exit code. Obtain
-# it from PATH, a cached /tmp/actionlint, or a checksum-pinned download; if none is
+# it from PATH, a per-user cached tarball (sha256 re-checked on every use), or a
+# checksum-pinned download; if none is
 # reachable (offline) it LOUD-skips locally and hard-fails in CI — a skip is never
 # a pass. actionlint requires a git project, which audit-gates already runs inside.
 # Resolve a RUNNABLE pinned actionlint via the shared resolver at the top of this
@@ -7221,6 +7294,44 @@ else
   _skip_or_fail "Gate 307 (headless-usage)" python3
 fi
 
+echo "── Gate 308: Codex hook projection — no canonical hook silently dropped ──"
+# 1a-codex-check (repo-review 2026-10-19). The Copilot (158), Cursor (160) and
+# Gemini (165) projectors each have a --check accounting gate; Codex had none, so
+# a new canonical hook with neither a Codex wiring nor a _SKIP reason would have
+# shipped green. Teeth: a mutant with its first _SKIP entry dropped must fail
+# --check (that hook is then unaccounted for). Registered in the --check
+# dispatcher, this main sequence, the Supported: string and the `hosts` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 308".
+rc=0; python3 scripts/generate-codex-hooks.py --check >/dev/null 2>&1 || rc=$?
+gate "codex-hooks: every canonical hook wired or explicitly skipped" must_pass "$rc"
+CDXH_MUT="scripts/.generate-codex-hooks-mutant.py"
+rc=0; _gate308_build_mutant "$CDXH_MUT" || rc=$?
+gate "codex-hooks teeth: the dropped-_SKIP-entry mutant could be built (anchor present)" must_pass "$rc"
+rc=0; python3 "$CDXH_MUT" --check >/dev/null 2>&1 || rc=$?
+rm -f "$CDXH_MUT"
+gate "codex-hooks teeth: a dropped _SKIP entry is caught" must_fail "$rc"
+
+echo "── Gate 309: installer lanes — every host lane end to end, scratch HOME ──"
+# repo-review 2026-10-19 (scripts-1..7, scripts-13). Nothing drove the gemini /
+# cursor / aider / codex install lanes end to end, so the installer could clobber
+# an unparseable .gemini/settings.json while printing "merged, not clobbered",
+# plant cyclic links in the marketplace skill tree, rm -rf a user's own skill,
+# overwrite .aider.conf.yml with no backup, print a green "wired" line after a
+# failed projection, and install into $PWD on a typo'd flag. check-installer-
+# lanes.py runs the REAL installer (a byte copy) against a scratch marketplace,
+# project and HOME, and fails if the operator's real rc files change. Teeth: 7
+# mutants (one per fix), --must-fail exits 3. Registered in the --check
+# dispatcher, this main sequence, the Supported: string and the `hosts` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 309".
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-installer-lanes.py --check >/dev/null 2>&1 || rc=$?
+  gate "installer-lanes: every lane keeps user config and reports failures honestly" must_pass "$rc"
+  rc=0; rc_mustfail python3 scripts/check-installer-lanes.py || rc=$?
+  gate "installer-lanes: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 309 (installer-lanes)" python3
+fi
+
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"
 # knowledge/model-tier-delegation.md says delegation saves MONEY only when the
@@ -7891,7 +8002,10 @@ gate "emit-codex-config --self-test (never-weaken, tighten, no-leak, idempotent)
 CDX_MUT="$TMP/emit-codex-mutant.py"
 sed 's/^    if ranks\[want\] >= cur_rank:$/    if True:/' scripts/emit-codex-config.py >"$CDX_MUT"
 if ! grep -q '^    if True:$' "$CDX_MUT"; then
-  _skip_or_fail "emit-codex-config teeth: could not build the loosen-allowing mutant"
+  # A drifted sed anchor is a RED teeth gate, never a skip (scripts-26):
+  # _skip_or_fail is for a missing interpreter, and routing this through it
+  # reported "node not found" in CI and a SKIP locally — a hollow teeth gate.
+  gate "emit-codex-config teeth: the loosen-allowing mutant could be built (sed anchor present)" must_pass 1
 else
   rc=0; python3 "$CDX_MUT" --self-test >/dev/null 2>&1 || rc=$?
   gate "emit-codex-config teeth: a mutant that loosens is caught" must_fail "$rc"

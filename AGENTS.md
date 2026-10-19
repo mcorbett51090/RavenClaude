@@ -292,8 +292,10 @@ scripts/audit-gates.sh
 # Proves each CI gate fails on a known-bad fixture AND passes on a known-good one.
 # Required reading before adding or changing any CI step: docs/best-practices/ci-gate-audit.md
 # NOTE: Gate 10 (actionlint) uses a checksum-pinned actionlint binary (rhysd/actionlint
-#       v1.7.7, sha256-verified) — NO Docker. It resolves actionlint from PATH, a cached
-#       /tmp/actionlint, or a pinned download. On a host with none of those AND no network,
+#       v1.7.7, sha256-verified) — NO Docker. It resolves actionlint from PATH, a per-user
+#       cache of the pinned tarball under ${XDG_CACHE_HOME:-~/.cache}/ravenclaude/ (its
+#       sha256 re-checked on every use — the old unverified /tmp/actionlint arm is gone),
+#       or a pinned download. On a host with none of those AND no network,
 #       it LOUD-skips locally ("THIS IS NOT A PASS" — a skip is not a pass); in CI an
 #       unrunnable Gate 10 is a hard failure, never a silent skip.
 
