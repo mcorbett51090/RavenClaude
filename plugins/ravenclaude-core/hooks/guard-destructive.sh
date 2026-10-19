@@ -805,7 +805,12 @@ EOF
 # (their internal push runs as a subprocess, which this PreToolUse hook does not
 # intercept), or GitHub's own delete-branch UI.
 _is_dangerous_git_push_delete() {
-  local c="$1" seg found=1
+  local c="$1" seg found=1 _pd_end='([[:space:]]|$)'
+  # hooks-2: the flag terminators use ${_CMD_END}. Read through a local with the
+  # old whitespace class as the fallback, because Gate 231 extracts THIS function
+  # alone into a harness that defines only _CMD_BOUNDARY (set -u would abort on an
+  # unset _CMD_END there). In the hook itself _CMD_END is always set.
+  [ -n "${_CMD_END:-}" ] && _pd_end="$_CMD_END"
   [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+push([[:space:]]|$) ]] || return 1
 
   # ⛔ THE FLAG SEARCH IS SCOPED TO THE `git push` SEGMENT. It used to run over
@@ -831,16 +836,16 @@ _is_dangerous_git_push_delete() {
   while IFS= read -r seg; do
     case "$seg" in *"git push"*) ;; *) continue ;; esac
     # long delete flag
-    [[ "$seg" =~ (^|[[:space:]])--delete${_CMD_END} ]] && { found=0; break; }
+    [[ "$seg" =~ (^|[[:space:]])--delete${_pd_end} ]] && { found=0; break; }
     # short delete flag `-d`, standalone or bundled
-    [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*d[a-zA-Z]*${_CMD_END} ]] && { found=0; break; }
+    [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*d[a-zA-Z]*${_pd_end} ]] && { found=0; break; }
     # colon-refspec deletion: a refspec whose SOURCE side is empty (`:<ref>`). A
     # normal refspec `src:dst` has no space before the colon, so requiring a
     # space immediately before `:` matches only the deletion form and never
     # `main:main` / `HEAD:refs/heads/main`.
     # hooks-2: all three terminate on ${_CMD_END} (a `)` / backtick / redirect
     # glued to the token is still the end of it).
-    [[ "$seg" =~ [[:space:]]:[A-Za-z0-9_./@^~*-]+${_CMD_END} ]] && { found=0; break; }
+    [[ "$seg" =~ [[:space:]]:[A-Za-z0-9_./@^~*-]+${_pd_end} ]] && { found=0; break; }
   done <<EOF
 $(printf '%s' "$c" | tr ';&|' '\n\n\n')
 EOF
