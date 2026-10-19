@@ -91,7 +91,7 @@ If pipe-test passes but the hook doesn't fire in a live session: the file watche
 - Guard against missing args: `file="${1:-}"; [[ -z "$file" ]] && exit 0`.
 - Use `command -v <tool> >/dev/null 2>&1` before invoking external tools so a missing dependency doesn't crash the agent's flow.
 - Keep hooks **idempotent** — running twice on the same input should be a no-op (format-on-write, for example, re-formats an already-formatted file with no effect).
-- Print user-facing messages to **stderr** (the UI surfaces it as a system notice) and keep stdout silent unless you have a structured JSON response.
+- Print user-facing messages to **stderr** and keep stdout silent unless you have a structured JSON response. At exit 0, stderr is shown to the **user** as a notice, but it is **not delivered to the model** (measured 2026-08-19 on PreToolUse, PostToolUse and Stop; see the matrix in `plugins/ravenclaude-core/hooks/_advise.sh`). An advisory meant to steer the agent has to go through `hookSpecificOutput.additionalContext`: in `ravenclaude-core`, source `_advise.sh` and call `rc_advise_init <Event>`; in another plugin, emit the JSON envelope yourself. Exit 2 is the blocking path; its stderr is what the agent is shown.
 
 **Don't:**
 - Don't block PostToolUse or Stop with exit 1 hoping it'll prevent something — only `PreToolUse` (and `Stop` via `asyncRewake`) can re-route control. Other exit codes are logged only.
