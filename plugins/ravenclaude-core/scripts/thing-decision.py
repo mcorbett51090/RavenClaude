@@ -213,7 +213,10 @@ def classify(command: str) -> str | None:
         return None
     # Leading segment only — split on the first shell separator so `ls | grep`
     # classifies as its first command. Keep it conservative (T2 is low-stakes).
-    lead = re.split(r"\s*(?:\||\|\||&&|;)\s*", cmd, maxsplit=1)[0].strip()
+    # No leading `\s*` in the separator pattern: it made the split quadratic on a
+    # long whitespace run with no separator after it (tribunal-1). strip() trims
+    # the same whitespace the pattern used to absorb.
+    lead = re.split(r"\|\||\||&&|;", cmd, maxsplit=1)[0].strip()
     lead = _normalize_lead(lead)
 
     best_cat: str | None = None

@@ -91,6 +91,14 @@ command -v _rc_seat_child_ok >/dev/null 2>&1 || _rc_seat_child_ok() { return 1; 
 command -v _rc_runtime_subdir >/dev/null 2>&1 || _rc_runtime_subdir() { return 1; }
 command -v _rc_safe_id >/dev/null 2>&1 || _rc_safe_id() { printf '%s' "$1" | tr -cd 'A-Za-z0-9_-' | cut -c1-128; }
 
+# ── Portable timeout (tribunal-1). GNU `timeout` is absent on stock macOS, so the
+#    engine calls go through _rc_timeout from _portable.sh. Fail-safe: without the
+#    helper the stub runs the command unbounded (the hooks.json timeout still applies).
+_rc_portable_helper="$(dirname "${BASH_SOURCE[0]}")/_portable.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_portable_helper" ] && . "$_rc_portable_helper" 2>/dev/null || true
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
+
 # ── Recursion guard: a seat runs `claude -p` (which we mark THING_SEAT_ACTIVE);
 #    belt-and-suspenders so a tribunal call can never reconvene the tribunal.
 #    AppSec hook-env (2026-10-18): THING_SEAT_ACTIVE ALONE never disables review —
@@ -222,10 +230,13 @@ if [ "$tool_name" = "Bash" ]; then
   cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')"
   [ -z "$cmd" ] && exit 0
   payload_shape="command"
-  decision="$(THING_SEAT_ACTIVE= python3 "$DECISION" --root "$cwd" classify "$cmd" 2>/dev/null || true)"
+  # Bounded (tribunal-1): the hook's own timeout (hooks.json, 90 s) FAILS OPEN when
+  # it fires; 60 s here keeps the verdict ours. A killed engine prints nothing, and
+  # an empty decision takes the classification-failed DENY below.
+  decision="$(THING_SEAT_ACTIVE= _rc_timeout 60 python3 "$DECISION" --root "$cwd" classify "$cmd" 2>/dev/null || true)"
 else
   cmd=""
-  decision="$(printf '%s' "$payload" | THING_SEAT_ACTIVE= python3 "$DECISION" --root "$cwd" classify-payload 2>/dev/null || true)"
+  decision="$(printf '%s' "$payload" | THING_SEAT_ACTIVE= _rc_timeout 60 python3 "$DECISION" --root "$cwd" classify-payload 2>/dev/null || true)"
   payload_shape="$(printf '%s' "$decision" | jq -r '.payload_shape // "command"')"
 fi
 if [ -z "$decision" ]; then

@@ -153,7 +153,20 @@ def _match_variants(command: str) -> tuple[str, ...]:
         # flatten's real purpose — a line-continuation can no longer hide a dangerous flag
         # from `.*` — while keeping segment-scoped triggers (`[^|&;]`) bounded to ONE
         # command, which is what they were written to mean.
-        return re.sub(r"\s*\n\s*", "; ", s)
+        #
+        # LINEAR on purpose. The previous `re.sub(r"\s*\n\s*", "; ", s)` is quadratic
+        # on a long whitespace run that holds no newline (every start position scans
+        # to the end of the run before failing), and it ran once per concern: 40,000
+        # padding spaces pushed the hook past its 90 s timeout, and the platform fails
+        # OPEN on a timed-out hook, so every pre-LLM hard rule was skipped. Splitting
+        # on maximal whitespace runs and replacing each run that contains a newline is
+        # the same transformation (a `\s*\n\s*` match is always a whole maximal run),
+        # verified equal on a fuzz corpus by test-tribunal-review-2026-10-19.py.
+        parts = re.split(r"(\s+)", s)
+        for i in range(1, len(parts), 2):
+            if "\n" in parts[i]:
+                parts[i] = "; "
+        return "".join(parts)
 
     forms = [command, _normalize_for_match(command)]
     forms += [_flatten(f) for f in list(forms)]
@@ -165,9 +178,17 @@ def _match_variants(command: str) -> tuple[str, ...]:
 
 
 def _matches(concern: dict, command: str) -> bool:
-    """True if any trigger regex matches the command or its normalized form."""
+    """True if any trigger regex matches the command or its normalized form.
+
+    Thin wrapper kept for external callers. Inside this module the variants are
+    computed ONCE per command and passed to _matches_variants: recomputing them per
+    concern multiplied the normalisation cost by the concern count (tribunal-1)."""
+    return _matches_variants(concern, _match_variants(command))
+
+
+def _matches_variants(concern: dict, variants: tuple[str, ...]) -> bool:
+    """True if any trigger regex matches any of the precomputed command variants."""
     triggers = concern.get("triggers") or {}
-    variants = _match_variants(command)
     for rx in triggers.get("regex", []) or []:
         try:
             if any(re.search(rx, v, re.IGNORECASE) for v in variants):
@@ -238,8 +259,9 @@ def _decoded_payload_concerns(catalog: dict, command: str, category: str | None)
     concerns = _concerns_for(catalog, category)
     found: set[str] = set()
     for text in _iter_decoded_texts(command):
+        variants = _match_variants(text)
         for c in concerns:
-            if c["id"] != "sce.embedded-base64-payload" and _matches(c, text):
+            if c["id"] != "sce.embedded-base64-payload" and _matches_variants(c, variants):
                 found.add(c["id"])
     return found
 
@@ -267,7 +289,8 @@ def evaluate(catalog: dict, command: str, category: str | None) -> dict:
     thing-decision.py, which overrides this field. `high_blast` is consumed by
     the orchestrator's always-surface rule.
     """
-    matched = [c for c in _concerns_for(catalog, category) if _matches(c, command)]
+    variants = _match_variants(command)
+    matched = [c for c in _concerns_for(catalog, category) if _matches_variants(c, variants)]
 
     # #14: merge any concerns hidden inside base64-encoded payloads BEFORE the
     # pre-deny tally, so a base64'd curl|sh / inline secret / injection is denied
