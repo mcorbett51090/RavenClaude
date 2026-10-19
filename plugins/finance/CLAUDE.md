@@ -153,6 +153,9 @@ When in doubt, the hook is conservative — it only fires on files in finance-co
 
 A second advisory hook, [`hooks/scan-finance-secrets.sh`](hooks/scan-finance-secrets.sh) (added v0.16.0, the FORGE red-team's P0 follow-up), scans the edited finance file for **secret/PII shapes** — OAuth client secrets, API keys, PEM private keys, AWS/Slack/bearer tokens, SSN, credit-card PANs, IBANs. It excludes env-var-name references and well-known test placeholders, is **advisory by default** (prints to stderr, exit 0), and takes `--ci` to become a **non-zero pre-merge gate** (`scan-finance-secrets.sh --ci plugins/finance`). Both hooks are wired in [`hooks/hooks.json`](hooks/hooks.json) as PostToolUse on Edit/Write/MultiEdit.
 
+> **Superseded 2026-10-19 (0.18.9): how the secrets hook finds the file.** It used to scan only the paths given as arguments. `hooks.json` passes `"$CLAUDE_TOOL_FILE_PATH"`, which Claude Code does not set (see the hook's own ARGS header). It now ignores empty arguments and reads the edited path from the stdin payload (`.tool_input.file_path // .path`), scanning it only when it is a finance-conventional path; `FINANCE_STRICT=1` now applies to it too (exit 2). An explicit path argument (CLI / `--ci`) works as before.
+> control: `scripts/test_secrets_gate.py` against the 0.18.8 hook -> 18/20 (the payload-path finding and the `FINANCE_STRICT` exit 2 fail); against the current hook -> 20/20 (2026-10-19).
+
 ---
 
 ## 8. Skills in this plugin

@@ -43,7 +43,14 @@ ever runs on the site's own origin.
 3. **Provision a KV store** for idempotency (Upstash Redis is the simplest
    cross-platform option: create a database, copy `KV_REST_API_URL` /
    `KV_REST_API_TOKEN`). Wire it to `EdgeKv` in `kv-idempotency-store.ts`
-   with whichever REST/SDK client your platform provides.
+   with whichever REST/SDK client your platform provides. `EdgeKv` has four
+   methods: `get`, `set`, **`setIfAbsent`** (an atomic write-if-missing that
+   resolves true only for the caller that wrote the key, e.g. Redis
+   `SET NX EX`) and **`delete`**. The webhook claims each event with
+   `setIfAbsent` before any side effect and deletes the claim if the side
+   effect fails, so the provider's retry runs it again. *(Added 2026-10-19,
+   web-commerce 0.1.3: `EdgeKv` used to need only `get` and `set`; a client
+   bound to the old two-method shape no longer satisfies the interface.)*
 4. **Local webhook testing.** Square does not ship an equivalent of
    `stripe listen`; the supported local-testing path is: run your serverless
    function locally (`wrangler dev`, `vercel dev`, or `netlify dev`), tunnel

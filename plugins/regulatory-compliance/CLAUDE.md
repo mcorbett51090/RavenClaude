@@ -186,6 +186,9 @@ The `hooks/` directory ships [`scrub-confidential-pre-write.sh`](hooks/scrub-con
 
 The hook is **advisory by default** (prints to stderr, doesn't block). For sensitive engagements — and **always for SAR / STR drafting** — flip the bottom `exit 0` to `exit 2` so the hook blocks the write. The plugin's [`hooks/hooks.json`](hooks/hooks.json) wires it in.
 
+> **Superseded 2026-10-19 (0.12.8).** Until this release the "pending content" sentence above did not hold: the hook scanned the file already on disk, so a new file or an Edit's new text was never scanned. It now scans the payload content (`.tool_input.content`, `.new_string`, each `edits[].new_string`). Placeholders are filtered per token, so a real SSN on a line that also carries an HTML tag is reported, and the IBAN check is case-sensitive (two upper-case letters first), so a lower-case hash is not flagged. Advisory stderr at exit 0 reaches the user's terminal, not the model; `exit 2` is still the switch that blocks.
+> control: `scripts/check-domain-hook-teeth.py --root <copy with the 0.12.7 hook>` -> 43/48, all five `reg-` fires-cases fail; current hook -> 48/48 (2026-10-19).
+
 **Tuning:** the Bermuda-specific patterns are deliberately synthetic — adjust to match your actual TIN / driver's licence / passport formats. The hook is conservative by design: false positives are cheap (annoy the agent), false negatives are expensive (leak PII).
 
 ---
