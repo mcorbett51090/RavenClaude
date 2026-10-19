@@ -74,14 +74,26 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shlex
 import sys
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
 _MANIFEST = _REPO.joinpath("plugins", "ravenclaude-core", "hooks", "hooks.json")
+_ADAPTER_NAME = "copilot-hook-adapter.sh"
 
 _ARGV_TOKEN = '"$CLAUDE_TOOL_FILE_PATH"'
+
+# PreToolUse timeout. Under THING_HOST=copilot thing-decision.py raises the
+# tribunal panel deadline to 105 s so a slow panel can still ABSTAIN with a
+# reason; a host timeout below that kills the panel first, and Copilot's
+# fail-closed timeout then denies with no reason at all. --check asserts every
+# PreToolUse entry stays above that deadline (read from thing-decision.py when
+# it can be found, never below _COPILOT_PANEL_DEADLINE_FLOOR).
+_PRETOOL_TIMEOUT_SEC = 120
+_COPILOT_PANEL_DEADLINE_FLOOR = 105
 
 # Claude event -> adapter mode. An event absent here has NO Copilot lane and every
 # hook under it must appear in SKIP with a reason.
@@ -267,6 +279,40 @@ def _extra_args(command: str, script: str) -> str:
     return tail.replace(_ARGV_TOKEN, "").strip()
 
 
+def _script_path(command: str, script: str, hooks_dir: str) -> str:
+    """Where the hook body lives, read off the manifest command.
+
+    Most bodies are under hooks/, but some are under scripts/ (the tribunal's
+    substrate guard forces that packaging for a few). Always using hooks_dir
+    pointed those entries at a file that does not exist, and the adapter's
+    `[ -f "$real" ] || exit 0` turned each into a silent no-op. The scripts/
+    sibling is resolved relative to hooks_dir's parent; a bare placeholder
+    (`<HOOKS>`) keeps a `<HOOKS>/../scripts` form that still resolves once the
+    placeholder is substituted.
+    """
+    m = re.search(
+        r"\$\{CLAUDE_PLUGIN_ROOT\}/(hooks|scripts)/" + re.escape(script) + r"(?![A-Za-z0-9._-])",
+        command,
+    )
+    sub = m.group(1) if m else "hooks"
+    if sub == "hooks":
+        return f"{hooks_dir}/{script}"
+    p = Path(hooks_dir)
+    if p.parent == Path(".") and not hooks_dir.startswith("."):
+        return f"{hooks_dir}/../{sub}/{script}"
+    return str(p.parent / sub / script)
+
+
+def _command(adapter: str, mode: str, script_path: str, args: str) -> str:
+    """`bash <adapter> <mode> <hook> [args]`, each path shell-quoted.
+
+    Bare double quotes let `$`, a backtick or a `"` in the checkout path expand,
+    substitute or break the command; shlex.quote leaves an ordinary path as is.
+    """
+    out = f"bash {shlex.quote(adapter)} {mode} {shlex.quote(script_path)}"
+    return out + (f" {args}" if args else "")
+
+
 def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
     """Return (config, wired, skipped). Pure — no I/O, so `--check` and the
     setup path cannot diverge."""
@@ -312,10 +358,10 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                 # non-executable adapter there would deny everything and be noticed in
                 # seconds. Cursor fails OPEN, so the same breakage there is invisible.
                 # Same fix, very different blast radius.
-                bash = f'bash "{adapter}" {mode} "{hooks_dir}/{script}"'
-                if args:
-                    bash += f" {args}"
+                bash = _command(adapter, mode, _script_path(command, script, hooks_dir), args)
                 item = {"type": "command", "bash": bash, "timeoutSec": 90}
+                if event == "PreToolUse":
+                    item["timeoutSec"] = _PRETOOL_TIMEOUT_SEC
                 # Claude matcher semantics apply under the PascalCase event name.
                 if matcher:
                     item["matcher"] = matcher
@@ -351,6 +397,129 @@ def _canonical_scripts(manifest: dict) -> set:
         for e in g.get("hooks", [])
         if _script_of(e.get("command", ""))
     }
+
+
+# ── --check floors added by the 2026-10-19 repo review (1005-P1-5, scripts-14,
+# 1a-8). Each has an in-process must-fail mutant in _teeth(), run by --check
+# itself, so Gate 158 cannot pass while a floor has gone vacuous.
+
+
+def _emitted_commands(obj) -> list:
+    acc: list = []
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k in ("bash", "command") and isinstance(v, str):
+                acc.append(v)
+            else:
+                acc.extend(_emitted_commands(v))
+    elif isinstance(obj, (list, tuple)):
+        for v in obj:
+            acc.extend(_emitted_commands(v))
+    return acc
+
+
+def _real_paths() -> tuple:
+    hooks = _REPO / "plugins" / "ravenclaude-core" / "hooks"
+    return str(hooks / _ADAPTER_NAME), str(hooks)
+
+
+def _missing_script_tokens(cfg: dict) -> list:
+    """(command, problem) for a command that does not shlex-split, or whose
+    absolute .sh/.py token names no file. Run on a REAL-path projection."""
+    bad = []
+    for cmd in _emitted_commands(cfg.get("hooks", {})):
+        try:
+            toks = shlex.split(cmd)
+        except ValueError:
+            bad.append((cmd, "does not shlex-split"))
+            continue
+        for t in toks:
+            if t.startswith("/") and t.endswith((".sh", ".py")) and not os.path.isfile(t):
+                bad.append((cmd, t))
+    return bad
+
+
+_HOSTILE_ROOT = '/tmp/rc we$ird `x` "q" \'a/ravenclaude-core'
+
+
+def _quoting_failures() -> list:
+    """Commands that do not split back to the exact adapter + hook path when the
+    checkout path carries `$`, a backtick, `"` and `'`."""
+    adapter = f"{_HOSTILE_ROOT}/hooks/{_ADAPTER_NAME}"
+    cfg, _w, _s = build(adapter, f"{_HOSTILE_ROOT}/hooks")
+    bad = []
+    for cmd in _emitted_commands(cfg.get("hooks", {})):
+        try:
+            toks = shlex.split(cmd)
+        except ValueError:
+            bad.append(cmd)
+            continue
+        if len(toks) < 4 or toks[0] != "bash" or toks[1] != adapter:
+            bad.append(cmd)
+        elif not toks[3].startswith(_HOSTILE_ROOT + "/"):
+            bad.append(cmd)
+    return bad
+
+
+def _panel_deadline() -> int:
+    """The Copilot tribunal panel deadline, read from thing-decision.py when its
+    THING_HOST=copilot block can be found; never below the documented floor."""
+    floor = _COPILOT_PANEL_DEADLINE_FLOOR
+    src_path = _REPO / "plugins" / "ravenclaude-core" / "scripts" / "thing-decision.py"
+    try:
+        src = src_path.read_text(encoding="utf-8")
+    except OSError:
+        return floor
+    m = re.search(
+        r'THING_HOST"\)\s*==\s*"copilot".{0,800}?panel_deadline_seconds"\]\s*=\s*(\d+)',
+        src,
+        re.S,
+    )
+    return max(floor, int(m.group(1))) if m else floor
+
+
+def _timeout_failures(cfg: dict, deadline: int) -> list:
+    out = []
+    for it in cfg.get("hooks", {}).get("PreToolUse", []):
+        t = it.get("timeoutSec")
+        if not (isinstance(t, int) and not isinstance(t, bool) and t > deadline):
+            out.append(f"timeoutSec={t!r}: {it.get('bash', '')[:80]}")
+    return out
+
+
+def _teeth(manifest: dict) -> list:
+    """Must-fail mutants for the floors above, in process. Each mutant MUST be
+    caught; an uncaught one means that floor no longer measures anything."""
+    errs: list = []
+    g = globals()
+    if any(
+        "${CLAUDE_PLUGIN_ROOT}/scripts/" in e.get("command", "")
+        for groups in manifest.get("hooks", {}).values()
+        for grp in groups
+        for e in grp.get("hooks", [])
+    ):
+        orig = g["_script_path"]
+        g["_script_path"] = lambda command, script, hooks_dir: f"{hooks_dir}/{script}"
+        try:
+            mcfg, _w, _s = build(*_real_paths())
+        finally:
+            g["_script_path"] = orig
+        if not _missing_script_tokens(mcfg):
+            errs.append("teeth: a scripts/ hook pointed at hooks/ was NOT caught")
+    orig_cmd = g["_command"]
+    g["_command"] = lambda a, m, s, x: f'bash "{a}" {m} "{s}"' + (f" {x}" if x else "")
+    try:
+        if not _quoting_failures():
+            errs.append("teeth: double-quoted paths under a hostile checkout were NOT caught")
+    finally:
+        g["_command"] = orig_cmd
+    cfg, _w, _s = build("<ADAPTER>", "<HOOKS>")
+    pre = cfg.get("hooks", {}).get("PreToolUse", [])
+    if pre:
+        pre[0]["timeoutSec"] = 90
+        if not _timeout_failures(cfg, _panel_deadline()):
+            errs.append("teeth: a 90 s PreToolUse timeout was NOT caught")
+    return errs
 
 
 def main(argv: list) -> int:
@@ -474,9 +643,52 @@ def main(argv: list) -> int:
                 for _c in _bad[:5]:
                     print(f"  {_c!r}", file=sys.stderr)
                 return 1
+        # Every hook path must name a real file once real paths are substituted
+        # (1005-P1-5): a scripts/ hook projected under hooks/ is a silent no-op.
+        real_cfg, _rw, _rs = build(*_real_paths())
+        missing_tok = _missing_script_tokens(real_cfg)
+        if missing_tok:
+            print(
+                f"copilot-hooks: {len(missing_tok)} emitted command(s) name a hook "
+                "file that does not exist (or do not shlex-split); e.g.:",
+                file=sys.stderr,
+            )
+            for _c, _t in missing_tok[:5]:
+                print(f"  {_t}  <-  {_c[:120]!r}", file=sys.stderr)
+            return 1
+        # Paths survive a hostile checkout path (scripts-14).
+        quoting = _quoting_failures()
+        if quoting:
+            print(
+                f"copilot-hooks: {len(quoting)} command(s) do not round-trip a checkout "
+                "path containing $, a backtick or quotes; e.g.:",
+                file=sys.stderr,
+            )
+            for _c in quoting[:3]:
+                print(f"  {_c[:160]!r}", file=sys.stderr)
+            return 1
+        # PreToolUse timeout outlives the Copilot tribunal panel deadline (1a-8).
+        deadline = _panel_deadline()
+        slow = _timeout_failures(cfg, deadline)
+        if slow:
+            print(
+                f"copilot-hooks: {len(slow)} PreToolUse entr(y/ies) time out at or below "
+                f"the Copilot panel deadline ({deadline} s), so the host would kill a "
+                "slow panel and deny with no reason; e.g.:",
+                file=sys.stderr,
+            )
+            for _c in slow[:3]:
+                print(f"  {_c}", file=sys.stderr)
+            return 1
+        teeth = _teeth(manifest)
+        if teeth:
+            for _e in teeth:
+                print(f"copilot-hooks: {_e}", file=sys.stderr)
+            return 1
         print(
             f"Copilot hooks OK — {len(wired)} wired, {len(skipped)} explicitly "
-            f"skipped, {len(canonical)} canonical hooks all accounted for."
+            f"skipped, {len(canonical)} canonical hooks all accounted for; every hook "
+            f"path resolves, quoting round-trips, PreToolUse timeout > {deadline} s."
         )
         return 0
 
