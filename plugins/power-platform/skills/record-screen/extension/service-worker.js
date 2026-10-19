@@ -1,4 +1,6 @@
-const SERVER_URL = "ws://localhost:9234";
+// The literal loopback address, matching the bridge's 127.0.0.1-only bind
+// (record.js): "localhost" can resolve to ::1 first and be refused.
+const SERVER_URL = "ws://127.0.0.1:9234";
 
 let ws = null;
 let recording = false;
@@ -100,6 +102,14 @@ async function handleStartRecording(msg) {
       if (!recording || capturing) return;
       capturing = true;
       try {
+        // captureVisibleTab captures whichever tab is visible in the window,
+        // so skip the frame while the user has switched away from the tab
+        // being recorded (never stream a mail or banking tab into the video).
+        const [active] = await chrome.tabs.query({ active: true, windowId: recordingWindowId });
+        if (!active || active.id !== recordingTabId) {
+          capturing = false;
+          return;
+        }
         const dataUrl = await chrome.tabs.captureVisibleTab(recordingWindowId, {
           format: "jpeg",
           quality: 60,

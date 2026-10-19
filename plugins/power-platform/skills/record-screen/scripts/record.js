@@ -10,8 +10,53 @@ const http = require("http");
 const WebSocket = require("ws");
 
 const PORT = 9234;
+// Loopback only, spelled as the literal address everywhere (server bind, CLI
+// client, extension, SKILL.md): on Node 17-19 "localhost" can resolve to ::1
+// first, which a 127.0.0.1-only bind would refuse.
+const HOST = "127.0.0.1";
+const ALLOWED_HOST_HEADERS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`]);
+const OUTPUT_EXTENSIONS = new Set([".mp4", ".webm"]);
 const STATE_FILE = path.join(os.tmpdir(), "record-screen-server.json");
 const FPS = 5;
+
+/**
+ * Resolve a requested output path, or return null when it is not allowed: it
+ * must end in .mp4/.webm and sit under `baseDir` (the bridge's cwd). ffmpeg
+ * runs with -y and a .captions.json is written beside the video, so an
+ * unchecked path let any caller overwrite files as the user.
+ */
+function resolveOutputFile(requested, baseDir) {
+  if (typeof requested !== "string" || requested === "") return null;
+  const resolved = path.resolve(baseDir, requested);
+  if (!OUTPUT_EXTENSIONS.has(path.extname(resolved).toLowerCase())) return null;
+  let base = path.resolve(baseDir);
+  let parent = path.dirname(resolved);
+  try {
+    base = fs.realpathSync(base);
+    parent = fs.realpathSync(parent);
+  } catch {
+    return null; // the target directory must already exist
+  }
+  const rel = path.relative(base, parent);
+  if (rel.startsWith("..") || path.isAbsolute(rel)) return null;
+  return path.join(parent, path.basename(resolved));
+}
+
+/**
+ * True when an HTTP request may use the bridge API. Browsers attach an Origin
+ * header to cross-site requests (including the CORS-simple text/plain POST
+ * that bypassed this API) and the CLI never does, so any Origin is refused.
+ * The Host check refuses DNS-rebinding requests addressed to another name.
+ */
+function isAllowedApiRequest(req) {
+  if (req.headers.origin) return false;
+  return ALLOWED_HOST_HEADERS.has(String(req.headers.host || "").toLowerCase());
+}
+
+/** Only the Chrome extension may connect as "the extension". */
+function isAllowedExtensionOrigin(origin) {
+  return /^chrome-extension:\/\//.test(origin || "");
+}
 
 // ============================================================
 // Arg parsing
@@ -138,6 +183,12 @@ async function serve() {
   const server = http.createServer(async (req, res) => {
     res.setHeader("Content-Type", "application/json");
 
+    if (!isAllowedApiRequest(req)) {
+      res.statusCode = 403;
+      res.end(JSON.stringify({ error: "forbidden" }));
+      return;
+    }
+
     try {
       // --- List tabs ---
       if (req.method === "GET" && req.url === "/api/tabs") {
@@ -151,6 +202,17 @@ async function serve() {
         if (recordingState) {
           res.statusCode = 400;
           res.end(JSON.stringify({ error: "Already recording. Run stop first." }));
+          return;
+        }
+
+        const outputFile = resolveOutputFile(body.outputFile, process.cwd());
+        if (!outputFile) {
+          res.statusCode = 400;
+          res.end(
+            JSON.stringify({
+              error: `outputFile must be a .mp4 or .webm path in an existing directory under ${process.cwd()}`,
+            }),
+          );
           return;
         }
 
@@ -169,7 +231,7 @@ async function serve() {
         }
 
         recordingState = {
-          outputFile: body.outputFile,
+          outputFile,
           tempDir,
           frameCount: 0,
           startTime: Date.now(),
@@ -310,7 +372,13 @@ async function serve() {
   });
 
   // WebSocket server for extension connection
-  const wss = new WebSocket.Server({ server, maxPayload: 10 * 1024 * 1024 });
+  const wss = new WebSocket.Server({
+    server,
+    maxPayload: 10 * 1024 * 1024,
+    // A web page or another local process must not become "the extension"
+    // (it would receive every tab URL/title and feed frames to ffmpeg).
+    verifyClient: ({ origin }) => isAllowedExtensionOrigin(origin),
+  });
 
   wss.on("connection", (ws) => {
     console.log("Extension connected.");
@@ -345,8 +413,10 @@ async function serve() {
     });
   });
 
-  server.listen(PORT, () => {
-    console.log(`Record Screen server running on port ${PORT}`);
+  // Bind loopback only: with no host, Node listens on every interface and the
+  // unauthenticated API was reachable from the LAN.
+  server.listen(PORT, HOST, () => {
+    console.log(`Record Screen server running on ${HOST}:${PORT}`);
     console.log("Waiting for Chrome extension to connect...");
 
     fs.writeFileSync(
@@ -372,7 +442,7 @@ async function serve() {
 function apiRequest(method, urlPath, body = null, timeoutMs = 120_000) {
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: "localhost",
+      hostname: HOST,
       port: PORT,
       path: urlPath,
       method,
