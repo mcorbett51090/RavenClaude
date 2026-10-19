@@ -311,7 +311,7 @@ def cmd_sync(root: Path) -> int:
         kb: dict[str, dict] = {}
         kb_file = _kb_path(root)
         if kb_file.is_file():
-            for line in kb_file.read_text(encoding="utf-8").splitlines():
+            for line in kb_file.read_text(encoding="utf-8").split("\n"):
                 row = _read_json_line(line)
                 if row and row.get("signature"):
                     kb[row["signature"]] = row
@@ -381,7 +381,12 @@ def _read_json_line(line: str):
 
 def _write_kb(root: Path, kb: dict) -> None:
     rows = sorted(kb.values(), key=lambda e: e.get("last_seen", ""), reverse=True)
-    body = "\n".join(json.dumps(r, ensure_ascii=False) for r in rows)
+    # ensure_ascii=True (corescripts-15): a raw U+2028/U+2029 inside a stored
+    # value is a line break to str.splitlines(), so one pasted resolution split
+    # its row in two and the whole denial shape vanished from recall. Escaped,
+    # every row is one physical line whatever its content; the readers also
+    # split on "\n" only, so rows written before this change still read.
+    body = "\n".join(json.dumps(r, ensure_ascii=True) for r in rows)
     _atomic_write(_kb_path(root), body + ("\n" if body else ""))
 
 
@@ -407,7 +412,7 @@ def cmd_recall(root: Path, limit: int, unresolved_only: bool, as_json: bool) -> 
     kb_file = _kb_path(root)
     rows = []
     if kb_file.is_file():
-        for line in kb_file.read_text(encoding="utf-8").splitlines():
+        for line in kb_file.read_text(encoding="utf-8").split("\n"):
             row = _read_json_line(line)
             if row:
                 rows.append(row)
@@ -457,7 +462,7 @@ def cmd_resolve(root: Path, signature: str, resolution: str, doc: str | None) ->
         kb_file = _kb_path(root)
         if kb_file.is_file():
             kb: dict[str, dict] = {}
-            for line in kb_file.read_text(encoding="utf-8").splitlines():
+            for line in kb_file.read_text(encoding="utf-8").split("\n"):
                 row = _read_json_line(line)
                 if row and row.get("signature"):
                     kb[row["signature"]] = row
@@ -493,7 +498,7 @@ def cmd_record(root: Path) -> int:
         kb: dict[str, dict] = {}
         kb_file = _kb_path(root)
         if kb_file.is_file():
-            for line in kb_file.read_text(encoding="utf-8").splitlines():
+            for line in kb_file.read_text(encoding="utf-8").split("\n"):
                 row = _read_json_line(line)
                 if row and row.get("signature"):
                     kb[row["signature"]] = row
