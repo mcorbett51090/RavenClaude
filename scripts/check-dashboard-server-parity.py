@@ -20,8 +20,14 @@ v0.53.1: the Review-log tab fetched `/__saga`, the bundled server never served i
 every consumer saw "Could not reach /__saga". This gate makes that class of drift fail
 CI instead of reaching a consumer.
 
-The check is one-directional: root's endpoint set (minus the documented exclusions)
-must be a subset of the plugin server's. A token appearing only in a comment/docstring
+Two further stages compare what the endpoint names cannot see: the ALLOWED_TARGETS /
+ALLOWED_READ allow-lists must hold the same paths in both copies (one documented,
+read-only difference: see _ALLOWED_ALLOWLIST_DIFF), and every helper named in
+_BODY_DIFF_PREFIXES / _BODY_DIFF_NAMES must be byte-identical after the documented
+REPO_ROOT -> PROJECT_ROOT rename.
+
+The endpoint check is one-directional: root's endpoint set (minus the documented
+exclusions) must be a subset of the plugin server's. A token appearing only in a comment/docstring
 still counts as "present" — the realistic failure mode this guards is an endpoint that
 is *entirely absent* from the plugin file, which the token-set comparison catches.
 
@@ -87,17 +93,52 @@ _BODY_DIFF_NAMES = (
     "_read_spectate_asset",
     "_bind_server",
     "_open_browser",
+    # repo-review 2026-10-19 (dashboard-1/-5): the reserve engine loader and the
+    # override writer were never compared, and dashboard-1's project-first lookup
+    # hid in exactly that blind spot; the plugin-config slug check is the write
+    # allow-list's shape test.
+    "_reserve_engine",
+    "_write_reserve_override",
+    "_is_plugin_config_target",
+    "_validate_plugin_config",
+    # (_validate_json_target is NOT listed: the module text that follows it — which
+    # the slice includes, up to the next top-level def — legitimately differs.)
+    # The read/write-path safety helpers added by the same review.
+    "_yaml_load_no_alias",
+    "_is_yaml_alias_error",
+    "_validate_posture_content",
+    "_target_has_symlink",
+    "_atomic_write_bytes",
+    "_backup_posture",
+    "_project_id",
 )
 
-# NOT compared — `main()` legitimately DIVERGES between the two copies in seven
+# The two allow-list constants must hold the SAME members in both copies, except for
+# this documented, reasoned set of differences: (plugin-only, reason). A security
+# removal applied to one copy only (the G15 removal of environment-context.md, which
+# the plugin copy kept) is otherwise invisible to every check in this file.
+_ALLOWLIST_CONSTANTS = ("ALLOWED_TARGETS", "ALLOWED_READ")
+_ALLOWED_ALLOWLIST_DIFF = {
+    "ALLOWED_TARGETS": {},
+    "ALLOWED_READ": {
+        ".ravenclaude/plugin-lifecycle.json": (
+            "plugin-only, READ-only: the P1 plugin-lifecycle ledger lives in consumer "
+            "repos; it is never in ALLOWED_TARGETS"
+        ),
+    },
+}
+
+# NOT compared — `main()` legitimately DIVERGES between the two copies in six
 # documented ways, so byte-diffing it is unkeepable (this is why the contract is a
 # named-function list, not a whole-main diff): (1) the root serves the repo root +
-# a landing path while the plugin serves PLUGIN_DIR/DASH_PATH; (2) the root accepts
-# --project-root/--validate, the plugin does not; (3) the root carries the
-# marketplace-write refusal guard; (4) root-only LAN/QR `_lan_ip` phone-URL block;
-# (5) the `/__run` banner wording differs; (6) Codespace-refusal wording differs.
-# `_bind_server` and Spectate helpers are body-diffed via _BODY_DIFF_NAMES. New drift-prone logic goes in a named
-# function above, never inline in main().
+# a landing path while the plugin serves PLUGIN_DIR/DASH_PATH; (2) the PLUGIN
+# copy accepts --project-root/--validate, the root does not (the root's only
+# "--project-root" strings are the argv it hands apply-comfort-posture.py); (3) the
+# PLUGIN copy carries the marketplace-write refusal guard (a --project-root inside
+# the marketplace checkout is refused); (4) root-only LAN/QR `_lan_ip` phone-URL
+# block; (5) the `/__run` banner wording differs; (6) Codespace-refusal wording
+# differs. `_bind_server` and Spectate helpers are body-diffed via _BODY_DIFF_NAMES.
+# New drift-prone logic goes in a named function above, never inline in main().
 
 _DEF_RE = re.compile(r"^def\s+(\w+)\s*\(", re.MULTILINE)
 # Module-level boundaries: `def NAME(` OR `class NAME(`. The body-extractor uses
@@ -157,6 +198,90 @@ def extract_functions(
     return out
 
 
+def allowlist_sets(path: Path) -> tuple[dict[str, set[str]], list[str]]:
+    """Statically evaluate the _ALLOWLIST_CONSTANTS of one server copy.
+
+    Static on purpose: importing the server would execute it, and the must_fail
+    mutants this gate is run against include copies that do not even parse. The
+    evaluator understands exactly the shapes the servers use (string constants, set
+    literals, names bound earlier at module level, `|` unions); anything else is an
+    error, never a silent empty set."""
+    import ast
+
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    except SyntaxError as e:
+        return {}, [f"{path.name}: cannot parse ({e.msg}, line {e.lineno})"]
+
+    env: dict[str, object] = {}
+
+    def ev(node):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, ast.Set):
+            members = [ev(elt) for elt in node.elts]
+            if not all(isinstance(m, str) for m in members):
+                raise ValueError("non-string set member")
+            return set(members)
+        if isinstance(node, ast.Name) and node.id in env:
+            return env[node.id]
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+            left, right = ev(node.left), ev(node.right)
+            if isinstance(left, set) and isinstance(right, set):
+                return left | right
+        raise ValueError(f"unsupported expression: {ast.dump(node)[:80]}")
+
+    for stmt in tree.body:
+        target = value = None
+        if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1:
+            target, value = stmt.targets[0], stmt.value
+        elif isinstance(stmt, ast.AnnAssign) and stmt.value is not None:
+            target, value = stmt.target, stmt.value
+        if not isinstance(target, ast.Name):
+            continue
+        try:
+            env[target.id] = ev(value)
+        except ValueError:
+            env.pop(target.id, None)
+
+    out: dict[str, set[str]] = {}
+    errs: list[str] = []
+    for name in _ALLOWLIST_CONSTANTS:
+        val = env.get(name)
+        if not isinstance(val, set):
+            errs.append(f"{path.name}: cannot statically evaluate {name}")
+        else:
+            out[name] = val
+    return out, errs
+
+
+def allowlist_drift(root_path: Path, plugin_path: Path) -> list[str]:
+    """Every member that differs between the copies' allow-lists, minus the
+    documented _ALLOWED_ALLOWLIST_DIFF — plus any documented difference that no
+    longer exists (a stale exemption hides the next real drift)."""
+    root_sets, errs = allowlist_sets(root_path)
+    plugin_sets, errs2 = allowlist_sets(plugin_path)
+    problems = errs + errs2
+    if problems:
+        return problems
+    for name in _ALLOWLIST_CONSTANTS:
+        allowed = _ALLOWED_ALLOWLIST_DIFF.get(name, {})
+        only_root = root_sets[name] - plugin_sets[name]
+        only_plugin = plugin_sets[name] - root_sets[name]
+        for m in sorted(only_root):
+            problems.append(f"{name}: {m!r} is in the root copy only")
+        for m in sorted(only_plugin - set(allowed)):
+            problems.append(
+                f"{name}: {m!r} is in the plugin copy only (not a documented difference)"
+            )
+        for m in sorted(set(allowed) - only_plugin):
+            problems.append(
+                f"{name}: documented difference {m!r} no longer differs — remove it from "
+                "_ALLOWED_ALLOWLIST_DIFF"
+            )
+    return problems
+
+
 def unguarded_get_handlers(path: Path) -> list[str]:
     """Every `/__` GET endpoint whose handler does NOT call `_local_request_ok()`.
 
@@ -185,6 +310,15 @@ def unguarded_get_handlers(path: Path) -> list[str]:
     if not m_get:
         return ["do_GET not found — the dispatch table moved; this check needs updating"]
     get_body = m_get.group(0)
+    # do_GET is a catch-all wrapper that delegates the dispatch to _dispatch_get
+    # (repo-review dashboard-4: an unanticipated handler exception is a JSON 500,
+    # not a dropped connection). Follow exactly that ONE delegation so the guard
+    # check reads the real dispatch table instead of the four-line wrapper.
+    if re.search(r"self\._dispatch_get\(\)", get_body):
+        m_disp = re.search(r"\n    def _dispatch_get\(self\):.*?(?=\n    def )", text, re.S)
+        if not m_disp:
+            return ["do_GET delegates to _dispatch_get, which is not defined"]
+        get_body = m_disp.group(0)
     # `if self.path.startswith("/__x"):` / `== "/__x"` / `.split("?", 1)[0] == "/__x"`
     # followed by `self._handle_y()`. The optional `.split(...)[0]` clause matches the
     # query-string-stripping dispatch form used by /__reserve, which the prior regex
@@ -194,6 +328,11 @@ def unguarded_get_handlers(path: Path) -> list[str]:
         r'self\.path(?:\.split\([^)]*\)\[0\])?(?:\.startswith|\s*==)\s*\(?\s*"(/__[\w-]+)"\)?\s*:\s*\n\s*self\.(_handle_[\w]+)\(',
         get_body,
     )
+    # A dispatch table that parses to NOTHING would make this check pass vacuously
+    # (every route "guarded" because no route was seen). The real table has well
+    # over a dozen /__ routes, so zero means the regex or the scoping went stale.
+    if not dispatch:
+        return ["GET dispatch table parsed to zero /__ routes — this check would pass vacuously"]
     unguarded = []
     for endpoint, handler in dispatch:
         m = re.search(rf"\n    def {re.escape(handler)}\(.*?(?=\n    def |\nclass |\Z)", text, re.S)
@@ -395,6 +534,28 @@ def main() -> int:
             "and re-run this gate. If a divergence is intentional, document the new "
             "variance in scripts/check-dashboard-server-parity.py _ALLOWED_VARIANCE "
             "and update the SKILL contract.",
+            file=sys.stderr,
+        )
+        return 1
+
+    # ── Allow-list parity (repo-review 2026-10-19, dashboard-5) ──────────────
+    # The root removed .ravenclaude/environment-context.md from both allow-lists as
+    # dead attack surface (G15); the plugin copy kept it, and nothing here noticed,
+    # because nothing compared the sets. Equal membership, except the documented
+    # _ALLOWED_ALLOWLIST_DIFF. Runs LAST, so each older must_fail mutant (some of
+    # which do not parse) still trips the stage it was written for.
+    drift_lists = allowlist_drift(root_path, plugin_path)
+    if drift_lists:
+        print(
+            "ALLOW-LIST DRIFT: ALLOWED_TARGETS / ALLOWED_READ differ between the root and "
+            "plugin dashboard servers beyond the documented difference.",
+            file=sys.stderr,
+        )
+        for line in drift_lists:
+            print(f"  - {line}", file=sys.stderr)
+        print(
+            "  Fix: make both copies list the same paths, or — for a deliberate, reasoned "
+            "difference — add it to _ALLOWED_ALLOWLIST_DIFF in this script.",
             file=sys.stderr,
         )
         return 1
