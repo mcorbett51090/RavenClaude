@@ -201,15 +201,22 @@ class Server:
             start_new_session=True,
         )
         deadline = time.time() + 20
+        last = None
         while time.time() < deadline:
             if self.proc.poll() is not None:
                 break
-            if req(port, "GET", "/__csrf", timeout=2).status == 200:
+            last = req(port, "GET", "/__csrf", timeout=2)
+            if last.status == 200:
                 return
             time.sleep(0.2)
+        exited = self.proc.poll()
         tail = log.read_text(encoding="utf-8", errors="replace")[-1500:]
         self.stop()
-        raise CannotRun(f"server did not come up on {port}: {tail}")
+        probe = (
+            "never probed" if last is None else f"last /__csrf: {last.status} {last.error}".strip()
+        )
+        state = f"exited {exited}" if exited is not None else "still running after 20s"
+        raise CannotRun(f"server did not come up on {port} ({state}; {probe}): {tail}")
 
     def token(self) -> str:
         data = req(self.port, "GET", "/__csrf").json() or {}
@@ -248,6 +255,9 @@ def base_env(scratch: Path) -> dict:
         "RAVENCLAUDE_USAGE_DIR": str(scratch / "usage"),
         "LANG": "C.UTF-8",
         "PYTHONDONTWRITEBYTECODE": "1",
+        # Unbuffered, so a server that never comes up leaves its real output in
+        # the log (a buffered startup line made the macOS log read as empty).
+        "PYTHONUNBUFFERED": "1",
     }
 
 
