@@ -2,6 +2,31 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.18.9] — 2026-10-19
+
+### Fixed
+
+- **`scan-finance-secrets` did not scan anything under Claude Code** (repo-review 2026-10-19,
+  domainplugins-2). `hooks.json` passes `"$CLAUDE_TOOL_FILE_PATH"`, which Claude Code does not set, so `$1`
+  was the empty string; the arg loop appended it as a path and the scan grepped `""` on every edit
+  (control: the registered command with a stdin payload for a finance file holding an AWS-key and an SSN
+  shape printed nothing; the same file passed as `$1` reported both). Empty args are now ignored, and with
+  no path args the hook reads `.tool_input.file_path // .path` from the stdin payload and scans that file
+  only when it is a finance-conventional path (the same filter as `flag-finance-anti-patterns.sh`). A
+  payload without a path scans nothing; it never falls back to `plugins/finance/` under the consumer's cwd.
+  `FINANCE_STRICT=1` now exits 2 on a finding, like the sibling hook. The CLI and `--ci` behaviour is
+  unchanged. `scripts/test_secrets_gate.py` runs the registered `hooks.json` command with a stdin payload
+  (now 20/20).
+- **SSN placeholder filter dropped whole lines** (domainplugins-9). `hooks/flag-finance-anti-patterns.sh`
+  filtered placeholders with a line-level `grep -Ev '(...|<.*>)'`, so a real SSN on a line holding any tag
+  (`<br>`, `<td>`) or beside a placeholder SSN was never reported. The filter now applies to each matched
+  SSN token.
+- The `flag-finance-anti-patterns.sh` header said stderr reaches "Claude and the user". It reaches the user's
+  terminal only; the header now says so.
+
+**Migration:** none. Consumers with `FINANCE_STRICT=1` set will now also see `scan-finance-secrets` exit 2
+when it finds a secret or PII shape in a finance file.
+
 ## [0.18.8] — 2026-09-15
 
 ### Fixed

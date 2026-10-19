@@ -16,8 +16,10 @@
 #      without an `Assumptions:` section — violates §4 anti-pattern
 #      (forecast without documented assumption set).
 #
-# Advisory by default: prints warnings to stderr so Claude and the user
-# both see them, but exits 0 so the edit is not blocked. To make this hook
+# Advisory by default: prints warnings to stderr and exits 0 so the edit is
+# not blocked. stderr at exit 0 reaches the user's terminal but is NOT
+# delivered to the model (measured; see docs/best-practices/hook-authoring.md),
+# so Claude does not see these advisories. To make this hook
 # BLOCK on violation (e.g. for a sensitive client engagement), set
 # FINANCE_STRICT=1 in the env (exit 2 = block in Claude Code; exit 1 is a
 # non-blocking error Claude Code silently swallows, so it would NOT block).
@@ -72,9 +74,12 @@ esac
 case "$file" in
   *synthetic*|*example*|*template*) ;;
   *)
-    # SSN-shaped: 3-2-4 digits with hyphens. Excludes common placeholders.
-    if grep -En '\b[0-9]{3}-[0-9]{2}-[0-9]{4}\b' "$file" 2>/dev/null \
-        | grep -Ev '(000-00-0000|123-45-6789|XXX-XX-XXXX|<.*>)' >/dev/null 2>&1; then
+    # SSN-shaped: 3-2-4 digits with hyphens. Excludes common placeholders, judged
+    # per MATCHED TOKEN (grep -o), not per line: the old line-level
+    # `grep -Ev '(...|<.*>)'` dropped any line holding a tag such as <br>, and any
+    # line where a placeholder sat beside a real SSN (repo-review 2026-10-19).
+    if grep -oE '\b[0-9]{3}-[0-9]{2}-[0-9]{4}\b' "$file" 2>/dev/null \
+        | grep -Ev '^(000-00-0000|123-45-6789|XXX-XX-XXXX)$' >/dev/null 2>&1; then
       violations+=("  [plaintext-pii-ssn] $file contains a number matching the SSN pattern (NNN-NN-NNNN). Verify it's not real client PII; replace with placeholder if it is.")
     fi
     # IBAN-shaped: 2 UPPERCASE letters + 2 digits + 11-30 uppercase alphanumerics.
