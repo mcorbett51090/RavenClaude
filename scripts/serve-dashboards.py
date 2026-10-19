@@ -60,6 +60,11 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+# The ONLY place executable helpers (thing-concern-stats.py, routine-reserve.py,
+# worktree-guard.sh) are loaded from. The plugin copy sets this to its own install
+# dir, so the shared helper bodies stay byte-identical (Gate 32) while neither copy
+# ever executes a script found under the project it serves (repo-review dashboard-1).
+_TRUSTED_PLUGIN_ROOT = REPO_ROOT / "plugins" / "ravenclaude-core"
 
 PLUGIN_SPECTATE_DIR = REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "spectate"
 SPECTATE_CAPABILITIES_PATH = (
@@ -157,12 +162,17 @@ _PLUGIN_CFG_PREFIX = ".ravenclaude/plugins/"
 
 
 def _is_plugin_config_target(target: str) -> bool:
+    # A non-string (a JSON list/object/number for "path") is simply not a target —
+    # refuse it here rather than raise into the handler (repo-review 1005-P3-18).
+    if not isinstance(target, str):
+        return False
     if not target.startswith(_PLUGIN_CFG_PREFIX) or not target.endswith(".yaml"):
         return False
     slug = target[len(_PLUGIN_CFG_PREFIX) : -len(".yaml")]
+    # ASCII-only by an explicit class: str.islower()/isdigit() are Unicode-aware and
+    # accepted "é" and "²", which the documented charset forbids (dashboard-14).
     return (
-        bool(slug)
-        and all(c.islower() or c.isdigit() or c == "-" for c in slug)
+        re.fullmatch(r"[a-z0-9-]+", slug) is not None
         and slug[0] != "-"
         and "/" not in slug
         and ".." not in slug
@@ -181,9 +191,9 @@ def _validate_plugin_config(content: str) -> str | None:
     except ImportError:
         return None
     try:
-        doc = yaml.safe_load(content)
-    except yaml.YAMLError as e:
-        return f"not valid YAML ({e})"
+        doc = _yaml_load_no_alias(content)
+    except (yaml.YAMLError, RecursionError) as e:
+        return f"not valid YAML ({str(e)[:300]})"
     if doc is not None and not isinstance(doc, dict):
         return "plugin config must be a YAML mapping (key: value pairs)"
     return None
@@ -210,6 +220,17 @@ def _validate_json_target(target: str, content: str) -> str | None:
         if "in_scope" in doc and not isinstance(doc["in_scope"], list):
             return "task-scope.json: 'in_scope', when present, must be a list"
     return None
+
+
+# ── Read/write-path safety helpers: see the block above _summarize_run ───────
+
+# /__read refuses a file (or a serialized response) larger than this.
+_READ_MAX_BYTES = 4 * 1024 * 1024
+# Where the previous comfort posture is kept on every save: the local, git-ignored
+# tier, so a backup never appears as an untracked file in the repo.
+_POSTURE_BACKUP = ".ravenclaude/runs/comfort-posture.yaml.bak"
+# Lazily-built PyYAML pieces ({"loader": cls, "error": cls}); PyYAML is optional.
+_YAML_ALIAS_CACHE: dict = {}
 
 
 # POST /__classify powers the dashboard's "Test a command" simulator: it runs the
@@ -349,6 +370,134 @@ _CSRF_TOKEN: str = ""
 _LAST_ACTIVITY: float = 0.0
 
 
+# ── Read/write-path safety helpers (repo-review 2026-10-19, dashboard-2/6/7/8/9) ──
+# Shared VERBATIM by both server copies; Gate 32 body-diffs each one by name, so an
+# edit here must land in the other copy too. They sit directly above _summarize_run
+# because Gate 32 slices a helper up to the NEXT top-level def: the text after
+# _validate_json_target differs between the copies, the text here does not. Their
+# constants (_READ_MAX_BYTES, _POSTURE_BACKUP, _YAML_ALIAS_CACHE) are defined above.
+
+
+def _yaml_load_no_alias(content: str):
+    """yaml.safe_load that REFUSES aliases (`*name`). PyYAML shares an alias target
+    in memory, so loading nested aliases is cheap, but json.dumps (the /__read
+    response) expands every reference, x9 per level: a few hundred bytes became tens
+    of MB (dashboard-7). Dashboard config never needs aliases. Raises a yaml.YAMLError
+    subclass on the first alias; ImportError when PyYAML is absent."""
+    import yaml
+
+    if not _YAML_ALIAS_CACHE:
+
+        class _NoAliasError(yaml.YAMLError):
+            pass
+
+        class _NoAliasLoader(yaml.SafeLoader):
+            def compose_node(self, parent, index):
+                if self.check_event(yaml.AliasEvent):
+                    raise _NoAliasError("YAML aliases (*name) are not allowed here")
+                return super().compose_node(parent, index)
+
+        _YAML_ALIAS_CACHE["error"] = _NoAliasError
+        _YAML_ALIAS_CACHE["loader"] = _NoAliasLoader
+    return yaml.load(content, Loader=_YAML_ALIAS_CACHE["loader"])  # a SafeLoader subclass
+
+
+def _is_yaml_alias_error(exc: BaseException) -> bool:
+    cls = _YAML_ALIAS_CACHE.get("error")
+    return cls is not None and isinstance(exc, cls)
+
+
+def _validate_posture_content(content: str) -> str | None:
+    """Pre-write check for the comfort posture (dashboard-6): it must parse (no
+    aliases) to a mapping that carries schema_version. Returns an error string (the
+    caller answers 422 and writes NOTHING) or None. Skipped when PyYAML is absent,
+    the same posture as _validate_plugin_config. The post-write translator failure
+    stays a 200 with apply_error: the dashboard renders that case on purpose."""
+    try:
+        import yaml
+    except ImportError:
+        return None
+    try:
+        doc = _yaml_load_no_alias(content)
+    except (yaml.YAMLError, RecursionError) as e:
+        return f"not valid YAML ({str(e)[:300]})"
+    if not isinstance(doc, dict):
+        return "the comfort posture must be a YAML mapping (key: value pairs)"
+    if "schema_version" not in doc:
+        return "the comfort posture is missing schema_version"
+    return None
+
+
+def _target_has_symlink(root: Path, target: str) -> bool:
+    """True when any component of `target`, walked down from `root`, is a symlink
+    (or cannot be checked). resolve() + relative_to() only refuses a link that
+    leaves the root; a committed IN-root link (.ravenclaude/plugins/x.yaml ->
+    ../../<tracked file>) passed it and redirected the read/write (dashboard-2)."""
+    cur = Path(root)
+    for part in Path(target).parts:
+        cur = cur / part
+        try:
+            if cur.is_symlink():
+                return True
+        except OSError:
+            return True
+    return False
+
+
+def _atomic_write_bytes(out: Path, data: bytes) -> None:
+    """Write via a temp file in the SAME directory + os.replace (dashboard-8). A
+    reader (hooks grep the posture on most tool calls) sees the old bytes or the new
+    ones, never an empty file mid-write, and os.replace swaps the directory entry, so
+    it never writes THROUGH a symlink at `out`. Keeps an existing file's mode."""
+    import stat as _stat
+    import tempfile as _tempfile
+
+    try:
+        st = os.lstat(out)
+        mode = 0o644 if _stat.S_ISLNK(st.st_mode) else _stat.S_IMODE(st.st_mode)
+    except OSError:
+        mode = 0o644
+    fd, tmp = _tempfile.mkstemp(prefix=f".{out.name}.", suffix=".tmp", dir=str(out.parent))
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.chmod(tmp, mode)
+        os.replace(tmp, str(out))
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def _backup_posture(root: Path, current: Path) -> str | None:
+    """Keep the previous posture before a save replaces it (dashboard-6). Best
+    effort: returns the backup's project-relative path, or None when there was
+    nothing to keep or the backup path is not safe/writable."""
+    if not current.is_file() or _target_has_symlink(root, _POSTURE_BACKUP):
+        return None
+    bak = Path(root) / _POSTURE_BACKUP
+    try:
+        bak.parent.mkdir(parents=True, exist_ok=True)
+        _atomic_write_bytes(bak, current.read_bytes())
+    except OSError:
+        return None
+    return _POSTURE_BACKUP
+
+
+def _project_id(root: Path) -> str:
+    """A short, non-reversible id of the project this server reads and writes:
+    sha256 of the resolved root path, first 12 hex. /__csrf carries it so a
+    launcher can tell THIS project's dashboard from another project's live one on
+    the same port, without the server disclosing the path (dashboard-9)."""
+    import hashlib
+
+    return hashlib.sha256(str(Path(root).resolve()).encode("utf-8")).hexdigest()[:12]
+
+
 def _summarize_run(d: Path) -> dict:
     """Summarize one .ravenclaude/runs/<id>/ directory for the Activity feed.
     Reads summary.md (truncated), the structured-result status, the events line
@@ -377,7 +526,7 @@ def _summarize_run(d: Path) -> dict:
         if p.is_file():
             rec["artifacts"].append(name)
             try:
-                txt = p.read_text(encoding="utf-8").strip()
+                txt = p.read_text(encoding="utf-8", errors="replace").strip()
                 rec["summary"] = txt[:400] + ("…" if len(txt) > 400 else "")
             except OSError:
                 pass
@@ -398,7 +547,7 @@ def _summarize_run(d: Path) -> dict:
         if p.is_file():
             rec["artifacts"].append(name)
             try:
-                with p.open(encoding="utf-8") as f:
+                with p.open(encoding="utf-8", errors="replace") as f:
                     rec["event_count"] = sum(1 for line in f if line.strip())
             except OSError:
                 pass
@@ -451,7 +600,7 @@ def _read_hook_events(runs_dir: Path, days: int = 30, per_hook: int = 10) -> dic
     if runs_dir.is_dir():
         for log in sorted(runs_dir.glob("*/hook-events.jsonl")):
             try:
-                with log.open(encoding="utf-8") as fh:
+                with log.open(encoding="utf-8", errors="replace") as fh:
                     for line in fh:
                         line = line.strip()
                         if not line:
@@ -538,7 +687,7 @@ def _read_vidarr_events(runs_dir: Path, posture_log: Path, days: int = 30) -> di
 
     def _iter_jsonl(path: Path):
         try:
-            with path.open(encoding="utf-8") as fh:
+            with path.open(encoding="utf-8", errors="replace") as fh:
                 for line in fh:
                     line = line.strip()
                     if not line:
@@ -658,7 +807,7 @@ def _read_norns(repo_root: Path, plugin: str) -> dict:
     if runs.is_dir():
         for ev_file in sorted(runs.glob("*/events.jsonl")):
             try:
-                with ev_file.open(encoding="utf-8") as fh:
+                with ev_file.open(encoding="utf-8", errors="replace") as fh:
                     for line in fh:
                         line = line.strip()
                         if not line:
@@ -850,31 +999,46 @@ def _read_nidhoggr(repo_root: Path) -> dict:
 #     GitLab / Slack / Google / npm / HuggingFace / Azure)
 #   - JWTs (third segment {20,} not {6,} — real HMAC-SHA256 sigs are 43 chars;
 #     a shorter floor invites prose false positives)
-#   - PEM private keys
+#   - PEM private keys — the WHOLE block (BEGIN line, base64 body, END line, or to
+#     end of input when unterminated), applied first so no later pattern splits it
 #   - CLI secret flags (--password=, --token=, short -p with {16,} tail and
 #     refuses pure-digit values so `ssh -p 22222` / port maps don't trip)
 #   - embedded credentials in URLs (basic-auth user:pass@host, conn strings)
-# Applied UNIVERSALLY to every string value in /__mimir's response at the
-# JSON-encoding boundary (RM7 / gap-delta C7+C8). Failure is fail-safe:
-# any regex error falls through to returning the original string unchanged.
+#   - Bearer/token values, a literal `-u user:pass`, and a literal-value
+#     PASSWORD/SECRET/TOKEN/API_KEY assignment (an env REFERENCE such as
+#     `TOKEN=$TOKEN` is left alone: the value class excludes `$`)
+# The `sk-` key has a LEFT boundary: unanchored, it matched any word ending in
+# "sk" followed by a 20+ char hyphenated tail ("ta" + "sk-management-and-...").
+# The pattern set follows the repo-review 2026-10-19 SECRET_SPEC R-set, which every
+# redaction copy shares. Applied UNIVERSALLY to every string value in /__mimir's
+# response at the JSON-encoding boundary (RM7 / gap-delta C7+C8). Failure is
+# fail-safe: any regex error falls through to returning the original string unchanged.
 _MIMIR_SECRET_PATTERNS = [
+    # PEM private-key BLOCK (first: it must consume the body before anything else)
+    r"(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|\Z)",
     # Cloud API key prefixes
     r"AKIA[0-9A-Z]{12,}",
-    r"sk-(?:ant-)?[A-Za-z0-9-]{20,}",
+    r"ASIA[0-9A-Z]{12,}",
+    r"(?<![A-Za-z0-9])sk-(?:ant-)?[A-Za-z0-9-]{20,}",
     r"sk_live_[A-Za-z0-9]{24,}",
+    r"sk_test_[A-Za-z0-9]{16,}",
     r"rk_live_[A-Za-z0-9]{24,}",
-    r"ghp_[A-Za-z0-9]{30,}",
+    r"gh[pousr]_[A-Za-z0-9]{30,}",
     r"github_pat_[A-Za-z0-9_]{20,}",
     r"glpat-[A-Za-z0-9_-]{15,}",
     r"xox[baprs]-[A-Za-z0-9-]{10,}",
+    r"xapp-[A-Za-z0-9-]{10,}",
     r"AIza[0-9A-Za-z_-]{30,}",
+    r"ya29\.[A-Za-z0-9_-]{20,}",
     r"npm_[A-Za-z0-9]{30,}",
     r"hf_[A-Za-z0-9]{30,}",
     r"AccountKey=[A-Za-z0-9+/=]{20,}",
     # JWTs (third segment tightened to {20,})
     r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}",
-    # PEM private keys
-    r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+    # Opaque bearer / token values, a literal -u user:pass, a literal-value assignment
+    r"(?:Bearer|bearer|token)\s+[A-Za-z0-9._~+/-]{20,}",
+    r"-u\s+[^\s:$]+:[^\s$]+",
+    r"(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*=[^\s$]\S*",
     # CLI secret flags
     r"--password[=\s]\S+",
     r"--token[=\s]\S+",
@@ -1224,7 +1388,7 @@ def _read_streams(project_root) -> dict:
     try:
         ap = sroot / "active-stream"
         if ap.is_file():
-            cand = ap.read_text(encoding="utf-8").strip()
+            cand = ap.read_text(encoding="utf-8", errors="replace").strip()
             if _slug_ok.match(cand) and cand in streams_obj:
                 active = cand
     except OSError:
@@ -1269,7 +1433,9 @@ def _read_streams(project_root) -> dict:
         hist_path = sroot / active / "history.jsonl"
         try:
             lines = (
-                hist_path.read_text(encoding="utf-8").splitlines() if hist_path.is_file() else []
+                hist_path.read_text(encoding="utf-8", errors="replace").splitlines()
+                if hist_path.is_file()
+                else []
             )
         except OSError:
             lines = []
@@ -1679,11 +1845,13 @@ def _read_worktree_guard(project_root: Path) -> dict | None:
     checkout, a missing git/jq/shasum, a timeout, or non-JSON output all yield
     None (the Sleipnir widget simply omits the guard block), never raises.
     Duplicated byte-identically in both server copies — keep them in sync (the
-    parity gate guards endpoint NAMES; this helper is duplicated, so edit both)."""
-    hook = project_root / "plugins" / "ravenclaude-core" / "hooks" / "worktree-guard.sh"
-    if not hook.is_file():
-        # Bundled-plugin install ships the hook alongside this server (../hooks).
-        hook = Path(__file__).resolve().parent.parent / "hooks" / "worktree-guard.sh"
+    parity gate guards endpoint NAMES; this helper is duplicated, so edit both).
+
+    The hook is resolved ONLY from _TRUSTED_PLUGIN_ROOT, never from project_root: a
+    repo can ship its own plugins/ravenclaude-core/hooks/worktree-guard.sh, and the
+    project-first lookup ran it as `bash` on a plain GET. project_root is still the
+    cwd, because the status being reported is the project's."""
+    hook = _TRUSTED_PLUGIN_ROOT / "hooks" / "worktree-guard.sh"
     if not hook.is_file():
         return None
     try:
@@ -1760,7 +1928,11 @@ def _read_host() -> dict:
     basis = None
     th = _os.environ.get("THING_HOST") or ""
     if th:
-        host, basis = th, "THING_HOST asserted by the host adapter"
+        # A CLOSED SET: the value lands on a screenshot-shareable page, so an
+        # unrecognised THING_HOST is reported as "other" and its text is never echoed.
+        known = ("claude-code", "codex", "copilot", "cursor", "gemini", "grok")
+        host = th if th in known else "other"
+        basis = "THING_HOST asserted by the host adapter"
     elif present["CLAUDECODE"] or present["CLAUDE_CODE_ENTRYPOINT"]:
         host, basis = "claude-code", "CLAUDECODE / CLAUDE_CODE_ENTRYPOINT present"
     elif present["CODEX_SESSION_ID"] or present["CODEX_PROJECT_ROOT"]:
@@ -1817,18 +1989,16 @@ def _read_concern_stats(project_root: Path) -> dict:
     reader pattern in this file. Duplicated byte-identically in both server
     copies — keep them in sync (the parity gate guards endpoint NAMES). Every
     failure (missing analyzer, import error, malformed Sága entry) degrades to
-    an empty payload with an `error` field, never raises."""
+    an empty payload with an `error` field, never raises.
+
+    The analyzer is imported ONLY from _TRUSTED_PLUGIN_ROOT, never from
+    project_root (repo-review dashboard-1: a project-shipped copy ran in-process)."""
     global _CONCERN_STATS_MOD
     empty = {"schema_version": 1, "total_reviews": 0, "concerns": []}
     if _CONCERN_STATS_MOD is None:
         import importlib.util
 
-        script = (
-            project_root / "plugins" / "ravenclaude-core" / "scripts" / "thing-concern-stats.py"
-        )
-        if not script.is_file():
-            # Bundled-plugin install ships the analyzer alongside this server.
-            script = Path(__file__).resolve().parent / "thing-concern-stats.py"
+        script = _TRUSTED_PLUGIN_ROOT / "scripts" / "thing-concern-stats.py"
         if not script.is_file():
             return {**empty, "error": "analyzer not found"}
         try:
@@ -1850,16 +2020,16 @@ _RESERVE_MOD = None
 
 
 def _reserve_engine(project_root: Path):
-    """Load scripts/routine-reserve.py once: the dev repo's plugin copy first, else the
-    copy bundled beside this server. None when missing or broken — the Reserve tab then
-    shows an honest empty state instead of a 500."""
+    """Load scripts/routine-reserve.py once, ONLY from _TRUSTED_PLUGIN_ROOT — never
+    from project_root, whose copy (if any) belongs to the repo being served, not to
+    this server (repo-review dashboard-1). None when missing or broken — the Reserve
+    tab then shows an honest empty state instead of a 500. Byte-identical in both
+    server copies (Gate 32 body-diffs this helper)."""
     global _RESERVE_MOD
     if _RESERVE_MOD is None:
         import importlib.util
 
-        script = project_root / "plugins" / "ravenclaude-core" / "scripts" / "routine-reserve.py"
-        if not script.is_file():
-            script = Path(__file__).resolve().parent / "routine-reserve.py"
+        script = _TRUSTED_PLUGIN_ROOT / "scripts" / "routine-reserve.py"
         if not script.is_file():
             return None
         try:
@@ -1919,12 +2089,65 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         sys.stderr.write("[%s] %s\n" % (self.log_date_time_string(), format % args))
 
+    # ── Static serving: no dot-paths, no directory listings (dashboard-3) ─────
+    # This dev server serves the WHOLE checkout. The Host/Origin guard stops a
+    # browser (DNS rebinding) but not a non-browser peer under --bind 0.0.0.0, which
+    # could read .env, .git/config (remote URLs can carry tokens),
+    # .claude/settings.local.json and .ravenclaude/runs/**. The dashboards load
+    # nothing from a dot-path (their live data comes through /__*), so any path
+    # component starting with "." maps to a target that does not exist -> 404.
+    _REFUSED_STATIC = ("__rc_refused_static__", "_")
+
+    def translate_path(self, path):
+        p = super().translate_path(path)
+        try:
+            rel = os.path.relpath(p, self.directory)
+        except ValueError:
+            return os.path.join(self.directory, *self._REFUSED_STATIC)
+        parts = [] if rel == os.curdir else rel.split(os.sep)
+        if any(part.startswith(".") for part in parts):
+            return os.path.join(self.directory, *self._REFUSED_STATIC)
+        return p
+
+    def list_directory(self, path):
+        # A listing maps the tree for anyone who can reach the port. A directory
+        # that has an index.html is still served (send_head finds it first).
+        self.send_error(404, "directory listing disabled")
+        return None
+
     def handle_one_request(self):
         # Record activity for the --max-idle reaper on every incoming request
         # (before parsing, so even a rejected request counts as "in use").
         global _LAST_ACTIVITY
         _LAST_ACTIVITY = time.monotonic()
+        self._rc_responded = False
         super().handle_one_request()
+
+    def send_response_only(self, code, message=None):
+        # Track whether a status line is already on the wire, so the catch-all in
+        # _internal_error never writes a SECOND response into a half-sent one.
+        self._rc_responded = True
+        super().send_response_only(code, message)
+
+    def _internal_error(self, exc: BaseException) -> None:
+        """The last line of defence for do_GET / do_POST (repo-review dashboard-4).
+        An exception a handler did not anticipate used to escape to socketserver,
+        which dropped the connection with NO response, so the dashboard reported
+        "Could not reach <endpoint>" for what was really a server bug. Answer a JSON 500
+        naming only the exception TYPE (no message, which can quote file content),
+        and log the traceback locally."""
+        import traceback
+
+        where = self.path.split("?", 1)[0][:200]
+        sys.stderr.write(f"serve-dashboards: {self.command} {where} failed: {type(exc).__name__}\n")
+        traceback.print_exc(file=sys.stderr)
+        if getattr(self, "_rc_responded", False):
+            self.close_connection = True  # mid-response: cannot send a clean 500
+            return
+        try:
+            self._json(500, {"error": type(exc).__name__})
+        except OSError:
+            self.close_connection = True
 
     def _local_request_ok(self) -> bool:
         """Refuse cross-origin / DNS-rebinding requests to the dashboard endpoints.
@@ -2021,7 +2244,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not _CSRF_TOKEN:
             return False
         presented = self.headers.get("X-CSRF-Token", "")
-        return hmac.compare_digest(presented, _CSRF_TOKEN)
+        # Compare BYTES: compare_digest(str, str) raises TypeError on a non-ASCII
+        # header, which dropped the connection instead of answering 403 (1005-P3-18).
+        return hmac.compare_digest(
+            presented.encode("utf-8", "replace"), _CSRF_TOKEN.encode("utf-8")
+        )
 
     def _parse_content_length(self, max_bytes: int) -> int | None:
         """Parse Content-Length defensively; respond 400/413 on failure.
@@ -2086,7 +2313,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(data)
 
-
     def _handle_spectate_stream(self, session: str):
         """GET /__spectate/stream — SSE tail (≤4 concurrent, 15s heartbeat, Last-Event-ID)."""
         if self.command == "HEAD":
@@ -2141,16 +2367,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 return
             last_beat = time.monotonic()
             while True:
-                st, rows, cursor = spectate_store.iter_new_spectate_lines(
-                    root, session, cursor
-                )
+                st, rows, cursor = spectate_store.iter_new_spectate_lines(root, session, cursor)
                 if st != "ok":
                     err = json.dumps({"error": st})
                     _write("event: error\ndata: " + err + "\n\n")
                     break
                 for ev, end in rows:
                     payload = json.dumps(ev, separators=(",", ":"), ensure_ascii=False)
-                    if not _write("id: " + str(end) + "\nevent: spectate\ndata: " + payload + "\n\n"):
+                    if not _write(
+                        "id: " + str(end) + "\nevent: spectate\ndata: " + payload + "\n\n"
+                    ):
                         return
                     cursor = end
                 now = time.monotonic()
@@ -2161,7 +2387,6 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 time.sleep(spectate_store.SSE_POLL_S)
         finally:
             spectate_store.release_sse_slot()
-
 
     def _handle_spectate_steer_post(self):
         """POST /__spectate/steer — CSRF+Origin already enforced by do_POST."""
@@ -2283,6 +2508,12 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             path_base.startswith("/spectate/") and not path_base.startswith("/spectatex")
         ):
             self._handle_spectate_asset()
+            return
+        # Every /__* HEAD is Origin/Host-guarded like its GET (dashboard-15). The
+        # shell's same-origin HEAD /__csrf probe still passes; a forged Host or a
+        # cross-origin page gets 403 instead of an endpoint-existence oracle.
+        if path_base.startswith("/__") and not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
         if (
             self.path in ("/__save", "/__run", "/__classify", "/__csrf", "/__auth-status")
@@ -2406,6 +2637,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self._json(200, self._nested_dispatch_auth())
 
     def do_GET(self):
+        # Catch-all wrapper; the dispatch table is _dispatch_get (Gate 32 follows
+        # this one delegation when it checks every /__ GET route is guarded).
+        try:
+            self._dispatch_get()
+        except (BrokenPipeError, ConnectionResetError):
+            raise  # the client went away: not a server error
+        except Exception as exc:  # noqa: BLE001 — see _internal_error
+            self._internal_error(exc)
+
+    def _dispatch_get(self):
         # NOTE: static GETs are intentionally ungated. Any NEW data-returning GET
         # endpoint added here MUST call self._local_request_ok() first (as
         # _handle_read does) — do not let it ride the static path.
@@ -2500,7 +2741,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if not _CSRF_TOKEN:
             self.send_error(503, "csrf token not yet initialized")
             return
-        body = json.dumps({"token": _CSRF_TOKEN}).encode("utf-8")
+        # project_id is ADDITIVE (the dashboard JS reads only "token"): launchers
+        # compare it with their own project's id before adopting a live server.
+        body = json.dumps({"token": _CSRF_TOKEN, "project_id": _project_id(REPO_ROOT)}).encode(
+            "utf-8"
+        )
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
@@ -2528,24 +2773,46 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         except ValueError:
             self.send_error(403, "path escapes repo root")
             return
+        # An IN-root symlink passes the containment check above; refuse it outright
+        # (repo-review dashboard-2), exactly as /__save does.
+        if _target_has_symlink(REPO_ROOT, target):
+            self.send_error(403, "path traverses a symlink")
+            return
         if not out.is_file():
             self._json(404, {"path": target, "exists": False})
             return
-        content = out.read_text(encoding="utf-8")
+        if out.stat().st_size > _READ_MAX_BYTES:
+            self._json(413, {"path": target, "exists": True, "error": "file too large to read"})
+            return
+        content = out.read_text(encoding="utf-8", errors="replace")
         payload = {"path": target, "exists": True, "content": content, "parsed": None}
         if target.endswith((".yaml", ".yml")):
             try:
-                import yaml  # present in the devcontainer
-
-                payload["parsed"] = yaml.safe_load(content)
-            except Exception:
+                payload["parsed"] = _yaml_load_no_alias(content)
+            except Exception as e:
+                if _is_yaml_alias_error(e):
+                    # A YAML alias bomb expands exponentially in json.dumps below;
+                    # refuse it rather than serialize it (repo-review dashboard-7).
+                    self._json(
+                        422,
+                        {"path": target, "exists": True, "error": "YAML aliases are not allowed"},
+                    )
+                    return
                 payload["parsed"] = None  # dashboard falls back to defaults
         elif target.endswith(".json"):
             try:
                 payload["parsed"] = json.loads(content)
             except Exception:
                 payload["parsed"] = None  # dashboard falls back to defaults
-        self._json(200, payload)
+        raw = json.dumps(payload).encode("utf-8")
+        if len(raw) > 2 * _READ_MAX_BYTES:
+            self._json(413, {"path": target, "exists": True, "error": "response too large"})
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(raw)))
+        self.end_headers()
+        self.wfile.write(raw)
 
     def _handle_saga(self):
         """GET /__saga[?limit=N] — return the last N command-review verdicts from
@@ -2888,7 +3155,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.send_error(405)
 
     def do_POST(self):
-        # do_POST is the single chokepoint for every state-changing endpoint
+        # Catch-all wrapper (see _internal_error); the guards + dispatch are in
+        # _dispatch_post, which every POST still passes through first.
+        try:
+            self._dispatch_post()
+        except (BrokenPipeError, ConnectionResetError):
+            raise  # the client went away: not a server error
+        except Exception as exc:  # noqa: BLE001 — see _internal_error
+            self._internal_error(exc)
+
+    def _dispatch_post(self):
+        # _dispatch_post is the single chokepoint for every state-changing endpoint
         # (/__save, /__run, /__classify), so the strict Origin requirement goes
         # here rather than in _local_request_ok() — which also gates read-only
         # GETs that legitimately carry no Origin. See _state_change_origin_ok.
@@ -2931,6 +3208,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as e:
             self.send_error(400, f"invalid JSON body: {e}")
             return
+        # A list/object/number "path" is unhashable or has no string methods; it
+        # used to raise out of the allow-list test and reset the connection.
+        if not isinstance(target, str):
+            self.send_error(400, "path must be a string")
+            return
 
         # Path-traversal defense + allow-list check.
         is_plugin_cfg = _is_plugin_config_target(target)
@@ -2942,6 +3224,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             out.relative_to(REPO_ROOT)
         except ValueError:
             self.send_error(403, "path escapes repo root")
+            return
+        # resolve() follows symlinks, so an IN-root link passes the check above and
+        # would redirect the write onto its target (dashboard-2). Refuse any link.
+        if _target_has_symlink(REPO_ROOT, target):
+            self.send_error(403, "path traverses a symlink")
             return
         if not isinstance(content, str):
             self.send_error(400, "content must be a string")
@@ -2963,6 +3250,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 self.send_error(400, f"{target}: {err}")
                 return
 
+        # The comfort posture governs every guardrail: refuse content that does not
+        # parse to a mapping carrying schema_version BEFORE anything is written, so a
+        # malformed save can never replace the live posture (dashboard-6). 422 is
+        # this pre-write case only; a translator failure after a good write stays a
+        # 200 with apply_error, which the dashboard renders on purpose.
+        if target == POSTURE_TARGET:
+            err = _validate_posture_content(content)
+            if err:
+                self._json(422, {"path": target, "saved": False, "error": err})
+                return
+
         out.parent.mkdir(parents=True, exist_ok=True)
         # nested_dispatch off→on requires Claude Code sign-in (Gate 293).
         # Refuse BEFORE writing so a 403 cannot leave a half-applied posture.
@@ -2971,14 +3269,22 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             if nd_refuse is not None:
                 self._json(403, nd_refuse)
                 return
-        # write_bytes, not write_text(newline=): Python 3.9 compat (LF preserved)
-        out.write_bytes(content.encode("utf-8"))
+        backup = _backup_posture(REPO_ROOT, out) if target == POSTURE_TARGET else None
+        # Temp file + os.replace: never an empty posture mid-write, never written
+        # through a link (dashboard-8). Bytes, not text: LF preserved on Python 3.9.
+        try:
+            _atomic_write_bytes(out, content.encode("utf-8"))
+        except OSError as e:
+            self._json(500, {"path": target, "saved": False, "error": type(e).__name__})
+            return
 
         payload = {
             "saved": str(out.relative_to(REPO_ROOT)),
             "root": str(REPO_ROOT),
             "bytes": len(content),
         }
+        if backup:
+            payload["backup"] = backup
         # Auto-apply: saving the posture re-runs the translator so the change
         # lands in .claude/settings.json instantly (no manual /set-posture).
         if target == POSTURE_TARGET:
@@ -3114,6 +3420,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             action = body["action"]
         except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as e:
             self.send_error(400, f"invalid JSON body: {e}")
+            return
+        # An unhashable action (a list/object) raised out of the membership test
+        # below and reset the connection (repo-review dashboard-12).
+        if not isinstance(action, str):
+            self.send_error(400, "action must be a string")
             return
         if action not in RUN_ACTIONS:
             self.send_error(403, f"action not in allow-list: {action!r}")
@@ -3642,6 +3953,15 @@ def main() -> int:
             print("  (For a scannable QR code here, run: pip install qrcode)")
         if security_note:
             print(security_note)
+
+    if bind == "0.0.0.0":
+        # dashboard-3: say what is actually exposed, not only /__save.
+        print(
+            f"\n  Exposure: bound to 0.0.0.0, so the static files of the WHOLE checkout\n"
+            f"  ({REPO_ROOT}) are readable by anyone who can reach this port.\n"
+            "  Dot-paths (.env, .git, .claude, .ravenclaude) and directory listings are\n"
+            "  refused; every other file is served."
+        )
 
     # Auto-open the browser on local/desktop runs.  In a Codespace the container
     # has no display, and VS Code's onAutoForward: openBrowser (wired in
