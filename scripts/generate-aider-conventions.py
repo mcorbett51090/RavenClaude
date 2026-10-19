@@ -117,8 +117,8 @@ def extract_section(text: str, header: str) -> str:
     return "\n".join(lines[start:end]).rstrip()
 
 
-def build() -> str:
-    text = _AGENTS.read_text(encoding="utf-8")
+def build(source: Path = _AGENTS) -> str:
+    text = source.read_text(encoding="utf-8")
     parts = [_PREAMBLE.rstrip()]
     for header in _SECTIONS:
         parts.append(extract_section(text, header))
@@ -143,10 +143,15 @@ def main(argv: list) -> int:
     ap.add_argument("--out")
     ap.add_argument("--conf-out")
     ap.add_argument("--check", action="store_true")
+    # --source lets a canary project a MODIFIED copy (check-portable-floor.py's
+    # header-rename canary) without ever writing the real, @-imported AGENTS.md.
+    ap.add_argument(
+        "--source", default=str(_AGENTS), help="AGENTS.md to project (default: the repo's)"
+    )
     args = ap.parse_args(argv[1:])
 
     try:
-        body = build()
+        body = build(Path(args.source))
     except (ValueError, OSError) as exc:
         print(f"aider-conventions: {exc}", file=sys.stderr)
         return 1

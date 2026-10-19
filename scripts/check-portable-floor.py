@@ -18,12 +18,12 @@ Usage:
     check-portable-floor.py --check
     check-portable-floor.py --must-fail
 """
+
 from __future__ import annotations
 
 import argparse
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -58,7 +58,7 @@ def _section(text: str, header: str) -> str:
     except ValueError:
         return ""
     out = [lines[start]]
-    for line in lines[start + 1:]:
+    for line in lines[start + 1 :]:
         if line.startswith("## "):
             break
         out.append(line)
@@ -89,7 +89,9 @@ def check() -> int:
 
     surfaces = [("AGENTS.md (source)", source)]
 
-    aider = _projection([sys.executable, "scripts/generate-aider-conventions.py"])
+    aider = _projection(
+        [sys.executable, "scripts/generate-aider-conventions.py", "--source", _AGENTS]
+    )
     if not aider:
         fails.append("the aider projector produced nothing")
     else:
@@ -136,24 +138,27 @@ def check() -> int:
     #    header rather than shipping a CONVENTIONS.md with a hole in it.
     #    control: the unmodified tree returns rc=0 above, so a non-zero here is
     #    the rename and not a broken projector.
+    #    The renamed text goes into a TEMP COPY passed with --source. It used to
+    #    be written over the real, @-imported AGENTS.md and restored in a
+    #    `finally`, so a concurrent reader saw the doctored header and a killed
+    #    run (SIGKILL / CI cancel) left ` M AGENTS.md` behind (repo-review
+    #    2026-10-19, scripts-9). Nothing here writes the real file any more.
     with tempfile.TemporaryDirectory() as tmp:
-        backup = os.path.join(tmp, "AGENTS.md")
-        shutil.copy(_AGENTS, backup)
-        try:
-            renamed = agents.replace(_HEADER, "## Renamed Header Canary")
-            with open(_AGENTS, "w", encoding="utf-8") as fh:
-                fh.write(renamed)
-            p = subprocess.run(
-                [sys.executable, "scripts/generate-aider-conventions.py"],
-                capture_output=True, text=True, timeout=120, cwd=_REPO,
+        canary = os.path.join(tmp, "AGENTS.md")
+        with open(canary, "w", encoding="utf-8") as fh:
+            fh.write(agents.replace(_HEADER, "## Renamed Header Canary"))
+        p = subprocess.run(
+            [sys.executable, "scripts/generate-aider-conventions.py", "--source", canary],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            cwd=_REPO,
+        )
+        if p.returncode == 0:
+            fails.append(
+                "HEADER-RENAME CANARY: the aider projector exited 0 with the "
+                "section renamed away — it would ship a floor-shaped hole"
             )
-            if p.returncode == 0:
-                fails.append(
-                    "HEADER-RENAME CANARY: the aider projector exited 0 with the "
-                    "section renamed away — it would ship a floor-shaped hole"
-                )
-        finally:
-            shutil.copy(backup, _AGENTS)
 
     for f in fails:
         print(f"FAIL: {f}")
@@ -189,19 +194,21 @@ def must_fail() -> int:
         print("MUST-FAIL VIOLATED: an overclaiming line was not caught")
         return 1
     if _OVERCLAIM.search(body):
-        print("MUST-FAIL VIOLATED: the UNMODIFIED floor already trips the check, so a "
-              "pass would be indistinguishable from the poisoned case")
+        print(
+            "MUST-FAIL VIOLATED: the UNMODIFIED floor already trips the check, so a "
+            "pass would be indistinguishable from the poisoned case"
+        )
         return 1
     # ⛔ AND THE VERDICT MUST COME FROM check() ITSELF (P1-3). Everything above
     # exercises the _OVERCLAIM regex — a HELPER. A check() blinded so it can
     # report nothing satisfies it, leaving --check AND --must-fail both at rc=0,
     # which is the shape this gate exists to detect. Assert the ENTRY POINT.
     #
-    # ⛔ The poisoned tree is a TEMP COPY, never the real AGENTS.md. check()
-    # mutates-and-restores that file in place (P2-5), so driving the mutant over
-    # the real path would leave a poisoned AGENTS.md behind if this process died
-    # between the write and the restore. The rc asserted is MEASURED: unmutated
-    # scores 0 and a planted enforcement claim drives check() to 2 (2026-08-25).
+    # ⛔ The poisoned tree is a TEMP COPY, never the real AGENTS.md. (check()
+    # used to mutate-and-restore the real file in place, P2-5; since 2026-10-19
+    # its rename canary also runs on a temp copy, so nothing writes the real
+    # file — the digest assertion below proves it.) The rc asserted is MEASURED:
+    # unmutated scores 0 and a planted enforcement claim drives check() to 2.
     import contextlib as _ctx
     import hashlib as _hash
     import io as _io
@@ -212,11 +219,38 @@ def must_fail() -> int:
             return _hash.sha256(fh.read()).hexdigest()
 
     before = _digest(_AGENTS)
-    with _ctx.redirect_stdout(_io.StringIO()):
-        real_rc = check()
+    # ⛔ scripts-9 teeth: record any write-mode open of the REAL AGENTS.md while
+    # check() runs. A mutate-and-restore leaves the digest equal afterwards, so
+    # only watching the open itself catches a regression back to the in-place
+    # canary (and the window in which a concurrent reader saw a doctored file).
+    import builtins as _bi
+
+    _real_open = _bi.open
+    _real_agents = os.path.abspath(_AGENTS)
+    _writes = []
+
+    def _watch_open(file, mode="r", *a, **k):
+        if any(c in mode for c in "wax+") and os.path.abspath(str(file)) == _real_agents:
+            _writes.append(mode)
+        return _real_open(file, mode, *a, **k)
+
+    _bi.open = _watch_open
+    try:
+        with _ctx.redirect_stdout(_io.StringIO()):
+            real_rc = check()
+    finally:
+        _bi.open = _real_open
+    if _writes:
+        print(
+            "MUST-FAIL VIOLATED: check() opened the real AGENTS.md for writing "
+            f"({len(_writes)}x) — the rename canary must run on a temp copy (scripts-9)"
+        )
+        return 1
     if real_rc != 0:
-        print(f"MUST-FAIL SETUP FAILED: the unmutated floor already fails check() "
-              f"(rc={real_rc}), so a red result below would be ambiguous")
+        print(
+            f"MUST-FAIL SETUP FAILED: the unmutated floor already fails check() "
+            f"(rc={real_rc}), so a red result below would be ambiguous"
+        )
         return 1
 
     saved_agents = _AGENTS
@@ -232,17 +266,23 @@ def must_fail() -> int:
         globals()["_AGENTS"] = saved_agents
 
     if bad_rc != 2:
-        print(f"MUST-FAIL VIOLATED: check() returned {bad_rc} on a floor carrying a "
-              "planted enforcement claim — the overclaim assertion is not reaching "
-              "the entry point's verdict")
+        print(
+            f"MUST-FAIL VIOLATED: check() returned {bad_rc} on a floor carrying a "
+            "planted enforcement claim — the overclaim assertion is not reaching "
+            "the entry point's verdict"
+        )
         return 1
     if _digest(_AGENTS) != before:
-        print("MUST-FAIL VIOLATED: the real AGENTS.md changed while running the "
-              "teeth — check()'s mutate-and-restore did not restore (P2-5)")
+        print(
+            "MUST-FAIL VIOLATED: the real AGENTS.md changed while running the "
+            "teeth — something in check() wrote the real file (P2-5 / scripts-9)"
+        )
         return 1
 
-    print("PASS (--must-fail): a planted enforcement claim is caught, it drives "
-          "check() to 2 while the real floor scores 0, and AGENTS.md is byte-identical")
+    print(
+        "PASS (--must-fail): a planted enforcement claim is caught, it drives "
+        "check() to 2 while the real floor scores 0, and AGENTS.md is byte-identical"
+    )
     return 0
 
 
