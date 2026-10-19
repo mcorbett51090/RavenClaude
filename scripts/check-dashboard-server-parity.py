@@ -92,6 +92,8 @@ _BODY_DIFF_NAMES = (
     "_spectate_asset_allowlist",
     "_read_spectate_asset",
     "_bind_server",
+    # 2026-10-19: the bind without HTTPServer's reverse-DNS lookup (macOS hang).
+    "_new_http_server",
     "_open_browser",
     # repo-review 2026-10-19 (dashboard-1/-5): the reserve engine loader and the
     # override writer were never compared, and dashboard-1's project-first lookup

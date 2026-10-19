@@ -418,6 +418,52 @@ def section_unit(root_server: Path, plugin_server: Path, scratch: Path) -> None:
             mods[label] = load_module(path, f"_wsd_{label}_srv")
         except Exception as e:  # noqa: BLE001
             check(sec, f"{label} server imports", False, f"{type(e).__name__}: {e}")
+    # Startup must not depend on reverse DNS: HTTPServer.server_bind's getfqdn()
+    # blocked >25 s on a macOS runner (2026-10-19) and the server never listened.
+    calls: list[str] = []
+    real_getfqdn = socket.getfqdn
+
+    def _recording_getfqdn(name: str = "") -> str:
+        calls.append(name)
+        return real_getfqdn(name)
+
+    import http.server as _hs
+
+    socket.getfqdn = _recording_getfqdn
+    try:
+        ctl = _hs.ThreadingHTTPServer(("127.0.0.1", 0), _hs.BaseHTTPRequestHandler)
+        ctl.server_close()
+        check(
+            sec,
+            "getfqdn control: a plain ThreadingHTTPServer does call getfqdn (positive control)",
+            bool(calls),
+        )
+        for label, mod in mods.items():
+            make = getattr(mod, "_new_http_server", None)
+            if make is None:
+                check(sec, f"{label}: _new_http_server exists", False)
+                continue
+            calls.clear()
+            srv = make(("127.0.0.1", 0), _hs.BaseHTTPRequestHandler)
+            try:
+                port = srv.server_address[1]
+                probe = socket.create_connection(("127.0.0.1", port), timeout=2)
+                probe.close()
+                listening = True
+            except OSError:
+                listening = False
+            finally:
+                srv.server_close()
+            check(
+                sec,
+                f"{label}: _new_http_server binds without a reverse-DNS lookup",
+                not calls,
+                f"getfqdn called with {calls!r}",
+            )
+            check(sec, f"{label}: _new_http_server is listening when it returns", listening)
+    finally:
+        socket.getfqdn = real_getfqdn
+
     redacted = "[REDACTED]"
     pem_head = "-----BEGIN " + "RSA PRIVATE KEY-----"
     pem_tail = "-----END " + "RSA PRIVATE KEY-----"

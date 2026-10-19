@@ -42,6 +42,7 @@ import os
 import re
 import secrets
 import signal
+import socketserver
 import subprocess
 import sys
 import threading
@@ -3547,6 +3548,25 @@ def _reclaim_port(port: int) -> bool:
     return False
 
 
+def _new_http_server(address: tuple, handler: type) -> ThreadingHTTPServer:
+    """A bound, listening ThreadingHTTPServer WITHOUT the reverse-DNS lookup.
+
+    HTTPServer.server_bind calls socket.getfqdn(host) before listen() to set
+    server_name, which nothing here reads. On a macOS CI runner that lookup of
+    127.0.0.1 blocked for over 25 s (2026-10-19), so the server never started.
+    This does what TCPServer.__init__ would (bind, then listen) and sets
+    server_name from the bound address instead."""
+    srv = ThreadingHTTPServer(address, handler, bind_and_activate=False)
+    try:
+        socketserver.TCPServer.server_bind(srv)
+        srv.server_name, srv.server_port = srv.server_address[:2]
+        srv.server_activate()
+    except BaseException:
+        srv.server_close()
+        raise
+    return srv
+
+
 def _bind_server(
     bind: str,
     port: int,
@@ -3561,13 +3581,13 @@ def _bind_server(
     """
     for candidate in range(port, port + span + 1):
         try:
-            return ThreadingHTTPServer((bind, candidate), handler), candidate
+            return _new_http_server((bind, candidate), handler), candidate
         except OSError as exc:
             if exc.errno != errno.EADDRINUSE:
                 raise
             if reclaim and candidate == port and _reclaim_port(port):
                 try:
-                    srv = ThreadingHTTPServer((bind, port), handler)
+                    srv = _new_http_server((bind, port), handler)
                     print(
                         f"  port {port} was held by a stale RavenClaude dashboard — "
                         f"stopped it, rebound {port}"

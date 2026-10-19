@@ -28,6 +28,9 @@ The 2026-10-19 whole-repo review: 140 findings fixed across eight packages (2 P0
 ### Fixed — P3
 - Thirty-five smaller fixes: dashboard POST validation and `do_HEAD` auth, `/__host` returning booleans only, symlink-safe `/__save`, sanitized Copilot session ids, glob-safe guard loops, JSONL rows split by U+2028, quadratic regexes in the escalation and injection-strip rules, the actionlint resolver's checksum, NaN confidence counted as low, and others listed in the run's decisions file.
 
+### Fixed — dashboard startup on macOS
+- **`serve-dashboards.py` no longer waits on reverse DNS before listening.** Python's `HTTPServer.server_bind` calls `socket.getfqdn()` on the bind address before `listen()`, only to set `server_name`, which nothing here reads. On a macOS CI runner that lookup of `127.0.0.1` blocked for over 25 s, so the dashboard never came up. Both copies now bind and listen through `_new_http_server()`, which skips the lookup; it is body-diffed for parity and Gate 314 checks it never calls `getfqdn`.
+
 ### Consumer note (scripts-10)
 - **`templates/agent-ready-repo/audit-gates.sh.template` now stops on Ctrl-C.** Its single `trap 'cleanup' EXIT INT TERM` ran cleanup on a signal and then resumed the remaining gates. The template now traps INT and TERM to exit 130 / 143. Only repos scaffolded after this release get the fix; an existing consumer copy of the template keeps the old trap until it is re-scaffolded or edited by hand.
 
@@ -35,7 +38,7 @@ The 2026-10-19 whole-repo review: 140 findings fixed across eight packages (2 P0
 - **Gates 310–316** register the review's test files: hook regressions (310), tribunal rows with mutants (311), secret-pattern and intake-sanitizer parity plus sanitizer fail-closed (312), delegate argv (313), dashboard hardening (314), worktree/brand/stall/spectate/coordinator-lock (315), and domain hook teeth plus the domain script tests (316). Gate 34 asserts the report never echoes the matched text, Gate 98 gains an `@latest` must-fail fixture and the pin self-test, Gate 106 gains the double-backslash fixture pair, and Gate 305 covers thing-orchestrator.sh for a planted exported function.
 
 ### Known
-- `hooks/_web.sh` ships at mode 100644 and is restored to executable by a one-off CI step after push.
+- `hooks/_web.sh` ships at mode 100644. The planned CI step to restore the executable bit was not added (the session's safety check refused it), so `chmod +x plugins/ravenclaude-core/hooks/_web.sh` must be run on the branch before merge; "Core manifest/hook checks" fails until then.
 
 ## 0.358.4 — 2026-10-18
 
