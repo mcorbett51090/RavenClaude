@@ -129,6 +129,47 @@ r="$(_run "$MUT" "$TARGET" "$BANNED")"
 case "$r" in 0\|*) ok "teeth: deny-neutered mutant lets the block-knob violation through";;
   *) bad "teeth (hook)" "expected exit 0 from the mutant, got [$r]";; esac
 
+# ── hooks-15 (2026-10-19): the warn notice reaches the MODEL ─────────────────
+# stderr at exit 0 is not delivered to the model (measured, see _advise.sh); the
+# warn lane now also emits additionalContext JSON on stdout. Block keeps its own
+# deny JSON and nothing from the helper.
+_run_out() { # hook file content -> stdout in $TMP/out, exit code echoed
+  local rc=0 body
+  body="$(python3 -c 'import json,sys;print(json.dumps({"tool_name":"Write","tool_input":{"file_path":sys.argv[1],"content":sys.argv[2]}}))' "$2" "$3")"
+  printf '%s' "$body" | CLAUDE_PROJECT_DIR="$PROJ" bash "$1" >"$TMP/out" 2>/dev/null || rc=$?
+  printf '%s' "$rc"
+}
+_out_field() { python3 -c 'import json,sys
+try: print(json.load(open(sys.argv[1]))["hookSpecificOutput"].get(sys.argv[2], ""))
+except Exception: print("")' "$TMP/out" "$1"; }
+_posture warn
+rc="$(_run_out "$HOOK" "$TARGET" "$BANNED")"
+if [ "$rc" = 0 ] && _out_field additionalContext | grep -q 'portability notice'; then
+  ok "hooks-15: warn emits additionalContext (the model sees it)"
+else
+  bad "hooks-15 warn" "rc=$rc out=[$(cat "$TMP/out")]"
+fi
+_posture block
+rc="$(_run_out "$HOOK" "$TARGET" "$BANNED")"
+if [ "$rc" = 2 ] && [ "$(_out_field permissionDecision)" = deny ] && [ -z "$(_out_field additionalContext)" ]; then
+  ok "hooks-15: block still exits 2 with the deny JSON only (no helper output)"
+else
+  bad "hooks-15 block" "rc=$rc out=[$(cat "$TMP/out")]"
+fi
+MUT15="$TMP/mutant15.sh"
+python3 - "$HOOK" "$MUT15" <<'PY'
+import sys
+t = open(sys.argv[1], encoding="utf-8").read()
+old = 'rc_advise_init PreToolUse 0; fi'
+if old not in t:
+    sys.exit(2)
+open(sys.argv[2], "w", encoding="utf-8").write(t.replace(old, ':; fi', 1))
+PY
+_posture warn
+rc="$(_run_out "$MUT15" "$TARGET" "$BANNED")"
+[ ! -s "$TMP/out" ] && ok "hooks-15 teeth: without the helper the warn lane emits nothing to the model" \
+  || bad "hooks-15 teeth" "mutant still emitted [$(cat "$TMP/out")]"
+
 # ── The CI backstop: its own teeth + the shared-table parity ────────────────
 if python3 "$LINT" --self-test >/dev/null 2>&1; then
   ok "CI linter: teeth verified (every token caught, every companion clean)"

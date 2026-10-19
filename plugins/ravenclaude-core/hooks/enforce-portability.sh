@@ -170,6 +170,13 @@ if [ "$mode" = "block" ]; then
   exit 2
 fi
 
+# hooks-15 (2026-10-19): stderr at exit 0 does not reach the model (measured
+# 2026-08-19, see _advise.sh), so the warn lane goes through the advisory helper:
+# the terminal notice is unchanged AND the model gets it as additionalContext.
+# Initialised HERE — after the block/warn decision — so its exit trap can never
+# wrap the exit-2 deny above.
+_rc_adv="$(dirname "$0")/_advise.sh"
+if [ -f "$_rc_adv" ]; then . "$_rc_adv" 2>/dev/null && rc_advise_init PreToolUse 0; fi
 {
   echo "[enforce-portability] portability notice (warn — nothing blocked):"
   printf '%s\n' "$findings" | sed 's/^/  /'
