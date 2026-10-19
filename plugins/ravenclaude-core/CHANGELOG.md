@@ -2,6 +2,41 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.359.0 — 2026-10-19
+
+The 2026-10-19 whole-repo review: 140 findings fixed across eight packages (2 P0, 21 P1, 82 P2, 35 P3). The design items and the deferred P3s are tracked separately and are not in this release.
+
+### Fixed — P0
+- **Catastrophe floors were bypassable by punctuation.** The hard-reset helper's leading anchor let a subshell, `$()`, a backtick or a path-qualified form through (a PR #1369 regression), and the force-flag and pipe-to-shell patterns ended only at whitespace or end of line, so a flag glued to `;` `)` `|` slipped past. Both floors now terminate on shell punctuation (guards-new-1, hooks-2).
+
+### Fixed — P1
+- **Tribunal.** Deleting the `thing:` toggles is recognised as self-disable; the newline flatten is linear (a padded command could outlast the 90 s hook timeout); git global-option stripping parses quoted values with spaces; `shell_readonly` no longer admits `find`, `git branch`, `git remote`, `rg` or redirections; the EDIT-safety check re-classifies the revised command; an invalid comfort-posture.yaml fails closed instead of turning review off.
+- **Exported-function injection** (`BASH_FUNC_<name>%%`) is quarantined by env-integrity-guard and purged at the top of guard-destructive.sh and thing-orchestrator.sh (hooks-4).
+- **Copilot adapter.** File-tool argument names are translated (the tribunal and the self-tamper guard saw none), payloads of 128 KiB or more are normalised, and an EDIT verdict reaches Copilot, Cursor and Gemini instead of being dropped.
+- **Guards.** Multi-line Bash commands are scoped per segment (the newline was flattened first); the probe recorder no longer reads displayed file content as a failed probe; injection pattern 4 is line-local with a time bound; the `sk-` secret pattern has a left boundary, so kebab-case names are no longer refused.
+- **Scripts.** `forge-receipt verify` fails a run whose failed gate mentions blockers; `launch-guard --uninstall` removes only its own block instead of restoring a stale snapshot; the Gemini install lane refuses an unparseable `.gemini/settings.json` instead of replacing it.
+- **Dashboard.** The bundled server no longer runs code from the project tree on a GET.
+
+### Fixed — P2
+- **Installer** (`scripts/ravenclaude`): a typo'd flag or a stray argument exits 2 instead of installing into `$PWD`; installing into the marketplace checkout needs `--force` (the dashboard's install button passes it); user skills, commands and host config files are backed up, not removed or overwritten; failed projections are reported; `setup` seeds the posture before the sandbox projection.
+- **Web access**: one host parser shared by the guard and the consent marker; percent-encoded and wildcard deny entries are honoured. **enforce-layout** normalises paths before matching. **Advisory hooks** report `file:line [rule-id]` and never echo the matched text, and warn-mode nudges reach the model.
+- **Dashboard servers**: the root dev server no longer serves dot-paths (`.env`, `.git/`) or directory listings; non-UTF-8 run artifacts no longer crash the readers; YAML alias amplification is refused; launchers adopt only a server whose project id matches this project; `rc` resolves a relative symlink chain (up to 40 hops).
+- **Routine reserve, handoff, stall-watch, spectate, coordinator lock, rcwt, brand extraction, cleanup-branches**: the meter, calibration and statusline fixes; atomic handoff writes; PID-reuse identity; paging and cache bounds; one winner per dead-holder lock reap; `rcwt` bases validated; the CGNAT range blocked; a branch checked out in a worktree is kept.
+- **Cheap-lane delegates**: a value flag given last exits 2; SIGINT/SIGTERM stop the script; the egress scrub refuses when `_scrub.sh` is missing.
+- **Secret scrub**: more credential shapes and the whole PEM block are redacted, and every vendored copy is kept in parity by a new checker.
+
+### Fixed — P3
+- Thirty-five smaller fixes: dashboard POST validation and `do_HEAD` auth, `/__host` returning booleans only, symlink-safe `/__save`, sanitized Copilot session ids, glob-safe guard loops, JSONL rows split by U+2028, quadratic regexes in the escalation and injection-strip rules, the actionlint resolver's checksum, NaN confidence counted as low, and others listed in the run's decisions file.
+
+### Consumer note (scripts-10)
+- **`templates/agent-ready-repo/audit-gates.sh.template` now stops on Ctrl-C.** Its single `trap 'cleanup' EXIT INT TERM` ran cleanup on a signal and then resumed the remaining gates. The template now traps INT and TERM to exit 130 / 143. Only repos scaffolded after this release get the fix; an existing consumer copy of the template keeps the old trap until it is re-scaffolded or edited by hand.
+
+### Testing
+- **Gates 310–316** register the review's test files: hook regressions (310), tribunal rows with mutants (311), secret-pattern and intake-sanitizer parity plus sanitizer fail-closed (312), delegate argv (313), dashboard hardening (314), worktree/brand/stall/spectate/coordinator-lock (315), and domain hook teeth plus the domain script tests (316). Gate 34 asserts the report never echoes the matched text, Gate 98 gains an `@latest` must-fail fixture and the pin self-test, Gate 106 gains the double-backslash fixture pair, and Gate 305 covers thing-orchestrator.sh for a planted exported function.
+
+### Known
+- `hooks/_web.sh` ships at mode 100644 and is restored to executable by a one-off CI step after push.
+
 ## 0.358.4 — 2026-10-18
 
 ### Changed
@@ -4535,7 +4570,8 @@ there is no Cursor binary here, and `host-support.json` records that limitation 
   concurrent sessions in one project can't each spawn a server and steal focus with a new tab.
   **Honest limit:** that probe answers "is a dashboard live on this port?", not "is it *this*
   project's dashboard" — if another project holds the port, the hook stands down rather than
-  starting a competing one. Fail-safe (EXIT trap armed first; always exits 0 — a SessionStart
+  starting a competing one. *(Superseded 2026-10-19, 0.359.0: the probe compares the server's
+  `project_id`, so another project's server is skipped, not adopted.)* Fail-safe (EXIT trap armed first; always exits 0 — a SessionStart
   hook cannot block, and a dashboard that fails to launch must never be why a session doesn't
   start), and bash-3.2/BSD-clean per the macOS-door milestones. **Gate 151**
   (`hooks/tests/test-gate151-dashboard-autostart.sh`) drives the real hook against a recording
