@@ -53,11 +53,23 @@ from concepts import ENTRY_CLASS_INVENTORY, ConceptError, load_concepts  # noqa:
 
 PLUGIN = "plugins/ravenclaude-core"
 GATED_ROOTS = tuple(f"{PLUGIN}/{d}/" for d in ("hooks", "skills", "agents", "scripts", "commands"))
+# The workflows behind the SEVEN contexts the `main` ruleset requires (repo-review
+# 2026-10-19, cicd-5: this tuple used to hold only the first three, so a `paths:`
+# or `branches:` filter on any github-protocol-* workflow would hang every PR with
+# no gate noticing). Static on purpose: deriving it from the live ruleset API would
+# make this gate network-dependent and non-hermetic.
 REQUIRED_WORKFLOWS = (
     ".github/workflows/validate-marketplace.yml",
     ".github/workflows/validate-layout.yml",
     ".github/workflows/validate-schemas.yml",
+    ".github/workflows/github-protocol-pr-title.yml",
+    ".github/workflows/github-protocol-secret-scan.yml",
+    ".github/workflows/github-protocol-workflow-hygiene.yml",
+    ".github/workflows/github-protocol-zizmor.yml",
 )
+# Every one of these on a REQUIRED workflow's pull_request trigger can skip the run,
+# and a skipped workflow reports nothing (GitHub: "path filtering, branch filtering").
+_TRIGGER_FILTERS = ("paths", "paths-ignore", "branches", "branches-ignore")
 # Test files under hooks/tests/ are not shipped artifacts; the census excludes
 # them and so does this gate. Stated, not assumed.
 EXCLUDE = (f"{PLUGIN}/hooks/tests/",)
@@ -108,7 +120,8 @@ def covered_paths(root: Path) -> set[str]:
 
 
 def workflow_path_filters(root: Path) -> list[str]:
-    """A `paths:` filter on the PULL_REQUEST trigger of a REQUIRED check.
+    """A `paths:` / `paths-ignore:` / `branches:` / `branches-ignore:` filter on the
+    PULL_REQUEST trigger of a REQUIRED check (all four skip the run).
 
     ⛔ THE SCOPE IS pull_request AND ONLY pull_request, AND THAT IS THE WHOLE
     POINT. The first version of this check regex-matched `paths:` anywhere in the
@@ -152,9 +165,10 @@ def workflow_path_filters(root: Path) -> list[str]:
             bad.append(f"{rel}: no parseable `on:` mapping — UNKNOWN, not clean")
             continue
         pr = trig.get("pull_request")
-        if isinstance(pr, dict) and ("paths" in pr or "paths-ignore" in pr):
+        if isinstance(pr, dict) and any(k in pr for k in _TRIGGER_FILTERS):
+            keys = ", ".join(k for k in _TRIGGER_FILTERS if k in pr)
             bad.append(
-                f"{rel}: carries a paths: filter on its PULL_REQUEST trigger. A skipped "
+                f"{rel}: carries a {keys} filter on its PULL_REQUEST trigger. A skipped "
                 "WORKFLOW reports nothing, and a required check that reports nothing "
                 "hangs the PR forever."
             )
@@ -226,7 +240,20 @@ def main() -> int:
                     encoding="utf-8",
                 )
             if len(workflow_path_filters(fake)) != len(REQUIRED_WORKFLOWS):
-                print("✗ must-fail: the paths:-filter detector did not bite on all three.")
+                print(
+                    f"✗ must-fail: the paths:-filter detector did not bite on all "
+                    f"{len(REQUIRED_WORKFLOWS)} required workflows."
+                )
+                return 0
+            # A branches: filter skips the run exactly as paths: does.
+            for rel in REQUIRED_WORKFLOWS:
+                (fake / rel).write_text(
+                    "on:\n  pull_request:\n    branches: [main]\njobs:\n  a:\n"
+                    "    runs-on: ubuntu-latest\n",
+                    encoding="utf-8",
+                )
+            if len(workflow_path_filters(fake)) != len(REQUIRED_WORKFLOWS):
+                print("✗ must-fail: a branches: filter on pull_request was not flagged.")
                 return 0
             # ⛔ CONTROL, and it is the half that matters. A paths: filter under
             # `push:` is DELIBERATE in this repo and must NOT be flagged. Without
@@ -247,8 +274,9 @@ def main() -> int:
             print("  first; a teeth run against a broken tree proves nothing.")
             return 0
         print("✓ must-fail: an uncovered added artifact is reported, a base-less repo")
-        print("  reports UNKNOWN, and the paths:-filter detector bites on a planted trigger")
-        print("  while the real tree is clean. Exiting 3, the DECLARED teeth code.")
+        print("  reports UNKNOWN, and the paths:/branches: filter detector bites on a planted")
+        print(f"  trigger in all {len(REQUIRED_WORKFLOWS)} required workflows while the real tree")
+        print("  is clean. Exiting 3, the DECLARED teeth code.")
         return 3
 
     added, unknown = added_artifacts(root, args.base)

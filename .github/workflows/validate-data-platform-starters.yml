@@ -11,8 +11,8 @@ name: Validate data-platform starters
 # NOT marked required initially — per this repo's own required-status-check discipline
 # (AGENTS.md "Required status checks"), a new check earns required status after a full
 # release cycle green, not on day one. It carries a paths: filter, which is fine for a
-# NON-required check (the bar against paths: filters applies only to the three checks
-# the branch ruleset actually requires).
+# NON-required check (the bar against paths:/branches: filters applies only to the
+# seven checks the branch ruleset actually requires — see AGENTS.md and Gate 242).
 #
 # Tier split (see plan.md P0-4): install/typecheck/build/headless-smoke live HERE, in a
 # non-required workflow — never inside audit-gates.sh, which is a dependency of the
