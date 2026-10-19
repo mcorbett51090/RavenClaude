@@ -2160,6 +2160,18 @@ _deny() {
   exit 2   # 2 blocks the tool call; 1 would NOT (non-blocking error)
 }
 
+# 1012-guard-glob (2026-10-19): the structural helpers word-split the command
+# with unquoted `for word in $seg` loops. Without noglob, a token holding `*`,
+# `?` or `[` was replaced by matching file names from the HOOK's cwd before the
+# scan, so the verdict depended on what happened to be on disk. Nothing in this
+# section globs on purpose, so pathname expansion is off for all of it.
+# (Residual, stated: a glob token that the REAL shell would expand to a planted
+# file named like a method or a ref — `-X DELET?`, `checkout mai?` — is now
+# scanned literally. That needs a file written by an EARLIER tool call, the
+# cross-call write-then-execute class the SCOPE note above puts out of scope;
+# before this the verdict depended on the hook's cwd, which need not be the
+# command's.)
+set -f
 # Order-independent structural checks first.
 if _is_dangerous_rm "$norm";       then _deny "recursive-rm-of-dangerous-target"; fi
 if _is_dangerous_chmod "$norm";    then _deny "recursive-chmod-world-or-lockout"; fi
@@ -2172,6 +2184,7 @@ if _is_dangerous_git_reset_hard "$norm";    then _deny "git-reset-hard"; fi
 if _is_dangerous_merge "$norm" "$_norm_before_gitstrip";      then _deny "bypass-shaped-merge"; fi
 if _is_dangerous_update_ref "$norm"; then _deny "git-update-ref-delete"; fi
 if _is_dangerous_gh_curl_delete "$norm"; then _deny "destructive-delete-api-call"; fi
+set +f
 
 # Then the pattern array.
 for pat in "${deny_patterns[@]}"; do

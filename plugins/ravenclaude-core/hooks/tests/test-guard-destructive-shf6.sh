@@ -470,6 +470,53 @@ _teeth "hooks-9 branch flags owned by the branch segment" \
   '    [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+branch${_CMD_END} ]] || continue' ':' \
   "$G $BRN --show-current && npm i -D foo" 2
 
+# ── 1012-guard-glob (2026-10-19): a literal `*` token scans as itself ────────
+# Run from a directory holding a file whose NAME looks like a shell variable.
+# With pathname expansion on, the merge guard's word loop turned the `*` token
+# into that name, read it as an unresolvable value, and the verdict depended on
+# what was in the hook's cwd.
+echo
+echo "── 1012-guard-glob: the scan does not depend on files in the hook's cwd ───"
+GLOBD="$(mktemp -d)"
+: > "$GLOBD/\$X"
+STAR_CMD="gh pr mer""ge 123 *"
+_gd_in() { # $1=dir $2=command $3=hook -> GD_RC
+  GD_RC=0
+  ( cd "$1" && printf '%s' "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":$(printf '%s' "$2" | jq -Rs .)}}" \
+      | env -u CLAUDE_PROJECT_DIR -u CLAUDE_SESSION_ID bash "$3" >/dev/null 2>&1 ) || GD_RC=$?
+}
+_gd_in "$GLOBD" "$STAR_CMD" "$HOOK"
+glob_planted=$GD_RC
+_gd_in /tmp "$STAR_CMD" "$HOOK"
+glob_plain=$GD_RC
+if [ "$glob_planted" -eq 0 ] && [ "$glob_plain" -eq 0 ]; then
+  pass "1012-guard-glob: a literal * token gives the same verdict whatever files are in cwd"
+else
+  fail "1012-guard-glob: verdict depends on cwd files (planted=$glob_planted, plain=$glob_plain)"
+fi
+MUTG="$(mktemp)"
+if python3 - "$HOOK" "$MUTG" <<'PY'
+import sys
+from pathlib import Path
+src = Path(sys.argv[1]).read_text()
+anchor = "set -f\n# Order-independent structural checks first."
+if anchor not in src:
+    sys.exit(2)
+Path(sys.argv[2]).write_text(src.replace(anchor, "# Order-independent structural checks first.", 1))
+PY
+then
+  _gd_in "$GLOBD" "$STAR_CMD" "$MUTG"
+  if [ "$GD_RC" -eq 2 ]; then
+    pass "teeth (1012-guard-glob): without noglob the * token expands to the planted name and denies"
+  else
+    fail "teeth (1012-guard-glob): mutant gave rc $GD_RC (expected 2)"
+  fi
+else
+  fail "teeth (1012-guard-glob): noglob anchor not found"
+fi
+rm -f "$MUTG"
+rm -rf "$GLOBD"
+
 echo
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1
