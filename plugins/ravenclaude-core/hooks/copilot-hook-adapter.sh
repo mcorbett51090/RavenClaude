@@ -67,6 +67,65 @@ if [ -f "$_adapter_scrub_helper" ]; then
 fi
 command -v _scrub_reason >/dev/null 2>&1 || _scrub_reason() { printf '%s' "${1:-}"; }
 
+# Path-safe session token — the same PR #363 hardening _emit-event.sh applies
+# (allowlisted charset, length cap, no pure-dot id). The sessionId rides the
+# payload and lands in a directory name (the RAVENCLAUDE_DIAGNOSE trace dir, and
+# every runs/<sid>/ path a wrapped hook builds from CLAUDE_SESSION_ID).
+command -v _ee_sanitize_session >/dev/null 2>&1 || _ee_sanitize_session() {
+  local s; s="$(printf '%s' "${1:-}" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
+  case "$s" in .|.. | "") s="unknown" ;; esac
+  printf '%s' "$s"
+}
+
+# Shared jq translation library — ONE definition of how Copilot tool arguments
+# become Claude tool_input, used by every mode that reads them (bash-pretool,
+# file-pretool, posttool), so the modes cannot drift apart.
+#
+# rc_args: the argument object. Copilot documents toolArgs as a JSON STRING, but
+#   the PascalCase (Claude-compatible) format and VS Code send snake_case
+#   tool_input, and an object-valued toolArgs is cheap to accept. A string that
+#   does not parse to an object is treated as the command text itself. The input
+#   is bound to $a BEFORE the try, so the catch sees the input, not the jq error
+#   message (the old `try fromjson catch {command: .}` bound the error text).
+# rc_tool_name: Copilot vocabulary -> Claude vocabulary (see TOOL-NAME
+#   NORMALISATION below for the full sourcing of this map).
+# rc_tool_input($tn): Bash gets its command coalesced; every other tool gets
+#   Copilot file-tool key names aliased onto the Claude names the guards read
+#   (path/filePath -> file_path, file_text -> content, old_str/new_str ->
+#   old_string/new_string). Originals are kept; absent aliases are dropped.
+# shellcheck disable=SC2016
+_RC_JQ_LIB='
+def rc_args:
+  (.toolArgs // .tool_input // .toolInput // {}) as $a
+  | if ($a | type) == "string" then
+      ((try ($a | fromjson) catch null) as $j
+       | if ($j | type) == "object" then $j else {command: $a} end)
+    elif ($a | type) == "object" then $a
+    else {} end;
+def rc_tool_name:
+  (.toolName // .tool_name // "") as $raw
+  | ($raw | ascii_downcase) as $lc
+  | {
+      bash: "Bash", shell: "Bash", powershell: "Bash",
+      view: "Read", read: "Read",
+      create: "Write", write: "Write",
+      edit: "Edit", str_replace: "Edit", multiedit: "MultiEdit",
+      web_fetch: "WebFetch", webfetch: "WebFetch",
+      web_search: "WebSearch", websearch: "WebSearch",
+      glob: "Glob", grep: "Grep", task: "Task"
+    } as $map
+  | ($map[$lc] // $raw);
+def rc_tool_input($tn):
+  rc_args as $ti
+  | if $tn == "Bash" then ($ti + {command: ($ti.command // $ti.script // $ti.commandLine // "")})
+    else ($ti + ({file_path: ($ti.file_path // $ti.path // $ti.filePath),
+                  content: ($ti.content // $ti.file_text),
+                  old_string: ($ti.old_string // $ti.old_str),
+                  new_string: ($ti.new_string // $ti.new_str)}
+                 | with_entries(select(.value != null))))
+    end;
+'
+
 mode="${1:-}"; real="${2:-}"
 shift 2 2>/dev/null || true
 [ -z "$mode" ] || [ -z "$real" ] && exit 0          # misconfigured -> no-op (fail open)
@@ -79,6 +138,11 @@ payload=""
 cw="$(printf '%s' "$payload" | jq -r '.cwd // .workspaceRoot // empty' 2>/dev/null)"
 [ -z "$cw" ] && cw="$PWD"
 sid="$(printf '%s' "$payload" | jq -r '.sessionId // .session_id // empty' 2>/dev/null)"
+# Sanitised once, here, so the exported id, the deny-reason pointer, the
+# diagnose trace dir and the session_id handed to wrapped hooks all agree and
+# none of them can resolve outside .ravenclaude/runs/ (a sessionId of
+# `../../../x` used to place the trace dir wherever it pointed).
+[ -n "$sid" ] && sid="$(_ee_sanitize_session "$sid")"
 # (b) Export so _emit_hook_event in spawned hooks writes to runs/<real-sid>/ not runs/unknown/.
 [ -n "$sid" ] && export CLAUDE_SESSION_ID="$sid"
 
@@ -143,24 +207,25 @@ case "$mode" in
     # Copilot regardless of tool_name) and would misrepresent a security decision the maintainers
     # already made on purpose. Full reasoning chain:
     # .ravenclaude/runs/forge/copilot-adapter-tool-names/claims-table.md.
-    claude_stdin="$(printf '%s' "$payload" | jq -c \
-      '(.toolName // .tool_name // "") as $raw
-       | ($raw | ascii_downcase) as $lc
-       | {
-           bash: "Bash", shell: "Bash", powershell: "Bash",
-           view: "Read", read: "Read",
-           create: "Write", write: "Write",
-           edit: "Edit", str_replace: "Edit", multiedit: "MultiEdit",
-           web_fetch: "WebFetch", webfetch: "WebFetch",
-           web_search: "WebSearch", websearch: "WebSearch",
-           glob: "Glob", grep: "Grep", task: "Task"
-         } as $map
-       | ($map[$lc] // $raw) as $tn
-       | ((.toolArgs // "{}") | (try fromjson catch {command: .})) as $ti
+    #
+    # The map itself and the argument reshaping live in _RC_JQ_LIB (top of this
+    # file) so posttool and file-pretool translate identically.
+    claude_stdin="$(printf '%s' "$payload" | jq -c --arg sid "$sid" "$_RC_JQ_LIB"'
+       rc_tool_name as $tn
        | {tool_name: $tn,
-          tool_input: (if $tn == "Bash" then ($ti + {command: ($ti.command // $ti.script // $ti.commandLine // "")}) else $ti end),
+          tool_input: rc_tool_input($tn),
           cwd: (.cwd // .workspaceRoot // "."),
-          session_id: (.sessionId // .session_id // "")}' 2>/dev/null)"
+          session_id: (if $sid != "" then $sid else (.sessionId // .session_id // "") end)}' 2>/dev/null)"
+    # FAIL CLOSED on a shell call whose command text could not be read. An empty
+    # command means the argument shape was not recognised (an object toolArgs, a
+    # key name nobody mapped), and every Bash guard then reviews nothing and
+    # allows. Deny with the reason instead; the agent can re-issue the call.
+    if [ "$(printf '%s' "$claude_stdin" | jq -r '.tool_name // ""' 2>/dev/null)" = "Bash" ] \
+      && [ -z "$(printf '%s' "$claude_stdin" | jq -r '.tool_input.command // "" | tostring' 2>/dev/null)" ]; then
+      jq -cn --arg r "RavenClaude: could not read the command text of this shell tool call (unrecognised Copilot argument shape), so the guard cannot review it; blocking (fail-closed)." \
+        '{permissionDecision:"deny",permissionDecisionReason:$r}'
+      exit 0
+    fi
     # An unmapped tool name still passes through UNCHANGED (behaviour preserved
     # for anything not in the map) but must not be silent: a name we cannot map
     # is precisely the gap that hid this P0 for so long. Record it so the blind
@@ -238,8 +303,8 @@ case "$mode" in
     ;;
   file-pretool)
     # Claude path hooks (enforce-layout) take the file path as argv, not stdin.
-    fp="$(printf '%s' "$payload" | jq -r \
-      '(.toolArgs // "{}") | (try fromjson catch {}) | (.file_path // .path // .filePath // empty)' 2>/dev/null)"
+    fp="$(printf '%s' "$payload" | jq -r "$_RC_JQ_LIB"'
+      rc_args | (.file_path // .path // .filePath // empty)' 2>/dev/null)"
     [ -z "$fp" ] && exit 0
     CLAUDE_PROJECT_DIR="$cw" bash "$real" "$fp" >/dev/null 2>&1; rc=$?
     if [ "$rc" -eq 2 ]; then
@@ -248,7 +313,10 @@ case "$mode" in
     exit 0
     ;;
   sessionstart)
-    out="$(CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>/dev/null)"
+    # The payload is forwarded on stdin. The adapter has already consumed its own
+    # stdin with `cat`, so a bare `bash "$real"` handed the hook EOF and every
+    # stdin-reading SessionStart hook ran blind on Copilot.
+    out="$(printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>/dev/null)"
     ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)"
     if [ -n "$ctx" ]; then
       # Emit a structured additionalContext AND the plain text, covering both the
@@ -260,9 +328,21 @@ case "$mode" in
     ;;
   posttool)
     # Side-effecting hooks (format-on-write, remind-tests): run, ignore output.
-    fp="$(printf '%s' "$payload" | jq -r \
-      '(.toolArgs // "{}") | (try fromjson catch {}) | (.file_path // .path // .filePath // empty)' 2>/dev/null)"
-    CLAUDE_PROJECT_DIR="$cw" bash "$real" "$fp" >/dev/null 2>&1 || true
+    # The file path stays argv (the prior contract), AND the payload is reshaped
+    # to Claude's PostToolUse stdin exactly as bash-pretool reshapes it, so the
+    # stdin-reading hooks (spectate-emit, log-probe and its recorder-alive beacon,
+    # the sanitizers) see a tool call instead of EOF.
+    export CLAUDE_HOOK_EVENT=PostToolUse
+    claude_stdin="$(printf '%s' "$payload" | jq -c --arg sid "$sid" "$_RC_JQ_LIB"'
+       rc_tool_name as $tn
+       | {tool_name: $tn,
+          tool_input: rc_tool_input($tn),
+          cwd: (.cwd // .workspaceRoot // "."),
+          session_id: (if $sid != "" then $sid else (.sessionId // .session_id // "") end)}
+       + ((.toolResult // .tool_response // .tool_result) as $r
+          | if $r == null then {} else {tool_response: $r} end)' 2>/dev/null)"
+    fp="$(printf '%s' "$claude_stdin" | jq -r '.tool_input.file_path // empty' 2>/dev/null)"
+    printf '%s' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$fp" >/dev/null 2>&1 || true
     exit 0
     ;;
   userpromptsubmit)

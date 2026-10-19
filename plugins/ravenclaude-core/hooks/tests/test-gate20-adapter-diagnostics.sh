@@ -489,6 +489,100 @@ else
 fi
 rm -rf "$TG" "$TG2"
 
+# ── G20.H — sessionstart + posttool forward stdin to the wrapped hook ─────────
+#
+# repo-review item 1a-9. Both modes ran `bash "$real"` after the adapter had
+# already consumed stdin with `cat`, so every stdin-reading hook (spectate-emit,
+# log-probe and its recorder-alive beacon) read EOF on Copilot.
+
+echo
+echo "── G20.H: sessionstart + posttool forward the payload on stdin ──────────"
+TH="$(mktemp -d)"
+REC_H="$TH/rec.sh"
+cat > "$REC_H" <<'EOF'
+#!/usr/bin/env bash
+cat >"$RC_OUT.stdin"
+printf '%s' "${1:-}" >"$RC_OUT.argv"
+printf '%s' "${CLAUDE_HOOK_EVENT:-}" >"$RC_OUT.event"
+exit 0
+EOF
+chmod +x "$REC_H"
+
+printf '%s' '{"sessionId":"g20h","cwd":"/x","source":"startup"}' \
+  | RC_OUT="$TH/ss" bash "$ADAPTER" sessionstart "$REC_H" >/dev/null 2>&1
+if [ -s "$TH/ss.stdin" ] && jq -e '.source=="startup"' "$TH/ss.stdin" >/dev/null 2>&1; then
+  pass "G20.H: sessionstart forwards the host payload on stdin"
+else
+  fail "G20.H: sessionstart hook read $(wc -c <"$TH/ss.stdin" 2>/dev/null || echo 0) stdin bytes (want the payload)"
+fi
+
+printf '%s' "$(jq -cn '{sessionId:"g20h",cwd:"/x",toolName:"edit",toolArgs:({path:"/x/a.py",old_str:"a",new_str:"b"}|tostring),toolResult:{resultType:"success"}}')" \
+  | RC_OUT="$TH/pt" bash "$ADAPTER" posttool "$REC_H" >/dev/null 2>&1
+if jq -e '.tool_name=="Edit" and .tool_input.file_path=="/x/a.py" and .tool_input.old_string=="a" and .tool_input.new_string=="b" and .session_id=="g20h" and .tool_response.resultType=="success"' "$TH/pt.stdin" >/dev/null 2>&1 \
+  && [ "$(cat "$TH/pt.argv")" = "/x/a.py" ] && [ "$(cat "$TH/pt.event")" = "PostToolUse" ]; then
+  pass "G20.H: posttool forwards Claude-shaped stdin (Edit, file_path, tool_response) + path argv"
+else
+  fail "G20.H: posttool stdin/argv wrong: stdin=$(head -c 200 "$TH/pt.stdin" 2>/dev/null) argv=$(cat "$TH/pt.argv" 2>/dev/null)"
+fi
+
+# The consumer that motivated it: the REAL log-probe.sh must drop its
+# recorder-alive beacon from a Copilot posttool call (guard-premise reads that
+# beacon; without it a consumer project is "blind" on Copilot).
+TH2="$TH/proj"; mkdir -p "$TH2"
+printf '%s' "$(jq -cn --arg cwd "$TH2" '{sessionId:"g20hbeacon",cwd:$cwd,toolName:"bash",toolArgs:({command:"ls /nope"}|tostring),toolResult:{resultType:"success",textResultForLlm:"ok"}}')" \
+  | CLAUDE_PROJECT_DIR="$TH2" bash "$ADAPTER" posttool "$HOOKS_DIR/log-probe.sh" >/dev/null 2>&1
+if [ -f "$TH2/.ravenclaude/runs/premise/g20hbeacon/recorder-alive" ]; then
+  pass "G20.H: real log-probe.sh writes its recorder-alive beacon through posttool"
+else
+  fail "G20.H: log-probe.sh wrote no beacon through the Copilot posttool lane"
+fi
+
+# Teeth: restore the stdin-less invocation; the posttool hook must read EOF again.
+MUT_H="$TH/adapter-nostdin.sh"
+python3 - "$ADAPTER" "$MUT_H" <<'PY'
+import pathlib, sys
+src = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+a = 'printf \'%s\' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$fp"'
+if a not in src:
+    sys.exit(3)
+pathlib.Path(sys.argv[2]).write_text(src.replace(a, 'CLAUDE_PROJECT_DIR="$cw" bash "$real" "$fp"'), encoding="utf-8")
+PY
+if [ "$?" -eq 0 ]; then
+  rm -f "$TH/mt.stdin"
+  printf '%s' '{"sessionId":"g20h","cwd":"/x","toolName":"bash","toolArgs":"{\"command\":\"ls\"}"}' \
+    | RC_OUT="$TH/mt" bash "$MUT_H" posttool "$REC_H" >/dev/null 2>&1
+  [ ! -s "$TH/mt.stdin" ] && pass "G20.H teeth: without the forward the hook reads EOF (the original defect)" \
+    || fail "G20.H teeth: the no-forward mutant still delivered stdin — assertion may be vacuous"
+else
+  fail "G20.H teeth: could not build the no-forward mutant (adapter shape changed?)"
+fi
+rm -rf "$TH"
+
+# ── G20.I — a traversal-shaped sessionId cannot leave .ravenclaude/runs/ ──────
+#
+# repo-review item 1012-copilot-sid. With RAVENCLAUDE_DIAGNOSE=1 a deny appends an
+# adapter-trace.jsonl under runs/<sessionId>/ — and sessionId rides the payload.
+
+echo
+echo "── G20.I: sessionId is sanitised before it builds a path ────────────────"
+TI="$(mktemp -d)"
+PROJ_I="$TI/a/b/c"; mkdir -p "$PROJ_I"
+BLK_I="$TI/blk.sh"
+printf '#!/usr/bin/env bash\ncat >/dev/null\necho blocked >&2\nexit 2\n' >"$BLK_I"; chmod +x "$BLK_I"
+OUT_I="$(printf '%s' "$(copilot_payload "../../../esc" "x" "$PROJ_I")" \
+  | RAVENCLAUDE_DIAGNOSE=1 CLAUDE_PROJECT_DIR="$PROJ_I" bash "$ADAPTER" bash-pretool "$BLK_I" 2>/dev/null)"
+_traces="$(find "$TI" -name adapter-trace.jsonl 2>/dev/null)"
+_outside="$(printf '%s\n' "$_traces" | grep -v "^$PROJ_I/.ravenclaude/runs/" | grep -c . || true)"
+if [ -n "$_traces" ] && [ "$_outside" -eq 0 ]; then
+  pass "G20.I: the diagnose trace lands under .ravenclaude/runs/ (sanitised sessionId)"
+else
+  fail "G20.I: trace written outside runs/: ${_traces:-<none>}"
+fi
+printf '%s' "$OUT_I" | jq -r '.permissionDecisionReason' 2>/dev/null | grep -Fq '../' \
+  && fail "G20.I: the raw ../ sessionId reached the deny-reason pointer" \
+  || pass "G20.I: the deny-reason pointer carries no ../ segment"
+rm -rf "$TI"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo
 if [[ "$FAILED" -eq 0 ]]; then

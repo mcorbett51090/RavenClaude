@@ -271,6 +271,145 @@ else
   bad "ask_user no longer warns — someone mapped it. Read the adapter's ask_user comment and generate-copilot-hooks.py's route-decision-review.sh _SKIP entry before doing that; it was a deliberate decision, not an oversight."
 fi
 
+# ── G167.9-12 — Copilot FILE tools reach the guards with Claude key names ─────
+# repo-review item 1a-2. view/create/edit send path / file_text / old_str /
+# new_str; the tribunal and the self-tamper floor read file_path / content /
+# old_string / new_string. Passed through verbatim, a Copilot create onto the
+# tribunal's own substrate produced NO decision while the identical Claude-shaped
+# Write was denied (xc.tribunal-self-disable).
+mkdir -p "$PROJ/plugins/ravenclaude-core/hooks"
+printf 'x\n' >"$PROJ/plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
+printf 'readme\n' >"$PROJ/README.md"
+SUBSTRATE_NEW="$PROJ/plugins/ravenclaude-core/hooks/new-hook.sh"
+copilot_file_call() { # <toolName> <args-json-object>
+  jq -cn --arg cwd "$PROJ" --arg tn "$1" --argjson a "$2" \
+    '{toolName:$tn,toolArgs:($a|tostring),cwd:$cwd,sessionId:"g167f"}'
+}
+echo "── G167.9: Copilot create onto the Thing's substrate is denied ──────────"
+copilot_file_call create "$(jq -cn --arg p "$SUBSTRATE_NEW" '{path:$p,file_text:"x"}')" \
+  | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" bash-pretool "$ORCH" >"$TMP/out-i.json" 2>/dev/null || true
+[ "$(jq -r '.permissionDecision // empty' "$TMP/out-i.json" 2>/dev/null)" = "deny" ] \
+  && ok "create {path,file_text} onto substrate -> deny (file_path aliased)" \
+  || bad "create onto substrate NOT denied: $(head -c 200 "$TMP/out-i.json")"
+echo "── G167.10: Copilot edit onto the Thing's substrate is denied ───────────"
+copilot_file_call edit "$(jq -cn --arg p "$PROJ/plugins/ravenclaude-core/hooks/thing-orchestrator.sh" '{path:$p,old_str:"x",new_str:"y"}')" \
+  | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" bash-pretool "$ORCH" >"$TMP/out-j.json" 2>/dev/null || true
+[ "$(jq -r '.permissionDecision // empty' "$TMP/out-j.json" 2>/dev/null)" = "deny" ] \
+  && ok "edit {path,old_str,new_str} onto substrate -> deny" \
+  || bad "edit onto substrate NOT denied: $(head -c 200 "$TMP/out-j.json")"
+echo "── G167.11: control — a Copilot view of a plain file is allowed ─────────"
+copilot_file_call view "$(jq -cn --arg p "$PROJ/README.md" '{path:$p}')" \
+  | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" bash-pretool "$ORCH" >"$TMP/out-k.json" 2>/dev/null || true
+[ "$(jq -r '.permissionDecision // empty' "$TMP/out-k.json" 2>/dev/null)" != "deny" ] \
+  && ok "view of a non-sensitive file is not denied (aliasing does not over-block)" \
+  || bad "view of README.md was denied: $(head -c 200 "$TMP/out-k.json")"
+echo "── G167.12: teeth — without the key aliasing the substrate create sails through ──"
+MUT3="$TMP/adapter-mutant-noalias.sh"
+python3 - "$ADAPTER" "$MUT3" <<'PY'
+import pathlib
+import sys
+
+src = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+anchor = "file_path: ($ti.file_path // $ti.path // $ti.filePath),"
+if anchor not in src:
+    sys.stderr.write("MUTATION ANCHOR NOT FOUND: %r\n" % anchor)
+    raise SystemExit(3)
+pathlib.Path(sys.argv[2]).write_text(src.replace(anchor, "file_path: ($ti.file_path),"), encoding="utf-8")
+PY
+if [ "$?" -ne 0 ]; then
+  bad "teeth: could not build the no-alias mutant (anchor missing) — re-point the mutation"
+else
+  copilot_file_call create "$(jq -cn --arg p "$SUBSTRATE_NEW" '{path:$p,file_text:"x"}')" \
+    | CLAUDE_PROJECT_DIR="$PROJ" bash "$MUT3" bash-pretool "$ORCH" >"$TMP/out-l.json" 2>/dev/null || true
+  [ "$(jq -r '.permissionDecision // empty' "$TMP/out-l.json" 2>/dev/null)" != "deny" ] \
+    && ok "teeth: aliasing removed -> substrate create is no longer denied (1a-2 reproduced)" \
+    || bad "teeth: the no-alias mutant still denied — G167.9 may not test the aliasing"
+fi
+
+# ── G167.13-16 — argument envelopes beyond toolArgs-as-string (item 1a-4) ─────
+# Args were read only from .toolArgs, and the catch bound the jq ERROR text, so a
+# snake_case tool_input, an object toolArgs or a plain string gave the guard an
+# empty or garbage command.
+REC="$TMP/rec-cmd.sh"
+cat >"$REC" <<'EOF'
+#!/usr/bin/env bash
+jq -r '.tool_input.command // "<none>"' >"$RC_OUT" 2>/dev/null
+exit 0
+EOF
+chmod +x "$REC"
+seen_cmd() { # <payload-json> -> the command text the wrapped hook received
+  rm -f "$TMP/seen"
+  printf '%s' "$1" | RC_OUT="$TMP/seen" bash "${2:-$ADAPTER}" bash-pretool "$REC" >/dev/null 2>&1
+  cat "$TMP/seen" 2>/dev/null
+}
+echo "── G167.13: snake_case tool_input / object toolArgs / plain-string toolArgs ──"
+for shape in tool_input objargs plain; do
+  case "$shape" in
+    tool_input) pl="$(jq -cn --arg c "$FORCED_PUSH" '{tool_name:"bash",tool_input:{command:$c}}')" ;;
+    objargs)    pl="$(jq -cn --arg c "$FORCED_PUSH" '{toolName:"bash",toolArgs:{command:$c}}')" ;;
+    plain)      pl="$(jq -cn --arg c "$FORCED_PUSH" '{toolName:"bash",toolArgs:$c}')" ;;
+  esac
+  [ "$(seen_cmd "$pl")" = "$FORCED_PUSH" ] \
+    && ok "$shape envelope -> the guard receives the real command" \
+    || bad "$shape envelope -> guard saw '$(cat "$TMP/seen" 2>/dev/null)'"
+done
+echo "── G167.14: a snake_case force-push still reaches the tribunal and is denied ──"
+jq -cn --arg cwd "$PROJ" --arg c "$FORCED_PUSH" '{tool_name:"bash",tool_input:{command:$c},cwd:$cwd,sessionId:"g167m"}' \
+  | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" bash-pretool "$ORCH" >"$TMP/out-m.json" 2>/dev/null || true
+[ "$(jq -r '.permissionDecision // empty' "$TMP/out-m.json" 2>/dev/null)" = "deny" ] \
+  && ok "snake_case tool_input force-push -> tribunal -> deny" \
+  || bad "snake_case force-push NOT denied: $(head -c 200 "$TMP/out-m.json")"
+echo "── G167.15: a shell call whose command cannot be read fails CLOSED ──────"
+ec_out="$(jq -cn '{toolName:"bash",toolArgs:({cmdline:"whatever"}|tostring)}' \
+  | RC_OUT="$TMP/seen-ec" bash "$ADAPTER" bash-pretool "$REC" 2>/dev/null)"
+if [ "$(printf '%s' "$ec_out" | jq -r '.permissionDecision // empty' 2>/dev/null)" = "deny" ] \
+  && printf '%s' "$ec_out" | grep -q 'could not read the command' && [ ! -f "$TMP/seen-ec" ]; then
+  ok "empty command for a Bash-mapped tool -> deny with a reason, hook never run"
+else
+  bad "empty-command Bash call was not failed closed: ${ec_out:0:160}"
+fi
+echo "── G167.16: teeth — revert the coalescing and the fail-closed branch ────"
+MUT4="$TMP/adapter-mutant-args.sh"
+python3 - "$ADAPTER" "$MUT4" <<'PY'
+import pathlib
+import sys
+
+src = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+anchor = "(.toolArgs // .tool_input // .toolInput // {}) as $a"
+if anchor not in src:
+    sys.stderr.write("MUTATION ANCHOR NOT FOUND: %r\n" % anchor)
+    raise SystemExit(3)
+pathlib.Path(sys.argv[2]).write_text(src.replace(anchor, "(.toolArgs // {}) as $a"), encoding="utf-8")
+PY
+if [ "$?" -ne 0 ]; then
+  bad "teeth: could not build the toolArgs-only mutant (anchor missing)"
+else
+  [ "$(seen_cmd "$(jq -cn --arg c "$FORCED_PUSH" '{tool_name:"bash",tool_input:{command:$c}}')" "$MUT4")" != "$FORCED_PUSH" ] \
+    && ok "teeth: toolArgs-only mutant loses the snake_case command (1a-4 reproduced)" \
+    || bad "teeth: the toolArgs-only mutant still read tool_input — G167.13 may be vacuous"
+fi
+MUT5="$TMP/adapter-mutant-noclose.sh"
+python3 - "$ADAPTER" "$MUT5" <<'PY'
+import pathlib
+import sys
+
+src = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")
+anchor = '.tool_name // ""\' 2>/dev/null)" = "Bash" ]'
+if anchor not in src:
+    sys.stderr.write("MUTATION ANCHOR NOT FOUND: %r\n" % anchor)
+    raise SystemExit(3)
+pathlib.Path(sys.argv[2]).write_text(src.replace(anchor, '.tool_name // ""\' 2>/dev/null)" = "NOT-A-TOOL" ]'), encoding="utf-8")
+PY
+if [ "$?" -ne 0 ]; then
+  bad "teeth: could not build the no-fail-closed mutant (anchor missing)"
+else
+  ec_mut="$(jq -cn '{toolName:"bash",toolArgs:({cmdline:"whatever"}|tostring)}' \
+    | RC_OUT="$TMP/seen-ec2" bash "$MUT5" bash-pretool "$REC" 2>/dev/null)"
+  [ "$(printf '%s' "$ec_mut" | jq -r '.permissionDecision // empty' 2>/dev/null)" != "deny" ] \
+    && ok "teeth: without the fail-closed branch the unreadable call proceeds" \
+    || bad "teeth: the no-fail-closed mutant still denied — G167.15 may be vacuous"
+fi
+
 echo
 if [ "$FAIL" -gt 0 ]; then
   printf 'FAIL: %d of %d assertion(s) failed\n' "$FAIL" "$((PASS + FAIL))" >&2
