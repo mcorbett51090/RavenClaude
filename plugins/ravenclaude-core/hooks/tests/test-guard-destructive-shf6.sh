@@ -318,7 +318,11 @@ _teeth "hooks-5 runner chain" \
 
 # hooks-5 benchmark: the runner chain is nested repetition, the SH-F3 incident
 # class. A ~60 KB adversarial command (runner flags with values, and a pipe
-# chain) must still be scanned in under 2 s. Best of two runs.
+# chain) must still be scanned in under 2 s. Best of two runs. On a runner so
+# slow that a BENIGN command of the same size already takes most of that budget,
+# the bound is 2x that control instead: super-linear growth is 10x-plus, so the
+# ratio still catches it, while a uniformly slow machine does not read as a
+# regression.
 _time_gd() { # $1=command -> sets GD_MS (milliseconds, best of 2) and GD_RC
   local cmdf
   cmdf="$(mktemp)"
@@ -340,15 +344,19 @@ PY
 )"
   rm -f "$cmdf"
 }
+_time_gd "echo $(python3 -c 'print("x " * 27500, end="")')"
+CONTROL_MS="${GD_MS:-0}"
+BUDGET_MS=2000
+[ $((CONTROL_MS * 2)) -gt "$BUDGET_MS" ] && BUDGET_MS=$((CONTROL_MS * 2))
 for spec in "sudo:-u r :11000" "pipe:x | env :6900"; do
   kind="${spec%%:*}"; rest="${spec#*:}"; unit="${rest%:*}"; reps="${rest##*:}"
   body="$(python3 -c 'import sys; print(sys.argv[1] * int(sys.argv[2]), end="")' "$unit" "$reps")"
   if [ "$kind" = "sudo" ]; then big="$P | sudo ${body}q"; else big="$FETCH ${body}q"; fi
   _time_gd "$big"
-  if [ "${GD_MS:-99999}" -lt 2000 ]; then
-    pass "hooks-5 benchmark ($kind, ${#big} bytes): ${GD_MS} ms < 2000 ms"
+  if [ "${GD_MS:-99999}" -lt "$BUDGET_MS" ]; then
+    pass "hooks-5 benchmark ($kind, ${#big} bytes): ${GD_MS} ms < ${BUDGET_MS} ms (benign control ${CONTROL_MS} ms)"
   else
-    fail "hooks-5 benchmark ($kind, ${#big} bytes): ${GD_MS} ms >= 2000 ms (super-linear?)"
+    fail "hooks-5 benchmark ($kind, ${#big} bytes): ${GD_MS} ms >= ${BUDGET_MS} ms (benign control ${CONTROL_MS} ms; super-linear?)"
   fi
 done
 
