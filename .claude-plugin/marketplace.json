@@ -2409,7 +2409,7 @@
       "name": "data-science-research",
       "source": "./plugins/data-science-research",
       "description": "Exploratory data science & reproducible research team \u2014 agents (exploratory-data-scientist, feature-and-modeling-engineer, research-reproducibility-engineer) for the analysis layer between raw data and a defensible result: data profiling/cleaning, EDA, hypothesis generation, communicating findings with uncertainty; feature engineering, classical modeling (regression, trees, boosting), model selection, evaluation (cross-validation, metrics) and leakage avoidance; and the reproducibility spine \u2014 notebook hygiene, pinned environments, experiment tracking, data/version control, seeds, and reproducible pipelines. best-practices, decision-tree knowledge bank, skills, commands, templates, a hook, scenarios bank, and stdlib-only ds_calc.py (classification/regression metrics, split-check). Seams: is-the-result-statistically-real -> applied-statistics; productionize/serve/monitor -> ml-engineering; data pipelines/warehouse -> data-platform. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },

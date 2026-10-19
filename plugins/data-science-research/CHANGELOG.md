@@ -3,6 +3,24 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.3.0 — 2026-10-19
+
+New skill — the EDA visualization step gets a lookup helper.
+
+- **Skills: 3 → 4** — added `find-plot-recipe`. Given a plot intent and a target library, it
+  fetches a library-agnostic spec and a runnable implementation from the third-party
+  **[anyplot.ai](https://anyplot.ai)** "open plot catalogue" (~15 libraries across Python, R,
+  Julia and JavaScript; MIT-licensed content). Primary consumer: `exploratory-data-scientist`,
+  feeding the "read plots adversarially" discipline of `eda-workflow`.
+- **Dependency posture is explicit and conservative.** The default path is anyplot's **public,
+  read-only HTTP API** (no auth, no install, you control each call). The remote MCP server is
+  documented as **strictly opt-in** — the skill ships **no** `mcpServers` manifest entry, so no
+  consumer silently gets a third-party network dependency, and no hook makes a network call. The
+  skill flags the solo-operator availability risk and the "AI-generated code — verify before you
+  trust it" caveat.
+- Complements (does not duplicate) `ravenclaude-core`'s `declarative-visualization`: that skill
+  *authors + lints* Vega-Lite/SVG specs; this one *looks up* existing recipes across many libraries.
+
 ## 0.2.0 — 2026-06-08
 
 Value-add build-out — deepened the plugin to the v0.2.0 standard. No agent/skill/command/template count change;
