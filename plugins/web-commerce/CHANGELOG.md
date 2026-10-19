@@ -2,6 +2,36 @@
 
 All notable changes to the `web-commerce` plugin. Versions follow semver; the plugin's `version` in `.claude-plugin/plugin.json` is the source of truth.
 
+## 0.1.3 — 2026-10-19
+
+### Fixed
+
+- **`posrecon-shared-store-skips-catalog`** (repo-review 2026-10-19, domainplugins-3) — the 0.1.2 fix
+  namespaced the inventory path's dedup key but not the catalog path's. With one `IdempotencyStore`
+  shared between `verifyAndParseSquareWebhook` and `PosReconciler` (the configuration the class doc
+  anticipates), `applyCatalogVersionEvent` read the raw `event_id` the webhook layer had just recorded
+  and returned before the catalog pull, on every delivery (control: a shared-store run made 0
+  `fetchChangedObjects` calls; two separate stores made 1). It now dedupes on
+  `pos-reconciliation:catalog:<event_id>`, still remembering only after the pull-and-apply succeeds.
+- **`webhook-remember-before-side-effects`** (domainplugins-10) — all six webhook handlers (Stripe,
+  Square and Shopify, static and framework) marked the event seen *before* the consumer's side effects,
+  so a delivery whose fulfilment threw was retried by the provider and acknowledged 200 without the
+  work; and the KV stores' GET-then-SET let two concurrent deliveries both pass `seen()` and both run
+  the side effects (the store comment called that race harmless). `IdempotencyStore` gains an atomic
+  `claim()` (Redis `SET key v NX EX lease`) and `release()`; `seen`/`remember` stay. Each handler now
+  claims, runs the side effects, then `remember()`s, and on a throw `release()`s and answers 500 so the
+  provider retries. Stripe and Shopify handlers take an optional `onEvent` side-effect hook; the Square
+  static handler takes an optional `onEvent` argument. The Square helpers `verifyAndParseSquareWebhook`
+  now return a fresh event *claimed*, and export `isDuplicateDelivery(event)`. New tests:
+  `tests/idempotency-claim.test.ts` in every tier, plus two catalog-path tests in
+  `square/framework/tests/pos-reconciliation.test.ts`.
+
+**Migration:** affects newly scaffolded projects only; existing scaffolds keep their copies. A custom
+`IdempotencyStore` must add `claim()` and `release()`. The Square static `EdgeKv` binding must add an
+atomic `setIfAbsent()` and `delete()` (Cloudflare Workers KV has no atomic set-if-absent; back the
+claim with a Durable Object or D1). Code that calls `verifyAndParseSquareWebhook` directly must call
+`remember(event.id)` after its side effects succeed, or `release(event.id)` when they fail.
+
 ## 0.1.2 — 2026-09-10
 
 ### Fixed

@@ -98,6 +98,12 @@ export function normalizeShopifyEvent(
 export interface ShopifyWebhookHandlerDeps {
   verifier: WebhookVerifier;
   store: IdempotencyStore;
+  /**
+   * Your side effects for a verified, first-seen event (order fulfillment,
+   * inventory). If it throws, the claim is released and the handler
+   * answers 500, so Shopify retries the delivery.
+   */
+  onEvent?: (event: CommerceEvent) => Promise<void>;
 }
 
 /**
@@ -129,16 +135,26 @@ export function createShopifyWebhookHandler(
       });
     }
 
-    if (await deps.store.seen(event.id)) {
-      // Already processed this delivery — acknowledge without re-running side effects.
+    // Atomic claim, not seen()-then-remember(): marking the event seen before
+    // the side effects made a retry of a failed delivery look done, and two
+    // concurrent deliveries could both pass seen() and both run them.
+    if (!(await deps.store.claim(event.id))) {
+      // Already claimed or processed — acknowledge without re-running side effects.
       return new Response("ok (duplicate)", { status: 200 });
     }
-    await deps.store.remember(event.id);
 
-    // TODO(consumer): dispatch `event` to your order-fulfillment / inventory
-    // logic here. Keep it fast — Shopify expects a 2xx within a few seconds
-    // and retries on timeout, which is exactly what the dedup above protects
-    // against re-running.
+    try {
+      // TODO(consumer): dispatch `event` to your order-fulfillment / inventory
+      // logic here. Keep it fast — Shopify expects a 2xx within a few seconds
+      // and retries on timeout, which is exactly what the dedup above protects
+      // against re-running.
+      if (deps.onEvent) await deps.onEvent(event);
+      await deps.store.remember(event.id);
+    } catch {
+      // Drop the claim so Shopify's retry runs the side effects again.
+      await deps.store.release(event.id);
+      return new Response("processing failed", { status: 500 });
+    }
 
     return new Response("ok", { status: 200 });
   };

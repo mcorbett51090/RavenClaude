@@ -83,18 +83,38 @@ interface SquareRefundObject {
   amount_money?: { amount: number; currency: string };
 }
 
+const DUPLICATE_DELIVERIES = new WeakSet<CommerceEvent>();
+
+/**
+ * True for the no-op event `verifyAndParseSquareWebhook` returns when the
+ * event id was already claimed or processed. Distinguishes a duplicate from a
+ * fresh event whose type merely maps to "unknown"; only a fresh event's claim
+ * may be completed (`remember`) or dropped (`release`) by the caller.
+ */
+export function isDuplicateDelivery(event: CommerceEvent): boolean {
+  return DUPLICATE_DELIVERIES.has(event);
+}
+
 /**
  * Verify, de-dupe, and normalize an inbound Square webhook.
  *
  * Throws when the signature fails verification -- callers MUST reject the
  * request (4xx) and never fall through to processing (rubric #2).
  *
- * When the event id has already been processed, returns a `type: "unknown"`
- * event carrying the same id and raw envelope rather than re-running side
- * effects -- Square retries webhook deliveries and does not guarantee
- * exactly-once delivery, so the caller can safely no-op and still answer 2xx
- * (rubric #3). `pos-reconciliation.ts` does its OWN event-id de-dup on top
- * of this (defense in depth for the inventory-specific path).
+ * De-dupes with the store's atomic `claim()`. When the event id is already
+ * claimed or processed, returns a `type: "unknown"` event carrying the same id
+ * and raw envelope (and `isDuplicateDelivery(event)` is true) rather than
+ * re-running side effects -- Square retries webhook deliveries and does not
+ * guarantee exactly-once delivery, so the caller can safely no-op and still
+ * answer 2xx (rubric #3). `pos-reconciliation.ts` does its OWN event-id de-dup
+ * on top of this, under namespaced keys.
+ *
+ * A fresh event comes back CLAIMED, not done: the caller owns the claim and
+ * must call `idempotency.remember(event.id)` once its side effects succeed,
+ * or `idempotency.release(event.id)` when they fail, so Square's retry runs
+ * them again. `handleSquareWebhookRequest` below does exactly that. (The old
+ * order, remember before the side effects, acknowledged the retry of a failed
+ * delivery without ever doing the work.)
  */
 export async function verifyAndParseSquareWebhook(
   req: WebhookRequest,
@@ -115,10 +135,16 @@ export async function verifyAndParseSquareWebhook(
   const bodyString = typeof req.rawBody === "string" ? req.rawBody : req.rawBody.toString("utf8");
   const envelope = JSON.parse(bodyString) as SquareWebhookEnvelope;
 
-  if (await idempotency.seen(envelope.event_id)) {
-    return { id: envelope.event_id, type: "unknown", provider: "square", raw: envelope };
+  if (!(await idempotency.claim(envelope.event_id))) {
+    const duplicate: CommerceEvent = {
+      id: envelope.event_id,
+      type: "unknown",
+      provider: "square",
+      raw: envelope,
+    };
+    DUPLICATE_DELIVERIES.add(duplicate);
+    return duplicate;
   }
-  await idempotency.remember(envelope.event_id);
 
   const object = envelope.data?.object ?? {};
   const payment = (object as { payment?: SquarePaymentObject }).payment;
@@ -166,16 +192,9 @@ export async function handleSquareWebhookRequest(
     headers[key.toLowerCase()] = value;
   });
 
+  let event: CommerceEvent;
   try {
-    const event = await verifyAndParseSquareWebhook({ rawBody, headers }, idempotency);
-    if (event.type === "inventory.updated" && onInventoryCounts) {
-      const envelope = event.raw as SquareWebhookEnvelope;
-      await onInventoryCounts(extractInventoryCounts(envelope), event.id);
-    }
-    return new Response(JSON.stringify({ received: true, eventId: event.id }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
+    event = await verifyAndParseSquareWebhook({ rawBody, headers }, idempotency);
   } catch {
     // Never leak signature/verification internals in the response body.
     return new Response(JSON.stringify({ error: "invalid webhook" }), {
@@ -183,4 +202,27 @@ export async function handleSquareWebhookRequest(
       headers: { "content-type": "application/json" },
     });
   }
+
+  if (!isDuplicateDelivery(event)) {
+    // This delivery holds the claim: complete it on success, drop it on
+    // failure so Square's retry runs the side effects again.
+    try {
+      if (event.type === "inventory.updated" && onInventoryCounts) {
+        const envelope = event.raw as SquareWebhookEnvelope;
+        await onInventoryCounts(extractInventoryCounts(envelope), event.id);
+      }
+      await idempotency.remember(event.id);
+    } catch {
+      await idempotency.release(event.id);
+      return new Response(JSON.stringify({ error: "processing failed" }), {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      });
+    }
+  }
+
+  return new Response(JSON.stringify({ received: true, eventId: event.id }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
 }
