@@ -7610,9 +7610,9 @@ echo "── Gate 314: dashboard server hardening ──"
 # dispatcher, this main sequence, the Supported: string and the `portal` suite.
 # GREP THE SUITE OUTPUT FOR "Gate 314".
 if command -v python3 >/dev/null 2>&1; then
-  rc=0; python3 scripts/check-dashboard-hardening.py >/dev/null 2>&1 || rc=$?
+  rc=0; _run_test_tail python3 scripts/check-dashboard-hardening.py || rc=$?
   gate "dashboard hardening: both server copies refuse every hostile case" must_pass "$rc"
-  rc=0; python3 scripts/check-dashboard-hardening.py --must-fail >/dev/null 2>&1 || rc=$?
+  rc=0; _run_test_tail python3 scripts/check-dashboard-hardening.py --must-fail || rc=$?
   gate "dashboard hardening teeth: every mutant is caught" must_pass "$rc"
 else
   _skip_or_fail "Gate 314 (dashboard hardening)" python3
