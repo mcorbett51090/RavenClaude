@@ -1943,6 +1943,19 @@ EOFSEG
 # written '<pattern>'"${_CMD_END}" so the variable expands. The lease forms stay
 # allowed: the character after the long force flag there is `-`, which is not in
 # _CMD_END.
+#
+# Fetch-to-interpreter building blocks (shared by both pipe entries below):
+#  - guards-new-2: the pipe may be the pipe-stderr operator `|&`.
+#  - hooks-5: any chain of command runners may sit between the pipe and the
+#    interpreter (sudo/doas/env/command/nohup/time/exec/busybox/su/xargs, each
+#    optionally path-qualified, each with flags that may carry one value token,
+#    or VAR=val assignments), and the interpreter set includes source, `.`,
+#    eval, php, pwsh and powershell. Each runner word is a fixed literal and is
+#    separated by required whitespace, so the nested repetition stays linear —
+#    benchmarked on adversarial ~60 KB inputs before shipping (SH-F3 class).
+_FETCH_PIPE='\|&?[[:space:]]*'
+_FETCH_RUNNER='([^[:space:]|]*/)?(sudo|doas|env|command|nohup|time|exec|busybox|su|xargs)([[:space:]]+(-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?|[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*))*[[:space:]]+'
+_FETCH_INTERP='([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node|php|pwsh|powershell|source|eval|\.)'
 deny_patterns=(
   # git history / branch destruction
   'git[[:space:]]+push[[:space:]]+[^;&|]*--force'"${_CMD_END}"        # --force (allows --force-with-lease)
@@ -1956,13 +1969,13 @@ deny_patterns=(
   # helpers below, not a pattern — the old contiguous-anchor `git clean` pattern
   # missed the separated-token `git clean -d -f` form.
   # remote-code-exec via pipe / process- or command-substitution to an interpreter
-  '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node)'"${_CMD_END}"
+  '(curl|wget)[^|]*'"${_FETCH_PIPE}(${_FETCH_RUNNER})*${_FETCH_INTERP}${_CMD_END}"
   # …and the multi-pipe / filter-then-execute evasion of the above: the single-pipe
   # form only inspects between curl/wget and the FIRST pipe, so `curl … | tee x | bash`
   # or `curl … | grep -v '#' | sh` slipped past. This catches an interpreter that is
   # the IMMEDIATE target of ANY pipe in a curl/wget chain (the interpreter right after
   # a `|`), so `… | grep python` is NOT matched (grep, not python, is the pipe target).
-  '(curl|wget).*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node)'"${_CMD_END}"
+  '(curl|wget).*'"${_FETCH_PIPE}(${_FETCH_RUNNER})*${_FETCH_INTERP}${_CMD_END}"
   '<\([[:space:]]*(curl|wget)'                                    # bash <(curl …)
   '\$\([[:space:]]*(curl|wget)'                                   # sh -c "$(curl …)" (quotes stripped by norm)
   # whole-disk / filesystem destruction
