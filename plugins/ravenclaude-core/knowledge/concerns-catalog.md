@@ -97,10 +97,25 @@ cross_cutting:
       # case-sensitively because MySQL's capital `-P` is its port flag. Any
       # attached value is kept, digits included: an all-digit password is still
       # a password.
+      #
+      # Vendor-prefix forms (2026-10-19, the D set in
+      # scripts/check-secret-pattern-parity.py, which fails on drift). The
+      # matcher compiles every trigger with re.IGNORECASE, so each prefix is
+      # pinned case-sensitive with (?-i:...). `sk-` carries a LEFT boundary:
+      # unanchored, it matched the tail of any word ending in "sk" followed by
+      # a 20+ char kebab run (task-/risk-/disk- paths and branch names) and
+      # hard-denied them. GitHub covers every token class (gh[pousr]_). The
+      # Bearer / `-u user:pass` / env-assignment shapes in hooks/_scrub.sh are
+      # REDACTION-ONLY and deliberately absent: as a case-insensitive hard deny
+      # they refuse `max_tokens=4096` and `docker run -u 1000:1000`.
       regex:
         - 'AKIA[0-9A-Z]{12,}'
-        - 'sk-(ant-)?[A-Za-z0-9-]{20,}'
-        - 'ghp_[A-Za-z0-9]{30,}'
+        - '(?<![A-Za-z0-9])(?-i:sk-)(?:ant-|proj-)?[A-Za-z0-9_-]{20,}'
+        - '(?-i:gh[pousr]_)[A-Za-z0-9]{30,}'
+        - '(?-i:npm_)[A-Za-z0-9]{30,}'
+        - '(?-i:[sr]k_live_)[A-Za-z0-9]{24,}'
+        - '(?-i:hf_)[A-Za-z0-9]{30,}'
+        - '(https?|postgres(ql)?|mysql|mongodb|redis|amqp|smtp)s?://[A-Za-z0-9._-]{2,}:[A-Za-z0-9._%+-]{4,}@'
         - 'github_pat_[A-Za-z0-9_]{20,}'
         - 'glpat-[A-Za-z0-9_-]{15,}'
         - 'xox[baprs]-[A-Za-z0-9-]{10,}'

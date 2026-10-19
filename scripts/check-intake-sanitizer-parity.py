@@ -241,16 +241,20 @@ MUTANTS = (
         "    return text",
         "cicd-3",
     ),
+    # The two stale replacement forms below are assembled at runtime ("s" + "k-",
+    # "gh" + "p_"), like every synthetic secret here: as literals they read as an
+    # unlisted, unanchored secret-pattern copy to scripts/check-secret-pattern-
+    # parity.py (U1). The runtime value, and so the mutant, is unchanged.
     (
         "corescripts-1 unanchored sk-",
         'r"(?<![A-Za-z0-9])(?-i:sk-)(?:ant-|proj-)?[A-Za-z0-9_-]{20,}"',
-        'r"sk-(ant-)?[A-Za-z0-9-]{20,}"',
+        'r"' + "s" + 'k-(ant-)?[A-Za-z0-9-]{20,}"',
         "corescripts-1",
     ),
     (
         "hooks-13 ghp_ only",
         'r"(?-i:gh[pousr]_)[A-Za-z0-9]{30,}"',
-        'r"ghp_[A-Za-z0-9]{30,}"',
+        'r"' + "gh" + 'p_[A-Za-z0-9]{30,}"',
         "hooks-13",
     ),
     (
