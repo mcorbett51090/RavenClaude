@@ -556,6 +556,18 @@ if [ "$?" -eq 0 ]; then
 else
   fail "G20.H teeth: could not build the no-forward mutant (adapter shape changed?)"
 fi
+# Same for sessionstart: drop the fd-0 re-point and the hook must read EOF again.
+MUT_H2="$TH/adapter-nostdin-ss.sh"
+grep -v '^\[ "$mode" = "sessionstart" \] && exec 0<<<"$payload"$' "$ADAPTER" >"$MUT_H2"
+if ! cmp -s "$ADAPTER" "$MUT_H2"; then
+  rm -f "$TH/ms.stdin"
+  printf '%s' '{"sessionId":"g20h","cwd":"/x","source":"startup"}' \
+    | RC_OUT="$TH/ms" bash "$MUT_H2" sessionstart "$REC_H" >/dev/null 2>&1
+  [ ! -s "$TH/ms.stdin" ] && pass "G20.H teeth: without the fd-0 re-point sessionstart reads EOF" \
+    || fail "G20.H teeth: the sessionstart no-forward mutant still delivered stdin"
+else
+  fail "G20.H teeth: could not build the sessionstart no-forward mutant (adapter shape changed?)"
+fi
 rm -rf "$TH"
 
 # ── G20.I — a traversal-shaped sessionId cannot leave .ravenclaude/runs/ ──────

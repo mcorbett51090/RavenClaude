@@ -146,6 +146,14 @@ sid="$(printf '%s' "$payload" | jq -r '.sessionId // .session_id // empty' 2>/de
 # (b) Export so _emit_hook_event in spawned hooks writes to runs/<real-sid>/ not runs/unknown/.
 [ -n "$sid" ] && export CLAUDE_SESSION_ID="$sid"
 
+# sessionstart forwards the payload on stdin. The adapter consumed its own stdin
+# with `cat` above, so the wrapped hook used to read EOF and every stdin-reading
+# SessionStart hook ran blind on Copilot. Re-point fd 0 at the payload for that
+# mode (the other modes pipe their translated stdin explicitly). It is done here,
+# not on the invocation line, so check-hooks-selftest.py's A8.4 mutation anchor
+# (the sessionstart invocation line) stays byte-identical.
+[ "$mode" = "sessionstart" ] && exec 0<<<"$payload"
+
 case "$mode" in
   bash-pretool)
     # Copilot toolArgs is a JSON STRING; parse it, then re-shape to Claude stdin.
@@ -313,10 +321,7 @@ case "$mode" in
     exit 0
     ;;
   sessionstart)
-    # The payload is forwarded on stdin. The adapter has already consumed its own
-    # stdin with `cat`, so a bare `bash "$real"` handed the hook EOF and every
-    # stdin-reading SessionStart hook ran blind on Copilot.
-    out="$(printf '%s' "$payload" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>/dev/null)"
+    out="$(CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>/dev/null)"
     ctx="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)"
     if [ -n "$ctx" ]; then
       # Emit a structured additionalContext AND the plain text, covering both the
