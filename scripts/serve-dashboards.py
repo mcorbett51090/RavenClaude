@@ -133,7 +133,10 @@ RAVENCLAUDE_SCRIPT = REPO_ROOT / "scripts" / "ravenclaude"
 RUN_ACTIONS: dict[str, list[str]] = {
     # Wire / refresh / inspect the Copilot bridge for this repo. Idempotent;
     # install/status are read-mostly, update is a `git pull` + regenerate.
-    "install": ["bash", str(RAVENCLAUDE_SCRIPT), "install", "--project", str(REPO_ROOT)],
+    # --force: REPO_ROOT is the marketplace checkout itself, which the installer
+    # refuses (exit 2) without it since scripts-6 (repo review 2026-10-19). This
+    # button exists for exactly that wiring, so the opt-in is explicit here.
+    "install": ["bash", str(RAVENCLAUDE_SCRIPT), "install", "--project", str(REPO_ROOT), "--force"],
     "update": ["bash", str(RAVENCLAUDE_SCRIPT), "update"],
     "status": ["bash", str(RAVENCLAUDE_SCRIPT), "status", "--project", str(REPO_ROOT)],
     # Apply the committed comfort-posture.yaml -> .claude/settings.json. Same

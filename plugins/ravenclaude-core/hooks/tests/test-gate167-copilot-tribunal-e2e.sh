@@ -409,6 +409,19 @@ else
     && ok "teeth: without the fail-closed branch the unreadable call proceeds" \
     || bad "teeth: the no-fail-closed mutant still denied — G167.15 may be vacuous"
 fi
+# ── G167.17 — the fail-closed deny is scoped to the bash tools, not powershell ──
+# (repo review 2026-10-19, INT). powershell's command-arg key is unverified, so
+# an empty read there is not evidence of a malformed call; it keeps its previous
+# behaviour: no adapter deny, the wrapped hook runs and decides.
+echo "── G167.17: an unreadable powershell call is NOT failed closed by the adapter ──"
+rm -f "$TMP/seen-ps"
+ps_out="$(jq -cn '{toolName:"powershell",toolArgs:({cmdline:"whatever"}|tostring)}' \
+  | RC_OUT="$TMP/seen-ps" bash "$ADAPTER" bash-pretool "$REC" 2>/dev/null)"
+if ! printf '%s' "$ps_out" | grep -q 'could not read the command' && [ -f "$TMP/seen-ps" ]; then
+  ok "powershell with an unreadable arg shape -> no fail-closed deny, wrapped hook ran"
+else
+  bad "powershell was failed closed (the deny must stay bash-scoped): ${ps_out:0:160}"
+fi
 
 echo
 if [ "$FAIL" -gt 0 ]; then

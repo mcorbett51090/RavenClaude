@@ -228,7 +228,15 @@ case "$mode" in
     # command means the argument shape was not recognised (an object toolArgs, a
     # key name nobody mapped), and every Bash guard then reviews nothing and
     # allows. Deny with the reason instead; the agent can re-issue the call.
+    # SCOPED to the bash-family tools (repo review 2026-10-19, INT): Copilot's
+    # `powershell` tool also maps to Bash, but the JSON key its command text
+    # arrives under is unverified, so an empty read there may be OUR gap, not a
+    # malformed call. Denying it would block every PowerShell call outright on a
+    # guess. powershell keeps its previous behaviour (the wrapped hook decides);
+    # closing it properly is on the design list, pending a real payload capture.
+    _rc_raw_lc="$(printf '%s' "$payload" | jq -r '(.toolName // .tool_name // "") | ascii_downcase' 2>/dev/null)"
     if [ "$(printf '%s' "$claude_stdin" | jq -r '.tool_name // ""' 2>/dev/null)" = "Bash" ] \
+      && [ "$_rc_raw_lc" != "powershell" ] \
       && [ -z "$(printf '%s' "$claude_stdin" | jq -r '.tool_input.command // "" | tostring' 2>/dev/null)" ]; then
       jq -cn --arg r "RavenClaude: could not read the command text of this shell tool call (unrecognised Copilot argument shape), so the guard cannot review it; blocking (fail-closed)." \
         '{permissionDecision:"deny",permissionDecisionReason:$r}'
