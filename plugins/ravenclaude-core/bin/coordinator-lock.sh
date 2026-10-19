@@ -30,6 +30,10 @@ RC_WORKTREE_GUARD_HOME="${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude}"
 LOCK_ROOT="$RC_WORKTREE_GUARD_HOME/coordinator-lock"
 HELD_DIR="$LOCK_ROOT/held"
 LEASE_FILE="$LOCK_ROOT/lease.json"
+# Serializes stale-holder REAPERS (see acquire()). A reap.lock older than this
+# many minutes is a crashed reaper's leftover and is broken once.
+REAP_LOCK="$LOCK_ROOT/reap.lock"
+REAP_LOCK_STALE_MINUTES=1
 # Staleness threshold: no heartbeat refresh within this many seconds means the
 # holder is presumed dead IF ALSO its pid fails a kill -0 check (both signals
 # required — see _is_stale below). Default 30 min.
@@ -146,6 +150,25 @@ _disabled_atomic_acquire() {
   fi
 }
 
+# Take the reaper mutex. A plain mkdir is the atomic step; on failure, a
+# reap.lock older than REAP_LOCK_STALE_MINUTES is a crashed reaper's leftover
+# and is broken ONCE before one retry. Failure means DENIED, which is already
+# the documented lost-race result.
+_reap_mutex_take() {
+  [ "${_COORD_DISABLE_REAP_MUTEX:-0}" = "1" ] && return 0
+  mkdir "$REAP_LOCK" 2>/dev/null && return 0
+  if [ -n "$(find "$LOCK_ROOT" -maxdepth 1 -name reap.lock -mmin +"$REAP_LOCK_STALE_MINUTES" 2>/dev/null)" ]; then
+    rmdir "$REAP_LOCK" 2>/dev/null || true
+    mkdir "$REAP_LOCK" 2>/dev/null && return 0
+  fi
+  return 1
+}
+
+_reap_mutex_drop() {
+  [ "${_COORD_DISABLE_REAP_MUTEX:-0}" = "1" ] && return 0
+  rmdir "$REAP_LOCK" 2>/dev/null || true
+}
+
 acquire() {
   local disable_atomic="${1:-0}"
   local session_id="${CLAUDE_SESSION_ID:-unknown}"
@@ -167,26 +190,40 @@ acquire() {
     return 0
   fi
 
-  # Contended. Reap-then-reclaim is itself atomic: rename the stale holder
-  # dir aside, then re-attempt the atomic create — never delete-then-create
-  # (a delete-then-create window is exactly the same TOCTOU class this whole
-  # design exists to avoid).
-  if _is_stale "$HELD_DIR"; then
-    local stale_aside="${HELD_DIR}.stale.$$"
-    if mv "$HELD_DIR" "$stale_aside" 2>/dev/null; then
-      if $acquire_fn; then
-        echo "$my_pid" > "$HELD_DIR/pid"
-        local ts; ts="$(_now_iso)"
-        _write_lease "$session_id" "$my_pid" "$ts" "$ts"
-        echo "ACQUIRED (after reap of stale holder) session=$session_id pid=$my_pid"
+  # Contended. Rename the stale holder dir aside, then re-attempt the atomic
+  # create — never delete-then-create.
+  #
+  # ⛔ Each step is atomic but the DECISION was not: two contenders could both
+  # read the dead pid, the first renamed it aside and created a NEW live
+  # holder, and the second's rename (decided on the stale reading) then moved
+  # that live holder aside too — two ACQUIRED. Reapers are now serialized by
+  # their own mkdir mutex and staleness is re-decided INSIDE it; the mutex is
+  # dropped only after the new pid file is written, so the next reaper reads a
+  # live (or still-empty, i.e. not-stale) holder.
+  # control: 8 contenders on a dead-holder lock, 40 trials -> 9 double-holder
+  # trials before; --self-test --dead-holder asserts 1 winner per trial after,
+  # and --disable-reap-mutex reproduces >1 (2026-10-19).
+  if _is_stale "$HELD_DIR" && _reap_mutex_take; then
+    if _is_stale "$HELD_DIR"; then
+      [ -n "${_COORD_TEST_REAP_SLEEP:-}" ] && sleep "$_COORD_TEST_REAP_SLEEP"
+      local stale_aside="${HELD_DIR}.stale.$$"
+      if mv "$HELD_DIR" "$stale_aside" 2>/dev/null; then
+        if $acquire_fn; then
+          echo "$my_pid" > "$HELD_DIR/pid"
+          local ts; ts="$(_now_iso)"
+          _write_lease "$session_id" "$my_pid" "$ts" "$ts"
+          _reap_mutex_drop
+          echo "ACQUIRED (after reap of stale holder) session=$session_id pid=$my_pid"
+          rm -rf "$stale_aside" 2>/dev/null || true
+          return 0
+        fi
+        # Lost the re-acquire race after winning the reap race (a plain
+        # acquirer created $HELD_DIR in the gap) — putting it back is not
+        # attempted; just clean up our stale-aside copy.
         rm -rf "$stale_aside" 2>/dev/null || true
-        return 0
       fi
-      # Lost the re-acquire race after winning the reap race — put it back is
-      # not attempted (another live holder now owns $HELD_DIR); just clean up
-      # our stale-aside copy.
-      rm -rf "$stale_aside" 2>/dev/null || true
     fi
+    _reap_mutex_drop
   fi
 
   echo "DENIED holder-still-live-or-lost-race"
@@ -268,6 +305,48 @@ self_test() {
   echo "$winners"
 }
 
+# Dead-holder reap race: pre-seed held/pid with a reaped (dead) pid, race N
+# contenders through the REAP path, repeat for several trials. Prints the max
+# winners seen in any trial and the count of zero-winner trials. The reap
+# window is widened (_COORD_TEST_REAP_SLEEP) so a missing mutex shows up
+# reliably rather than probabilistically.
+self_test_dead_holder() {
+  local concurrency="${1:-4}" disable_mutex="${2:-0}" trials="${3:-5}"
+  local t=0 max_winners=0 zero_trials=0
+  while [ "$t" -lt "$trials" ]; do
+    local scratch; scratch="$(mktemp -d)"
+    mkdir -p "$scratch/coordinator-lock/held"
+    ( exit 0 ) &
+    local dead=$!
+    wait "$dead" 2>/dev/null || true
+    echo "$dead" > "$scratch/coordinator-lock/held/pid"
+    local out="$scratch/results.log"
+    : > "$out"
+    local i=0 pids=""
+    while [ "$i" -lt "$concurrency" ]; do
+      (
+        export RC_WORKTREE_GUARD_HOME="$scratch"
+        export _COORD_TEST_REAP_SLEEP=0.05
+        export _COORD_DISABLE_REAP_MUTEX="$disable_mutex"
+        bash "$0" acquire >> "$out" 2>&1 || true
+      ) &
+      pids="$pids $!"
+      i=$((i + 1))
+    done
+    # shellcheck disable=SC2086
+    wait $pids 2>/dev/null || true
+    local winners
+    winners="$(grep -c '^ACQUIRED' "$out" 2>/dev/null || true)"
+    winners="${winners:-0}"
+    [ "$winners" -gt "$max_winners" ] && max_winners="$winners"
+    [ "$winners" -eq 0 ] && zero_trials=$((zero_trials + 1))
+    rm -rf "$scratch" 2>/dev/null || true
+    t=$((t + 1))
+  done
+  echo "dead-holder concurrency=$concurrency trials=$trials disable_reap_mutex=$disable_mutex max_winners=$max_winners zero_winner_trials=$zero_trials"
+  echo "$max_winners $zero_trials"
+}
+
 case "${1:-}" in
   acquire) shift; acquire "${1:-0}" ;;
   heartbeat) heartbeat ;;
@@ -277,13 +356,38 @@ case "${1:-}" in
     shift
     concurrency=8
     disable_atomic=0
+    dead_holder=0
+    disable_reap_mutex=0
+    trials=5
     while [ $# -gt 0 ]; do
       case "$1" in
         --concurrency) concurrency="$2"; shift 2 ;;
         --disable-atomic-step) disable_atomic=1; shift ;;
+        --dead-holder) dead_holder=1; shift ;;
+        --disable-reap-mutex) disable_reap_mutex=1; dead_holder=1; shift ;;
+        --trials) trials="$2"; shift 2 ;;
         *) shift ;;
       esac
     done
+    if [ "$dead_holder" = "1" ]; then
+      res="$(self_test_dead_holder "$concurrency" "$disable_reap_mutex" "$trials" | tail -1)"
+      max_w="${res%% *}"
+      zeros="${res##* }"
+      if [ "$disable_reap_mutex" = "1" ]; then
+        if [ "$max_w" -gt 1 ]; then
+          echo "CONTROL OK: $max_w winners in one trial with the reap mutex disabled (dead-holder race reproduced, control has teeth)"
+          exit 0
+        fi
+        echo "CONTROL FAILED: expected >1 winners in some trial with the reap mutex disabled, got max $max_w"
+        exit 1
+      fi
+      if [ "$max_w" -eq 1 ] && [ "$zeros" -eq 0 ]; then
+        echo "SELF-TEST PASS: exactly 1 winner in each of $trials dead-holder trials ($concurrency contenders)"
+        exit 0
+      fi
+      echo "SELF-TEST FAIL: dead-holder reap — max winners $max_w, zero-winner trials $zeros (want 1 and 0)"
+      exit 1
+    fi
     winners="$(self_test "$concurrency" "$disable_atomic" | tail -1)"
     if [ "$disable_atomic" = "1" ]; then
       if [ "$winners" -gt 1 ]; then
