@@ -206,6 +206,40 @@ def _normalize_lead(lead: str) -> str:
     return lead.strip()
 
 
+# Explicit write forms of commands EMISSIONS files under shell_readonly
+# (tribunal-5). Matched against the normalized leading segment; case-sensitive,
+# because git and find flags are.
+_FIND_WRITE = re.compile(
+    r"(?:^|\s)-(?:delete|execdir|exec|okdir|ok|fprint0|fprintf|fprint|fls)(?![\w-])"
+)
+_GIT_BRANCH_WRITE = re.compile(
+    r"(?:^|\s)(?:-[A-Za-z]*[fmMcCu][A-Za-z]*(?![\w-])"
+    r"|--(?:force|move|copy|set-upstream-to|set-upstream|unset-upstream)(?![\w-]))"
+)
+_GIT_REMOTE_READ_SUBCMDS = {"show", "get-url"}
+_RG_EXEC = re.compile(r"(?:^|\s)--(?:pre|pre-glob|filter)(?:[=\s]|$)")
+
+
+def _readonly_prefix_mutates(lead: str) -> bool:
+    """True when a shell_readonly-prefixed command is one of its WRITE forms:
+    find with an action that deletes, runs or writes; `git remote` with a
+    subcommand other than show / get-url; `git branch` with a force, move, copy or
+    upstream flag; rg / ugrep with a preprocessor or filter program."""
+    if re.match(r"find\b", lead):
+        return bool(_FIND_WRITE.search(lead))
+    if re.match(r"git\s+remote\b", lead):
+        for tok in lead.split()[2:]:
+            if tok.startswith("-"):
+                continue  # -v / --verbose and other options
+            return tok not in _GIT_REMOTE_READ_SUBCMDS
+        return False  # bare `git remote` / `git remote -v`
+    if re.match(r"git\s+branch\b", lead):
+        return bool(_GIT_BRANCH_WRITE.search(lead))
+    if re.match(r"(?:rg|ugrep)\b", lead):
+        return bool(_RG_EXEC.search(lead))
+    return False
+
+
 def classify(command: str) -> str | None:
     """Return the comfort-posture category for a Bash command, or None.
 
@@ -251,6 +285,11 @@ def classify(command: str) -> str | None:
         )
         if force_delete:
             best_cat = "shell_local_mutate"
+    # Same pattern for the other EMISSIONS read prefixes that have explicit WRITE
+    # forms (tribunal-5). Routing only; EMISSIONS is untouched (that would change
+    # the emitted permission rules and every generated artifact built from them).
+    if best_cat == "shell_readonly" and _readonly_prefix_mutates(lead):
+        best_cat = "shell_local_mutate"
     # Flag-aware network-write override (routing only — does NOT touch EMISSIONS,
     # same pattern as the git branch -D override above). The EMISSIONS prefixes
     # catch explicit `curl -X POST` / `gh api POST`, but curl/wget also write via

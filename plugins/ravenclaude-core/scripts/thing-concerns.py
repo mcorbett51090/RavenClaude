@@ -40,6 +40,7 @@ import argparse
 import base64
 import binascii
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -495,6 +496,17 @@ _RO_ALLOW_FIRST = re.compile(
 )
 
 
+# rg and ugrep can RUN a program per file: --pre / --pre-glob (rg), --filter
+# (ugrep), and the decompression modes (-z / --search-zip) shell out to external
+# decoders. --config-path, or a RIPGREP_CONFIG_PATH in the environment, can add
+# --pre invisibly. Any of these makes an rg/ugrep call not provably read-only.
+_RO_RG_FIRST = re.compile(r"\A\s*(?:rg|ugrep)\b", re.IGNORECASE)
+_RO_RG_EXEC = re.compile(
+    r"(?:^|\s)(?:--pre(?:-glob)?|--filter|--search-zip|--decompress|--config-path)(?:[=\s]|$)"
+    r"|(?:^|\s)-[A-Za-z]*z[A-Za-z]*(?![\w-])"
+)
+
+
 def _self_disable_read_only(command: str) -> bool:
     """True when `command` provably cannot write, so it cannot self-disable.
 
@@ -505,6 +517,13 @@ def _self_disable_read_only(command: str) -> bool:
         return False
     if _RO_WRITE_FLAG.search(stripped):
         return False
+    if _RO_RG_FIRST.match(stripped):
+        if os.environ.get("RIPGREP_CONFIG_PATH") is not None:
+            return False
+        # Quote characters are deleted, not quoted spans: the shell removes quotes,
+        # so `rg "--pre" prog ...` still hands rg the --pre flag.
+        if _RO_RG_EXEC.search(command.replace('"', "").replace("'", "")):
+            return False
     return bool(_RO_ALLOW_FIRST.match(stripped))
 
 
