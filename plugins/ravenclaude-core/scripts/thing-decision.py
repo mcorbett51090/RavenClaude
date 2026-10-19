@@ -517,6 +517,37 @@ THING_SUBSTRATE = [
     ".ravenclaude/thing.yaml",
 ]
 
+# Substrate that is protected LEXICALLY, whether or not it exists yet: the
+# verdict cache (tribunal-16). A cache entry is served as the panel's verdict, so
+# a Write that plants `{verdict: allow}` under the key of a denied command would
+# self-approve it. The directory may not exist until the first cached verdict,
+# which is why a glob (it matches only existing paths) is not enough here.
+# Default audit_dir only; a custom `audit_dir` in thing.yaml is not covered.
+THING_SUBSTRATE_LEXICAL = [".ravenclaude/runs/thing/cache"]
+
+# The installed plugin's own substrate, relative to CLAUDE_PLUGIN_ROOT (tribunal-11).
+# A consumer runs the Thing from ~/.claude/plugins/cache/<mkt>/ravenclaude-core/
+# <version>/, which no project-relative glob can see. Other hosts install their
+# hooks elsewhere (.github/hooks, .codex) and are not covered by this root.
+_PLUGIN_SUBSTRATE = ["hooks", "scripts", "knowledge/concerns-catalog.md"]
+
+
+def _plugin_root_substrate() -> list[Path]:
+    """The installed ravenclaude-core plugin's substrate paths, when
+    CLAUDE_PLUGIN_ROOT names a plugin whose manifest says it IS ravenclaude-core.
+    Any doubt (unset, unreadable, another plugin) -> no extra roots."""
+    pr = os.environ.get("CLAUDE_PLUGIN_ROOT") or ""
+    if not pr:
+        return []
+    try:
+        root = Path(os.path.realpath(pr))
+        manifest = json.loads((root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    if not isinstance(manifest, dict) or manifest.get("name") != "ravenclaude-core":
+        return []
+    return [root / sub for sub in _PLUGIN_SUBSTRATE if (root / sub).exists()]
+
 
 def _substrate_paths(project_root: Path) -> tuple[set[str], set[tuple[int, int]]]:
     """Concrete substrate realpaths (normcased) + their (dev, ino) under the
@@ -524,22 +555,30 @@ def _substrate_paths(project_root: Path) -> tuple[set[str], set[tuple[int, int]]
     scope — editing a CI gate cannot disable the runtime hook (§2a)."""
     rps: set[str] = set()
     inodes: set[tuple[int, int]] = set()
+    for lex in THING_SUBSTRATE_LEXICAL:
+        try:
+            rps.add(os.path.normcase(os.path.realpath(str(project_root / lex))))
+        except (OSError, ValueError):
+            continue
+    found: list[Path] = []
     for pat in THING_SUBSTRATE:
-        for p in project_root.glob(pat):
+        found.extend(project_root.glob(pat))
+    found.extend(_plugin_root_substrate())
+    for p in found:
+        try:
+            rps.add(os.path.normcase(os.path.realpath(str(p))))
+        except OSError:
+            continue
+        # Inode set: the matched path itself PLUS, if it is a directory, every
+        # file under it — so a hardlink to ANY substrate file (e.g. a hardlink
+        # to plugins/*/hooks/thing-orchestrator.sh) is caught (§4 step 5).
+        targets = [p] + ([f for f in p.rglob("*") if f.is_file()] if p.is_dir() else [])
+        for t in targets:
             try:
-                rps.add(os.path.normcase(os.path.realpath(str(p))))
+                st = os.stat(str(t))
+                inodes.add((st.st_dev, st.st_ino))
             except OSError:
                 continue
-            # Inode set: the matched path itself PLUS, if it is a directory, every
-            # file under it — so a hardlink to ANY substrate file (e.g. a hardlink
-            # to plugins/*/hooks/thing-orchestrator.sh) is caught (§4 step 5).
-            targets = [p] + ([f for f in p.rglob("*") if f.is_file()] if p.is_dir() else [])
-            for t in targets:
-                try:
-                    st = os.stat(str(t))
-                    inodes.add((st.st_dev, st.st_ino))
-                except OSError:
-                    continue
     return rps, inodes
 
 
@@ -689,19 +728,49 @@ def screen_substrate_path(target_raw: str, project_root: Path) -> tuple[bool, st
     return False, None
 
 
-def _posture_content_disables(content: str) -> bool:
+def _thing_on_categories(doc) -> set[str]:
+    """The categories whose per-category `thing:` toggle is ON in a parsed posture,
+    using the engine's own truthiness (thing_enabled_for). The master gate is left
+    out on purpose: a document that carries `command_review` is already denied, and
+    the always_screen floors run on the per-category toggles alone."""
+    if not isinstance(doc, dict):
+        return set()
+    cats = doc.get("categories")
+    if not isinstance(cats, dict):
+        return set()
+    probe = {"categories": cats}
+    return {str(c) for c in cats if thing_enabled_for(probe, c)}
+
+
+def _posture_content_disables(content: str, original: str | None = None) -> bool:
     """True if the RESULTING comfort-posture.yaml document would self-disable the
     tribunal: parse it (not a regex — a regex over content is evaded by
     reformatting, §2a) and deny if it flips any category's `thing:` off or carries
-    a `command_review:` / `gate_floor:` block. Unparseable → DENY (fail closed)."""
+    a `command_review:` / `gate_floor:` block. Unparseable → DENY (fail closed).
+
+    `original` is the on-disk document the write replaces, when there is one
+    (1005-P1-7). Flipping a toggle to off was caught, but REMOVING the toggle line,
+    the category block or the whole categories map was not: an absent key reads as
+    off. So the categories that are on in the original must still be on in the
+    result. An original that does not parse protects nothing, so a write that
+    repairs a broken posture is not blocked by this diff."""
     try:
         import yaml  # type: ignore
-
+    except Exception:
+        return True  # cannot parse anything → DENY
+    try:
         doc = yaml.safe_load(content)
     except Exception:
         return True  # unparseable posture write → DENY
     if not isinstance(doc, dict):
         return True
+    if original is not None:
+        try:
+            before = _thing_on_categories(yaml.safe_load(original))
+        except Exception:
+            before = set()  # broken on-disk posture: nothing to protect
+        if before - _thing_on_categories(doc):
+            return True
     if "command_review" in doc or "gate_floor" in doc:
         return True
     cats = doc.get("categories") or {}
@@ -776,18 +845,19 @@ def _posture_write_disables(tool_name: str, tool_input: dict, project_root: Path
     target = unicodedata.normalize("NFC", ti.get("file_path", "") or "")
     if not target.endswith("comfort-posture.yaml"):
         return False
-    if tool_name == "Write":
-        return _posture_content_disables(ti.get("content", ""))
-    # Edit / MultiEdit — reconstruct the resulting document from disk + the edits.
     try:
         disk_path = (project_root / target) if not os.path.isabs(target) else Path(target)
-        original = disk_path.read_text(encoding="utf-8") if disk_path.is_file() else ""
+        on_disk = disk_path.read_text(encoding="utf-8") if disk_path.is_file() else None
     except Exception:
         return True  # can't read the base doc → fail closed
+    if tool_name == "Write":
+        return _posture_content_disables(ti.get("content", ""), on_disk)
+    # Edit / MultiEdit — reconstruct the resulting document from disk + the edits.
+    original = on_disk if on_disk is not None else ""
     resulting = _apply_edits_to_text(original, tool_name, ti)
     if resulting is None:
         return True  # unreconstructable → fail closed
-    return _posture_content_disables(resulting)
+    return _posture_content_disables(resulting, on_disk)
 
 
 # ── Config reading ───────────────────────────────────────────────────────────

@@ -618,8 +618,11 @@ phase="T3-panel"
 #    always ran, so only the EXPENSIVE panel result is ever served from cache. ──
 cache_dir="${cwd}/${audit_dir_rel}/cache"
 cache_hit="false"; cache_verdict=""; cache_revised=""
+# tribunal-16: the same command means different things in different directories
+# (`rm -rf build`), so the key carries the resolved working directory too.
+cache_cwd_rp="$(cd "$_payload_cwd" 2>/dev/null && pwd -P || printf '%s' "$_payload_cwd")"
 if [ "${cache_ttl:-0}" -gt 0 ] && [ -n "$config_hash" ] && command -v sha256sum >/dev/null 2>&1; then
-  cache_key="$(printf '%s' "${cache_id}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
+  cache_key="$(printf '%s' "${cache_id}|${category}|${config_hash}|${cache_cwd_rp}" | sha256sum | cut -d' ' -f1)"
   cache_file="${cache_dir}/${cache_key}.json"
   if [ -f "$cache_file" ]; then
     c_ts="$(jq -r '.ts // 0' "$cache_file" 2>/dev/null || echo 0)"
@@ -1049,7 +1052,7 @@ esac
 if [ "${cache_ttl:-0}" -gt 0 ] && [ -n "$config_hash" ] && [ "$cacheable" = "true" ] \
    && [ "$audit_written" = "true" ] && command -v sha256sum >/dev/null 2>&1 \
    && { [ "$verdict" = "allow" ] || [ "$verdict" = "edit" ] || [ "$verdict" = "deny" ]; }; then
-  ckey="$(printf '%s' "${cache_id}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
+  ckey="$(printf '%s' "${cache_id}|${category}|${config_hash}|${cache_cwd_rp}" | sha256sum | cut -d' ' -f1)"
   if mkdir -p "$cache_dir" 2>/dev/null; then
     jq -cn --arg v "$verdict" --arg r "$revised" --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
       '{verdict:$v,revised:$r,ts:$ts}' > "${cache_dir}/${ckey}.json" 2>/dev/null || true

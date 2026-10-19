@@ -177,13 +177,20 @@ cross_cutting:
       # literal-filename match misses; the bare filenames cover a `cd <dir>` then
       # bare-name mutation. Regex can't canonicalize a path, so this is the
       # shell-level scope (in-process `python -c` writes route to the panel).
+      # The optional digit-led segment after `ravenclaude-core/` is the version
+      # directory of an installed copy (~/.claude/plugins/cache/<mkt>/
+      # ravenclaude-core/<version>/hooks). It must start with a digit, so
+      # ravenclaude-core/skills/scripts and .../templates/scripts are NOT substrate.
+      # Other hosts install their hooks elsewhere (.github/hooks, .codex) and are
+      # not covered here. `.ravenclaude/runs/thing/cache` is the verdict cache: an
+      # entry there is served as the panel's verdict, so writing one is a self-approve.
       # (1) redirection / tee INTO a substrate path
       regex:
-        - '(>>?|\btee\b)\s*\S*(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        - '(>>?|\btee\b)\s*\S*(ravenclaude-core/(?:\d[\w.+-]*/)?(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml|\.ravenclaude/runs/thing/cache)'
         # (2a) an INHERENTLY-mutating verb (incl. tee, tolerant of intervening
         #      flags) on a substrate path. These verbs have no read mode — naming
         #      one alongside a substrate path is already the mutation.
-        - '(?s)\b(rm|unlink|shred|mv|cp|install|ln|tee|truncate|dd|chmod|chown|patch|sponge)\b.{0,200}(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        - '(?s)\b(rm|unlink|shred|mv|cp|install|ln|tee|truncate|dd|chmod|chown|patch|sponge)\b.{0,200}(ravenclaude-core/(?:\d[\w.+-]*/)?(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml|\.ravenclaude/runs/thing/cache)'
         # (2b) a STREAM EDITOR on a substrate path — but only in IN-PLACE mode.
         #      sed/perl/awk are read-by-default: without an in-place flag they
         #      write to stdout, so a pattern-print or line-range print of a hook
@@ -198,7 +205,7 @@ cross_cutting:
         #      LATER chained command cannot arm a read in an earlier one.
         #      Fail-closed is preserved: the in-place flag still denies here, and
         #      a redirect or a tee-pipe onto a substrate path is trigger (1)/(2a).
-        - '(?s)\b(sed|perl|awk)\b[^;|&\n]{0,120}?(?:--in-place|-[A-Za-z0-9.]*i[A-Za-z0-9.]*\b|\binplace\b)[^;|&\n]{0,120}?(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        - '(?s)\b(sed|perl|awk)\b[^;|&\n]{0,120}?(?:--in-place|-[A-Za-z0-9.]*i[A-Za-z0-9.]*\b|\binplace\b)[^;|&\n]{0,120}?(ravenclaude-core/(?:\d[\w.+-]*/)?(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml|\.ravenclaude/runs/thing/cache)'
         # (3) turning the per-category toggle OFF in comfort-posture.yaml (bounded
         #     lookaheads so a large heredoc body is not scanned twice unbounded)
         - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}thing:\s*(off|false|no)\b)'
