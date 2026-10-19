@@ -115,7 +115,12 @@ _expect() { # <want: deny|ask|none> <label> <proj> <url>
   _run "$HOOKS" guard-web-access.sh "$3" "s-$RANDOM" "$4"
   local got
   if [ "$RC" -eq 2 ]; then got=deny; else got="$(_decision)"; fi
-  if [ "$got" = "$1" ]; then pass "$2 -> $got"; else fail "$2: expected $1, got $got (rc=$RC)"; fi
+  if [ "$got" = "$1" ]; then pass "$2 -> $got"; else
+    # Show the parsed host as bytes, so a platform-only failure is diagnosable from the log.
+    local hb
+    hb="$(bash -c '. "$1/_web.sh"; _rc_web_host "$2"' _ "$HOOKS" "$4" | od -An -tx1 | tr -s ' \n' ' ')"
+    fail "$2: expected $1, got $got (rc=$RC, parsed host bytes:${hb})"
+  fi
 }
 FW="$(printf '\357\275\205')"   # U+FF45 FULLWIDTH LATIN SMALL LETTER E
 _expect ask  "percent-encoded host"            "$D" "https://%65vil.example/x"

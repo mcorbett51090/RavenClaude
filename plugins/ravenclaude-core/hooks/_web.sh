@@ -32,7 +32,9 @@ _rc_web_host() {
   case "$h" in *\\*) h="${h%%\\*}" ;; esac
   h="${h##*@}"
   h="${h%%:*}"
-  h="$(printf '%s' "$h" | tr 'A-Z' 'a-z')"
+  # LC_ALL=C: ASCII-only, byte-wise. Under a UTF-8 locale BSD tr expands ranges
+  # by collation, which can touch non-ASCII letters (macOS CI, 2026-10-19).
+  h="$(printf '%s' "$h" | LC_ALL=C tr 'A-Z' 'a-z')"
   h="${h%.}"
   if q="$(_rc_web_ipv4 "$h")"; then h="$q"; fi
   printf '%s' "$h"
@@ -41,7 +43,10 @@ _rc_web_host() {
 # _rc_web_ipv4 HOST — dotted-quad form of a numeric IPv4 host, or return 1.
 _rc_web_ipv4() {
   local h="${1-}" p v n=0 a=0 b=0 c=0 d=0 rest
-  case "$h" in "" | *[!0-9a-fx.]* | .* | *. | *..*) return 1 ;; esac
+  # Character classes are spelled out, never ranges: a range in a bracket
+  # expression follows the locale's collation under bash 3.2, so [a-z] can
+  # admit a non-ASCII letter on macOS (en_US.UTF-8). A listed set cannot.
+  case "$h" in "" | *[!0123456789abcdefx.]* | .* | *. | *..*) return 1 ;; esac
   rest="$h."
   while [ -n "$rest" ]; do
     p="${rest%%.*}"
@@ -49,11 +54,11 @@ _rc_web_ipv4() {
     n=$((n + 1))
     [ "$n" -le 4 ] || return 1
     case "$p" in
-      0x | 0x*[!0-9a-f]*) return 1 ;;
+      0x | 0x*[!0123456789abcdef]*) return 1 ;;
       0x*) [ "${#p}" -le 10 ] || return 1; v=$((16#${p#0x})) ;;
-      0 | 0*[!0-7]*) [ "$p" = 0 ] || return 1; v=0 ;;
+      0 | 0*[!01234567]*) [ "$p" = 0 ] || return 1; v=0 ;;
       0*) [ "${#p}" -le 12 ] || return 1; v=$((8#${p#0})) ;;
-      *[!0-9]*) return 1 ;;
+      *[!0123456789]*) return 1 ;;
       *) [ "${#p}" -le 10 ] || return 1; v=$((10#$p)) ;;
     esac
     case "$n" in 1) a=$v ;; 2) b=$v ;; 3) c=$v ;; 4) d=$v ;; esac
@@ -77,7 +82,7 @@ _rc_web_ipv4() {
 # every subdomain of it, so `*.x.example` and `.x.example` both mean x.example.
 _rc_web_rule() {
   local r="${1-}" q
-  r="$(printf '%s' "$r" | tr 'A-Z' 'a-z')"
+  r="$(printf '%s' "$r" | LC_ALL=C tr 'A-Z' 'a-z')"
   r="${r#*://}"
   r="${r%%/*}"
   r="${r#\*.}"
@@ -89,6 +94,6 @@ _rc_web_rule() {
 
 # _rc_web_matchable STR — 0 when STR is a non-empty [a-z0-9._-] name a rule can match.
 _rc_web_matchable() {
-  case "${1-}" in "" | *[!a-z0-9._-]*) return 1 ;; esac
+  case "${1-}" in "" | *[!abcdefghijklmnopqrstuvwxyz0123456789._-]*) return 1 ;; esac
   return 0
 }

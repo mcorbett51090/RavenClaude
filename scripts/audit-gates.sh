@@ -2438,7 +2438,10 @@ _run_test_tail() {
   local out rc=0
   out="$("$@" 2>&1)" || rc=$?
   if [ "$rc" -ne 0 ]; then
-    printf '%s\n' "$out" | tail -25 | sed 's/^/    | /'
+    # Every failing line first (a long test can fail far above its last lines),
+    # then the tail for the summary.
+    printf '%s\n' "$out" | grep -E '✗|FAIL|Traceback|Error' | head -30 | sed 's/^/    ! /'
+    printf '%s\n' "$out" | tail -15 | sed 's/^/    | /'
   fi
   return "$rc"
 }
