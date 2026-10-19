@@ -33,6 +33,28 @@
 # hook — see the plugin CLAUDE.md "Containment posture — the boundary the tribunal
 # structurally can't provide" section. Do not attempt to close it here.
 
+# hooks-4 (2026-10-19): drop every shell function this process inherited, FIRST —
+# before `set`, `dirname`, `cat`, `jq` or `python3` is run by name. Bash imports an
+# exported function (BASH_FUNC_<name>%% in the environment) at startup, and a
+# function shadows the binary or builtin of the same name. Measured with a bash
+# outer launcher (macOS /bin/sh is bash): a planted BASH_FUNC_jq%% or
+# BASH_FUNC_cat%% made the command read as empty, so `<recursive delete of />`
+# exited 0. Every name here goes through `builtin`, and nothing below runs before
+# the purge. Residual: a planted function named `builtin` itself; env-integrity-
+# guard.sh quarantines any BASH_FUNC_* key in project settings, which is the
+# primary control.
+builtin set -f
+_gd_fns="$(builtin compgen -A function 2>/dev/null)" || _gd_fns=""
+case "$_gd_fns" in
+  "") _gd_fns="$(builtin declare -F 2>/dev/null)" || _gd_fns="" ;;   # no compgen: "declare -f NAME" lines
+esac
+for _gd_fn in $_gd_fns; do
+  case "$_gd_fn" in declare|-f|-fx) continue ;; esac
+  builtin unset -f -- "$_gd_fn" 2>/dev/null || builtin true
+done
+builtin unset _gd_fn _gd_fns
+builtin set +f
+
 set -euo pipefail
 
 # Structured hook-event substrate (P0.2). Sourced fail-safe — a missing helper
