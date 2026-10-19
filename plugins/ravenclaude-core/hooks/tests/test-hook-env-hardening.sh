@@ -607,6 +607,28 @@ then
 else
   fail "18 teeth: could not cut the purge loop out of the guard"
 fi
+# hooks-4, tribunal half (repo review 2026-10-19, INT): the same planted function
+# must not reach thing-orchestrator.sh either. Through its REAL hooks.json launch
+# line, with a posture that toggles review on, a force-push must still hit the
+# category-independent hard-rule deny. (The teeth for the orchestrator's purge
+# loop are test-tribunal-review-2026-10-19.py --must-fail, row hooks-4.)
+P18c="$(proj bashfunc-orch)"
+mkdir -p "$P18c/.ravenclaude"
+printf 'categories:\n  shell_readonly:\n    thing: on\n' >"$P18c/.ravenclaude/comfort-posture.yaml"
+FPUSH="g""it pu""sh --for""ce origin main"
+ocmd18="$(cmds PreToolUse Bash | grep thing-orchestrator.sh | head -1)"
+if [ -n "$ocmd18" ]; then
+  for fnv in "$JQF=() { :; }" 'BASH_FUNC_python3%%=() { :; }'; do
+    drive_outer "$PLUGIN" "$ocmd18" "$P18c" "$(payload Bash "$FPUSH" "$P18c")" "$fnv"
+    if denied; then pass "18 thing-orchestrator still hard-denies a force-push with ${fnv%%=*} planted"
+    else fail "18 ${fnv%%=*} planted → orchestrator rc=$DRC out=$(head -c 160 "$TMP/out")"; fi
+  done
+  drive_outer "$PLUGIN" "$ocmd18" "$P18c" "$(payload Bash "$FPUSH" "$P18c")"
+  denied && pass "18 control: the same force-push is denied with nothing planted" \
+    || fail "18 control: force-push not denied without a plant → rc=$DRC (the probe cannot see a deny)"
+else
+  fail "18 thing-orchestrator.sh is not registered on PreToolUse(Bash)"
+fi
 
 echo "── 12. platform ──"
 case "$(uname -s)" in
