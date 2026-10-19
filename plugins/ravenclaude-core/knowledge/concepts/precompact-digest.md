@@ -6,11 +6,11 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 915
 summary: "precompact-digest.sh detaches its engine call so the archival hook can never turn into a synchronous ceiling on a turn."
-last_verified: 2026-09-16
+last_verified: 2026-10-19
 covers:
   - plugins/ravenclaude-core/hooks/precompact-digest.sh
   - plugins/ravenclaude-core/scripts/precompact-digest.py
-covers_digest: "sha256:f669b62a1bd05598ee27971e35c968d07dccab689570a7250fc170b199c9b866"
+covers_digest: "sha256:e0c5ec75c24d31f3d4272df2e8ed84aae0acbc7aeeb6930245d537d518216bfa"
 nuance: "The hook returns near-instantly even when its digest engine takes seconds: extraction runs as a detached, disowned worker the hook never waits on, so a digest (when one appears at all) shows up seconds after the hook process has already exited."
 nuance_evidence:
   measured: 2026-09-01

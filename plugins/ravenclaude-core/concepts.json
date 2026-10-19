@@ -2792,7 +2792,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-18",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -2815,6 +2815,7 @@
         "plugins/ravenclaude-core/hooks/_portable.sh",
         "plugins/ravenclaude-core/hooks/_rearm-notice.sh",
         "plugins/ravenclaude-core/hooks/_scrub.sh",
+        "plugins/ravenclaude-core/hooks/_web.sh",
         "plugins/ravenclaude-core/hooks/agent-dispatch-evaluator.sh",
         "plugins/ravenclaude-core/hooks/capability-orientation.sh",
         "plugins/ravenclaude-core/hooks/claim-grounding-lint.sh",
@@ -2860,7 +2861,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:6296f08cae43284057f0287a2b4309c5a38bc1e768f62e0265cba6aa47062087",
+      "covers_digest": "sha256:0b25932b2837b393d47a1cf6845a597ea53cf751b18f0068f51572137da2dd71",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2935,7 +2936,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-09",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -2957,7 +2958,7 @@
         "plugins/ravenclaude-core/scripts/route-task.py",
         "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
       ],
-      "covers_digest": "sha256:c8999c98292a8e9d5d0ddf591d906e99fb3c9f7f725ac0627ade974f1a86185d",
+      "covers_digest": "sha256:a2c316a3d20804df9832fe8aeca41bf2196688d73184b1d23205a3eb5fdc0bd4",
       "nuance": "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model.",
       "nuance_evidence": {
         "measured": "2026-08-26",
@@ -2965,7 +2966,7 @@
         "falsifier": "a future Copilot CLI release accepting --effort together with --model auto",
         "probe": "plugins/ravenclaude-core/scripts/copilot-delegate.sh"
       },
-      "nuance_source": "plugins/ravenclaude-core/scripts/copilot-delegate.sh:195-200",
+      "nuance_source": "plugins/ravenclaude-core/scripts/copilot-delegate.sh:209-214",
       "verify": {
         "tier": "none",
         "rationale": "The rejection is live Copilot CLI runtime behavior, not something offline-stageable in CI; re-verifying it means a real non-interactive Copilot CLI call — already recorded as nuance_evidence.control — not a separate staged check."
@@ -2983,7 +2984,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-18",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -3003,7 +3004,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:085876e64f0ee6238d7efdc8c467bad53e0f03a283bfb3158c713b595b8eaef3",
+      "covers_digest": "sha256:693fac25e92217c273c77bda92f273f63c8a946183654614e78481ce31e88e0f",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3032,7 +3033,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-18",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -3065,7 +3066,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:d56049cc451299de407086e157cd9f83a9fbb762fecb99f7be0d14714bd2e758",
+      "covers_digest": "sha256:7e0092f4572dcfd3971370d5252fcc7fd5a9992b8c80750176d2eca9644f6522",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3165,7 +3166,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-09",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -3183,7 +3184,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/triage-outcome.sh"
       ],
-      "covers_digest": "sha256:8c127d83d6ec65a8c04003dacb082a7d5ac3558936a50aeefa7ce4035295785d",
+      "covers_digest": "sha256:552e42a248ad44c6045a889ad74a6df368ebb37a021aa05a8a067d3582e42d46",
       "nuance": "A failing Bash `tool_response` carries no exit-code field at all, so a hook that branches on `.tool_response.exit_code` never fires; `triage-outcome.sh` reads stream shape instead.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3451,7 +3452,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-12",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -3476,7 +3477,7 @@
         "plugins/ravenclaude-core/monitors/watch-spectate.sh",
         "plugins/ravenclaude-core/skills/spectate/SKILL.md"
       ],
-      "covers_digest": "sha256:956c32da1e4dfcb9c7264f9e649a5d1be99d1c51e2c7cdcb107fbdf4cdcfd6c9",
+      "covers_digest": "sha256:a9671eb3ece30a8d593f3b6ad5ce3be5708174e3a0f9320432054091ce1e6bd8",
       "nuance": "An empty Spectate stream reduces every node to idle with cause-not-established; a capability cell whose state is unknown never reduces to unavailable-harness.",
       "nuance_evidence": {
         "measured": "2026-10-09",
@@ -3603,7 +3604,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-09",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -3628,7 +3629,7 @@
         "plugins/ravenclaude-core/scripts/preflight-command-review.sh",
         "plugins/ravenclaude-core/scripts/replay-outcome-rules.py"
       ],
-      "covers_digest": "sha256:cddcf638730ab7883b25c2c00d979968898210bcbae7a970cae6253558b75234",
+      "covers_digest": "sha256:f68f7c8204d1e9b346caf62016e77499eab87b52b10b246b48740cc8548675c9",
       "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
       "nuance_evidence": {
         "measured": "2026-08-25",
@@ -3657,7 +3658,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -3677,7 +3678,7 @@
         "plugins/ravenclaude-core/scripts/stall_reach.py",
         "plugins/ravenclaude-core/scripts/install_stall_watch.py"
       ],
-      "covers_digest": "sha256:2ee1f44b111b6d2cd45518a64a291fdfa346ad88c8bd4fb9143153bd28233a12",
+      "covers_digest": "sha256:877b63f308e43d551372795f3c47e9c0b5c225054994aaa835589650a84ba662",
       "nuance": "The observable must be the last *assistant* record, not the last record of any type: a human typing into a suspected stall, and a product-generated `system/away_summary`, both reset a last-any clock without any progress having occurred.",
       "nuance_evidence": {
         "measured": "2026-08-25",
@@ -3685,7 +3686,7 @@
         "falsifier": "a registered hook event that fires without a turn or tool boundary, or a stalled session whose last-any clock tracks its last-assistant clock",
         "probe": "plugins/ravenclaude-core/hooks/tests/test-stall-watch.py"
       },
-      "nuance_source": "plugins/ravenclaude-core/scripts/stall_watch.py:96-118",
+      "nuance_source": "plugins/ravenclaude-core/scripts/stall_watch.py:115-137",
       "verify": {
         "tier": "effect",
         "strength": "executed",
@@ -3754,7 +3755,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-13",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -3773,7 +3774,7 @@
         "plugins/ravenclaude-core/hooks/sanitize-mcp-output.sh",
         "plugins/ravenclaude-core/hooks/sanitize-mcp-output.py"
       ],
-      "covers_digest": "sha256:4ac6a0c2680638d4e9d8e5f4bf84db7876ffbb5f35fc4a13b625d8a2f7506b21",
+      "covers_digest": "sha256:0047694503fd604fdce9c06b0d563875acbd1a7b8da9b345ccd448c159ebfd20",
       "nuance": "F1's WebFetch hook matches one exact tool name. This one must be a PREFIX check (mcp__ names are dynamic) — and a tool name merely CONTAINING 'mcp__' without starting with it must NOT match.",
       "nuance_evidence": {
         "measured": "2026-08-30",
@@ -3802,7 +3803,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-16",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -3821,7 +3822,7 @@
         "plugins/ravenclaude-core/hooks/precompact-digest.sh",
         "plugins/ravenclaude-core/scripts/precompact-digest.py"
       ],
-      "covers_digest": "sha256:f669b62a1bd05598ee27971e35c968d07dccab689570a7250fc170b199c9b866",
+      "covers_digest": "sha256:e0c5ec75c24d31f3d4272df2e8ed84aae0acbc7aeeb6930245d537d518216bfa",
       "nuance": "The hook returns near-instantly even when its digest engine takes seconds: extraction runs as a detached, disowned worker the hook never waits on, so a digest (when one appears at all) shows up seconds after the hook process has already exited.",
       "nuance_evidence": {
         "measured": "2026-09-01",
@@ -3949,7 +3950,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -3975,7 +3976,7 @@
         "plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py",
         "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js"
       ],
-      "covers_digest": "sha256:9f39e991db1c31942822e2c6d9cd101fc674dfc1c42f266ff0f592d8284ac821",
+      "covers_digest": "sha256:00ec69e8480bebe5ce1afa9a8e6a3b13dac34265af6f269ee9a92857c413ca07",
       "nuance": "A dedup key built from each finding's own title tokens misses two models describing one bug in different words at the same line -- keys differ, so exact-key merge misses it. The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the identical line) -- the single most common real shape cross-model review exists to catch.",
       "nuance_evidence": {
         "measured": "2026-09-02",
@@ -4194,7 +4195,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-09",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -4202,7 +4203,7 @@
           "url": "https://github.com/anthropics/claude-code/issues/92932"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nThat an rc-file installer's own correctness is secondary to the safety mechanism it installs — that\na bug in the installer is a lesser concern than a bug in the guard itself.\n\n## The discriminator\n\ncontrol: install into a scratch zsh `$HOME` -> exactly one marker block, `bash -n`/`zsh -n` clean;\nre-run install -> block replaced in place (not duplicated), non-marker regions byte-identical;\n`--uninstall` -> rc file byte-identical to pre-install state; the guard helper deleted after install\n-> `claude --version` still works end-to-end through the real sourced shell.\n\nMeasured 2026-09-08: the installer is exactly as fail-open as the helper it installs. Every write is\npreceded by a timestamped backup and followed by a syntax validation of the resulting file before the\nedit is committed — a syntax failure restores the backup and the installer exits non-zero naming the\nfile and reason, rather than leaving a broken rc file behind.\n\n## Why it matters\n\nFalsifier: an install/re-install/uninstall cycle that leaves the rc file anything other than\nbyte-identical outside the marker span it manages, or a deleted helper breaking a real shell's\n`claude` invocation instead of falling through to the real binary.\n\nProbe: `plugins/ravenclaude-core/scripts/install_launch_guard.py`",
+      "body_md": "## What a reader would have assumed instead\n\nThat an rc-file installer's own correctness is secondary to the safety mechanism it installs — that\na bug in the installer is a lesser concern than a bug in the guard itself.\n\n## The discriminator\n\ncontrol: install into a scratch zsh `$HOME` -> exactly one marker block, `bash -n`/`zsh -n` clean;\nre-run install -> block replaced in place (not duplicated), non-marker regions byte-identical;\n`--uninstall` with no later edit -> rc file byte-identical to pre-install state (after a later edit:\nonly the block removed, the edit kept); the guard helper deleted after install\n-> `claude --version` still works end-to-end through the real sourced shell.\n\nMeasured 2026-09-08: the installer is exactly as fail-open as the helper it installs. Every write is\npreceded by a timestamped backup and followed by a syntax validation of the resulting file before the\nedit is committed — a syntax failure restores the backup and the installer exits non-zero naming the\nfile and reason, rather than leaving a broken rc file behind.\n\n**Corrected 2026-10-19 (repo review corescripts-5, orch-2).** Two gaps in that claim. First,\n`--uninstall` copied the pre-install snapshot back unconditionally, so any rc edit made after install\nwas silently lost. The snapshot is now restored only when the file is exactly what install produced\n(`_unchanged_since_install`); otherwise the current file is backed up and only the marker block is\nremoved. Second, an unknown argument, including `--help`, fell through to the default action, install,\nand edited the rc file. `--help` now prints usage and exits 0; an unknown argument exits 2. Both are\nin `install_launch_guard.py --self-test` (cases 13 and 14).\n\n## Why it matters\n\nFalsifier: an install/re-install/uninstall cycle that leaves the rc file anything other than\nbyte-identical outside the marker span it manages, or a deleted helper breaking a real shell's\n`claude` invocation instead of falling through to the real binary.\n\nProbe: `plugins/ravenclaude-core/scripts/install_launch_guard.py`",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -4212,12 +4213,12 @@
       "covers": [
         "plugins/ravenclaude-core/scripts/install_launch_guard.py"
       ],
-      "covers_digest": "sha256:7583ee7a3bb89fc3696b8def7fb53f0b3d16d6c3540e0d64d7eb5ff9e32a8595",
+      "covers_digest": "sha256:8a625b4bb2707f0b59ad6773c66dbd857554daa34910c15dfe863134329ac023",
       "nuance": "The installer writes into a user's real rc file, so a bug there is the worst failure mode for a safety tool. Every write is backed up first and syntax-validated before it commits.",
       "nuance_evidence": {
-        "measured": "2026-09-08",
-        "control": "install into a scratch zsh $HOME -> exactly one marker block, bash -n/zsh -n clean; re-run install -> block replaced in place, non-marker regions byte-identical; --uninstall -> rc file byte-identical to pre-install; helper deleted after install -> claude --version still works end-to-end through the real sourced shell (fail-open, verified through the real integration point, not just the installer in isolation)",
-        "falsifier": "an install/re-install/uninstall cycle that leaves the rc file anything other than byte-identical outside the marker span, or a helper deletion that breaks a real shell's claude invocation",
+        "measured": "2026-10-19",
+        "control": "install into a scratch zsh $HOME -> exactly one marker block, bash -n/zsh -n clean; re-run install -> block replaced in place, non-marker regions byte-identical; --uninstall with no later edit -> rc file byte-identical to pre-install; --uninstall after a later rc edit -> only the marker block removed, the edit kept, a backup taken; --help or an unknown argument -> no rc file touched; helper deleted after install -> claude --version still works end-to-end through the real sourced shell",
+        "falsifier": "an install/re-install/uninstall cycle that changes anything outside the marker span (including an edit made after install), an unknown argument that edits an rc file, or a helper deletion that breaks a real shell's claude invocation",
         "probe": "plugins/ravenclaude-core/scripts/install_launch_guard.py"
       },
       "nuance_source": "plugins/ravenclaude-core/scripts/install_launch_guard.py",
@@ -4646,7 +4647,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-18",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -4669,7 +4670,7 @@
         "plugins/ravenclaude-core/scripts/thing-harden.py",
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
       ],
-      "covers_digest": "sha256:58003eaa74ebbac1c462ca8b08a23e47097bb16639f52622e4d5e2d389151a42",
+      "covers_digest": "sha256:27bce288dfe2187b5236b786251783e891912a33b2279e6cb1d50bef70f24e24",
       "nuance": "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op.",
       "nuance_evidence": {
         "measured": "2026-09-16",
@@ -4800,7 +4801,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-18",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -4808,7 +4809,7 @@
           "url": "https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/routine-token-reserve.md"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nThat missing spend makes the reserve too small — the intuitive worry when a meter cannot see every\nsession (local runs on other machines, the part of a long session before the meter first saw it).\nThe first draft of this feature's own plan stated exactly that, and an adversarial review caught it.\n\n## The discriminator\n\nThe reserve is `k × projected Routine dollars`, and `k = weekly % ÷ metered spend`. Spend sits in the\ndenominator, so seeing less of it makes `k` — and the reserve — larger. The engine leans into that on\npurpose: `window_spend` counts a session from zero only when it was created inside the window, and\notherwise only its growth after the first in-window snapshot. Fixture `05-calibrated` pins the\narithmetic (0.6 + 9.4 = 10.0 → k = 1.2), and Gate 291 fails if it drifts.\n\n## Why it matters\n\nThe direction of an estimation error decides which failure you get. Here the cheap error — a reserve\nthat is too generous, so the warning fires early — is the one the design accepts. The expensive error\n— Routines starved because interactive work was allowed to use their share — needs spend to be\n*over*-counted, which is why sessions are deduped by id and pre-window cost is never charged to the week.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh`",
+      "body_md": "## What a reader would have assumed instead\n\nThat missing spend makes the reserve too small — the intuitive worry when a meter cannot see every\nsession (local runs on other machines, the part of a long session before the meter first saw it).\nThe first draft of this feature's own plan stated exactly that, and an adversarial review caught it.\n\n## The discriminator\n\nThe reserve is `k × projected Routine dollars`, and `k = weekly % ÷ metered spend`. Spend sits in the\ndenominator, so seeing less of it makes `k` — and the reserve — larger. The engine leans into that on\npurpose: `window_spend` counts a session from zero only when it was created inside the window, and\notherwise only its growth after the first in-window snapshot. Fixture `05-calibrated` pins the\narithmetic (0.6 + 9.4 = 10.0 → k = 1.2), and Gate 291 fails if it drifts.\n\n## Why it matters\n\nThe direction of an estimation error decides which failure you get. Here the cheap error — a reserve\nthat is too generous, so the warning fires early — is the one the design accepts. The expensive error\n— Routines starved because interactive work was allowed to use their share — needs spend to be\n*over*-counted, which is why sessions are deduped by id and pre-window cost is never charged to the week.\nSince 2026-10-19 (repo review 1c-4) the window is also closed at the reading's capture time:\ncounting spend after the moment the percentage was read added dollars it never saw and deflated `k`,\nthe unsafe direction.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh`",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -4821,7 +4822,7 @@
         "plugins/ravenclaude-core/skills/routine-reserve/SKILL.md",
         "plugins/ravenclaude-core/commands/routine-reserve.md"
       ],
-      "covers_digest": "sha256:b4c508b2a677c66432c09f09ececf05626a5fcefb5462d855c38d5a1d01a87e3",
+      "covers_digest": "sha256:ea79b9555ad063df0de70291f0480f3e62d1b63cead146acc67deb8abaf09fd2",
       "nuance": "k = weekly % / metered spend. A session first seen mid-week counts only its growth after that\nsnapshot (unless created inside the window), so unseen spend RAISES k and the reserve —\nthe safe error. Over-counting (double-counted or pre-window cost) is what starves Routines.",
       "nuance_evidence": {
         "measured": "2026-09-24",
@@ -4829,7 +4830,7 @@
         "falsifier": "a fixture where a session first seen mid-window contributes its full cumulative cost to window_spend, or where removing spend lowers the recommended reserve",
         "probe": "plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh"
       },
-      "nuance_source": "plugins/ravenclaude-core/scripts/routine-reserve.py:670-719",
+      "nuance_source": "plugins/ravenclaude-core/scripts/routine-reserve.py:705-760",
       "verify": {
         "tier": "effect",
         "strength": "executed",
@@ -4968,7 +4969,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-18",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -4986,7 +4987,7 @@
       "covers": [
         "plugins/ravenclaude-core/scripts/headless-usage.py"
       ],
-      "covers_digest": "sha256:71875d5db313b4113c34755709b17d71c5fcddc4209436761cbe410a6bd4671b",
+      "covers_digest": "sha256:a66d6b3d243db06c3d995b7bbec0a74ba3477054779d979f76748aaded770246",
       "nuance": "The caller still prints only its own verdict on `stdout`, and record mode returns exit 0 after it writes `.ravenclaude/runs/headless-usage.jsonl`. A missing envelope skips the append rather than replacing that verdict.",
       "nuance_evidence": {
         "measured": "2026-10-17",
@@ -5015,7 +5016,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-18",
+      "last_verified": "2026-10-19",
       "refresh_when": null,
       "sources": [
         {
@@ -5027,7 +5028,7 @@
           "url": "https://code.claude.com/docs/en/hooks"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nThat a hook runs with the user's own environment, so a cloned repository can only add\nhooks the user sees in `/hooks`, not change how RavenClaude's own hooks run.\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`. The old\ncommand form sources a planted `BASH_ENV` (marker written). Under the hardened launch line\nno marker is written, a fake `jq`/`bash` on a planted `PATH` is never used, and\n`env-integrity-guard.sh` denies the call with `project settings plant execution-control env\n(<keys>); this repo is quarantined`.\n\n## Why it matters\n\nThe `env` block is not a hook, so neither the trust dialog nor `/hooks` shows it, and a\n`claude -p` run applies it in a folder that was never trusted. Without the launch line a\nplanted `THING_SEAT_ACTIVE` would also have switched command review off. The seat-child\nlock (`_rc-runtime.sh`) and the pre-tool record check (`pretool-record-check.sh`) cover the\nrecursion guard and a review hook that never started.\n\nFalsifier: a hooks.json command without the hardened prefix, or a planted key that does not\ndeny. Probe: `plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`.",
+      "body_md": "## What a reader would have assumed instead\n\nThat a hook runs with the user's own environment, so a cloned repository can only add\nhooks the user sees in `/hooks`, not change how RavenClaude's own hooks run.\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`. The old\ncommand form sources a planted `BASH_ENV` (marker written). Under the hardened launch line\nno marker is written, a fake `jq`/`bash` on a planted `PATH` is never used, and\n`env-integrity-guard.sh` denies the call with `project settings plant execution-control env\n(<keys>); this repo is quarantined`.\n\n## Why it matters\n\nThe `env` block is not a hook, so neither the trust dialog nor `/hooks` shows it, and a\n`claude -p` run applies it in a folder that was never trusted. Without the launch line a\nplanted `THING_SEAT_ACTIVE` would also have switched command review off. The seat-child\nlock (`_rc-runtime.sh`) and the pre-tool record check (`pretool-record-check.sh`) cover the\nrecursion guard and a review hook that never started.\n\nSince 2026-10-19 (repo review hooks-4) the guard also quarantines `BASH_FUNC_<name>%%` keys. bash\nimports them as functions that shadow the binary of the same name, and `env -u` on the launch line\ncannot name them in advance, so `guard-destructive.sh` and `thing-orchestrator.sh` also unset every\nfunction before doing anything else (test section 18).\n\nFalsifier: a hooks.json command without the hardened prefix, or a planted key that does not\ndeny. Probe: `plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`.",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -5040,7 +5041,7 @@
         "plugins/ravenclaude-core/hooks/pretool-record-check.sh",
         "scripts/check-hook-launch-line.py"
       ],
-      "covers_digest": "sha256:0f2a9495d5aedd74a1ddb9dd5183ab4220e60b1ace16b74f16090b183dd84f02",
+      "covers_digest": "sha256:895ee8f2abc26c6ab82d7746310b2af97367d3702ea7041afcd6eeb29d5cfcc6",
       "nuance": "Claude Code 2.1.260 exports project settings env into every hook (sh -c): a planted BASH_ENV ran in every bash hook, a planted PATH chose jq. The hardened launch line keeps them out; env-integrity-guard.sh denies every tool call. A real LD_PRELOAD library cannot be stopped, only refused.",
       "nuance_evidence": {
         "measured": "2026-10-18",

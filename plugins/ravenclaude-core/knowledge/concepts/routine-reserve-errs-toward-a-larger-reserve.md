@@ -6,20 +6,20 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 941
 summary: "The %-of-cap per dollar rate counts only spend the meter actually saw, so missing spend inflates it and enlarges the reserve held for Routines — the safe direction. Over-counting is what starves them."
-last_verified: 2026-10-18
+last_verified: 2026-10-19
 covers:
   - plugins/ravenclaude-core/scripts/routine-reserve.py
   - plugins/ravenclaude-core/scripts/routine-reserve-hook.sh
   - plugins/ravenclaude-core/skills/routine-reserve/SKILL.md
   - plugins/ravenclaude-core/commands/routine-reserve.md
-covers_digest: "sha256:b4c508b2a677c66432c09f09ececf05626a5fcefb5462d855c38d5a1d01a87e3"
+covers_digest: "sha256:ea79b9555ad063df0de70291f0480f3e62d1b63cead146acc67deb8abaf09fd2"
 nuance: "k = weekly % / metered spend. A session first seen mid-week counts only its growth after that\nsnapshot (unless created inside the window), so unseen spend RAISES k and the reserve —\nthe safe error. Over-counting (double-counted or pre-window cost) is what starves Routines."
 nuance_evidence:
   measured: 2026-09-24
   control: "fixture 05-calibrated: three sessions created inside the window count from zero (0.6) while a long session created before it counts only its in-window growth (59.4 - 50.0 = 9.4); total 10.0, k_week = 12 / 10 = 1.2, reproduced exactly by self-test"
   falsifier: "a fixture where a session first seen mid-window contributes its full cumulative cost to window_spend, or where removing spend lowers the recommended reserve"
   probe: "plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh"
-nuance_source: "plugins/ravenclaude-core/scripts/routine-reserve.py:670-719"
+nuance_source: "plugins/ravenclaude-core/scripts/routine-reserve.py:705-760"
 verify:
   tier: "effect"
   strength: "executed"
@@ -51,5 +51,8 @@ The direction of an estimation error decides which failure you get. Here the che
 that is too generous, so the warning fires early — is the one the design accepts. The expensive error
 — Routines starved because interactive work was allowed to use their share — needs spend to be
 *over*-counted, which is why sessions are deduped by id and pre-window cost is never charged to the week.
+Since 2026-10-19 (repo review 1c-4) the window is also closed at the reading's capture time:
+counting spend after the moment the percentage was read added dollars it never saw and deflated `k`,
+the unsafe direction.
 
 Probe: `plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh`

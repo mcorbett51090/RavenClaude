@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 918
 summary: "findings_merge.py's near-dup detector required bucket-diff == 1, excluding 0 -- two models finding the same bug on the same line, worded differently, got no corroboration flag."
-last_verified: 2026-09-10
+last_verified: 2026-10-19
 covers:
   - plugins/ravenclaude-core/skills/repo-review/SKILL.md
   - plugins/ravenclaude-core/commands/repo-review.md
@@ -17,7 +17,7 @@ covers:
   - plugins/ravenclaude-core/skills/repo-review/scripts/fix_summary.py
   - plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py
   - plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js
-covers_digest: "sha256:9f39e991db1c31942822e2c6d9cd101fc674dfc1c42f266ff0f592d8284ac821"
+covers_digest: "sha256:00ec69e8480bebe5ce1afa9a8e6a3b13dac34265af6f269ee9a92857c413ca07"
 nuance: "A dedup key built from each finding's own title tokens misses two models describing
   one bug in different words at the same line -- keys differ, so exact-key merge misses it.
   The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the

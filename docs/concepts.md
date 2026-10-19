@@ -2352,7 +2352,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2422,7 +2422,7 @@ visible in the matrix.
 
 **Sources:** [verified live against the installed grok and copilot CLIs, this session](https://github.com/mcorbett51090/RavenClaude/pull/1030)
 
-_Last verified: 2026-10-09_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2448,7 +2448,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2474,7 +2474,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2568,7 +2568,7 @@ Probe: `unprobed: the payload shape is host-supplied and cannot be synthesised f
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-09_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2722,7 +2722,7 @@ Spectate is observe-only honesty infrastructure. Collapsing unknown into unavail
 
 **Sources:** [Harness Spectate BUILD-PLAN](../docs/plans/2026-10-09-harness-spectate/BUILD-PLAN.md)
 
-_Last verified: 2026-10-12_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2820,7 +2820,7 @@ predicate names anything the command has not done yet.
 
 **Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md)
 
-_Last verified: 2026-10-09_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2867,7 +2867,7 @@ the thing being investigated.
 
 **Sources:** [measured in the FORGE stall-watchdog run](https://github.com/mcorbett51090/RavenClaude/tree/forge/stall-watchdog)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2930,7 +2930,7 @@ Probe: `plugins/ravenclaude-core/hooks/sanitize-mcp-output.py` (`--self-test`)
 
 **Sources:** [Q1/L4 of the analog-repos-gap-fill leftovers, unparked on owner request](https://github.com/mcorbett51090/RavenClaude/pull/928)
 
-_Last verified: 2026-10-13_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2984,7 +2984,7 @@ Anthropic ships an equivalent of `compactModel`. Do not claim that native path i
 
 **Sources:** [P2 of the precompact-critical-context FORGE plan, hardened per the P4 security review](../plugins/ravenclaude-core/hooks/precompact-digest.sh)
 
-_Last verified: 2026-09-16_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3125,7 +3125,7 @@ both 0 and 1, with a permanent regression assertion so this cannot silently regr
 
 **Sources:** [repo-review build + live proof-run, 2026-09-02 -- cross-model dispatch against the fixture repo caught the defect in findings_merge.py itself](../plugins/ravenclaude-core/skills/repo-review/SKILL.md)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3254,13 +3254,22 @@ a bug in the installer is a lesser concern than a bug in the guard itself.
 
 control: install into a scratch zsh `$HOME` -> exactly one marker block, `bash -n`/`zsh -n` clean;
 re-run install -> block replaced in place (not duplicated), non-marker regions byte-identical;
-`--uninstall` -> rc file byte-identical to pre-install state; the guard helper deleted after install
+`--uninstall` with no later edit -> rc file byte-identical to pre-install state (after a later edit:
+only the block removed, the edit kept); the guard helper deleted after install
 -> `claude --version` still works end-to-end through the real sourced shell.
 
 Measured 2026-09-08: the installer is exactly as fail-open as the helper it installs. Every write is
 preceded by a timestamped backup and followed by a syntax validation of the resulting file before the
 edit is committed — a syntax failure restores the backup and the installer exits non-zero naming the
 file and reason, rather than leaving a broken rc file behind.
+
+**Corrected 2026-10-19 (repo review corescripts-5, orch-2).** Two gaps in that claim. First,
+`--uninstall` copied the pre-install snapshot back unconditionally, so any rc edit made after install
+was silently lost. The snapshot is now restored only when the file is exactly what install produced
+(`_unchanged_since_install`); otherwise the current file is backed up and only the marker block is
+removed. Second, an unknown argument, including `--help`, fell through to the default action, install,
+and edited the rc file. `--help` now prints usage and exits 0; an unknown argument exits 2. Both are
+in `install_launch_guard.py --self-test` (cases 13 and 14).
 
 ## Why it matters
 
@@ -3272,7 +3281,7 @@ Probe: `plugins/ravenclaude-core/scripts/install_launch_guard.py`
 
 **Sources:** [measured during the claude-launch-safeguard FORGE build (anthropics/claude-code#92932)](https://github.com/anthropics/claude-code/issues/92932)
 
-_Last verified: 2026-09-09_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3614,7 +3623,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh`.
 
 **Sources:** [PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml) · [knowledge/thing-harden-transforms.yaml](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3728,12 +3737,15 @@ The direction of an estimation error decides which failure you get. Here the che
 that is too generous, so the warning fires early — is the one the design accepts. The expensive error
 — Routines starved because interactive work was allowed to use their share — needs spend to be
 *over*-counted, which is why sessions are deduped by id and pre-window cost is never charged to the week.
+Since 2026-10-19 (repo review 1c-4) the window is also closed at the reading's capture time:
+counting spend after the moment the percentage was read added dollars it never saw and deflated `k`,
+the unsafe direction.
 
 Probe: `plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh`
 
 **Sources:** [built and measured in the routine token reserve PR 1 session](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/routine-token-reserve.md)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3817,7 +3829,7 @@ Measured 2026-10-17: the recorder appends a sidecar and leaves the caller to pri
 
 **Sources:** [2026-10-14 prompt-caching analysis — headless envelopes were not metered](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/analysis.md)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3847,12 +3859,17 @@ planted `THING_SEAT_ACTIVE` would also have switched command review off. The sea
 lock (`_rc-runtime.sh`) and the pre-tool record check (`pretool-record-check.sh`) cover the
 recursion guard and a review hook that never started.
 
+Since 2026-10-19 (repo review hooks-4) the guard also quarantines `BASH_FUNC_<name>%%` keys. bash
+imports them as functions that shadow the binary of the same name, and `env -u` on the launch line
+cannot name them in advance, so `guard-destructive.sh` and `thing-orchestrator.sh` also unset every
+function before doing anything else (test section 18).
+
 Falsifier: a hooks.json command without the hardened prefix, or a planted key that does not
 deny. Probe: `plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`.
 
 **Sources:** [Claude Code docs: What runs before you trust a folder (env block and settings hooks are used)](https://code.claude.com/docs/en/permissions#what-runs-before-you-trust-a-folder) · [Claude Code docs: hooks reference (shell form runs sh -c; a hook inherits the parent environment)](https://code.claude.com/docs/en/hooks)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-10-19_
 
 
 ---

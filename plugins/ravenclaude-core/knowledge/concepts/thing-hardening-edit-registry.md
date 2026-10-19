@@ -6,11 +6,11 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 938
 summary: "A signed transform registry can rewrite Bash via empty-cited EDIT, gated by hardening_edit."
-last_verified: 2026-10-18
+last_verified: 2026-10-19
 covers:
   - plugins/ravenclaude-core/scripts/thing-harden.py
   - plugins/ravenclaude-core/hooks/thing-orchestrator.sh
-covers_digest: "sha256:58003eaa74ebbac1c462ca8b08a23e47097bb16639f52622e4d5e2d389151a42"
+covers_digest: "sha256:27bce288dfe2187b5236b786251783e891912a33b2279e6cb1d50bef70f24e24"
 nuance: "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op."
 nuance_evidence:
   measured: 2026-09-16
