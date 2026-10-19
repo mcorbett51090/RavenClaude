@@ -41,6 +41,17 @@
 # A command in NO enabled category falls through (exit 0, no output) to the
 # normal comfort-posture flow — that flow is the safety floor.
 
+# ── Function purge (hooks-4), the first thing that runs. bash imports exported
+#    functions from the environment (BASH_FUNC_<name>%%), so a planted `jq` or
+#    `python3` function would otherwise run in place of the real binary and could
+#    hand back an allow. A clean --noprofile --norc bash has no functions, so this is
+#    a no-op normally; it never quarantines on the mere presence of exported
+#    functions. It sits ABOVE `set -euo pipefail` on purpose: nothing here can abort
+#    the script before the fail-closed EXIT trap below is armed (Gate 199 checks that
+#    ordering), and it must run before this file defines its own functions. ────────
+for _f in $(builtin compgen -A function 2>/dev/null); do builtin unset -f "$_f"; done
+unset _f
+
 set -euo pipefail
 
 # ── Fail-closed EXIT trap (FM2), armed FIRST (P3, security-review backlog) so an
@@ -212,7 +223,12 @@ posture_file="${cwd}/.ravenclaude/comfort-posture.yaml"
 # category is toggled on, regardless of command_review.enabled. Suppressing the
 # short-circuit here to avoid a python call would silently remove those floors for
 # consumers who have categories toggled on but set enabled: false.
-if [ ! -f "$posture_file" ] || ! grep -Eq '^[[:space:]]*thing:[[:space:]]*(on|true|yes)\b' "$posture_file"; then
+# The grep must be a SUPERSET of what the engine treats as enabled (tribunal-20):
+# case-insensitive, block or flow style (`{thing: on}`), quoted, or `1`. A grep
+# narrower than the engine's truthiness silently skipped the whole tribunal,
+# always_screen floors included, for a posture the engine reads as on. A false
+# match here only costs one python call; a false miss turns review off.
+if [ ! -f "$posture_file" ] || ! grep -Eiq "(^|[{,[:space:]])thing:[[:space:]]*['\"]?(on|true|yes|1)['\"]?" "$posture_file"; then
   exit 0
 fi
 
@@ -353,6 +369,15 @@ if [ "$hard_rule" = "true" ]; then
     _hr_hint=" Tip: --force-with-lease is the safer form, but force-push remains refused here."
   fi
   emit deny "Command review (the Thing): DENIED — this command matches an unarguable hard rule (${hr_concern}) and is refused pre-LLM, regardless of which category routed it (§B.9.3).${_hr_hint} Sága log: .ravenclaude/runs/thing/${hr_run_id}.json"
+fi
+
+# tribunal-7: a posture that does not parse leaves thing_enabled false, which would
+# exit 0 below and silently stop all review while the grep above still sees
+# `thing: on`. Surface it instead. ASK, not deny: a deny would also block the
+# Write that repairs the file. The always_screen floors above already ran.
+posture_error="$(printf '%s' "$decision" | jq -r '.posture_error // empty')"
+if [ -n "$posture_error" ]; then
+  emit ask "Command review: comfort-posture.yaml does not parse (${posture_error}); review is not running. Fix the file."
 fi
 
 [ "$enabled" != "true" ] && exit 0   # category not toggled on -> normal flow
