@@ -34,13 +34,14 @@ also works once SNOWFLAKE_CONNECTION env vars are set.
 Required Snowflake packages (declare in environment.yml or the SiS UI):
    streamlit >=1.40
    pandas
-   snowflake-snowpark-python
+   snowflake-snowpark-python >=1.9.0   (Session.sql params= binding; saved views rely on it)
    altair
 """
 
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -422,24 +423,64 @@ daily_action_center_widget()
 # Saved views — name the current URL state and store per-user.
 # UX research §8 closing: "Saved views — 'My morning view,' 'Pre-standup view'
 # — a named URL preset."
+#
+# Every value reaches SQL as a bind parameter (Snowpark `session.sql(query,
+# params=[...])`, qmark `?` binding; Session.sql has taken `params` since at
+# least snowflake-snowpark-python 1.9.0, checked against the release wheels
+# 2026-10-19). The view name and the filter JSON used to be f-string
+# interpolated: any apostrophe (a filter value such as "O'Brien Academy")
+# broke Save, and a crafted name injected SQL that ran as the app role and was
+# re-interpolated on Load (repo-review 2026-10-19). Names are also limited to
+# letters, digits, spaces, `_`, `.` and `-`, at most 64 characters.
 # ---------------------------------------------------------------------------
+_VIEW_NAME_RE = re.compile(r"[\w .-]{1,64}")
+
+_SAVE_VIEW_SQL = (
+    "MERGE INTO core.psm_saved_view t "
+    "USING (SELECT CURRENT_USER() AS owner, "
+    "              ? AS view_name, "
+    "              PARSE_JSON(?) AS view_state, "
+    "              CURRENT_TIMESTAMP() AS saved_at) s "
+    "ON t.owner = s.owner AND t.view_name = s.view_name "
+    "WHEN MATCHED THEN UPDATE SET t.view_state = s.view_state, "
+    "                             t.saved_at  = s.saved_at "
+    "WHEN NOT MATCHED THEN INSERT (owner, view_name, view_state, saved_at) "
+    "                      VALUES (s.owner, s.view_name, s.view_state, s.saved_at)"
+)
+
+_LOAD_VIEW_SQL = (
+    "SELECT view_state FROM core.psm_saved_view "
+    "WHERE owner = CURRENT_USER() AND view_name = ?"
+)
+
+
+def is_valid_view_name(name: str) -> bool:
+    return bool(_VIEW_NAME_RE.fullmatch(name or ""))
+
+
+def save_view(sess, name: str, filters: dict) -> None:
+    """Upsert the current filters under `name` for the current user (bound, not interpolated)."""
+    if not is_valid_view_name(name):
+        raise ValueError(
+            "View names may use letters, digits, spaces, '_', '.' and '-' (at most 64 characters)."
+        )
+    sess.sql(_SAVE_VIEW_SQL, params=[name, json.dumps(filters)]).collect()
+
+
+def load_view_state(sess, name: str) -> dict:
+    """Return the saved filters for `name` (bound, not interpolated)."""
+    state_json = sess.sql(_LOAD_VIEW_SQL, params=[name]).to_pandas()["VIEW_STATE"].iloc[0]
+    return json.loads(state_json)
+
+
 with st.expander("Save / load named view"):
     new_name = st.text_input("Name this view")
     if st.button("Save view", disabled=not new_name):
-        url_state = json.dumps(st.session_state["filters"])
-        session.sql(
-            "MERGE INTO core.psm_saved_view t "
-            "USING (SELECT CURRENT_USER() AS owner, "
-            f"             '{new_name}'    AS view_name, "
-            f"             PARSE_JSON('{url_state}') AS view_state, "
-            "              CURRENT_TIMESTAMP() AS saved_at) s "
-            "ON t.owner = s.owner AND t.view_name = s.view_name "
-            "WHEN MATCHED THEN UPDATE SET t.view_state = s.view_state, "
-            "                             t.saved_at  = s.saved_at "
-            "WHEN NOT MATCHED THEN INSERT (owner, view_name, view_state, saved_at) "
-            "                      VALUES (s.owner, s.view_name, s.view_state, s.saved_at)"
-        ).collect()
-        st.success(f"Saved '{new_name}'.")
+        try:
+            save_view(session, new_name, st.session_state["filters"])
+            st.success(f"Saved '{new_name}'.")
+        except ValueError as err:
+            st.error(str(err))
 
     saved = session.sql(
         "SELECT view_name FROM core.psm_saved_view "
@@ -449,11 +490,7 @@ with st.expander("Save / load named view"):
     if saved:
         chosen = st.selectbox("Load a saved view", [""] + saved)
         if chosen and st.button(f"Load '{chosen}'"):
-            state_json = session.sql(
-                f"SELECT view_state FROM core.psm_saved_view "
-                f"WHERE owner = CURRENT_USER() AND view_name = '{chosen}'"
-            ).to_pandas()["VIEW_STATE"].iloc[0]
-            st.session_state["filters"] = json.loads(state_json)
+            st.session_state["filters"] = load_view_state(session, chosen)
             _write_filters_to_url(st.session_state["filters"])
             st.rerun()
 

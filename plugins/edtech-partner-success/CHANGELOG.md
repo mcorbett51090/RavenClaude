@@ -2,6 +2,21 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.12] — 2026-10-19
+
+### Fixed
+
+- `templates/dashboard-streamlit-reference/app.py` built the saved-view MERGE and SELECT with f-strings
+  from the free-text view name and the filter JSON (repo-review 2026-10-19, domainplugins-14). Any
+  apostrophe (a filter value such as "O'Brien Academy") broke Save, and a crafted name injected SQL that
+  ran as the app role and was re-interpolated on Load. Both statements now use Snowpark qmark binding
+  (`session.sql(sql, params=[...])`, supported since at least `snowflake-snowpark-python` 1.9.0, checked
+  against the release wheels), through new `save_view` / `load_view_state` helpers; view names are limited
+  to letters, digits, spaces, `_`, `.` and `-` (1–64 characters). New
+  `test_app_saved_views.py` (stdlib, no Snowflake needed). **Migration:** affects newly copied templates;
+  an existing copy keeps its code. Saved views whose names fall outside the new character set can still
+  be loaded but not re-saved under that name.
+
 ## [0.12.11] — 2026-10-18
 
 ### Fixed
