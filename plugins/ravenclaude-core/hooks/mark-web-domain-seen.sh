@@ -14,8 +14,10 @@
 #   — and a PostToolUse hook fires exactly then (it does not run when the tool was
 #   blocked/denied). So consent is recorded post-allow, here, not pre-answer.
 #
-# Mirrors guard-web-access.sh's host-extraction + seen-file path byte-for-byte so
-# the two hooks agree on which marker file represents which domain.
+# Host extraction is _web.sh's _rc_web_host — the SAME function guard-web-access.sh
+# uses (hooks-11), so the two hooks agree on which marker file represents which
+# domain. (The previous private copy did not cut at ? # \ before userinfo, so the
+# writer and reader disagreed on those URLs and consent never latched.)
 #
 # Fail-safe: not a WebFetch / no url / missing jq / unwritable path -> silent
 # no-op. This hook NEVER blocks (it is PostToolUse; the tool already ran) and
@@ -71,17 +73,14 @@ fi
 [ "$tool" = "WebFetch" ] || exit 0
 [ -n "$url" ] || exit 0
 
-# Host from the URL: strip scheme, userinfo, path, port; lowercase.
-# (Identical normalization to guard-web-access.sh.)
-host="${url#*://}"
-host="${host%%/*}"
-host="${host##*@}"
-host="${host%%:*}"
-host="$(printf '%s' "$host" | tr 'A-Z' 'a-z')"
-host="${host%.}"   # strip a trailing FQDN dot — MUST mirror guard-web-access.sh:61
-                   # exactly, else the writer keys the seen-file on `evil.com.`
-                   # while the reader looks for `evil.com`, so first-use consent
-                   # never latches and the user is re-prompted every fetch.
+# Host from the URL — the shared parser (see header). No helper -> no-op.
+_web_helper="$(dirname "$0")/_web.sh"
+if [ -f "$_web_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_web_helper" 2>/dev/null || true
+fi
+command -v _rc_web_host >/dev/null 2>&1 || exit 0
+host="$(_rc_web_host "$url")"
 [ -n "$host" ] || exit 0
 
 proj="${CLAUDE_PROJECT_DIR:-$PWD}"
