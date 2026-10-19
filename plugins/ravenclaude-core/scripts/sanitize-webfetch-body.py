@@ -107,10 +107,22 @@ INJECTION_PATTERNS = [
     #    <important>; we accept the collateral damage and prefer the floor.)
     #    GREEDY (`.*`, not `.*?`) for the same nested-decoy reason as pattern 1
     #    (fixed 2026-09-02 /repo-review — see the pattern-1 comment above).
-    re.compile(r"<important\b[^>]*>\s*(?:IMPORTANT|MUST|NEVER|ALWAYS)[:\s].*</important>", re.DOTALL | re.IGNORECASE),
+    re.compile(
+        r"<important\b[^>]*>\s*(?:IMPORTANT|MUST|NEVER|ALWAYS)[:\s].*</important>",
+        re.DOTALL | re.IGNORECASE,
+    ),
     # 4. Bare "SYSTEM:" / "INSTRUCTION:" prompt-injection prefixes when they
     #    appear at the start of a line. Strip the line.
-    re.compile(r"(?m)^\s*(?:SYSTEM|INSTRUCTION|SYSTEM PROMPT|NEW INSTRUCTIONS?)\s*[:>][^\n]*\n?", re.IGNORECASE),
+    #    The leading whitespace is LINE-LOCAL ([ \t]*, not \s*). \s spans
+    #    newlines, so under (?m) every line start of a blank-line run rescanned
+    #    the rest of the run: O(n^2), measured 10,000 blank lines = 4.46 s and
+    #    20,000 = 11.85 s, a hostile-body stall. (?m)^ already visits each line,
+    #    so the only change is that a match no longer spans blank lines.
+    #    scripts/process-scenario-submission.py vendors this exact string.
+    re.compile(
+        r"(?m)^[ \t]*(?:SYSTEM|INSTRUCTION|SYSTEM PROMPT|NEW INSTRUCTIONS?)\s*[:>][^\n]*\n?",
+        re.IGNORECASE,
+    ),
     # 5. Markdown-style fenced "system" blocks — ```system ... ```
     #    GREEDY (`.*`, not `.*?`) for the same nested-decoy reason as pattern 1
     #    (fixed 2026-09-02 /repo-review — see the pattern-1 comment above): a
@@ -134,7 +146,9 @@ INJECTION_PATTERNS = [
     #   `<important>IMPORTANT: …<EOF>` block bypass the sanitizer entirely.
     re.compile(r"<system-reminder\b[^>]*>.*\Z", re.DOTALL | re.IGNORECASE),
     re.compile(r"<system-instruction\b[^>]*>.*\Z", re.DOTALL | re.IGNORECASE),
-    re.compile(r"<important\b[^>]*>\s*(?:IMPORTANT|MUST|NEVER|ALWAYS)[:\s].*\Z", re.DOTALL | re.IGNORECASE),
+    re.compile(
+        r"<important\b[^>]*>\s*(?:IMPORTANT|MUST|NEVER|ALWAYS)[:\s].*\Z", re.DOTALL | re.IGNORECASE
+    ),
     re.compile(r"(?m)^[ \t]*```[ \t]*system\b.*\Z", re.DOTALL | re.IGNORECASE),
 ]
 
@@ -229,9 +243,7 @@ def main(argv: list[str]) -> int:
         description="Strip injection-shaped blocks from a fetched body. Reads stdin or a file path; writes sanitized body to stdout.",
     )
     parser.add_argument("path", nargs="?", help="Input file path (else read stdin)")
-    parser.add_argument(
-        "--quiet", action="store_true", help="Suppress the strip-count stderr line"
-    )
+    parser.add_argument("--quiet", action="store_true", help="Suppress the strip-count stderr line")
     args = parser.parse_args(argv)
 
     # Repo root is two levels up from this script (plugins/ravenclaude-core/scripts/).
