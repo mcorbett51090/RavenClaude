@@ -162,9 +162,16 @@ def _command_prefixes() -> list[tuple[str, str, bool]]:
 # `--git-dir=`, `-C`, etc. is still classified (and screened) correctly.
 # MUST stay identical to `_GIT_GLOBAL_OPT` in thing-concerns.py — the Gate 21
 # git-global FN corpus (audit-gates.sh) fails if either copy drifts.
+# A shell WORD as an option value: unquoted characters and whole quoted spans,
+# so `-C "/Users/First Last/repo"` and `-c core.sshCommand='ssh -i k'` are one
+# value, not a value cut at the space (which left `Last/repo" push ...` behind,
+# un-stripped, and dodged both the force-push hard rule and classification).
+# Linear: the three alternatives start on disjoint characters, so there is no
+# backtracking blow-up on an unbalanced quote. MUST stay identical in both files.
+_V = r"(?:[^\s\"']|\"[^\"]*\"|'[^']*')+"
 _GIT_GLOBAL_OPT = (
-    r"-[cC]\s+\S+"
-    r"|--(?:git-dir|work-tree|namespace|super-prefix)(?:=\S+|\s+\S+)"
+    r"-[cC]\s+" + _V
+    + r"|--(?:git-dir|work-tree|namespace|super-prefix)(?:=" + _V + r"|\s+" + _V + r")"
     r"|--exec-path(?:=\S+)?"
     r"|--no-pager|--paginate|-p"
     r"|--bare|--literal-pathspecs|--no-replace-objects|--no-optional-locks|--no-advice"
@@ -183,7 +190,7 @@ def _normalize_lead(lead: str) -> str:
     while lead and lead != prev:
         prev = lead
         # leading VAR=value assignments (one or more)
-        lead = re.sub(r"^[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", lead)
+        lead = re.sub(r"^[A-Za-z_][A-Za-z0-9_]*=(?:[^\s\"']|\"[^\"]*\"|'[^']*')*\s+", "", lead)
         # sudo / env wrappers (with any of their own flags before the real cmd)
         lead = re.sub(r"^(?:sudo|env|command|nohup|nice|stdbuf)\b(?:\s+-\S+)*\s+", "", lead)
         lead = re.sub(r"^(?:sudo|env)\s+[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", lead)
