@@ -110,16 +110,21 @@ _tier_timeout_s() {
 
 # ── args ──────────────────────────────────────────────────────────────────────
 task=""; task_file=""; tier="balanced"; mode="advise"; repo=""; timeout_s=""; max_turns=""; effort_override=""
+# Each value-taking flag needs $#>=2 before `shift 2`. Under `set -uo pipefail`
+# (no -e) a `shift 2` past $# is NOT fatal: it no-ops, returns 1, leaves $1 as is,
+# and this loop spins at 100% CPU forever on a trailing flag with no value
+# (corescripts-10; copilot-delegate.sh already carried this guard).
+_need_value() { [ "$1" -ge 2 ] || { echo "$_self: $2 requires a value" >&2; exit 2; }; }
 while [ $# -gt 0 ]; do
   case "$1" in
-    --task)       task="${2:-}"; shift 2 ;;
-    --task-file)  task_file="${2:-}"; shift 2 ;;
-    --tier)       tier="${2:-}"; shift 2 ;;
-    --mode)       mode="${2:-}"; shift 2 ;;
-    --repo)       repo="${2:-}"; shift 2 ;;
-    --timeout)    timeout_s="${2:-}"; shift 2 ;;
-    --max-turns)  max_turns="${2:-}"; shift 2 ;;
-    --effort)     effort_override="${2:-}"; shift 2 ;;
+    --task)       _need_value $# "$1"; task="${2:-}"; shift 2 ;;
+    --task-file)  _need_value $# "$1"; task_file="${2:-}"; shift 2 ;;
+    --tier)       _need_value $# "$1"; tier="${2:-}"; shift 2 ;;
+    --mode)       _need_value $# "$1"; mode="${2:-}"; shift 2 ;;
+    --repo)       _need_value $# "$1"; repo="${2:-}"; shift 2 ;;
+    --timeout)    _need_value $# "$1"; timeout_s="${2:-}"; shift 2 ;;
+    --max-turns)  _need_value $# "$1"; max_turns="${2:-}"; shift 2 ;;
+    --effort)     _need_value $# "$1"; effort_override="${2:-}"; shift 2 ;;
     -h|--help)    sed -n '2,40p' "$0"; exit 0 ;;
     *) echo "$_self: unknown arg '$1'" >&2; exit 2 ;;
   esac
@@ -152,6 +157,12 @@ _dir="$(cd "$(dirname "$0")" && pwd)"
 # turn a delegation into a no-op that sends the work back to Claude unnoticed.
 command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
 [ -f "$_dir/../hooks/_scrub.sh" ] && . "$_dir/../hooks/_scrub.sh" 2>/dev/null || true
+# ⛔ A missing scrub helper FAILS CLOSED (corescripts-11). The timeout helper above
+# degrades to unbounded because running unbounded beats not running; a SECURITY
+# control degrades the other way. Without this, a layout that ships scripts/
+# without hooks/ sent a secret-shaped task to the second vendor with rc 0.
+command -v _scrub_reason >/dev/null 2>&1 || {
+  echo "$_self: scrub helper missing (hooks/_scrub.sh) - refusing egress" >&2; exit 8; }
 
 # ── EGRESS SECRET BACKSTOP — refuse BEFORE the task leaves this machine ────────
 # Grok is a SECOND vendor. A secret in the brief is a disclosure to a party the
@@ -163,13 +174,17 @@ command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
 # wrong reason (it returns 8 for all input), and the control I paired it with
 # set the recursion env var, so it short-circuited BEFORE this block and never
 # exercised this path at all. A control must isolate the SAME code path.
-if command -v _scrub_reason >/dev/null 2>&1; then
-  _scrubbed="$(_scrub_reason "$task" 2>/dev/null || printf '%s' "$task")"
-  if [ "$_scrubbed" != "$task" ]; then
-    echo "$_self: the task contains a secret-shaped literal — REFUSED before egress." >&2
-    echo "$_self: nothing was sent to grok. Pass a path, not a value." >&2
-    exit 8
-  fi
+# Compare against the task with its trailing newlines removed (corescripts-29):
+# the command substitution around _scrub_reason strips them from the scrubbed
+# side, so `--task "summarise this file<newline>"` always compared unequal and a
+# benign task was refused as secret-shaped. Only the comparison changes; the
+# task that is sent is untouched.
+_scrubbed="$(_scrub_reason "$task" 2>/dev/null || printf '%s' "$task")"
+_task_cmp="$(printf '%s' "$task")"
+if [ "$_scrubbed" != "$_task_cmp" ]; then
+  echo "$_self: the task contains a secret-shaped literal — REFUSED before egress." >&2
+  echo "$_self: nothing was sent to grok. Pass a path, not a value." >&2
+  exit 8
 fi
 
 # ── tier -> model + effort, from the shared substrate map ─────────────────────
@@ -200,7 +215,13 @@ fi
 # ── the isolated working directory (THE containment) ─────────────────────────
 scratch=""; workdir=""
 _cleanup() { [ -n "$scratch" ] && [ -d "$scratch" ] && rm -rf "$scratch" 2>/dev/null || true; }
-trap _cleanup EXIT INT TERM
+# ⛔ One trap for EXIT, separate EXITING traps for INT/TERM (scripts-10). A shared
+# `trap _cleanup EXIT INT TERM` ran _cleanup on Ctrl-C and then RESUMED the script
+# (a bash signal handler returns), so it reported a result, ran on, and cleaned
+# up a second time on EXIT. Now INT/TERM exit 130/143 and EXIT cleans up once.
+trap _cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 if [ "$mode" = "advise" ]; then
   # Nothing of the user's is reachable: an empty temp dir with no repo in it.
