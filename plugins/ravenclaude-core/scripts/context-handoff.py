@@ -60,24 +60,36 @@ _TEMPLATE_NAME = "handoff.md"
 # connection strings...) and nothing in free-text prose — a client name, an internal
 # hostname, a business fact. It is a reduction, not a control.
 # ------------------------------------------------------------------------------------
+# SECRET_SPEC R-set (repo-review 2026-10-19): the sk- pattern carries a left
+# boundary (it used to match the tail of any kebab word ending in "sk", e.g.
+# "ta" + "sk-management-and-planning"); a PEM block is redacted through its END
+# line or to end of input when unterminated (the BEGIN line alone left the base64
+# body behind); and the hooks-13 shapes are added (ASIA temporary keys, sk_test_,
+# ya29., xapp-, Bearer/token values, `-u user:pass`, literal-value env assignments).
 _SECRET_RES = [
     re.compile(p)
     for p in (
+        r"(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|\Z)",
         r"AKIA[0-9A-Z]{12,}",
-        r"sk-(?:ant-)?[A-Za-z0-9-]{20,}",
+        r"ASIA[0-9A-Z]{12,}",
+        r"(?<![A-Za-z0-9])sk-(?:ant-)?[A-Za-z0-9-]{20,}",
         r"sk_live_[A-Za-z0-9]{24,}",
+        r"sk_test_[A-Za-z0-9]{16,}",
         r"rk_live_[A-Za-z0-9]{24,}",
         r"gh[pousr]_[A-Za-z0-9]{30,}",
         r"github_pat_[A-Za-z0-9_]{20,}",
         r"glpat-[A-Za-z0-9_-]{15,}",
         r"xox[baprs]-[A-Za-z0-9-]{10,}",
+        r"xapp-[A-Za-z0-9-]{10,}",
         r"AIza[0-9A-Za-z_-]{30,}",
+        r"ya29\.[A-Za-z0-9_-]{20,}",
         r"npm_[A-Za-z0-9]{30,}",
         r"hf_[A-Za-z0-9]{30,}",
         r"AccountKey=[A-Za-z0-9+/=]{20,}",
         r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}",
-        r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----",
-        r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+        r"(Bearer|bearer|token)\s+[A-Za-z0-9._~+/-]{20,}",
+        r"-u\s+[^\s:$]+:[^\s$]+",
+        r"(PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*=[^\s$]\S*",
         r"--password[=\s]\S+",
         r"--token[=\s]\S+",
         r"(?:https?|postgres(?:ql)?|mysql|mongodb|redis|amqp|smtp)s?://"
@@ -113,6 +125,30 @@ def _chmod_600(path: Path) -> None:
         path.chmod(0o600)
     except OSError:
         pass
+
+
+def _atomic_write_private(path: Path, text: str) -> None:
+    """Replace `path` with `text` atomically: write a sibling temp file that is
+    0600 from creation (mkstemp opens it O_CREAT|O_EXCL, mode 0600), fsync it,
+    then os.replace() it over the target.
+
+    ⛔ write_text() truncates first, so a write that failed part-way (ENOSPC,
+    EFBIG, a kill) destroyed the agent-authored brief: measured 120010 -> 20000
+    bytes under RLIMIT_FSIZE. Here the original stays whole until the replace.
+    Raises OSError on failure, with the temp file removed."""
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix="." + path.name + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 # The data-not-instructions banner — mirrors compact-anchor.py:231-235's wording.
@@ -302,9 +338,7 @@ def render_skeleton(values: dict) -> str:
     return rendered
 
 
-def seed_text(
-    root: Path, task_id: str, host: str | None = None, named: bool = False
-) -> str:
+def seed_text(root: Path, task_id: str, host: str | None = None, named: bool = False) -> str:
     """Pick the successor's launch command.
 
     `named` says a host was ASKED FOR (a --host flag), as opposed to merely
@@ -370,8 +404,10 @@ def seed_text(
             f"Read the handoff at {abs_path} and continue. "
             f"Fresh window. Do not /fork. Do not /compact. Do not launch grok."
         )
-    if any(tok in text and f"Do not {tok}" not in text and f"do not {tok}" not in text.lower()
-           for tok in ("grok -p", "--single", "--prompt-file", "--prompt-json", "SessionStart")):
+    if any(
+        tok in text and f"Do not {tok}" not in text and f"do not {tok}" not in text.lower()
+        for tok in ("grok -p", "--single", "--prompt-file", "--prompt-json", "SessionStart")
+    ):
         text = f"Read the handoff at {abs_path} and continue."
     if len(text) > 1800:
         text = f"Read the handoff at {abs_path} and continue."
@@ -436,16 +472,14 @@ def cmd_write(
         "recent_events": _recent_events(dest),
     }
     handoff_path = dest.joinpath("handoff.md")
-    handoff_path.write_text(render_skeleton(values), encoding="utf-8")
+    _atomic_write_private(handoff_path, render_skeleton(values))
     # C3 — conversation-derived content lands far more often/automatically now
     # (via the Stop-hook nudge) than this script's original rare, explicit-
     # invocation use; the default umask (typically 0644) is wrong for it.
     _chmod_600(handoff_path)
     host = values.get("host") or detect_host()
     seed_path = dest.joinpath("handoff-seed.txt")
-    seed_path.write_text(
-        seed_text(root, task_id, host, named=named_host) + "\n", encoding="utf-8"
-    )
+    seed_path.write_text(seed_text(root, task_id, host, named=named_host) + "\n", encoding="utf-8")
     _chmod_600(seed_path)
     if _normalize_handoff_host(str(host)) == "chat":
         chat_resume_path = dest.joinpath("chat-resume.md")
@@ -493,7 +527,7 @@ def _resolve_session_id(dest: Path, task_id: str, explicit: str | None) -> str:
             if isinstance(last_sid, str) and last_sid:
                 return last_sid
     if task_id.startswith("session-"):
-        return task_id[len("session-"):]
+        return task_id[len("session-") :]
     return ""
 
 
@@ -520,9 +554,7 @@ def _stamp_nothing_to_do(root: Path, session_id: str) -> None:
             json.dumps(
                 {
                     "session_id": session_id,
-                    "fired_at": datetime.now(timezone.utc).strftime(
-                        "%Y-%m-%dT%H:%M:%SZ"
-                    ),
+                    "fired_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "attempts": attempts,
                     "verdict": "nothing-to-do",
                 }
@@ -563,9 +595,7 @@ _MTS_HANDOFF_RE = re.compile(
     re.MULTILINE,
 )
 _CHEAP_LANE_BLOCK_RE = re.compile(r"^[ \t]*cheap_lane[ \t]*:[ \t]*$", re.MULTILINE)
-_CL_MODE_RE = re.compile(
-    r"^[ \t]+mode[ \t]*:[ \t]*([A-Za-z_]{1,20})[ \t]*(?:#.*)?$", re.MULTILINE
-)
+_CL_MODE_RE = re.compile(r"^[ \t]+mode[ \t]*:[ \t]*([A-Za-z_]{1,20})[ \t]*(?:#.*)?$", re.MULTILINE)
 _CL_AGENT_RE = re.compile(
     r"^[ \t]+agent[ \t]*:[ \t]*([A-Za-z_]{1,20})[ \t]*(?:#.*)?$", re.MULTILINE
 )
@@ -852,8 +882,7 @@ def cmd_fill(task_id: str, project_root: Path | None) -> int:
         for h in _FILL_SECTION_HEADINGS:
             sections[h] = (
                 f"(detached fill returned unstructured text via {method}; "
-                "successor should verify)\n\n"
-                + raw[:1500]
+                "successor should verify)\n\n" + raw[:1500]
             )
             break  # only stuff Goal; leave others unknown
         for h in _FILL_SECTION_HEADINGS:
@@ -862,7 +891,7 @@ def cmd_fill(task_id: str, project_root: Path | None) -> int:
 
     filled = _apply_fill_sections(body, sections)
     try:
-        handoff_path.write_text(filled, encoding="utf-8")
+        _atomic_write_private(handoff_path, filled)
     except OSError as exc:
         print(f"context-handoff: fill: cannot write handoff.md: {exc}", file=sys.stderr)
         return 2
@@ -920,7 +949,7 @@ def cmd_finalize(
     # business fact. This is a reduction, not a control.
     scrubbed = _scrub_secrets(body)
     try:
-        handoff_path.write_text(scrubbed, encoding="utf-8")
+        _atomic_write_private(handoff_path, scrubbed)
     except OSError as exc:
         print(f"context-handoff: finalize: cannot write handoff.md: {exc}", file=sys.stderr)
         return 2
@@ -1109,7 +1138,10 @@ def _self_test() -> int:
             benign_control in body_after_second,
         )
         if handoff.is_file():
-            check("finalize: idempotent — mode still 0600 after second call", mode_of(handoff) == 0o600)
+            check(
+                "finalize: idempotent — mode still 0600 after second call",
+                mode_of(handoff) == 0o600,
+            )
 
         # --- 6. finalize --verdict nothing-to-do: writes ONLY the throttle
         # state record and leaves the four handoff files untouched ---
@@ -1153,11 +1185,11 @@ def _self_test() -> int:
         cmd_write(teeth_id, root, "", "70")
         teeth_dest = root / ".ravenclaude" / "runs" / teeth_id
         teeth_handoff = teeth_dest / "handoff.md"
-        teeth_rendered = teeth_handoff.read_text(encoding="utf-8") if teeth_handoff.is_file() else ""
-        teeth_secret = "ghp_" + "C" * 36
-        teeth_filled = teeth_rendered.replace(
-            marker, f"## Blockers\n\nleaked {teeth_secret}", 1
+        teeth_rendered = (
+            teeth_handoff.read_text(encoding="utf-8") if teeth_handoff.is_file() else ""
         )
+        teeth_secret = "ghp_" + "C" * 36
+        teeth_filled = teeth_rendered.replace(marker, f"## Blockers\n\nleaked {teeth_secret}", 1)
         if teeth_handoff.is_file():
             _self_test_write_via_subprocess(teeth_handoff, teeth_filled)
 
@@ -1166,7 +1198,9 @@ def _self_test() -> int:
         module._scrub_secrets = lambda text: text  # neuter
         try:
             cmd_finalize(teeth_id, root, None, None)
-            teeth_body = teeth_handoff.read_text(encoding="utf-8") if teeth_handoff.is_file() else ""
+            teeth_body = (
+                teeth_handoff.read_text(encoding="utf-8") if teeth_handoff.is_file() else ""
+            )
             check(
                 "TEETH: with scrub neutered, the secret DOES survive "
                 "(proves the real scrub call is load-bearing)",
@@ -1180,9 +1214,16 @@ def _self_test() -> int:
         cmd_finalize(teeth_id, root, None, None)
         check(
             "TEETH: with the REAL scrub restored, the same secret is gone",
-            teeth_secret not in (teeth_handoff.read_text(encoding="utf-8") if teeth_handoff.is_file() else ""),
+            teeth_secret
+            not in (teeth_handoff.read_text(encoding="utf-8") if teeth_handoff.is_file() else ""),
         )
 
+        # handoff.md itself is now rewritten through a 0600-from-creation temp
+        # file, so the chmod teeth target handoff-seed.txt — a file finalize does
+        # NOT rewrite, whose 0600 still depends on the chmod call alone.
+        teeth_seed = teeth_dest / "handoff-seed.txt"
+        if teeth_seed.is_file():
+            os.chmod(teeth_seed, 0o644)
         if teeth_handoff.is_file():
             os.chmod(teeth_handoff, 0o644)
         real_chmod = module._chmod_600
@@ -1190,9 +1231,13 @@ def _self_test() -> int:
         try:
             cmd_finalize(teeth_id, root, None, None)
             check(
-                "TEETH: with chmod neutered, mode stays 0644 "
+                "TEETH: with chmod neutered, handoff-seed.txt stays 0644 "
                 "(proves the real chmod call is load-bearing)",
-                teeth_handoff.is_file() and mode_of(teeth_handoff) == 0o644,
+                teeth_seed.is_file() and mode_of(teeth_seed) == 0o644,
+            )
+            check(
+                "finalize: the rewritten handoff.md is 0600 from creation, even with chmod neutered",
+                teeth_handoff.is_file() and mode_of(teeth_handoff) == 0o600,
             )
         finally:
             module._chmod_600 = real_chmod
@@ -1200,8 +1245,42 @@ def _self_test() -> int:
         cmd_finalize(teeth_id, root, None, None)
 
         check(
-            "TEETH: with the REAL chmod restored, mode is back to 0600",
-            teeth_handoff.is_file() and mode_of(teeth_handoff) == 0o600,
+            "TEETH: with the REAL chmod restored, handoff-seed.txt is back to 0600",
+            teeth_seed.is_file() and mode_of(teeth_seed) == 0o600,
+        )
+
+        # --- 7b. 1c-10: a write that fails part-way leaves handoff.md whole ---
+        if teeth_handoff.is_file():
+            before = teeth_handoff.read_bytes()
+            real_fsync = module.os.fsync
+
+            def _boom(_fd):
+                raise OSError(28, "No space left on device")
+
+            module.os.fsync = _boom
+            try:
+                rc_fail = cmd_finalize(teeth_id, root, None, None)
+            finally:
+                module.os.fsync = real_fsync
+            check("finalize: a failed write returns 2", rc_fail == 2)
+            check(
+                "finalize: a failed write leaves the original handoff.md byte-identical",
+                teeth_handoff.read_bytes() == before,
+            )
+            leftovers = [p.name for p in teeth_dest.iterdir() if p.name.endswith(".tmp")]
+            check("finalize: a failed write leaves no temp file behind", not leftovers)
+        else:
+            check("finalize: write-failure fixture has a handoff.md", False)
+
+        # --- 7c. SECRET_SPEC R-set: benign kebab text survives, new shapes go ---
+        kebab = "Refactor the task-management-and-planning module"
+        check("scrub: benign kebab-case text is untouched", _scrub_secrets(kebab) == kebab)
+        app_token = "gh" + "u_" + "D" * 36
+        check("scrub: a ghu_ app token is redacted", app_token not in _scrub_secrets(app_token))
+        pem = "-----BEGIN RSA PRIV" + "ATE KEY-----\nMIIBODYbase64\nmore+body==\n"
+        check(
+            "scrub: an unterminated PEM block loses its body, not just the BEGIN line",
+            "MIIBODYbase64" not in _scrub_secrets(pem),
         )
 
         # --- 8. detached fill pins haiku (LOCK ADDENDUM 2026-09-16) ---
@@ -1220,9 +1299,9 @@ def _self_test() -> int:
             'case "$m" in\n'
             '  ""|*sonnet*|*opus*|*fable*|*inherit*|*session*)\n'
             '    echo "REJECT:$m" >&2; exit 99;;\n'
-            '  *haiku*) ;;\n'
+            "  *haiku*) ;;\n"
             '  *) echo "REJECT_UNKNOWN:$m" >&2; exit 98;;\n'
-            'esac\n'
+            "esac\n"
             "cat <<'EOF'\n"
             "<<<SECTION:Goal>>>\n"
             "Ship the handoff fill\n"
@@ -1293,9 +1372,7 @@ def _self_test() -> int:
         alias_root = Path(tmp) / "alias-fill"
         (alias_root / ".ravenclaude").mkdir(parents=True)
         (alias_root / ".ravenclaude" / "comfort-posture.yaml").write_text(
-            "schema_version: 5\n"
-            "model_tier_surfaces:\n"
-            "  handoff_fill_model: sonnet\n",
+            "schema_version: 5\nmodel_tier_surfaces:\n  handoff_fill_model: sonnet\n",
             encoding="utf-8",
         )
         check(
@@ -1320,8 +1397,8 @@ def _self_test() -> int:
             'printf \'THING_MODEL=%s\\n\' "$m" > "$0.received"\n'
             'case "$m" in\n'
             '  ""|*sonnet*|*opus*|*fable*|*inherit*|*session*) echo REJECT; exit 99;;\n'
-            '  *haiku*) echo OK; exit 0;;\n'
-            '  *) exit 98;;\n'
+            "  *haiku*) echo OK; exit 0;;\n"
+            "  *) exit 98;;\n"
             "esac\n"
         )
         bad_stub.chmod(0o755)
@@ -1379,7 +1456,9 @@ def main(argv=None) -> int:
     w.add_argument("--percent", default="")
     w.add_argument("--threshold", default="70")
     w.add_argument("--host", default="")
-    fl = sub.add_parser("fill", help="detached fit-tier fill of MODEL FILL sections (default haiku)")
+    fl = sub.add_parser(
+        "fill", help="detached fit-tier fill of MODEL FILL sections (default haiku)"
+    )
     fl.add_argument("--task-id", required=True)
     fl.add_argument("--project-root")
     f = sub.add_parser("finalize")
