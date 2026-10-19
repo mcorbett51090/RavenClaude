@@ -223,9 +223,13 @@ def self_test() -> int:
     for word in ("rename ", "write ", "add ", "convert "):
         for size in (MAX_TASK_CHARS - 16, 100_000):
             s = word * (size // len(word))
-            t0 = time.perf_counter()
-            route(s)
-            dt = time.perf_counter() - t0
+            # best of 3: a loaded CI runner must not flake a bound the unbounded
+            # regex misses by 4-8x (0.4-0.7 s at this size)
+            dt = 9.9
+            for _ in range(3):
+                t0 = time.perf_counter()
+                route(s)
+                dt = min(dt, time.perf_counter() - t0)
             if dt >= 0.1:
                 slow.append("%r x %d chars %.3fs" % (word, len(s), dt))
     if slow:
