@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-10-19
+
+### Fixed
+
+- **Dual-write check never fired** (repo-review 2026-10-19, domainplugins-1). It was `grep -E "...[\\s\\S]{0,80}..."`, which POSIX ERE cannot match. It is perl now: a DB commit/save and a producer send/produce within four lines of each other, in either order. A consumer offset commit does not count. The hook now sources the shared `_rc_pcre_match` helper (with an inline perl fallback).
+
+Fixtures that drive the hook exactly as `hooks.json` registers it (fires on the anti-pattern, silent on clean code) are in `scripts/check-domain-hook-teeth.py` (control: the same fixtures run against the pre-fix hook fail, the anti-pattern case printing nothing).
+
+**Migration:** none. The hook is advisory; expect these checks to fire where they never did.
+
 ## [0.3.4] — 2026-08-14
 
 ### Changed

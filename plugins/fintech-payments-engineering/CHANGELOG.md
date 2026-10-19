@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-10-19
+
+### Fixed
+
+- **Float-money and card-logging checks only matched adjacent tokens** (repo-review 2026-10-19, domainplugins-1). Their `[\s\S]{0,N}` gaps were the set {backslash, s, S} in POSIX ERE, so `float(order.total)` and `logger.info(card_number)` passed silently. Both are line-local POSIX ERE now. Float money: a float/double type or cast on a money-named identifier, or a money field typed float/double (`Decimal`, the correct type, and a bare JS `Number` no longer count). Card logging: a log/print call whose arguments name card data, with `pan` as a whole word.
+
+Fixtures that drive the hook exactly as `hooks.json` registers it (fires on the anti-pattern, silent on clean code) are in `scripts/check-domain-hook-teeth.py` (control: the same fixtures run against the pre-fix hook fail, the anti-pattern case printing nothing).
+
+**Migration:** none. The hook is advisory; expect these checks to fire where they never did.
+
 ## [0.3.4] — 2026-09-10
 
 ### Fixed

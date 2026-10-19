@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-10-19
+
+### Fixed
+
+- **Event-name check flagged compliant names** (repo-review 2026-10-19, domainplugins-1). With `-i`, `[A-Z ]{2,}` matched any two letters, so `track("button_clicked")` fired, and the `[\s\S]{0,40}` gap only ever matched zero characters. It is now case-sensitive and line-local: it fires when the event-name string holds a space or an upper-case letter.
+
+Fixtures that drive the hook exactly as `hooks.json` registers it (fires on the anti-pattern, silent on clean code) are in `scripts/check-domain-hook-teeth.py` (control: the same fixtures run against the pre-fix hook fail, the anti-pattern case printing nothing).
+
+**Migration:** none. The hook is advisory; expect these checks to fire where they never did.
+
 ## [0.3.4] — 2026-08-14
 
 ### Changed

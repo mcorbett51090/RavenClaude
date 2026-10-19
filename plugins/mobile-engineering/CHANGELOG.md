@@ -2,6 +2,17 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-10-19
+
+### Fixed
+
+- **Secret-in-UserDefaults and polling-loop checks never fired** (repo-review 2026-10-19, domainplugins-1). Both were `grep -E "...[\\s\\S]{0,N}..."`, which POSIX ERE cannot match. Both are perl now: the store and a secret-ish word in one statement (`EncryptedSharedPreferences` excluded); and `while(true)` / `setInterval(` with a network call on the same or one of the next three lines.
+- **Strong-self-capture check fired on every init and method body** (domainplugins-17). It matched any `{ self.` in any file type. It now runs on `*.swift` only and fires only on a closure (a `{` whose same-line signature ends in `in`, without a `[weak self]` / `[unowned self]` capture list) that uses `self.` before the next `}`. A `for ... in` loop does not count.
+
+Fixtures that drive the hook exactly as `hooks.json` registers it (fires on the anti-pattern, silent on clean code) are in `scripts/check-domain-hook-teeth.py` (control: the same fixtures run against the pre-fix hook fail, the anti-pattern case printing nothing).
+
+**Migration:** none. The hook is advisory; expect these checks to fire where they never did.
+
 ## [0.3.4] — 2026-08-14
 
 ### Changed
