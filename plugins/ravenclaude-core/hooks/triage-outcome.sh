@@ -484,21 +484,33 @@ ids = [c.id for c in candidates]
 # says so; this writer never did.
 # control: a failing command carrying a ghp_-shaped token produced the row
 # subject cmd:ghp_BBBB...; with this scrub the same input yields [REDACTED].
-# Mirrors the high-confidence shapes in hooks/_scrub.sh. Deliberately a SUBSET:
-# these are the prefix-anchored shapes that cannot false-positive on ordinary
-# command text.
+# Mirrors hooks/_scrub.sh (secret_spec R set, 2026-10-19): the prefix-anchored
+# vendor shapes, a left-bounded sk- (so a kebab name ending in "sk" is not a
+# secret), every GitHub token class, and the redaction-only shapes. This is a
+# redaction of a display subject, never a refusal, so the redaction-only shapes
+# cost nothing here. scripts/check-secret-pattern-parity.py lists it.
+# This program is a python3 -c SINGLE-QUOTED bash string: no single quote may
+# appear anywhere in it, including comments and regex literals.
 _SECRET_SHAPES = (
+    r"(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|\Z)",
     r"AKIA[0-9A-Z]{12,}",
-    r"sk-(?:ant-)?[A-Za-z0-9-]{20,}",
+    r"(?<![A-Za-z0-9])ASIA[0-9A-Z]{12,}",
+    r"(?<![A-Za-z0-9])sk-(?:ant-)?[A-Za-z0-9-]{20,}",
     r"(?:sk|rk)_live_[A-Za-z0-9]{24,}",
-    r"ghp_[A-Za-z0-9]{30,}",
+    r"sk_test_[A-Za-z0-9]{16,}",
+    r"gh[pousr]_[A-Za-z0-9]{30,}",
     r"github_pat_[A-Za-z0-9_]{20,}",
     r"glpat-[A-Za-z0-9_-]{15,}",
     r"xox[baprs]-[A-Za-z0-9-]{10,}",
+    r"xapp-[0-9]+-[A-Za-z0-9-]{10,}",
     r"AIza[0-9A-Za-z_-]{30,}",
+    r"ya29\.[A-Za-z0-9_-]{20,}",
     r"npm_[A-Za-z0-9]{30,}",
     r"hf_[A-Za-z0-9]{30,}",
     r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}",
+    r"(?:Bearer|bearer|token)\s+[A-Za-z0-9._~+/-]{20,}",
+    r"-u\s+[^\s:$]+:[^\s$]*[^\s$0-9][^\s$]*",
+    r"(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*=\"?[0-9]*[^\s$\"0-9]\S*",
 )
 for _pat in _SECRET_SHAPES:
     subject = re.sub(_pat, "[REDACTED]", subject)

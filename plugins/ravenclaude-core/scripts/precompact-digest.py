@@ -88,9 +88,16 @@ _HERE = Path(__file__).resolve().parent
 _SECRET_RES = [
     re.compile(p)
     for p in (
+        # PEM block FIRST and whole: BEGIN..END, or to end of input when the
+        # block is unterminated (secret_spec). Replaces the earlier span +
+        # header-only pair; the \Z arm covers the torn-block case the
+        # header-only fallback existed for, and also redacts its body.
+        r"(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|\Z)",
         r"AKIA[0-9A-Z]{12,}",
-        r"sk-(?:ant-)?[A-Za-z0-9-]{20,}",
+        r"(?<![A-Za-z0-9])ASIA[0-9A-Z]{12,}",
+        r"(?<![A-Za-z0-9])sk-(?:ant-)?[A-Za-z0-9-]{20,}",
         r"sk_live_[A-Za-z0-9]{24,}",
+        r"sk_test_[A-Za-z0-9]{16,}",
         r"rk_live_[A-Za-z0-9]{24,}",
         # Widened ghp_ -> gh[pousr]_ (C1): covers ghp_/gho_/ghu_/ghs_/ghr_, not just
         # the personal-access-token prefix. This repo's own root CLAUDE.md has
@@ -99,18 +106,13 @@ _SECRET_RES = [
         r"github_pat_[A-Za-z0-9_]{20,}",
         r"glpat-[A-Za-z0-9_-]{15,}",
         r"xox[baprs]-[A-Za-z0-9-]{10,}",
+        r"xapp-[0-9]+-[A-Za-z0-9-]{10,}",
         r"AIza[0-9A-Za-z_-]{30,}",
+        r"ya29\.[A-Za-z0-9_-]{20,}",
         r"npm_[A-Za-z0-9]{30,}",
         r"hf_[A-Za-z0-9]{30,}",
         r"AccountKey=[A-Za-z0-9+/=]{20,}",
         r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}",
-        # PEM block SPAN (C1) — the header-only pattern below caught only the BEGIN
-        # line, leaving the actual key body to egress in full (worse than no match:
-        # the digest LOOKS scrubbed). This one greedily-minimally spans BEGIN..END.
-        r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----",
-        # Header-only kept as a defense-in-depth fallback for a torn/truncated PEM
-        # block with no matching END line (the span pattern requires both).
-        r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
         r"--password[=\s]\S+",
         r"--token[=\s]\S+",
         r"(?:https?|postgres(?:ql)?|mysql|mongodb|redis|amqp|smtp)s?://"
@@ -121,6 +123,13 @@ _SECRET_RES = [
         r"\s*[:=]\s*[\"']?\S{8,}",
         # Opaque Bearer token (C1).
         r"(?i)\bBearer\s+[A-Za-z0-9._\-]{20,}",
+        # secret_spec R-set additions (2026-10-19): opaque bearer/token value,
+        # literal `-u user:pass` (password half must contain a non-digit, so
+        # `docker run -u 1000:1000` is untouched), and a literal-value env
+        # assignment (never one opening with '$', never a pure-digit value).
+        r"(?:Bearer|bearer|token)\s+[A-Za-z0-9._~+/-]{20,}",
+        r"-u\s+[^\s:$]+:[^\s$]*[^\s$0-9][^\s$]*",
+        r'(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*="?[0-9]*[^\s$"0-9]\S*',
     )
 ]
 _SECRET_P_FLAG = re.compile(r"(^|\s)-p[^\s\d]\S{15,}")

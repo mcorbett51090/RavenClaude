@@ -478,13 +478,22 @@ def summarize_runtime_activity(root: Path) -> dict | None:
 # chars), (b) this banner is informational only, (c) the substrate-wide
 # _scrub.sh still applies wherever rationale flows into hook-events.jsonl.
 _RUN_CONFIG_SECRET_PATTERNS = [
+    # PEM block FIRST and whole (BEGIN..END, or to end of input when
+    # unterminated): a header-only pattern left the key body behind.
+    re.compile(r"(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|\Z)"),
     re.compile(r"AKIA[0-9A-Z]{12,}"),
-    re.compile(r"sk-(?:ant-)?[A-Za-z0-9-]{20,}"),
+    re.compile(r"(?<![A-Za-z0-9])ASIA[0-9A-Z]{12,}"),
+    re.compile(r"(?<![A-Za-z0-9])sk-(?:ant-)?[A-Za-z0-9-]{20,}"),
     re.compile(r"sk_live_[A-Za-z0-9]{24,}"),
-    re.compile(r"ghp_[A-Za-z0-9]{30,}"),
+    re.compile(r"sk_test_[A-Za-z0-9]{16,}"),
+    re.compile(r"gh[pousr]_[A-Za-z0-9]{30,}"),
     re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),
+    re.compile(r"xapp-[0-9]+-[A-Za-z0-9-]{10,}"),
+    re.compile(r"ya29\.[A-Za-z0-9_-]{20,}"),
     re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}"),
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+    re.compile(r"(?:Bearer|bearer|token)\s+[A-Za-z0-9._~+/-]{20,}"),
+    re.compile(r"-u\s+[^\s:$]+:[^\s$]*[^\s$0-9][^\s$]*"),
+    re.compile(r'(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*="?[0-9]*[^\s$"0-9]\S*'),
 ]
 
 

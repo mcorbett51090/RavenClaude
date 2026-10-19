@@ -133,24 +133,33 @@ def _read_json(path: Path, default):
 _SECRET_RES = [
     re.compile(p)
     for p in (
+        # PEM block FIRST and whole (BEGIN..END, or to end of input when
+        # unterminated): a header-only pattern left the key body behind.
+        r"(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|\Z)",
         r"AKIA[0-9A-Z]{12,}",
-        r"sk-(?:ant-)?[A-Za-z0-9-]{20,}",
+        r"(?<![A-Za-z0-9])ASIA[0-9A-Z]{12,}",
+        r"(?<![A-Za-z0-9])sk-(?:ant-)?[A-Za-z0-9-]{20,}",
         r"sk_live_[A-Za-z0-9]{24,}",
+        r"sk_test_[A-Za-z0-9]{16,}",
         r"rk_live_[A-Za-z0-9]{24,}",
-        r"ghp_[A-Za-z0-9]{30,}",
+        r"gh[pousr]_[A-Za-z0-9]{30,}",
         r"github_pat_[A-Za-z0-9_]{20,}",
         r"glpat-[A-Za-z0-9_-]{15,}",
         r"xox[baprs]-[A-Za-z0-9-]{10,}",
+        r"xapp-[0-9]+-[A-Za-z0-9-]{10,}",
         r"AIza[0-9A-Za-z_-]{30,}",
+        r"ya29\.[A-Za-z0-9_-]{20,}",
         r"npm_[A-Za-z0-9]{30,}",
         r"hf_[A-Za-z0-9]{30,}",
         r"AccountKey=[A-Za-z0-9+/=]{20,}",
         r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}",
-        r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
         r"--password[=\s]\S+",
         r"--token[=\s]\S+",
         r"(?:https?|postgres(?:ql)?|mysql|mongodb|redis|amqp|smtp)s?://"
         r"[A-Za-z0-9._-]{2,}:[A-Za-z0-9._%+-]{4,}@",
+        r"(?:Bearer|bearer|token)\s+[A-Za-z0-9._~+/-]{20,}",
+        r"-u\s+[^\s:$]+:[^\s$]*[^\s$0-9][^\s$]*",
+        r'(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*="?[0-9]*[^\s$"0-9]\S*',
     )
 ]
 # The short `-p<value>` flag keeps its leading boundary; only the value redacts.

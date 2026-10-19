@@ -340,6 +340,141 @@ else
 fi
 rm -rf "$T5" "$T5_DIR"
 
+# ── G50.6 — corescripts-1: the sk- shape has a LEFT boundary ─────────────────
+#
+# Unanchored, 'sk-(ant-)?[A-Za-z0-9-]{20,}' matched the tail of any word ending
+# in "sk" followed by a 20+ char kebab run, and the same list is the pre-egress
+# refusal set, so ordinary paths and branch names were refused as secrets.
+# Every synthetic string here is built by concatenation.
+_scrub_one() { ( . "$1"; _scrub_reason "$2" ) 2>/dev/null; }
+SKD="s""k-"
+A30="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123"
+KEBAB_ADD="git add docs/ri${SKD}assessment-framework-update.md"
+KEBAB_BRANCH="git checkout -b fix/ri${SKD}assessment-framework-update"
+REAL_SK="export K=${SKD}ant-${A30}"
+
+echo
+echo "── G50.6: sk- left boundary (kebab-case is not a secret) ────────────────"
+out="$(_scrub_one "$SCRUB_SH" "$KEBAB_ADD")"
+[ "$out" = "$KEBAB_ADD" ] && pass "G50.6: git add of a ri+sk- kebab docs path is unchanged" \
+  || fail "G50.6: kebab docs path was altered: $out"
+out="$(_scrub_one "$SCRUB_SH" "$KEBAB_BRANCH")"
+[ "$out" = "$KEBAB_BRANCH" ] && pass "G50.6: checkout of a ri+sk- kebab fix/ branch is unchanged" \
+  || fail "G50.6: kebab branch name was altered: $out"
+out="$(_scrub_one "$SCRUB_SH" "$REAL_SK")"
+if printf '%s' "$out" | grep -Fq "$A30"; then
+  fail "G50.6: a real sk-ant- key survived the scrub"
+else
+  printf '%s' "$out" | grep -Fq "[REDACTED]" && pass "G50.6: a real sk-ant- key is still redacted" \
+    || fail "G50.6: real sk-ant- key: no redaction marker"
+fi
+
+# ── G50.7 — hooks-13: the rest of the secret_spec R set ──────────────────────
+echo
+echo "── G50.7: hooks-13 shapes redacted, env refs and uid:gid left alone ─────"
+for case_ in \
+  "ghu|export GH_TOKEN=gh""u_${A30}xyz" \
+  "ghs|x gh""s_${A30}xyz" \
+  "gho|x gh""o_${A30}xyz" \
+  "ghr|x gh""r_${A30}xyz" \
+  "ASIA|key AS""IA${A30}" \
+  "sk_test|k sk""_test_${A30}" \
+  "ya29|t ya""29.${A30}abc" \
+  "xapp|t xa""pp-1-${A30}" \
+  "bearer|Authorization: Bea""rer 8f2a${A30}" \
+  "curl-u|curl -u admin:Super""Secret${A30} https://x" \
+  "env|PGPASS""WORD=Super""Secret${A30} psql"; do
+  label="${case_%%|*}"; text="${case_#*|}"
+  out="$(_scrub_one "$SCRUB_SH" "$text")"
+  if printf '%s' "$out" | grep -Fq "$A30"; then
+    fail "G50.7: $label survived the scrub: $out"
+  else
+    pass "G50.7: $label redacted"
+  fi
+done
+for case_ in \
+  'env-ref|TOKEN=${TOKEN} run' \
+  'env-quoted-ref|TOKEN="${TOKEN}" run' \
+  'numeric-setting|MAX_TOKENS=4096 run' \
+  'uid-gid|docker run -u 1000:1000 img' \
+  'bearer-ref|curl -H "Authorization: Bearer $T" x'; do
+  label="${case_%%|*}"; text="${case_#*|}"
+  out="$(_scrub_one "$SCRUB_SH" "$text")"
+  [ "$out" = "$text" ] && pass "G50.7: $label is not redacted" \
+    || fail "G50.7: $label was redacted: $out"
+done
+
+# ── G50.8 — hooks-13: the PEM block BODY and END line are redacted ───────────
+echo
+echo "── G50.8: PEM block redacted whole, on every awk present ────────────────"
+PEM_BEGIN="-----BEGIN RSA PRIV""ATE KEY-----"
+PEM_END="-----END RSA PRIV""ATE KEY-----"
+PEM_BODY="MIIEow${A30}"
+PEM_IN="$(printf 'before\n%s\n%s\nmore+base64/body==\n%s\nafter' "$PEM_BEGIN" "$PEM_BODY" "$PEM_END")"
+PEM_OPEN="$(printf 'before\n%s\n%s\ntail' "$PEM_BEGIN" "$PEM_BODY")"
+pem_ok() {  # $1 = scrub output, $2 = label
+  if printf '%s' "$1" | grep -Fq "$PEM_BODY" || printf '%s' "$1" | grep -Fq "base64/body" \
+     || printf '%s' "$1" | grep -Fq "PRIV""ATE KEY"; then
+    fail "G50.8: $2 — key material or a BEGIN/END line survived"
+  elif ! printf '%s' "$1" | grep -Fq "before"; then
+    fail "G50.8: $2 — over-redacted: text before the block was lost"
+  else
+    pass "G50.8: $2"
+  fi
+}
+pem_ok "$(_scrub_one "$SCRUB_SH" "$PEM_IN")" "terminated block: body + END redacted, context kept"
+out="$(_scrub_one "$SCRUB_SH" "$PEM_IN")"
+printf '%s' "$out" | grep -Fq "after" && pass "G50.8: text after the END line survives" \
+  || fail "G50.8: text after the END line was lost"
+pem_ok "$(_scrub_one "$SCRUB_SH" "$PEM_OPEN")" "unterminated block: redacted to end of input"
+# Each awk implementation present (macOS /usr/bin/awk is BSD awk; Linux runners
+# carry mawk/gawk). A shim dir puts exactly one implementation first on PATH.
+AWK_SEEN=""
+for awkbin in /usr/bin/awk /usr/bin/mawk /usr/bin/gawk /usr/bin/nawk /usr/bin/original-awk /opt/homebrew/bin/gawk; do
+  [ -x "$awkbin" ] || continue
+  real="$(cd "$(dirname "$awkbin")" && pwd -P)/$(basename "$awkbin")"
+  case " $AWK_SEEN " in *" $real "*) continue ;; esac
+  AWK_SEEN="$AWK_SEEN $real"
+  shim="$(mktemp -d)"; ln -s "$awkbin" "$shim/awk"
+  out="$(PATH="$shim:$PATH" bash -c '. "$1"; _scrub_reason "$2"' _ "$SCRUB_SH" "$PEM_IN" 2>/dev/null)"
+  pem_ok "$out" "awk=$awkbin"
+  rm -rf "$shim"
+done
+# awk absent: the scrub must fail toward redaction, never let the body through.
+noawk="$(mktemp -d)"
+for t in sed grep; do ln -s "$(command -v "$t")" "$noawk/$t"; done
+out="$(PATH="$noawk" "$(command -v bash)" -c '. "$1"; _scrub_reason "$2"' _ "$SCRUB_SH" "$PEM_IN" 2>/dev/null)"
+if printf '%s' "$out" | grep -Fq "$PEM_BODY"; then
+  fail "G50.8: awk absent — the PEM body leaked"
+else
+  pass "G50.8: awk absent — fails toward wholesale redaction"
+fi
+rm -rf "$noawk"
+
+# ── G50.9 — teeth: each fix is what the assertions above measure ─────────────
+echo
+echo "── G50.9: teeth — reverting each fix turns its assertion red ────────────"
+T9="$(mktemp -d)"
+# (a) the old unanchored sk- pattern redacts the kebab path again.
+sed -e "s#'(^|\[^A-Za-z0-9\])sk-(ant-)?\[A-Za-z0-9-\]{20,}'#'sk-(ant-)?[A-Za-z0-9-]{20,}'#" \
+  "$SCRUB_SH" > "$T9/unanchored.sh"
+if grep -Fq "'sk-(ant-)?[A-Za-z0-9-]{20,}'" "$T9/unanchored.sh"; then
+  out="$(_scrub_one "$T9/unanchored.sh" "$KEBAB_ADD")"
+  [ "$out" != "$KEBAB_ADD" ] && pass "G50.9: unanchored sk- mutant redacts the kebab path (G50.6 has teeth)" \
+    || fail "G50.9: unanchored sk- mutant left the kebab path alone — G50.6 measures nothing"
+else
+  fail "G50.9: could not build the unanchored sk- mutant (pattern text changed?)"
+fi
+# (b) with the PEM pass replaced by a passthrough, the body survives the
+#     per-line sed pass (the pre-2026-10-19 behaviour).
+cp "$SCRUB_SH" "$T9/nopem.sh"
+printf '\n_scrub_pem_blocks() { printf "%%s" "${1:-}"; }\n' >> "$T9/nopem.sh"
+out="$(_scrub_one "$T9/nopem.sh" "$PEM_IN")"
+printf '%s' "$out" | grep -Fq "base64/body" \
+  && pass "G50.9: PEM-pass mutant leaks the body (G50.8 has teeth)" \
+  || fail "G50.9: PEM-pass mutant did not leak the body — G50.8 measures nothing"
+rm -rf "$T9"
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo
 if [[ "$FAILED" -eq 0 ]]; then
