@@ -1046,6 +1046,96 @@ def case_d14() -> None:
 
 
 # --------------------------------------------------------------------------------------
+# assert-not-required-check.sh: an unreadable ruleset body is INCONCLUSIVE, not OK (D-15)
+# --------------------------------------------------------------------------------------
+ASSERT_NOT_REQUIRED = "scripts/assert-not-required-check.sh"
+FAKE_GH = """#!/usr/bin/env python3
+import os, sys
+args = sys.argv[1:]
+path = args[1] if len(args) > 1 else ""
+if path.endswith("/rulesets"):
+    print("1")
+else:
+    sys.stdout.write(os.environ["FAKE_GH_DETAIL"])
+"""
+
+
+def _assert_not_required(detail: str, name: str = "Atlas data validates"):
+    with tempfile.TemporaryDirectory() as td:
+        shim = Path(td, "gh")
+        shim.write_text(FAKE_GH)
+        shim.chmod(0o755)
+        env = {
+            "PATH": td + os.pathsep + os.environ.get("PATH", ""),
+            "FAKE_GH_DETAIL": detail,
+            "GITHUB_REPOSITORY": "owner/repo",
+        }
+        return run(["bash", target(ASSERT_NOT_REQUIRED), name], env=env)
+
+
+@case("D-15")
+def case_d15() -> None:
+    """The assertion may only say OK when it actually read the required checks."""
+    expect(shutil.which("jq") is not None, "jq is required by the script under test")
+
+    def rules(*checks: object) -> str:
+        return json.dumps(
+            {
+                "rules": [
+                    {
+                        "type": "required_status_checks",
+                        "parameters": {"required_status_checks": list(checks)},
+                    }
+                ]
+            }
+        )
+
+    # Known-good fixtures still read OK.
+    r = _assert_not_required(rules({"context": "Validate manifests and hooks"}))
+    expect(
+        r.returncode == 0 and "OK:" in r.stdout, f"a known-good ruleset must be OK: {describe(r)}"
+    )
+    r = _assert_not_required(json.dumps({"rules": []}))
+    expect(r.returncode == 0 and "OK:" in r.stdout, f"a ruleset with no rules is OK: {describe(r)}")
+    r = _assert_not_required(rules())
+    expect(
+        r.returncode == 0, f"a required_status_checks rule with an empty list is OK: {describe(r)}"
+    )
+    # The name being required is still fatal.
+    r = _assert_not_required(rules({"context": "Atlas data validates"}))
+    expect(r.returncode == 1, f"a required name must still exit 1: {describe(r)}")
+
+    # Unparseable / differently-shaped bodies are INCONCLUSIVE (non-zero), never OK.
+    shapes = {
+        "unparseable body": "this is not json",
+        "empty body": "",
+        "no rules key": json.dumps({"message": "Not Found"}),
+        "rules is not a list": json.dumps({"rules": {"type": "required_status_checks"}}),
+        "checks renamed": json.dumps(
+            {
+                "rules": [
+                    {
+                        "type": "required_status_checks",
+                        "parameters": {"required_checks": [{"context": "x"}]},
+                    }
+                ]
+            }
+        ),
+        "entries without a string context": rules({"name": "Atlas data validates"}),
+        "context not a string": rules({"context": 7}),
+    }
+    for label, body in shapes.items():
+        r = _assert_not_required(body)
+        out = r.stdout + r.stderr
+        expect(
+            r.returncode not in (0, 1, 2),
+            f"{label}: must be INCONCLUSIVE (rc 3), got: {describe(r)}",
+        )
+        expect("INCONCLUSIVE" in out, f"{label}: must say INCONCLUSIVE: {describe(r)}")
+        expect("OK:" not in out, f"{label}: must not print OK: {describe(r)}")
+
+
+# --------------------------------------------------------------------------------------
 # generative-web-media: optimize-image.mjs
 # --------------------------------------------------------------------------------------
 OPTIMIZE = "plugins/generative-web-media/scripts/web-optimize/optimize-image.mjs"

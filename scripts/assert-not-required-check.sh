@@ -17,6 +17,9 @@
 #       unreachable (inconclusive: warn, do not fail the scheduled run).
 #   1 — name IS a required check (fatal: would hang PRs that skip this workflow).
 #   2 — usage error.
+#   3 — INCONCLUSIVE: a ruleset body was read but is unparseable or not the expected
+#       shape (no `rules` array / an unrecognised required_status_checks rule), so the
+#       assertion cannot be made. Never OK. (An unreachable API stays exit 0 above.)
 set -uo pipefail
 
 NAME="${1:-}"
@@ -46,6 +49,26 @@ while IFS= read -r id; do
   if ! detail="$(gh api "repos/${REPO}/rulesets/${id}" 2>&1)"; then
     echo "::warning::could not read ruleset ${id} ($detail) — assertion inconclusive, not OK"
     exit 0
+  fi
+  # Validate the body's SHAPE before trusting it. Previously a jq failure (unparseable body)
+  # or a differently-shaped body yielded "no contexts" and the script printed OK, so a
+  # required check could hide behind a body it never actually read. Anything that is not a
+  # `rules` array whose required_status_checks rules each carry an array of string `context`s
+  # is INCONCLUSIVE (exit 3), never OK.
+  if ! shape="$(printf '%s' "$detail" | jq -r '
+    if (.rules | type) != "array" then "no `rules` array"
+    elif ([.rules[] | select(.type=="required_status_checks")]
+          | all(.parameters.required_status_checks
+                | type == "array" and all(.[]; (.context | type) == "string")))
+    then "ok"
+    else "a required_status_checks rule has an unrecognised shape"
+    end
+  ' 2>/dev/null)"; then
+    shape="the body is not valid JSON"
+  fi
+  if [ "$shape" != "ok" ]; then
+    echo "::error::assert-not-required-check: INCONCLUSIVE — ruleset ${id}: ${shape}. Not reporting OK."
+    exit 3
   fi
   # Collect every required-status-check context from this ruleset.
   more="$(printf '%s' "$detail" | jq -r '
