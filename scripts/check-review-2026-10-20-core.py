@@ -687,6 +687,37 @@ def case_c14(root: Path) -> None:
     _check("export FOO=1" in body, "the user's own content in the target is kept")
 
 
+def _load(root: Path, rel: str, name: str):
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(name, root / rel)
+    if spec is None or spec.loader is None:
+        raise _NotRun(f"cannot load {rel}")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+# ─── C-16: mermaid_label stripped the `;` off the entities it had just inserted ──
+WFLINT_REL = "plugins/ravenclaude-core/skills/wireframe/wireframe_lint.py"
+
+
+def case_c16(root: Path) -> None:
+    wl = _load(root, WFLINT_REL, "c16_wireframe_lint")
+    got = wl.mermaid_label('say "hi" #1')
+    _check(
+        got == "say #quot;hi#quot; #35;1",
+        f"mermaid_label('say \"hi\" #1') keeps its entities intact ({got!r})",
+    )
+    hostile = wl.mermaid_label('A[evil](x)-->B "boom"; end')
+    bare = hostile.replace("#quot;", "").replace("#35;", "")
+    _check(
+        not any(ch in bare for ch in "[](){};") and '"' not in hostile and "-->" not in hostile,
+        f"a hostile label still cannot restructure the graph ({hostile!r})",
+    )
+
+
 CASES = {
     "C-1": case_c1,
     "C-2": case_c2,
@@ -695,6 +726,7 @@ CASES = {
     "C-7": case_c7,
     "C-8": case_c8,
     "C-14": case_c14,
+    "C-16": case_c16,
 }
 
 
