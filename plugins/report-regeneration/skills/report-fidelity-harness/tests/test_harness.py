@@ -314,6 +314,26 @@ def test_v4_html_catches_a_raw_ungrouped_taint_number():
     assert harness.leg_v4(harness.parse_html(clean), taint, clean)["verdict"] == "pass"
 
 
+def test_bad_input_encoding_or_json_is_exit_2_with_a_json_error_not_a_traceback():
+    # B-19: a crash used to exit 1 with no stdout, indistinguishable from a gate FAIL.
+    import subprocess
+    import sys
+
+    latin = _TMP / "latin1-template.html"
+    latin.write_bytes("<html><body><p>Caf\u00e9 report</p></body></html>".encode("cp1252"))
+    bad_manifest = _TMP / "malformed-manifest.json"
+    bad_manifest.write_text("{not json", encoding="utf-8")
+    for template, manifest in ((latin, _MANIFEST), (_CLEAN_OUTPUT, bad_manifest)):
+        proc = subprocess.run(
+            [sys.executable, str(_SKILL_DIR / "harness.py"), "--template", str(template),
+             "--output", str(_CLEAN_OUTPUT), "--manifest", str(manifest), "--new-data", str(_NEW_DATA)],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 2, (proc.returncode, proc.stderr[-300:])
+        assert json.loads(proc.stdout)["ok"] is False
+        assert "Traceback" not in proc.stderr
+
+
 # ── standalone runner (no pytest required) ─────────────────────────────────────
 
 def _main() -> int:

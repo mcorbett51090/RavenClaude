@@ -141,11 +141,23 @@ def safe_read_path(raw: str) -> Path:
 
 
 def read_text(raw: str) -> str:
-    return safe_read_path(raw).read_text(encoding="utf-8")
+    # B-19: an unreadable or non-UTF-8 input is a usage error (exit 2 + JSON error object), never a
+    # traceback with rc 1 that a wrapper reads as a gate FAIL. Charset sniffing is out of scope.
+    path = safe_read_path(raw)
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise HarnessError(f"{raw!r} is not UTF-8 text ({exc}); re-encode it as UTF-8") from exc
+    except OSError as exc:
+        raise HarnessError(f"cannot read {raw!r}: {exc}") from exc
 
 
 def load_json(raw: str) -> object:
-    return json.loads(read_text(raw))
+    text = read_text(raw)
+    try:
+        return json.loads(text)
+    except ValueError as exc:  # json.JSONDecodeError is a ValueError
+        raise HarnessError(f"{raw!r} is not valid JSON: {exc}") from exc
 
 
 # ─────────────────────────────────────────────────────────────────────────────
