@@ -4,7 +4,12 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 ## 0.358.5 — 2026-10-20
 
+### Changed
+- **`dashboard.html` is 87 KB smaller (11,015,132 → 10,927,528 bytes).** Every concept diagram inlines its own theme `<style>` block, so that block's size multiplies by the 220 diagrams in the Learn tab. `render-concepts.py`'s `_theme_style` now groups same-type selectors with `:is()` (NORMALIZER_VERSION 4 → 5), and the id prefix repeats 19 times per block instead of 36. Only same-type arguments are grouped, so every element's specificity is unchanged. The committed SVGs were migrated by swapping the block in place, with no re-render. Chromium then compared computed styles before and after: 25,083 elements and 861 hover states, with zero differences. A planted colour change showed the comparison can fail.
+- Three concepts listed the same source URL twice, so each pair is merged into one link that keeps both labels (`source-control-basics`, `runes-ready-queue-oath-hook-longship`, `thing-hardening-edit-registry`).
+
 ### Fixed
+- `runaway-brake`: the metacharacter list showed a stray backtick, an empty code box and two more backticks. The dashboard's markdown renderer has no double-backtick code spans, so the backtick is now written out in words.
 - **Ten platform-fact concepts re-verified against their live sources (CI time bomb).** On 2026-10-20 six concepts stamped `last_verified: 2026-07-21` crossed the 90-day platform-fact window, so `concepts.py --check` failed, and with it the real-corpus rows of Gates 237 and 239, which run on every PR. Four more (stamped 2026-07-28) would have done the same on 2026-10-27. Every `sources:` URL was fetched again and each claim checked; corrections where the vendor docs have moved:
   - `cloudflare-what-runs-your-site`: the Worker size limit is now 64 MiB uncompressed on both plans ("There is no compressed size limit"), plus a 1 s startup limit. Compatibility dates on or after 2026-08-04 enable `nodejs_compat` by default. "Serving assets on a path" is a Workers capability, not a Pages-only one.
   - `cloudflare-who-gets-in`: the Free plan gets the Free Managed Ruleset. It does not lack managed rules altogether.

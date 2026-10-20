@@ -306,7 +306,7 @@ flowchart TD
 
 **See also:** Getting started · Layout enforcement
 
-**Sources:** [AGENTS.md — PR conventions](../AGENTS.md) · [AGENTS.md — House rules (branch-archive)](../AGENTS.md) · [branch-archive skill](../plugins/ravenclaude-core/skills/branch-archive/SKILL.md) · [Pro Git — About Version Control](https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control)
+**Sources:** [AGENTS.md — PR conventions; House rules (branch-archive)](../AGENTS.md) · [branch-archive skill](../plugins/ravenclaude-core/skills/branch-archive/SKILL.md) · [Pro Git — About Version Control](https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control)
 
 _Last verified: 2026-08-24_
 
@@ -1195,7 +1195,7 @@ The **runaway brake** is the **depth guard**: it stops an agent from disappearin
 
 Two limits, both tunable in `.ravenclaude/comfort-posture.yaml`. **`max_consecutive`** (default 8) trips when the agent makes the *same* tool call — byte-identical name and input — that many times in a row; that repetition is the "stuck in a loop" signal. **`max_total`** (default 1200) is a generous per-session ceiling on *all* calls, the backstop against a slow grind that never repeats exactly. State lives in a per-session counter file under `.ravenclaude/runs/thing/runaway/`, so a brand-new session always starts fresh. The whole hook is **opt-in and fail-safe**: with no posture file it exits immediately (one `stat`, zero cost), and `runaway: off` disables it entirely.
 
-The load-bearing subtlety is the **read-only carve-out**. A legitimate startup burst of read-only calls — repeated `git log`, `ls`, `cat`, `grep` — is not a runaway, so it must not trip the consecutive-loop counter. A call counts as read-only when the tool is `Read`/`Grep`/`Glob`/`NotebookRead`, *or* it's a `Bash` command matching a **strict, anchored, fail-closed** allowlist of obviously-non-mutating programs. A read-only call is **transparent** to the loop counter (it neither increments nor resets the consecutive count) but **still increments the total** — so the session ceiling keeps bounding *every* call regardless of type. Any doubt fails closed: a shell metacharacter that could chain to a mutating command (`&&`, `;`, `|`, `>`, `` ` ``) or any mutating token anywhere in the string forces the call to count as a normal (non-read-only) call.
+The load-bearing subtlety is the **read-only carve-out**. A legitimate startup burst of read-only calls — repeated `git log`, `ls`, `cat`, `grep` — is not a runaway, so it must not trip the consecutive-loop counter. A call counts as read-only when the tool is `Read`/`Grep`/`Glob`/`NotebookRead`, *or* it's a `Bash` command matching a **strict, anchored, fail-closed** allowlist of obviously-non-mutating programs. A read-only call is **transparent** to the loop counter (it neither increments nor resets the consecutive count) but **still increments the total** — so the session ceiling keeps bounding *every* call regardless of type. Any doubt fails closed: a shell metacharacter that could chain to a mutating command (`&&`, `;`, `|`, `>`, a backtick) or any mutating token anywhere in the string forces the call to count as a normal (non-read-only) call.
 
 ```mermaid
 flowchart TD
@@ -3577,7 +3577,7 @@ Oath-hook silent while hanging Runes exist for the owner.
 Probe: `plugins/ravenclaude-core/scripts/runes.py --self-test` (and
 `hooks/tests/test-runes-ready-queue.sh`).
 
-**Sources:** [PE DIGEST ship Norse Runes ready-queue (Longship amend), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md) · [docs/runes-ready-queue.md](https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md)
+**Sources:** [docs/runes-ready-queue.md (PE DIGEST ship Norse Runes ready-queue, Longship amend, 2026-09-15)](https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md)
 
 _Last verified: 2026-09-15_
 
@@ -3613,7 +3613,7 @@ while `hardening_edit` is false.
 
 Probe: `plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh`.
 
-**Sources:** [PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml) · [knowledge/thing-harden-transforms.yaml](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml)
+**Sources:** [knowledge/thing-harden-transforms.yaml (PE DIGEST ship Thing hardening EDIT 0.323.5, 2026-09-15)](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml)
 
 _Last verified: 2026-10-18_
 

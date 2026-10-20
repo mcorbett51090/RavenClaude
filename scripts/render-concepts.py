@@ -40,7 +40,9 @@ import visual_pack as vp  # noqa: E402
 # Pin the renderer so committed SVGs stay reproducible across machines/time.
 MMDC_VERSION = "11.15.0"
 # Bump when the normalizer logic below changes (invalidates every committed SVG).
-NORMALIZER_VERSION = 4
+# 5: _theme_style groups same-type selectors with :is(), so the id prefix repeats
+#    19 times instead of 36. Specificity per element is unchanged.
+NORMALIZER_VERSION = 5
 
 VISUALS_DIR = "plugins/ravenclaude-core/knowledge/concepts/visuals"
 MANIFEST_NAME = ".render-manifest.json"
@@ -177,16 +179,22 @@ def _chrome_hint() -> str:
 def _theme_style(svg_id: str) -> str:
     """An override <style> that remaps raw-Mermaid colors onto dashboard tokens.
     `!important` + the id prefix beat Mermaid's own injected per-id rules. Uses
-    CSS vars so the dashboard's prefers-color-scheme:light block flips the SVG."""
+    CSS vars so the dashboard's prefers-color-scheme:light block flips the SVG.
+
+    This block is inlined once per diagram, so its size multiplies by every SVG
+    on the page. `:is()` groups only arguments of one selector type (all classes
+    or all tags): its specificity is that of its most specific argument, so a
+    same-type group keeps every element's specificity, and the cascade, unchanged."""
     s = f"#{svg_id}"
+    shapes = ":is(rect,polygon,circle,path)"
     return (
         "<style>"
-        f"{s} .nodeLabel,{s} .edgeLabel,{s} text,{s} span,{s} p,{s} div"
+        f"{s} :is(.nodeLabel,.edgeLabel),{s} :is(text,span,p,div)"
         # theme the text COLOR only — never the font-family: Mermaid baked node
         # widths using its own font at render time, so forcing a wider font here
         # would overflow the shapes (clipped labels).
         "{fill:var(--text)!important;color:var(--text)!important;background:transparent!important}"
-        f"{s} .node rect,{s} .node polygon,{s} .node circle,{s} .node path,{s} .label-container"
+        f"{s} .node {shapes},{s} .label-container"
         "{fill:var(--surface-2)!important;stroke:var(--border)!important;stroke-width:1.5px!important}"
         f"{s} .cluster rect{{fill:var(--surface)!important;stroke:var(--border)!important}}"
         f"{s} .edgePath .path,{s} .edgePath path,{s} path.flowchart-link,{s} .flowchart-link"
@@ -195,15 +203,15 @@ def _theme_style(svg_id: str) -> str:
         "{fill:var(--muted)!important;stroke:none!important}"
         f"{s} .edgeLabel rect,{s} .edgeLabel .labelBkg,{s} .label-container.edgeLabel"
         "{fill:var(--bg)!important;opacity:1!important}"
-        f"{s} .edgeLabel text,{s} .edgeLabel span{{fill:var(--muted)!important;color:var(--muted)!important}}"
+        f"{s} .edgeLabel :is(text,span){{fill:var(--muted)!important;color:var(--muted)!important}}"
         # fact-vs-built coloring, driven by `class X,Y fact|built` in the Mermaid source
-        f"{s} .node.fact rect,{s} .node.fact polygon,{s} .node.fact path,{s} .node.fact circle"
+        f"{s} .node.fact {shapes}"
         "{stroke:var(--muted)!important}"
-        f"{s} .node.built rect,{s} .node.built polygon,{s} .node.built path,{s} .node.built circle"
+        f"{s} .node.built {shapes}"
         "{fill:var(--surface)!important;stroke:var(--accent)!important}"
         # hover/focus highlight — the :hover pseudo-class out-specifies the base
         # node rule above, so the inlined diagram feels live without extra JS
-        f"{s} .node:hover rect,{s} .node:hover polygon,{s} .node:hover circle,{s} .node:hover path"
+        f"{s} .node:hover {shapes}"
         "{stroke:var(--accent)!important;stroke-width:2.5px!important;cursor:default}"
         "</style>"
     )
