@@ -32,14 +32,22 @@ def _read_csv(path):
 
 
 def _tb_net(path):
-    """account -> (description, net book balance = debit - credit)."""
+    """account -> (description, net book balance = debit - credit).
+
+    A TB may carry several rows for one account (a debit row and a credit row, or
+    adjusting lines); the book balance is the SUM of their nets, never the last row's.
+    The first row's description is kept."""
     out = {}
     for row in _read_csv(path):
         acct = (row.get("account") or "").strip()
         if not acct:
             continue
         net = float(row.get("debit") or 0) - float(row.get("credit") or 0)
-        out[acct] = ((row.get("description") or "").strip(), round(net, 2))
+        if acct in out:
+            desc, running = out[acct]
+            out[acct] = (desc, round(running + net, 2))
+        else:
+            out[acct] = ((row.get("description") or "").strip(), round(net, 2))
     return out
 
 

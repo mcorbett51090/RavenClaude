@@ -198,6 +198,31 @@ def main():
     check("close_state.py docstring states the tail-truncation limit honestly",
           "RESIDUAL LIMIT" in open(os.path.join(HERE, "close_state.py")).read())
 
+    print("A-17 — reconcile_summary sums duplicate account rows (does not overwrite)")
+    import reconcile_summary as rs
+    with tempfile.TemporaryDirectory() as d:
+        dup_tb = os.path.join(d, "dup-tb.csv")
+        with open(dup_tb, "w") as fh:
+            fh.write("account,description,debit,credit\n"
+                     "1000,Cash,500,0\n1000,Cash adjustment,0,200\n2000,AP,0,300\n")
+        by = {r["account"]: r for r in rs.reconcile(dup_tb, 1.0)["accounts"]}
+        check("1000 dr 500 + 1000 cr 200 -> book_balance 300.0 (not the last row's -200.0)",
+              by["1000"]["book_balance"] == 300.0)
+        check("the FIRST row's description is kept", by["1000"]["description"] == "Cash")
+        check("a single-row account is unchanged (2000 -> -300.0)", by["2000"]["book_balance"] == -300.0)
+        sub = os.path.join(d, "dup-sub.csv")
+        with open(sub, "w") as fh:
+            fh.write("account,subledger_balance\n1000,300\n")
+        tied = {r["account"]: r for r in rs.reconcile(dup_tb, 1.0, sub)["accounts"]}["1000"]
+        check("tie-out against a 300 sub-ledger PASSes (book 300, diff 0)",
+              tied["status"] == "PASS" and tied["difference"] == 0.0)
+        prior = os.path.join(d, "dup-prior.csv")
+        with open(prior, "w") as fh:
+            fh.write("account,description,debit,credit\n1000,Cash,100,0\n2000,AP,0,300\n")
+        mv = {m["account"]: m for m in rs.flux(dup_tb, prior, 1.0)["material_movements"]}
+        check("flux on the summed account: 300 vs prior 100 -> movement 200.0",
+              "1000" in mv and mv["1000"]["movement"] == 200.0)
+
     print("P4 — orchestrator submit-only invariant")
     src = open(os.path.join(HERE, "controller_cycle.py")).read()
     # strip comments/strings-ish: just assert no .approve(/.lock(/.reopen( call on a ledger
