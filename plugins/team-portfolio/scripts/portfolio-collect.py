@@ -247,7 +247,9 @@ def collect_repo(
                     "title": (it.get("title") or "")[:140],
                     "url": it.get("html_url"),
                     "state": it.get("state"),
-                    "merged": bool((it.get("pull_request") or {}).get("merged_at"))
+                    # The merge TIMESTAMP (ISO string) or None, not a bool: the report must be able
+                    # to tell a merge inside the window from an old merge merely updated in it.
+                    "merged": ((it.get("pull_request") or {}).get("merged_at") or None)
                     if is_pr
                     else None,
                     "created_at": it.get("created_at"),

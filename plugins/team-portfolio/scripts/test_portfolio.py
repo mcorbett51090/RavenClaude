@@ -313,6 +313,86 @@ def sec_a29_truncation_is_reported():
     )
 
 
+def sec_a30_merged_counts_are_windowed():
+    print("A-30 — 'Merged PRs' counts merges inside the window, not PRs merely updated in it")
+    merged_at = "2026-06-04T12:00:00Z"
+    events, _ = collect(
+        Stub(
+            [],
+            [
+                issue("alice", pr=True, merged_at=merged_at, state="closed"),
+                issue("alice", pr=True, merged_at=None),
+                issue("alice"),
+            ],
+        ),
+        {"alice"},
+    )
+    by_type = [(e["type"], e["merged"]) for e in events]
+    check(
+        "the collector stores the merge TIMESTAMP (ISO string), not a bool",
+        ("pr", merged_at) in by_type,
+    )
+    check(
+        "an unmerged PR stores None and an issue stores None",
+        ("pr", None) in by_type and ("issue", None) in by_type,
+    )
+
+    def pr_event(title, merged, state="closed", etype="pr"):
+        return {
+            "type": etype,
+            "repo": "o/r",
+            "actor": "alice",
+            "title": title,
+            "state": state,
+            "merged": merged,
+            "updated_at": "2026-06-03T00:00:00Z",
+            "project": "P",
+        }
+
+    activity = {
+        "window": {"since": "2026-06-01T00:00:00Z", "until": "2026-06-08T00:00:00Z", "days": 7},
+        "projects": ["P"],
+        "team": [],
+        "repos": ["o/r"],
+        "events": [
+            pr_event("merged BEFORE the window, only updated in it", "2026-05-20T00:00:00Z"),
+            pr_event("merged inside the window", "2026-06-04T00:00:00Z"),
+            pr_event("legacy artifact: merged=True, no date", True),
+            pr_event("still open", False, state="open"),
+            pr_event("an open issue", None, state="open", etype="issue"),
+        ],
+    }
+    text = pr.render_projects(activity)
+    check(
+        "a PR merged before the window but updated inside it is NOT counted as merged "
+        "(2 = the in-window merge + the undated legacy one, not 3)",
+        "Merged PRs (merged in window): 2" in text,
+    )
+    check(
+        "a legacy merged=True with no date counts but is FLAGGED as having no merge date",
+        "1 with no merge date" in text,
+    )
+    check(
+        "open PR / issue counts are labelled 'updated in window'",
+        "Open PRs (updated in window): 1" in text and "Open issues (updated in window): 1" in text,
+    )
+    only_old = dict(activity, events=[activity["events"][0]])
+    check(
+        "a window containing only the old merge reports 0 merged",
+        "Merged PRs (merged in window): 0" in pr.render_projects(only_old),
+    )
+    check(
+        "merge_status classifies in / out / undated / not-merged",
+        [pr.merge_status(e, activity["window"]) for e in activity["events"][:4]]
+        == ["out", "in", "undated", None],
+    )
+    no_window = dict(activity, window={})
+    check(
+        "with no window bounds a dated merge cannot be excluded (counted)",
+        "Merged PRs (merged in window): 3" in pr.render_projects(no_window),
+    )
+
+
 def build_quiet(config):
     return pc.build_activity(config, None, "tok")
 
@@ -321,6 +401,7 @@ def main():
     sec_a21_case_insensitive_roster()
     sec_a22_transport_errors_fail_soft()
     sec_a29_truncation_is_reported()
+    sec_a30_merged_counts_are_windowed()
 
     n_pass = sum(1 for _, ok in results if ok)
     print(f"\n{n_pass}/{len(results)} acceptance tests passed.")

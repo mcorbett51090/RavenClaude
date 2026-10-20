@@ -28,6 +28,7 @@ import json
 import os
 import sys
 from collections import defaultdict
+from datetime import datetime, timezone
 
 TYPE_LABEL = {"commit": "commits", "pr": "pull requests", "issue": "issues"}
 TYPE_LABEL_SINGULAR = {"commit": "commit", "pr": "pull request", "issue": "issue"}
@@ -201,8 +202,35 @@ def render_rollup(activity: dict) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _parse_ts(value) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def merge_status(event: dict, window: dict) -> str | None:
+    """None if the PR is not merged; else "in" (merged inside the window), "out" (merged
+    outside it - the PR was merely UPDATED in the window) or "undated" (a legacy artifact that
+    stored merged=True with no merge date: counted, but flagged, since it cannot be placed)."""
+    merged = event.get("merged")
+    if not merged:
+        return None
+    when = _parse_ts(merged)
+    if when is None:
+        return "undated"
+    since, until = _parse_ts(window.get("since")), _parse_ts(window.get("until"))
+    if (since and when < since) or (until and when > until):
+        return "out"
+    return "in"
+
+
 def render_projects(activity: dict) -> str:
     events = activity.get("events", [])
+    window = activity.get("window") or {}
     project_names = activity.get("projects", [])
     lines = ["# Project status (cross-repo)", "", f"> Generated {activity.get('generated_at', '?')}."]
     lines.append("")
@@ -219,7 +247,10 @@ def render_projects(activity: dict) -> str:
         proj_events = buckets.get(name, [])
         repos = sorted({e["repo"] for e in proj_events})
         open_prs = sum(1 for e in proj_events if e["type"] == "pr" and e.get("state") == "open")
-        merged_prs = sum(1 for e in proj_events if e["type"] == "pr" and e.get("merged"))
+        merge_states = [merge_status(e, window) for e in proj_events if e["type"] == "pr"]
+        merged_prs = merge_states.count("in") + merge_states.count("undated")
+        undated = merge_states.count("undated")
+        undated_txt = f" ({undated} with no merge date, legacy artifact - counted)" if undated else ""
         open_issues = sum(
             1 for e in proj_events if e["type"] == "issue" and e.get("state") == "open"
         )
@@ -227,7 +258,9 @@ def render_projects(activity: dict) -> str:
             f"## {name}",
             "",
             f"- Repos with activity: {', '.join(f'`{r}`' for r in repos) or '_none_'}",
-            f"- Open PRs: {open_prs} · Merged PRs: {merged_prs} · Open issues: {open_issues}",
+            f"- Open PRs (updated in window): {open_prs} · "
+            f"Merged PRs (merged in window): {merged_prs}{undated_txt} · "
+            f"Open issues (updated in window): {open_issues}",
             f"- Total events in window: {len(proj_events)}",
             "",
         ]
