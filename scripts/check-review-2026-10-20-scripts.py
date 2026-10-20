@@ -367,6 +367,106 @@ def case_d2() -> None:
 
 
 # --------------------------------------------------------------------------------------
+# check-github-status.sh (D-3)
+# --------------------------------------------------------------------------------------
+GH_STATUS = "scripts/check-github-status.sh"
+# A fake `curl` that writes a fixture to the -o file. With the fixture "HTTP503" it behaves
+# like real curl: without -f/--fail it writes the 503 error body and exits 0; with -f it
+# exits 22 and writes nothing.
+FAKE_CURL = """#!/usr/bin/env python3
+import os, sys
+args = sys.argv[1:]
+out = args[args.index("-o") + 1] if "-o" in args else None
+fail = any(a == "--fail" or (a.startswith("-") and not a.startswith("--") and "f" in a) for a in args)
+fixture = os.environ["FAKE_CURL_BODY"]
+if fixture == "HTTP503":
+    if fail:
+        sys.exit(22)
+    body = '{"message": "Service Unavailable"}'
+else:
+    body = fixture
+if out:
+    open(out, "w").write(body)
+"""
+
+
+def _gh_status(body: str) -> subprocess.CompletedProcess:
+    with tempfile.TemporaryDirectory() as td:
+        shim = Path(td, "curl")
+        shim.write_text(FAKE_CURL)
+        shim.chmod(0o755)
+        env = {"PATH": td + os.pathsep + os.environ.get("PATH", ""), "FAKE_CURL_BODY": body}
+        return run(["bash", target(GH_STATUS)], env=env)
+
+
+def _incident(name: str, components=None, affected=None) -> dict:
+    return {
+        "name": name,
+        "status": "investigating",
+        "impact": "major",
+        "created_at": "2026-10-20T00:00:00Z",
+        "components": components if components is not None else [],
+        "incident_updates": [
+            {
+                "created_at": "2026-10-20T00:01:00Z",
+                "body": "looking",
+                "affected_components": affected,
+            }
+        ],
+    }
+
+
+@case("D-3")
+def case_d3() -> None:
+    """An open Actions incident with no component data must not print a green check."""
+    r = _gh_status(json.dumps({"incidents": [_incident("Incident with Actions")]}))
+    expect(r.returncode == 0, f"the script is advisory and must exit 0: {describe(r)}")
+    expect("Incident with Actions" in r.stdout, f"the incident must be printed: {describe(r)}")
+    expect("✓" not in r.stdout, f"no green check for an open Actions incident: {describe(r)}")
+    expect("LIVE INCIDENT" in r.stdout, f"a name that mentions Actions is relevant: {describe(r)}")
+
+    # An incident with an unrelated name and no component data is still surfaced.
+    r = _gh_status(json.dumps({"incidents": [_incident("Degraded performance somewhere")]}))
+    expect(
+        "✓" not in r.stdout and "unattributed - may affect you" in r.stdout,
+        f"unattributed incident hidden: {describe(r)}",
+    )
+
+    # Component association via `components` OR `affected_components` still reads as LIVE.
+    for inc in (
+        _incident("Disruption", affected=[{"name": "Actions"}]),
+        _incident("Disruption", components=[{"name": "Git Operations"}]),
+    ):
+        r = _gh_status(json.dumps({"incidents": [inc]}))
+        expect(
+            "LIVE INCIDENT" in r.stdout and "✓" not in r.stdout,
+            f"attributed incident: {describe(r)}",
+        )
+
+    # An attributed incident for an unrelated component is correctly not alarming.
+    r = _gh_status(
+        json.dumps({"incidents": [_incident("Codespaces slow", affected=[{"name": "Codespaces"}])]})
+    )
+    expect("✓" in r.stdout and "none affecting" in r.stdout, f"unrelated incident: {describe(r)}")
+    r = _gh_status(json.dumps({"incidents": []}))
+    expect("no unresolved incidents" in r.stdout, f"empty incident list: {describe(r)}")
+
+    # A body that is not a dict with an 'incidents' list is UNKNOWN, never clean.
+    for body in ('["x"]', '{"message": "Service Unavailable"}', '{"incidents": null}', "not json"):
+        r = _gh_status(body)
+        expect(
+            "UNKNOWN" in r.stdout and "✓" not in r.stdout,
+            f"body {body!r} must be UNKNOWN: {describe(r)}",
+        )
+    # curl must be run with -f so an HTTP error is UNKNOWN, not an empty/clean body.
+    r = _gh_status("HTTP503")
+    expect(
+        "UNKNOWN" in r.stderr + r.stdout and "✓" not in r.stdout,
+        f"HTTP 503 must be UNKNOWN: {describe(r)}",
+    )
+
+
+# --------------------------------------------------------------------------------------
 # generative-web-media: optimize-image.mjs
 # --------------------------------------------------------------------------------------
 OPTIMIZE = "plugins/generative-web-media/scripts/web-optimize/optimize-image.mjs"
