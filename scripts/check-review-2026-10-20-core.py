@@ -642,6 +642,51 @@ def case_c8(root: Path) -> None:
     )
 
 
+# ─── C-14: a re-run replaced a symlinked ~/.bashrc with a 0600 regular file ──
+TERMIND_REL = (
+    "plugins/ravenclaude-core/skills/terminal-status-indicators/setup-terminal-indicators.sh"
+)
+
+
+def case_c14(root: Path) -> None:
+    home = Path(tempfile.mkdtemp(prefix="c14-", dir=_TMP))
+    (home / "dotfiles").mkdir()
+    (home / "proj").mkdir()
+    target = home / "dotfiles/bashrc"
+    target.write_text("# my dotfile bashrc\nexport FOO=1\n")
+    target.chmod(0o644)
+    (home / ".bashrc").symlink_to(target)
+    env = dict(os.environ, HOME=str(home))
+    for commands in ("copilot,claude", "copilot,claude,grok"):
+        cp = subprocess.run(
+            [
+                "bash",
+                str(root / TERMIND_REL),
+                "--project",
+                str(home / "proj"),
+                "--commands",
+                commands,
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        _check(cp.returncode == 0, f"setup with --commands {commands} exits 0 (rc={cp.returncode})")
+    body = target.read_text()
+    _check((home / ".bashrc").is_symlink(), "after two runs ~/.bashrc is still a symlink")
+    _check(
+        oct(target.stat().st_mode & 0o777) == "0o644",
+        f"the target's mode is unchanged ({oct(target.stat().st_mode & 0o777)})",
+    )
+    _check(
+        "copilot,claude,grok" in body
+        and body.count("ravenclaude terminal-status-indicators >>>") == 1,
+        "the symlink TARGET carries the refreshed block, exactly once",
+    )
+    _check("export FOO=1" in body, "the user's own content in the target is kept")
+
+
 CASES = {
     "C-1": case_c1,
     "C-2": case_c2,
@@ -649,6 +694,7 @@ CASES = {
     "C-3": case_c3,
     "C-7": case_c7,
     "C-8": case_c8,
+    "C-14": case_c14,
 }
 
 
