@@ -26,6 +26,7 @@ import argparse
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -718,6 +719,67 @@ def case_b21() -> None:
         Path(other).write_text("x")
         r = fire(PP_TMDL_HOOK, other, no_jq)
         expect(r.stderr == "", f"a non-TMDL path must stay silent without jq: {describe(r)}")
+
+
+# --------------------------------------------------------------------------------------
+# pbir-ref-integrity check_refs.py: documented exit codes match behaviour (B-24)
+# --------------------------------------------------------------------------------------
+CHECK_REFS = "plugins/power-platform/skills/pbir-ref-integrity/check_refs.py"
+
+
+def _documented_exit_codes(source: str) -> dict[int, str]:
+    """The `Exit codes` block of the module docstring as {code: text}."""
+    block = re.search(r"Exit codes\n-+\n(.*?)\n\"\"\"", source, re.S)
+    expect(block is not None, "check_refs.py docstring has no 'Exit codes' block")
+    codes: dict[int, str] = {}
+    current = None
+    for line in block.group(1).splitlines():
+        m = re.match(r"^ {2}(\d)\s+(\S.*)$", line)
+        if m:
+            current = int(m.group(1))
+            codes[current] = m.group(2)
+        elif current is not None and line.startswith("      "):
+            codes[current] += " " + line.strip()
+    return codes
+
+
+@case("B-24")
+def case_b24() -> None:
+    """The exit codes the docstring promises must be the exit codes the tool returns."""
+    source = Path(target(CHECK_REFS)).read_text()
+    with tempfile.TemporaryDirectory() as td:
+        # Run a copy placed so the script's own repo-root resolves to the temp dir.
+        home = Path(td, "plugins", "power-platform", "skills", "pbir-ref-integrity")
+        home.mkdir(parents=True)
+        script = home / "check_refs.py"
+        script.write_text(source)
+        pages = Path(td, "torn.Report", "definition", "pages")
+        pages.mkdir(parents=True)
+        (pages / "pages.json").write_text("{not json")
+
+        r = run(["python3", str(script), str(Path(td, "torn.Report")), "--format", "json"])
+        parse_rc = r.returncode
+        findings = json.loads(r.stdout)["findings"]
+        expect(any(f["check_id"] == "parse" for f in findings), f"no parse finding: {describe(r)}")
+        r = run(["python3", str(script), str(Path(td, "empty.Report"))])
+        missing_def_rc = r.returncode
+        r = run(["python3", str(script), "../x"])
+        rejected_rc = r.returncode
+        expect(rejected_rc == 2, f"a '..' path must be rejected with 2: {describe(r)}")
+        expect(parse_rc == missing_def_rc, "torn JSON and a missing definition/ must agree")
+
+    codes = _documented_exit_codes(source)
+    for code, text in codes.items():
+        if "parse" in text.lower():
+            expect(
+                code == parse_rc,
+                f"docstring says parse errors exit {code} but the tool exits {parse_rc}: {text!r}",
+            )
+    expect(2 in codes and "parse" not in codes[2].lower(), f"exit 2 line: {codes.get(2)!r}")
+    expect(
+        any("parse" in t.lower() for t in codes.values()),
+        "the docstring should say where parse errors land (exit 1)",
+    )
 
 
 # --------------------------------------------------------------------------------------
