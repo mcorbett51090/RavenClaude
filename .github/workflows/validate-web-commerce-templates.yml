@@ -51,11 +51,14 @@ jobs:
         with:
           node-version: "22"
 
-      # The templates have no package.json (consumers copy them into their own
-      # app), so the two dev dependencies are installed by exact version and
-      # never saved. --ignore-scripts: no install-time code runs.
-      - name: Install stripe + tsx (exact versions, no install scripts)
-        run: npm install --no-save --no-audit --no-fund --ignore-scripts stripe@23.0.0 tsx@4.23.15
+      # templates/stripe/package.json + package-lock.json are CI tooling only:
+      # consumers copy a tier directory (framework/ or static/), which sits
+      # below them. `npm ci` reads the committed lockfile, so the whole
+      # transitive tree is pinned and reviewable; an inline
+      # `npm install <pkg>@version` is what zizmor's adhoc-packages audit
+      # flags. --ignore-scripts: no install-time code runs.
+      - name: Install stripe + tsx from the committed lockfile (no install scripts)
+        run: npm ci --no-audit --no-fund --ignore-scripts
 
       - name: Run the Stripe template tests (framework + static)
         run: npx --no-install tsx --test framework/tests/*.test.ts static/tests/*.test.ts
