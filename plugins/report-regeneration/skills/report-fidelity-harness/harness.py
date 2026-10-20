@@ -891,7 +891,11 @@ def leg_v4(output_root: Element, taint: dict[str, str], output_text: str | None 
         corpus = corpus + " " + output_text
         corpus_typed = corpus_typed | extract_typed_values(output_text)
         surface += " + the full delivered bytes (comments/DOCTYPE — raw-byte backstop)"
-    return _v4_leg(corpus, corpus_typed, taint, surface)
+    # B-3: the typed extractor only sees $-currency / percent / dates / periods / comma-GROUPED
+    # numbers, so a taint figure written raw (`3102450`, `3102450.00`) in a data-* attribute, inline
+    # <script> chart JSON or plain text slipped through. Match value taints against the corpus's
+    # bare numeric tokens too, exactly as the Office lane does for its raw embedded caches.
+    return _v4_leg(corpus, corpus_typed, taint, surface, corpus_numbers=_raw_numbers(corpus))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1719,16 +1723,20 @@ def _decoded_container_office(container: OfficeContainer, _depth: int = 0) -> tu
 
 
 _RE_BARE_NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+# B-3: a second, grouping-aware pass — a comma only joins exact 3-digit groups — so a JSON array
+# such as `[3102450,2900000]` also yields `3102450` and `2900000`, not only the joined token.
+_RE_GROUPED_OR_BARE_NUMBER = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
 
 
 def _raw_numbers(corpus: str) -> set:
     """Canonical BARE numeric tokens in the corpus — the embedded-xlsx cache stores figures raw
     (e.g. `1284500`), which the typed extractor (currency/percent/grouped) never captures."""
     out: set = set()
-    for m in _RE_BARE_NUMBER.finditer(corpus):
-        c = canon_number(m.group())
-        if c is not None:
-            out.add(c)
+    for rx in (_RE_BARE_NUMBER, _RE_GROUPED_OR_BARE_NUMBER):
+        for m in rx.finditer(corpus):
+            c = canon_number(m.group())
+            if c is not None:
+                out.add(c)
     return out
 
 

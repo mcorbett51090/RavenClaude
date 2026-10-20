@@ -297,6 +297,23 @@ def test_v2_checks_a_needs_review_node_apart_from_its_rebind_badge():
         assert leg["verdict"] == "fail", "V2 missed an edit inside a needs-review node"
 
 
+def test_v4_html_catches_a_raw_ungrouped_taint_number():
+    # B-3: a taint figure written raw (no $ / no grouping) survived V4 in every hidden channel.
+    taint = {"old_revenue_total": "$3,102,450"}
+    leaks = {
+        "data- attribute": '<html><body><div data-value="3102450">chart</div></body></html>',
+        "script JSON": '<html><body><script>var d={"rev":[3102450,2900000]};</script></body></html>',
+        "plain text": "<html><body><p>Revenue 3102450</p></body></html>",
+        "3102450.00": "<html><body><p>Revenue 3102450.00</p></body></html>",
+        "formatted visible (control)": "<html><body><p>Revenue $3,102,450</p></body></html>",
+    }
+    for name, text in leaks.items():
+        leg = harness.leg_v4(harness.parse_html(text), taint, text)
+        assert leg["verdict"] == "fail", f"V4 missed the raw taint figure in the {name}"
+    clean = '<html><body><p>Revenue $4,821,300</p><style>p{color:rgb(30,30,30)}</style></body></html>'
+    assert harness.leg_v4(harness.parse_html(clean), taint, clean)["verdict"] == "pass"
+
+
 # ── standalone runner (no pytest required) ─────────────────────────────────────
 
 def _main() -> int:
