@@ -783,6 +783,45 @@ def case_b24() -> None:
 
 
 # --------------------------------------------------------------------------------------
+# report-visualization-design grid.py (B-25)
+# --------------------------------------------------------------------------------------
+GRID_PY = "plugins/power-platform/skills/report-visualization-design/grid.py"
+
+
+def _grid_regions(*argv: str) -> dict:
+    r = run(["python3", target(GRID_PY), "--format", "json", *argv])
+    expect(r.returncode == 0, f"grid.py {' '.join(argv)} must succeed: {describe(r)}")
+    return json.loads(r.stdout)
+
+
+@case("B-25")
+def case_b25() -> None:
+    """Common 16:9 canvases and off-grid margin/gap must be snapped, not rejected."""
+    for canvas in ("1600x900", "1440x810", "960x540", "1280x720", "1920x1080"):
+        w, h = (int(v) for v in canvas.split("x"))
+        for template in ("golden-overview", "3-30-300", "kpi-strip"):
+            out = _grid_regions("--template", template, "--canvas", canvas)
+            for reg in out["regions"]:
+                vals = (reg["x"], reg["y"], reg["width"], reg["height"])
+                expect(all(v % 8 == 0 for v in vals), f"{template} {canvas}: {reg} is off-grid")
+                expect(
+                    reg["x"] + reg["width"] <= w and reg["y"] + reg["height"] <= h,
+                    f"{template} {canvas}: {reg} leaves the canvas",
+                )
+    # Off-grid margin / gap are snapped to the grid, and the payload reports what was used.
+    for template in ("golden-overview", "3-30-300", "kpi-strip"):
+        out = _grid_regions("--template", template, "--margin", "20", "--gap", "12")
+        expect(
+            out["margin_px"] % 8 == 0 and out["gap_px"] % 8 == 0,
+            f"{template}: margin/gap must be reported on-grid: {out['margin_px']}/{out['gap_px']}",
+        )
+    # Control: the default canvas is unchanged.
+    out = _grid_regions("--template", "golden-overview")
+    hero = next(r for r in out["regions"] if r["name"] == "hero")
+    expect((hero["width"], hero["height"]) == (1080, 904), f"default golden-overview moved: {hero}")
+
+
+# --------------------------------------------------------------------------------------
 # generative-web-media: optimize-image.mjs
 # --------------------------------------------------------------------------------------
 OPTIMIZE = "plugins/generative-web-media/scripts/web-optimize/optimize-image.mjs"
