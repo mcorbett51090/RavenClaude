@@ -223,8 +223,55 @@ def case_c1(root: Path) -> None:
     )
 
 
+# ─── C-2: max/ultra default budgets demanded more agent() calls than the cap ──
+def case_c2(root: Path) -> None:
+    big = _run_sweep(root, {"effort": "max", "runId": "c2-max"}, {"batches": 80})
+    ret = big.get("ret") or {}
+    _check("refuses to start Review" in _err(big), "max/80 -> {error} before Review")
+    _check(
+        big["reviewCalls"] == 0,
+        f"max/80 -> 0 review/cache agent() calls (got {big['reviewCalls']})",
+    )
+    _check(big["calls"] <= 3, f"max/80 -> only the pre-review calls were made (got {big['calls']})")
+    _check("block_planner.py" in _err(big), "the refusal names block mode (block_planner.py)")
+    fit = ret.get("largest_budget_batches")
+    _check(
+        isinstance(fit, int) and fit >= 1,
+        f"the refusal names the largest budgetBatches that fits ({fit})",
+    )
+    ok = _run_sweep(root, {"effort": "max", "runId": "c2-fit"}, {"batches": fit})
+    _check(
+        "refuses to start Review" not in _err(ok) and ok["capErrors"] == 0 and ok["calls"] <= 900,
+        f"max at the named budget ({fit} batches) runs under the ceiling ({ok['calls']} calls)",
+    )
+    ultra = _run_sweep(root, {"effort": "ultra", "runId": "c2-ultra"}, {"batches": 160})
+    _check(
+        "refuses to start Review" in _err(ultra) and ultra["reviewCalls"] == 0,
+        "ultra/160 -> {error} before Review",
+    )
+
+    high = _run_sweep(root, {"effort": "high", "runId": "c2-high"}, {"batches": 20})
+    hret = high.get("ret") or {}
+    _check(
+        isinstance(hret, dict) and "report_md" in hret and high["capErrors"] == 0,
+        f"high/20 runs to the report ({high['calls']} calls)",
+    )
+
+    merge = _run_sweep(
+        root, {"effort": "high", "runId": "c2-merge"}, {"batches": 3, "mergeThrows": True}
+    )
+    mret = merge.get("ret") or {}
+    _check(merge.get("err") is None, "a throwing Merge agent does not abort the script uncaught")
+    _check(
+        isinstance(mret, dict)
+        and mret.get("findings_dir") == ".ravenclaude/runs/c2-merge/findings",
+        "a throwing Merge returns {error, findings_dir}",
+    )
+
+
 CASES = {
     "C-1": case_c1,
+    "C-2": case_c2,
 }
 
 

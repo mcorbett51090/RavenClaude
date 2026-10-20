@@ -812,6 +812,54 @@ if (BLOCK_MODE) {
   );
 }
 
+// ─── Agent-call demand guard (before ANY review dispatch) ──────────────────
+// The Workflow tool hard-caps a run at 1,000 agent() calls. Each (dimension,
+// model, batch) triple costs up to 2 calls on a cold cache (the cache check,
+// then the review), so the max/ultra default budgets alone demand 2,400-4,800.
+// Past the cap every call throws: review agents degrade to "0 findings" and the
+// Merge dispatch fails, after the run has already spent its tokens. So the
+// demand is computed here, from the real plan, and a run that cannot fit is
+// REFUSED, never silently clamped (a clamp would drop coverage without saying
+// so). It counts this pass only, cold cache: converge iterations >= 2 re-review
+// only the batches a Fix pass touched, and the gap between this ceiling and the
+// cap is their buffer (block_planner.py --converge reserves more).
+const AGENT_CALL_CEILING = 900;
+const reviewCallsPerBatch = activeDimensions.reduce(
+  (sum, dim) => sum + new Set(resolveModelsForDimension(dim, models)).size * 2,
+  0,
+);
+const preReviewCalls = BLOCK_MODE ? 2 : 3; // Map + cost estimate (+ the fresh-run preflight)
+const downstreamCalls =
+  BLOCK_MODE && !FINALIZE_BLOCK ? 0 : 2 + VERIFY_CAP + (AUTOFIX ? FIX_CAP + 3 : 0) + 1; // Merge + enumerate + verify, Fix, Report
+const agentCallDemand =
+  preReviewCalls + reviewCallsPerBatch * iteration1ReviewBatchIds.length + downstreamCalls;
+log(
+  `Agent-call demand: ~${agentCallDemand} (cold cache) against a ${AGENT_CALL_CEILING}-call ceiling ` +
+    `(the Workflow tool's hard cap is 1000).`,
+);
+if (agentCallDemand > AGENT_CALL_CEILING) {
+  const largestFit = Math.floor(
+    (AGENT_CALL_CEILING - preReviewCalls - downstreamCalls) / reviewCallsPerBatch,
+  );
+  const fitHint = BLOCK_MODE
+    ? `This block's slice is too large: re-plan with block_planner.py and a smaller --safe-ceiling.`
+    : largestFit >= 1
+      ? `Re-run with args.budgetBatches <= ${largestFit}, which drops coverage, or keep full coverage with block mode.`
+      : `No args.budgetBatches fits at this tier with these caps; lower args.verifyCap/args.fixCap or use block mode.`;
+  return {
+    error:
+      `repo-sweep refuses to start Review: this run needs ~${agentCallDemand} agent() calls ` +
+      `(${iteration1ReviewBatchIds.length} batch(es) x ${reviewCallsPerBatch} calls per batch, plus ` +
+      `${preReviewCalls + downstreamCalls} for Map/Merge/Verify/Fix/Report), over the ` +
+      `${AGENT_CALL_CEILING}-call ceiling under the Workflow tool's 1000-call cap. ${fitHint} Block mode ` +
+      `splits the same plan across invocations: python3 ${SCRIPTS_DIR}/block_planner.py --plan ` +
+      `${PLAN_PATH} --effort-tier ${EFFORT}${crossModelActive ? " --cross-model" : ""}` +
+      `${CONVERGE ? " --converge" : ""} --run-id ${RUN_ID} --out <manifest.json>`,
+    agent_call_demand: agentCallDemand,
+    largest_budget_batches: BLOCK_MODE ? null : Math.max(0, largestFit),
+  };
+}
+
 if (BLOCK_MODE) {
   await runReviewPhase(FINDINGS_DIR, iteration1ReviewBatchIds);
   if (!FINALIZE_BLOCK) {
@@ -1315,12 +1363,23 @@ while (iteration < MAX_ITERATIONS) {
       );
     }
   }
-  const mergeReceipt = await runMergePhase(FINDINGS_DIR, mergedPath);
+  // A Merge agent that THROWS (the agent-call cap, a session usage limit) must
+  // not abort the script uncaught: the caller still needs the findings dir.
+  let mergeReceipt = null;
+  let mergeError = "";
+  try {
+    mergeReceipt = await runMergePhase(FINDINGS_DIR, mergedPath);
+  } catch (e) {
+    mergeError = e && e.message ? e.message : String(e);
+  }
 
   if (!mergeReceipt || !mergeReceipt.artifact) {
     return {
+      findings_dir: FINDINGS_DIR,
       error:
-        `Merge phase failed at iteration ${iteration} — findings_merge.py did not return a usable receipt. ` +
+        `Merge phase failed at iteration ${iteration}` +
+        (mergeError ? ` (${mergeError})` : "") +
+        ` — findings_merge.py did not return a usable receipt. ` +
         `This does NOT mean the review work was lost — every completed review agent already wrote its ` +
         `shard to ${FINDINGS_DIR}/ before this failure. Before re-dispatching, check that directory and, ` +
         `if it has shards, run findings_merge.py over it BY HAND to recover them (uncapped, mark the ` +
