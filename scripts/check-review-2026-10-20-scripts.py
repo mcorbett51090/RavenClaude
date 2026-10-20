@@ -1136,6 +1136,66 @@ def case_d15() -> None:
 
 
 # --------------------------------------------------------------------------------------
+# concepts.py freshness gate: a future last_verified is a violation (D-8)
+# --------------------------------------------------------------------------------------
+CONCEPTS = "scripts/concepts.py"
+
+
+@case("D-8")
+def case_d8() -> None:
+    """A last_verified more than a day in the future must not read as perpetually fresh."""
+    import datetime
+
+    cm = _load_module(CONCEPTS, "concepts_under_test")
+    today = datetime.date(2026, 10, 20)
+    cm._today = lambda: today
+
+    def verdict(kind: str, days: int, *, sweep: bool = False):
+        concept = {
+            "id": f"{kind}-{days}",
+            "kind": kind,
+            "entry_class": "inventory" if kind == "ravenclaude-built" else None,
+            "last_verified": (today + datetime.timedelta(days=days)).isoformat(),
+            "covers": None,
+        }
+        return cm._freshness_violations(REPO, [concept], sweep=sweep)
+
+    for kind in ("platform-fact", "ravenclaude-built"):
+        # Today and tomorrow (clock skew / time zones) are fine.
+        for days in (0, 1, -1):
+            blocking, warnings = verdict(kind, days, sweep=True)
+            expect(
+                not blocking and not warnings,
+                f"{kind} {days:+d}d must be clean: {blocking} {warnings}",
+            )
+        # A date 30 (or 2) days ahead disarms the gate: it must be flagged.
+        for days in (30, 2):
+            blocking, warnings = verdict(kind, days)
+            if kind == "platform-fact":
+                expect(
+                    len(blocking) == 1 and "FUTURE" in blocking[0] and not warnings,
+                    f"platform-fact +{days}d must BLOCK: {blocking} {warnings}",
+                )
+            else:
+                expect(
+                    not blocking and len(warnings) == 1 and "FUTURE" in warnings[0],
+                    f"inventory +{days}d must WARN on a PR: {blocking} {warnings}",
+                )
+                blocking, warnings = verdict(kind, days, sweep=True)
+                expect(
+                    len(blocking) == 1 and "FUTURE" in blocking[0] and not warnings,
+                    f"inventory +{days}d must BLOCK on the sweep: {blocking} {warnings}",
+                )
+    # The existing staleness lanes are untouched.
+    blocking, _ = verdict("platform-fact", -91)
+    expect(len(blocking) == 1 and "91 days old" in blocking[0], f"stale platform-fact: {blocking}")
+    blocking, warnings = verdict("ravenclaude-built", -181)
+    expect(
+        not blocking and len(warnings) == 1, f"stale inventory warns on a PR: {blocking} {warnings}"
+    )
+
+
+# --------------------------------------------------------------------------------------
 # generative-web-media: optimize-image.mjs
 # --------------------------------------------------------------------------------------
 OPTIMIZE = "plugins/generative-web-media/scripts/web-optimize/optimize-image.mjs"
