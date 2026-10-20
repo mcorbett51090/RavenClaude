@@ -522,7 +522,7 @@ def connect(**kwargs): return _Conn()
 def _psm_env(tmp: Path) -> dict[str, str]:
     """A fake snowflake.connector package on PYTHONPATH plus the env the exporter wants."""
     pkg = Path(tmp, "stub", "snowflake")
-    pkg.mkdir(parents=True)
+    pkg.mkdir(parents=True, exist_ok=True)
     (pkg / "__init__.py").write_text("", encoding="utf-8")
     (pkg / "connector.py").write_text(_SNOWFLAKE_STUB, encoding="utf-8")
     key = Path(tmp, "key.p8")
@@ -1063,6 +1063,60 @@ def _h25() -> None:
     need(_cache_economics("0")[0] == _cache_economics("0")[1], "zero invalidations must converge")
     breaking, stable = _cache_economics("0.1")  # 100 invalidations a month: unchanged and dearer
     need(breaking == 2_150_000 and breaking > stable, f"rate 0.1: got {breaking:,} vs {stable:,}")
+
+
+# H-8 is the same exporter as H-7 above and reuses its stub-connector helpers.
+
+
+@case("H-8", "exporter: --validate fails fast (exit 2) naming a missing schema; --allow-real-ids is honest")
+def _h8() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        env = {**os.environ, **_psm_env(tmp_path)}
+
+        # An explicit --schema that does not exist: rc 2 naming the path, before any query.
+        missing = tmp_path / "nope" / "schema.json"
+        proc = _psm_run(tmp_path, "--validate", "--schema", str(missing))
+        need(proc.returncode == 2, "a missing --schema must exit 2", proc)
+        need(str(missing) in proc.stderr, "the message must name the path", proc)
+        need("counts:" not in proc.stderr, "it must fail before any query runs", proc)
+        need("unrecognized arguments" not in proc.stderr, "--schema must be a real flag", proc)
+        need("not found" in proc.stderr, "the message must say the schema was not found", proc)
+
+        # No --schema and nothing to find: rc 2 telling the user to pass --schema. Run a copy
+        # of the script in an empty directory so the answer never depends on the repo tree.
+        iso = tmp_path / "iso"
+        iso.mkdir()
+        copy = iso / "export-psm-dashboard.py"
+        copy.write_text((ROOT / PSM_EXPORT).read_text(encoding="utf-8"), encoding="utf-8")
+        args = ["--out", str(iso / "o.json"), "--as-of", "2026-06-04", "--org-uid", _PSM_ORG]
+        lost = subprocess.run(
+            [sys.executable, str(copy), *args, "--validate"],
+            capture_output=True, text=True, timeout=TIMEOUT, env=env, cwd=iso, check=False,
+        )  # fmt: skip
+        need(lost.returncode == 2, "no schema anywhere must exit 2", lost)
+        need("--schema" in lost.stderr, "the message must point at --schema", lost)
+        need("data.export.schema.json" in lost.stderr, "and name the file it wants", lost)
+
+        # An explicit, existing schema is used (jsonschema may or may not be installed here).
+        schema = tmp_path / "ok.json"
+        schema.write_text("{}", encoding="utf-8")
+        found = _psm_run(tmp_path, "--validate", "--schema", str(schema))
+        need("not found" not in found.stderr, "an existing --schema must be accepted", found)
+        need(
+            found.returncode == 0 or "requires `jsonschema`" in found.stderr,
+            "validation must run (or say jsonschema is missing)",
+            found,
+        )
+
+        # The flag no longer promises masking it does not do.
+        helped = subprocess.run(
+            [sys.executable, str(ROOT / PSM_EXPORT), "--help"],
+            capture_output=True, text=True, timeout=TIMEOUT, env=env, check=False,
+        )  # fmt: skip
+        text = " ".join(helped.stdout.split()).lower()
+        need("does not mask" in text, "--allow-real-ids help must say it does not mask", helped)
+        need("emitted without the `synthetic-` prefix" not in text, "stale help text", helped)
 
 
 # ===========================================================================
