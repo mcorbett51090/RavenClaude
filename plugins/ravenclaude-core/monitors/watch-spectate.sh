@@ -81,7 +81,7 @@ newest_spectate_log() {
   # ONE `stat` over every candidate (xargs batches the list), not a fork per run
   # dir (~6 s per call at 1,500 run dirs); same GNU/BSD split as watch-run-state.sh.
   local _flag="-f" _fmt="%m %N"
-  if stat -c '%Y' "$runs_dir" >/dev/null 2>&1; then _flag="-c" _fmt="%Y %n"; fi
+  if stat -c '%Y' "$runs_dir" >/dev/null 2>&1; then _flag="-c" _fmt="%Y %n"; fi  # noport: probe only; BSD -f is the default
   find "$runs_dir" -maxdepth 2 -name 'spectate-events.jsonl' -type f -print0 2>/dev/null |
     xargs -0 stat "$_flag" "$_fmt" 2>/dev/null |
     awk '{ mt = $1 + 0; if (mt > best) { best = mt; line = $0 } }

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.1 — 2026-10-20
+## [0.1.1] — 2026-10-20
 
 ### Fixed (2026-10-20 autonomous repo review, PR #1389)
 

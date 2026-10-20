@@ -2,7 +2,7 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
-## 0.1.4 — 2026-10-20
+## [0.1.4] — 2026-10-20
 
 ### Fixed (2026-10-20 autonomous repo review, PR #1389)
 

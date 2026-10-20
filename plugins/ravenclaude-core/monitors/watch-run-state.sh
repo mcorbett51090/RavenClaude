@@ -119,7 +119,7 @@ newest_log() {
   # first strictly-newest line and reads all of its input (no early exit, so no
   # SIGPIPE under pipefail). bash-3.2-safe: no mapfile / assoc arrays / globstar.
   local _flag="-f" _fmt="%m %N"
-  if stat -c '%Y' "$RUNS_DIR" >/dev/null 2>&1; then _flag="-c" _fmt="%Y %n"; fi
+  if stat -c '%Y' "$RUNS_DIR" >/dev/null 2>&1; then _flag="-c" _fmt="%Y %n"; fi  # noport: probe only; BSD -f is the default
   find "$RUNS_DIR" -maxdepth 2 -name 'hook-events.jsonl' -type f -print0 2>/dev/null |
     xargs -0 stat "$_flag" "$_fmt" 2>/dev/null |
     awk '{ mt = $1 + 0; if (mt > best) { best = mt; line = $0 } }
