@@ -362,6 +362,43 @@ def test_taint_flag_accepts_the_build_manifest_taint_dict():
     assert "taint-dict@1" in json.loads(proc.stdout)["error"]
 
 
+def test_render_referee_leaves_no_scratch_screenshot_behind():
+    # B-22: every Playwright run left a full-page PNG of the report in the temp dir. Stubbed page.
+    referee = _load("render_referee_under_test", _SKILL_DIR / "render_referee.py")
+    written = []
+
+    class Page:
+        def on(self, *_a):
+            pass
+
+        def goto(self, *_a, **_k):
+            pass
+
+        def wait_for_timeout(self, *_a):
+            pass
+
+        def evaluate(self, *_a):
+            return []
+
+        def screenshot(self, path, **_k):
+            Path(path).write_bytes(b"\x89PNG report pixels")
+            written.append(path)
+
+        def close(self):
+            pass
+
+    class Browser:
+        def new_page(self):
+            return Page()
+
+    run = referee._render_once(Browser(), _CLEAN_OUTPUT, None, 1000)
+    assert written and not any(Path(p).exists() for p in written), "scratch screenshot left behind"
+    assert run["screenshot_path"] is None
+    kept = _TMP / "asked-for.png"
+    run = referee._render_once(Browser(), _CLEAN_OUTPUT, str(kept), 1000)
+    assert kept.exists() and run["screenshot_path"] == str(kept), "an asked-for screenshot is kept"
+
+
 # ── standalone runner (no pytest required) ─────────────────────────────────────
 
 def _main() -> int:
