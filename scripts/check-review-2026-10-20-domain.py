@@ -760,6 +760,39 @@ def _h13() -> None:
     need(not problems, "hook rows failed:\n  " + "\n  ".join(problems))
 
 
+# ---------------------------------------------------------------------------
+# H-16  tableau/flag-tableau-anti-patterns.sh: `grep -c ... || echo 0` yields "0\n0"
+# ---------------------------------------------------------------------------
+
+TABLEAU_HOOK = "plugins/tableau/hooks/flag-tableau-anti-patterns.sh"
+
+
+def _tableau(text: str) -> subprocess.CompletedProcess[str]:
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp, "wb.twb")
+        target.write_text(text, encoding="utf-8")
+        return run_hook(TABLEAU_HOOK, target)
+
+
+@case("H-16", "tableau hook: no bash syntax error without <datasource; blend note still fires")
+def _h16() -> None:
+    none = _tableau("<workbook><worksheets/></workbook>\n")
+    need(none.returncode == 0, "the hook is advisory and must exit 0", none)
+    need("syntax error" not in none.stderr, "no bash arithmetic error on a datasource-free file", none)
+    need("Multiple data sources" not in none.stderr, "no blend note for zero datasources", none)
+
+    # One datasource per line, as in real .twb XML (the hook counts matching lines).
+    blend = _tableau(
+        "<workbook>\n<datasource name='a'/>\n<datasource name='b'/>\n"
+        "<datasource-dependencies datasource='a'/>\n</workbook>\n"
+    )
+    need(blend.returncode == 0, "the hook must exit 0 on a blend", blend)
+    need("Multiple data sources detected" in blend.stderr, "the blend note must fire", blend)
+
+    single = _tableau("<workbook>\n<datasource name='a'/>\n<col primary-key='id'/>\n</workbook>\n")
+    need("Multiple data sources" not in single.stderr, "one datasource is not a blend", single)
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
