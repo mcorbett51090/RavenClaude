@@ -108,6 +108,18 @@ class TestCompoundSelector(unittest.TestCase):
         self.assertEqual(node.tag, "meta")
         self.assertEqual(node.attrs.get("charset"), "utf-8")
 
+    def test_document_root_step_resolves_a_multi_root_fragment(self):
+        # B-9: infer roots a multi-root fragment's selectors at the synthetic '#document' umbrella.
+        frag = "<p>one</p><p>two</p>"
+        sel = {"kind": "css_selector", "value": "#document > p:nth-of-type(2)"}
+        self.assertEqual(rr_anchor.read_inner(frag, sel), "two")
+        self.assertEqual(rr_anchor.document_path(frag, sel), (("p", 2),))
+
+    def test_real_id_document_element_still_wins(self):
+        html = '<div id="document"><p>a</p><p>b</p></div>'
+        sel = {"kind": "css_selector", "value": "#document > p:nth-of-type(2)"}
+        self.assertEqual(rr_anchor.read_inner(html, sel), "b")
+
     def test_missing_step_raises(self):
         with self.assertRaises(rr_anchor.AnchorError):
             rr_anchor.resolve(FIXTURE, {"kind": "css_selector", "value": "#sec-one > h2:nth-of-type(5)"})

@@ -345,6 +345,10 @@ def _resolve_el(document: _El, anchor: Any) -> _El:
     root_id, root_tag, steps = _parse_steps(value)
     if root_id is not None:
         cur = _find_by_id(document, root_id)
+        if cur is None and root_id == "document":
+            # B-9: infer roots a multi-root fragment's selectors at its synthetic '#document'
+            # umbrella. A real element with id="document" still wins (looked up first, above).
+            cur = document
         if cur is None:
             raise AnchorError(f"ancestor id={root_id!r} not found (selector {value!r})")
     else:
@@ -398,6 +402,22 @@ def exists(html: str, anchor: Any) -> bool:
         return try_resolve(html, anchor) is not None
     except AnchorError:
         return False
+
+
+def unresolved(html: str, anchors: list) -> list:
+    """The anchors (in order) that name no node in `html`, over ONE parse of the document. Raises
+    AnchorError for an unparseable anchor. (B-9: infer's self-check that what it emits resolves.)"""
+    document = _build_tree(html)
+    missing = []
+    for anchor in anchors:
+        kind, value = _normalize_anchor(anchor)
+        if kind == "selector":
+            _parse_steps(value)  # a malformed selector is a bug, not an absence: let it raise
+        try:
+            _resolve_el(document, anchor)
+        except AnchorError:
+            missing.append(anchor)
+    return missing
 
 
 def document_path(html: str, anchor: Any) -> tuple[tuple[str, int], ...]:
