@@ -543,12 +543,112 @@ def case_c7(root: Path) -> None:
     )
 
 
+# ─── C-8: rc probe dns blamed the probe target when there was no network ─────
+# Deterministic resolvers: a PATH holding only the tools the dns probe needs (so dig/host
+# on the test machine cannot shadow the branch under test), plus a perl module injected
+# with PERL5OPT that makes Socket::getaddrinfo answer per host, and a stub `host`.
+PROBE_REL = "plugins/ravenclaude-core/bin/probe-kit.sh"
+_STUB_RESOLVER = r"""package RcStubResolver;
+use strict;
+use warnings;
+use Scalar::Util qw(dualvar);
+require Socket;
+my %mode = map { split /=/, $_, 2 } grep { length } split /,/, ($ENV{RC_STUB_GAI} || "");
+my $real = \&Socket::getaddrinfo;
+no warnings "redefine";
+*Socket::getaddrinfo = sub {
+  my $m = $mode{$_[0]} // $mode{"*"} // "real";
+  return (dualvar(Socket::EAI_AGAIN(), "Temporary failure in name resolution")) if $m eq "again";
+  return (dualvar(Socket::EAI_NONAME(), "Name or service not known")) if $m eq "noname";
+  return ("", { family => Socket::AF_INET(), addr => Socket::pack_sockaddr_in(0, Socket::inet_aton("192.0.2.7")) }) if $m eq "ok";
+  return $real->(@_);
+};
+1;
+"""
+_STUB_HOST = """#!/bin/sh
+name="$3"
+case "$RC_STUB_HOST" in
+  unreach) echo ';; connection timed out; no servers could be reached'; exit 1 ;;
+  split)
+    if [ "$name" = "$RC_STUB_SUBJECT" ]; then echo "Host $name not found: 3(NXDOMAIN)"; exit 1; fi
+    echo "$name has address 192.0.2.7"; exit 0 ;;
+esac
+exit 9
+"""
+
+
+def _probe_dns(root: Path, bindir: Path, env_extra: dict, *argv: str) -> tuple[int, str]:
+    env = {"PATH": str(bindir), "HOME": str(bindir), "NO_COLOR": "1", **env_extra}
+    cp = subprocess.run(
+        [shutil.which("bash") or "/bin/bash", str(root / PROBE_REL), "dns", *argv],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    return cp.returncode, cp.stdout
+
+
+def case_c8(root: Path) -> None:
+    perl = shutil.which("perl")
+    awk = shutil.which("awk")
+    if not perl or not awk:
+        raise _NotRun("perl or awk is not on PATH")
+    w = Path(tempfile.mkdtemp(prefix="c8-", dir=_TMP))
+    pbin = w / "perl-only"
+    pbin.mkdir()
+    (pbin / "perl").symlink_to(perl)
+    (pbin / "awk").symlink_to(awk)
+    (w / "lib").mkdir()
+    (w / "lib/RcStubResolver.pm").write_text(_STUB_RESOLVER)
+    gai = {"PERL5LIB": str(w / "lib"), "PERL5OPT": "-MRcStubResolver"}
+
+    rc, out = _probe_dns(root, pbin, {**gai, "RC_STUB_GAI": "*=again"}, "somehost.example.org")
+    _check(
+        rc == 3 and "INCONCLUSIVE" in out,
+        f"perl resolver, EAI_AGAIN (no network) -> exit 3 INCONCLUSIVE (got {rc})",
+    )
+    _check("CONTROL ALSO FAILED" not in out, "... and never 'CONTROL ALSO FAILED'")
+    rc, out = _probe_dns(
+        root,
+        pbin,
+        {**gai, "RC_STUB_GAI": "somehost.example.org=noname,example.org=ok"},
+        "somehost.example.org",
+    )
+    _check(
+        rc == 1 and "NEGATIVE" in out,
+        f"perl resolver, a real NXDOMAIN with a resolving control -> CONFIRMED (got {rc})",
+    )
+
+    hbin = w / "host-only"
+    hbin.mkdir()
+    (hbin / "awk").symlink_to(awk)
+    (hbin / "host").write_text(_STUB_HOST)
+    (hbin / "host").chmod(0o755)
+    rc, out = _probe_dns(root, hbin, {"RC_STUB_HOST": "unreach"}, "somehost.example.org")
+    _check(
+        rc == 3 and "CONTROL ALSO FAILED" not in out,
+        f"host: 'no servers could be reached' -> INCONCLUSIVE (got {rc})",
+    )
+    rc, out = _probe_dns(
+        root,
+        hbin,
+        {"RC_STUB_HOST": "split", "RC_STUB_SUBJECT": "somehost.example.org"},
+        "somehost.example.org",
+    )
+    _check(
+        rc == 1,
+        f"host: 'not found: 3(NXDOMAIN)' still reads as a negative, CONFIRMED by control (got {rc})",
+    )
+
+
 CASES = {
     "C-1": case_c1,
     "C-2": case_c2,
     "C-11": case_c11,
     "C-3": case_c3,
     "C-7": case_c7,
+    "C-8": case_c8,
 }
 
 
