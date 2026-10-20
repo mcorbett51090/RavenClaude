@@ -938,6 +938,71 @@ def case_d12() -> None:
 
 
 # --------------------------------------------------------------------------------------
+# install-codex-mcp.py: a pure append keeps the file's own line endings (D-13)
+# --------------------------------------------------------------------------------------
+INSTALL_CODEX_MCP = "scripts/install-codex-mcp.py"
+
+
+@case("D-13")
+def case_d13() -> None:
+    """Appending to a CRLF config.toml must keep every original byte and stay CRLF."""
+    catalog = {
+        "servers": [
+            {
+                "name": "demo",
+                "party": "third-party",
+                "shipped_by": ["demo-plugin"],
+                "config": {"command": "npx", "args": ["-y", "demo"], "env": {"TOKEN_NAME": "x"}},
+            }
+        ]
+    }
+    cases = {
+        "crlf": b'model = "o3"\r\n\r\n[mcp_servers.mine]\r\ncommand = "keep"\r\n',
+        "crlf-no-trailing-newline": b'[mcp_servers.mine]\r\ncommand = "keep"',
+        "lf": b'model = "o3"\n\n[mcp_servers.mine]\ncommand = "keep"\n',
+        "empty": b"",
+    }
+    for label, original in cases.items():
+        with tempfile.TemporaryDirectory() as td:
+            cat = Path(td, "catalog.json")
+            cat.write_text(json.dumps(catalog))
+            cfg = Path(td, "config.toml")
+            if original or label != "empty":
+                cfg.write_bytes(original)
+            cmd = ["python3", target(INSTALL_CODEX_MCP), "--catalog", str(cat)]
+            r = run(cmd + ["--config", str(cfg), "--servers", "demo"])
+            expect(r.returncode == 0, f"{label}: install must succeed: {describe(r)}")
+            data = cfg.read_bytes()
+            body = (
+                original
+                if original.endswith(b"\n") or not original
+                else original + (b"\r\n" if b"\r\n" in original else b"\n")
+            )
+            expect(
+                data.startswith(body),
+                f"{label}: the original bytes must be preserved as a prefix: {data[:80]!r}",
+            )
+            expect(b"[mcp_servers.demo]" in data, f"{label}: the block must be appended")
+            if b"\r\n" in original:
+                expect(
+                    re.search(rb"(?<!\r)\n", data) is None,
+                    f"{label}: a CRLF file must stay CRLF throughout (found a bare LF)",
+                )
+            else:
+                expect(b"\r" not in data, f"{label}: an LF file must stay LF")
+            expect(
+                sorted(p.name for p in Path(td).iterdir()) == ["catalog.json", "config.toml"],
+                f"{label}: no temp file may be left behind: {sorted(p.name for p in Path(td).iterdir())}",
+            )
+            try:
+                import tomllib
+
+                tomllib.loads(data.decode("utf-8"))
+            except ModuleNotFoundError:
+                pass
+
+
+# --------------------------------------------------------------------------------------
 # generative-web-media: optimize-image.mjs
 # --------------------------------------------------------------------------------------
 OPTIMIZE = "plugins/generative-web-media/scripts/web-optimize/optimize-image.mjs"
