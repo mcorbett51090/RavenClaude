@@ -478,6 +478,91 @@ def _h6() -> None:
     need(not wrong, "typed unbounded path coverage is wrong: " + "; ".join(wrong))
 
 
+# ---------------------------------------------------------------------------
+# H-7 / H-8  edtech-partner-success export-psm-dashboard.py (Snowflake exporter)
+# ---------------------------------------------------------------------------
+
+PSM_EXPORT = (
+    "plugins/edtech-partner-success/templates/dashboard-tier-0.5-reference/export-psm-dashboard.py"
+)
+_PSM_ORG = "11111111-2222-4333-8444-555555555555"
+
+_SNOWFLAKE_STUB = """
+import datetime
+import decimal
+
+class SnowflakeConnection: ...
+class DictCursor: ...
+
+class _Cur:
+    sql = ""
+    def execute(self, sql): self.sql = sql
+    def fetchall(self):
+        if "from dim_partner" in self.sql:
+            return [{
+                "ACCOUNT_UID": "a1", "ARR": decimal.Decimal("1200.50"),
+                "CONTRACT_START": datetime.date(2026, 1, 2),
+                "STAGE_ENTERED_AT": datetime.datetime(2026, 3, 4, 5, 6, 7),
+                "COMPONENTS": '{"a": 1}', "SPARK": "[1, 2, 3]", "FLAGS": '["renewal"]',
+            }]
+        if "from timeline_events" in self.sql:
+            return [{"TS": "2026-01-01", "PAYLOAD": '{"priority": "high"}'}]
+        return []
+    def close(self): pass
+
+class _Conn:
+    def cursor(self, cls=None): return _Cur()
+    def close(self): pass
+
+def connect(**kwargs): return _Conn()
+"""
+
+
+def _psm_env(tmp: Path) -> dict[str, str]:
+    """A fake snowflake.connector package on PYTHONPATH plus the env the exporter wants."""
+    pkg = Path(tmp, "stub", "snowflake")
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "connector.py").write_text(_SNOWFLAKE_STUB, encoding="utf-8")
+    key = Path(tmp, "key.p8")
+    key.write_bytes(b"not-a-real-key")
+    names = ("ACCOUNT", "USER", "WAREHOUSE", "DATABASE", "ROLE")
+    env = {f"SNOWFLAKE_{name}": "x" for name in names}
+    env["SNOWFLAKE_PRIVATE_KEY_PATH"] = str(key)
+    env["PYTHONPATH"] = str(Path(tmp, "stub"))
+    return env
+
+
+def _psm_run(tmp: Path, *extra: str) -> subprocess.CompletedProcess[str]:
+    out = str(Path(tmp, "out", "data.json"))
+    args = ["--out", out, "--as-of", "2026-06-04", "--org-uid", _PSM_ORG, *extra]
+    return subprocess.run(
+        [sys.executable, str(ROOT / PSM_EXPORT), *args],
+        capture_output=True,
+        text=True,
+        timeout=TIMEOUT,
+        env={**os.environ, **_psm_env(tmp)},
+        cwd=tmp,
+        check=False,
+    )
+
+
+@case("H-7", "exporter serialises Decimal/date values and decodes OBJECT/ARRAY columns")
+def _h7() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        proc = _psm_run(Path(tmp))
+        need(proc.returncode == 0, "exporter must finish with typed rows, not crash", proc)
+        data = json.loads(Path(tmp, "out", "data.json").read_text(encoding="utf-8"))
+    partner = data["partners"][0]
+    need(partner["arr"] == 1200.5, f"Decimal must become a number, got {partner['arr']!r}")
+    need(partner["contract_start"] == "2026-01-02", "date must become an ISO string")
+    need(partner["stage_entered_at"].startswith("2026-03-04T05:06:07"), "datetime -> ISO")
+    need(partner["components"] == {"a": 1}, "OBJECT column must be decoded to an object")
+    need(partner["spark"] == [1, 2, 3], "ARRAY column must be decoded to an array")
+    need(partner["flags"] == ["renewal"], "ARRAY of strings must be decoded")
+    need(data["timeline_events"][0]["payload"] == {"priority": "high"}, "payload object")
+
+
 # ===========================================================================
 # driver
 # ===========================================================================

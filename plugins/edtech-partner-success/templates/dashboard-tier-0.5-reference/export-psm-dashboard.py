@@ -35,6 +35,7 @@ import tempfile
 from collections.abc import Iterable
 from contextlib import contextmanager
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,32 @@ UUIDV4_RE = re.compile(
     r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
 )
 SCHEMA_VERSION = 1
+
+# OBJECT / ARRAY / VARIANT columns come back from the Snowflake connector as JSON *strings*
+# (dim_partner.components/spark/flags/priority_breakdown, timeline_events.payload). The
+# documented export schema wants real objects/arrays, so they are decoded after the fetch.
+VARIANT_COLUMNS = frozenset({"components", "spark", "flags", "priority_breakdown", "payload"})
+
+
+def _decode_variants(row: dict[str, Any]) -> dict[str, Any]:
+    for key in VARIANT_COLUMNS & row.keys():
+        value = row[key]
+        if isinstance(value, str):
+            try:
+                row[key] = json.loads(value)
+            except ValueError:
+                pass  # a plain string value that merely lives in a variant-typed column
+    return row
+
+
+def _json_default(obj: Any) -> Any:
+    """json.dump hook for the types the connector returns: NUMBER -> Decimal, DATE and
+    TIMESTAMP -> date / datetime (datetime is a date subclass)."""
+    if isinstance(obj, Decimal):
+        return float(obj)
+    if isinstance(obj, date):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
 
 def parse_args() -> argparse.Namespace:
@@ -112,7 +139,7 @@ def fetch_all_dicts(conn, sql: str) -> list[dict[str, Any]]:
         rows = cur.fetchall()
     finally:
         cur.close()
-    return [{k.lower(): v for k, v in row.items()} for row in rows]
+    return [_decode_variants({k.lower(): v for k, v in row.items()}) for row in rows]
 
 
 # --------------------------------------------------------------------
@@ -188,7 +215,9 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
     fd, tmpname = tempfile.mkstemp(prefix=".data.json.", dir=path.parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2, sort_keys=False, ensure_ascii=False)
+            json.dump(
+                payload, f, indent=2, sort_keys=False, ensure_ascii=False, default=_json_default
+            )
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmpname, path)
