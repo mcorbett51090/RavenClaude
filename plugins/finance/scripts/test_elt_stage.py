@@ -136,6 +136,24 @@ def main():
         check("an override of ONE dimension leaves the other mapped columns alone",
               "1000,Cash,100,0,MRI,2026-09,USD" in body)
 
+    print("A-26 — --out into a directory that does not exist yet")
+    with tempfile.TemporaryDirectory() as d:
+        nested = os.path.join(d, "newdir", "deeper", "out.csv")
+        r = run("stage", "--raw", RAW_NS, "--column-map", MAP_NS, "--out", nested)
+        check("--out newdir/deeper/out.csv stages (rc0) and creates the file",
+              r.returncode == 0 and os.path.exists(nested) and "Traceback" not in r.stderr)
+        check("the created file is byte-identical to the golden",
+              os.path.exists(nested) and open(nested).read() == golden)
+        check("no scratch file is left behind next to the output",
+              not os.path.exists(nested + ".staging-tmp"))
+        bad_out = os.path.join(d, "another-new-dir", "bad.csv")
+        r = run("stage", "--raw", RAW_BAD, "--column-map", MAP_NS, "--out", bad_out)
+        check("a rejected export into a new dir still exits non-zero and publishes nothing",
+              r.returncode != 0 and not os.path.exists(bad_out)
+              and not os.path.exists(bad_out + ".staging-tmp"))
+        check("tb_stage no longer carries the dead _atomic_write helper",
+              not hasattr(ts, "_atomic_write"))
+
     n_pass = sum(1 for _, ok in results if ok)
     print(f"\n{n_pass}/{len(results)} acceptance tests passed.")
     return 0 if n_pass == len(results) else 1

@@ -276,18 +276,6 @@ def validate_staging(path: str) -> list:
     return errs
 
 
-def _atomic_write(path: str, rows: list) -> None:
-    """Write header + rows to `path` atomically (temp file + os.replace)."""
-    parent = os.path.dirname(os.path.abspath(path))
-    os.makedirs(parent, exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w", newline="", encoding="utf-8") as fh:
-        w = csv.writer(fh)
-        w.writerow(CANONICAL)
-        w.writerows(rows)
-    os.replace(tmp, path)
-
-
 def cmd_stage(a) -> int:
     cm = load_column_map(a.column_map)
     overrides = {"entity": a.entity, "currency": a.currency, "period": a.period}
@@ -296,6 +284,7 @@ def cmd_stage(a) -> int:
     rows = stage_rows(a.raw, cm, statics, cli_keys)
     # Validate BEFORE publishing: write to a scratch temp, validate it, and only then
     # promote. This is the block-on-bad-export discipline + the atomic write together.
+    os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     scratch = a.out + ".staging-tmp"
     with open(scratch, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
