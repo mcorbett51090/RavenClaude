@@ -162,6 +162,82 @@ def case_a20() -> None:
 
 
 # --------------------------------------------------------------------------------------
+# generative-web-media: provenance.py
+# --------------------------------------------------------------------------------------
+PROVENANCE = "plugins/generative-web-media/scripts/provenance.py"
+
+
+def _prov_record(ledger: str, model: str, *, license_: str = "commercial", client: bool = True):
+    cmd = ["python3", target(PROVENANCE), "record", "--ledger", ledger, "--asset", "media/a.avif"]
+    cmd += ["--prompt", "p", "--model", model, "--provider", "fal", "--license", license_]
+    cmd += ["--indemnity", "none"]
+    if client:
+        cmd.append("--client")
+    return run(cmd)
+
+
+def _prov_audit(ledger: str):
+    return run(["python3", target(PROVENANCE), "audit", "--ledger", ledger])
+
+
+@case("A-4")
+def case_a4() -> None:
+    """The FLUX-dev trap detector must catch every common spelling of the dev mode."""
+    dev_spellings = [
+        "FLUX.1 [dev]",
+        "flux-1-dev",
+        "flux_dev",
+        "fal-ai/flux-kontext/dev",
+        "fal-ai/flux-1/dev",
+        "FLUX.1 dev",
+        "flux dev",
+        "black-forest-labs/FLUX.1-dev",
+        "flux1-dev",
+        "fal-ai/flux-2/dev",
+    ]
+    ok_models = [
+        "flux-schnell",
+        "FLUX.1 [pro]",
+        "fal-ai/flux-kontext-pro",
+        "flux-pro-1.1",
+        "grok-image",
+    ]
+    with tempfile.TemporaryDirectory() as td:
+        for i, model in enumerate(dev_spellings):
+            ledger = os.path.join(td, f"dev{i}.jsonl")
+            expect(_prov_record(ledger, model).returncode == 0, f"record failed for {model!r}")
+            r = _prov_audit(ledger)
+            expect(
+                r.returncode == 1 and "AUDIT FAILED" in r.stderr,
+                f"FLUX-dev spelling {model!r} on a client asset must FAIL the audit: {describe(r)}",
+            )
+        for i, model in enumerate(ok_models):
+            ledger = os.path.join(td, f"ok{i}.jsonl")
+            expect(_prov_record(ledger, model).returncode == 0, f"record failed for {model!r}")
+            r = _prov_audit(ledger)
+            expect(
+                r.returncode == 0,
+                f"{model!r} is not a dev/non-commercial model, must pass: {describe(r)}",
+            )
+        # The existing license-field marker still works, and a recorded override still downgrades.
+        ledger = os.path.join(td, "lic.jsonl")
+        _prov_record(ledger, "some-model", license_="FLUX.1 [dev] Non-Commercial License")
+        expect(
+            _prov_audit(ledger).returncode == 1, "a non-commercial license string must still fail"
+        )
+        ledger = os.path.join(td, "override.jsonl")
+        cmd = ["python3", target(PROVENANCE), "record", "--ledger", ledger, "--asset", "a.avif"]
+        cmd += ["--prompt", "p", "--model", "FLUX.1 [dev]", "--provider", "bfl", "--license"]
+        cmd += ["commercial", "--indemnity", "none", "--client", "--override", "paid BFL API"]
+        expect(run(cmd).returncode == 0, "record with override failed")
+        r = _prov_audit(ledger)
+        expect(
+            r.returncode == 0 and "OVERRIDDEN" in r.stderr,
+            f"override must warn, not fail: {describe(r)}",
+        )
+
+
+# --------------------------------------------------------------------------------------
 # generative-web-media: optimize-image.mjs
 # --------------------------------------------------------------------------------------
 OPTIMIZE = "plugins/generative-web-media/scripts/web-optimize/optimize-image.mjs"

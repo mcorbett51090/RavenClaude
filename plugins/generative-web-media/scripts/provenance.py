@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -47,6 +48,26 @@ NON_COMMERCIAL_MARKERS = (
     "non-commercial",
     "noncommercial",
 )
+
+# The FLUX dev mode under every common spelling. Each model/license/license_class field is
+# normalised first (lowercase, every run of non-alphanumerics -> "-"), so "FLUX.1 [dev]",
+# "flux_dev", "flux dev", "fal-ai/flux-kontext/dev" and "fal-ai/flux-1/dev" all read
+# "...flux-...-dev". schnell / pro variants do not match.
+FLUX_DEV_RE = re.compile(
+    r"\bflux(?:-?\d+(?:-\d+)?)?(?:-(?:kontext|krea|fill|redux|canny|depth))?-dev\b"
+)
+
+
+def _normalise(text: object) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", str(text).lower()).strip("-")
+
+
+def _is_non_commercial(e: dict) -> bool:
+    fields = [str(e.get(k, "")) for k in ("model", "license", "license_class")]
+    blob = " ".join(fields).lower()
+    if any(m in blob for m in NON_COMMERCIAL_MARKERS):
+        return True
+    return any(FLUX_DEV_RE.search(_normalise(f)) for f in fields)
 
 
 def _now_iso() -> str:
@@ -112,9 +133,8 @@ def _audit_entries(
         for f in REQUIRED_FIELDS:
             if not str(e.get(f, "")).strip():
                 problems.append(f"{source}: {asset} — missing provenance field '{f}'")
-        blob = f"{e.get('model', '')} {e.get('license', '')} {e.get('license_class', '')}".lower()
         is_client = client_scope or bool(e.get("for_client"))
-        if is_client and any(m in blob for m in NON_COMMERCIAL_MARKERS):
+        if is_client and _is_non_commercial(e):
             override = str(e.get("override", "")).strip()
             if override:
                 # Escape hatch: a non-commercial marker with a recorded override reason
