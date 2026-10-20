@@ -269,9 +269,98 @@ def case_c2(root: Path) -> None:
     )
 
 
+# ─── C-11: the per-repo launcher killed every project's dashboard ────────────
+# The launcher runs with a pkill shim first on PATH: the shim applies the REAL pgrep -f
+# matching to the launcher's pattern but only signals this test's own fake servers, so a
+# pre-fix launcher can never kill a real dashboard on the machine running the test.
+_PKILL_SHIM = """#!/bin/sh
+[ "$1" = "-f" ] || exit 2
+hit=1
+for pid in $(pgrep -f "$2"); do
+  case " $FAKE_PIDS " in *" $pid "*) kill "$pid" && hit=0 ;; esac
+done
+exit $hit
+"""
+
+
+def case_c11(root: Path) -> None:
+    launcher = root / "plugins/ravenclaude-core/templates/dashboard-launcher/dashboard.sh"
+    if not shutil.which("pgrep"):
+        raise _NotRun("pgrep is not on PATH")
+    w = Path(tempfile.mkdtemp(prefix="c11-", dir=_TMP))
+    srv = w / "market/plugins/ravenclaude-core/scripts/serve-dashboards.py"
+    srv.parent.mkdir(parents=True)
+    srv.write_text("import time\ntime.sleep(600)\n")
+    (w / "bin").mkdir()
+    for name, body in (
+        ("pkill", _PKILL_SHIM),
+        ("curl", "#!/bin/sh\nexit 0\n"),
+        ("browser", "#!/bin/sh\nexit 0\n"),
+    ):
+        (w / "bin" / name).write_text(body)
+        (w / "bin" / name).chmod(0o755)
+    repo_b = w / "B"
+    (repo_b / ".ravenclaude").mkdir(parents=True)
+    shutil.copy(launcher, repo_b / ".ravenclaude/dashboard.sh")
+    procs: dict[str, subprocess.Popen] = {}
+    try:
+        # A is another project; "B.x+" has B as a string prefix and regex metacharacters.
+        for name, port in (("A", "8000"), ("B.x+", "8002"), ("B", "8001")):
+            procs[name] = subprocess.Popen(
+                [sys.executable, str(srv), "--project-root", str(w / name), "--port", port],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        env = dict(os.environ)
+        env.update(
+            PATH=f"{w / 'bin'}:{env.get('PATH', '')}",
+            RAVENCLAUDE_DIR=str(w / "market"),
+            BROWSER=str(w / "bin/browser"),
+            FAKE_PIDS=" ".join(str(p.pid) for p in procs.values()),
+        )
+        env.pop("CODESPACE_NAME", None)
+        cp = subprocess.run(
+            ["bash", str(repo_b / ".ravenclaude/dashboard.sh"), "8001"],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        _check(
+            cp.returncode == 0,
+            f"launcher for B exits 0 (rc={cp.returncode}, {cp.stderr.strip()[-200:]})",
+        )
+        for p in procs.values():
+            try:
+                p.wait(timeout=0.5)
+            except subprocess.TimeoutExpired:
+                pass
+        _check(
+            procs["A"].poll() is None, "another project's dashboard (A) survives the launcher for B"
+        )
+        _check(procs["B.x+"].poll() is None, "a repo whose path has B as a prefix survives")
+        _check(procs["B"].poll() is not None, "B's own previous dashboard is stopped")
+        _check(
+            "pkill -f serve-dashboards.py " not in cp.stdout
+            and "--project-root" in cp.stdout.splitlines()[-1],
+            "the printed stop command is scoped to this repo",
+        )
+    finally:
+        for p in procs.values():
+            if p.poll() is None:
+                p.kill()
+        out = subprocess.run(["pgrep", "-f", str(w)], capture_output=True, text=True).stdout
+        for pid in out.split():
+            try:
+                os.kill(int(pid), 9)
+            except (OSError, ValueError):
+                pass
+
+
 CASES = {
     "C-1": case_c1,
     "C-2": case_c2,
+    "C-11": case_c11,
 }
 
 
