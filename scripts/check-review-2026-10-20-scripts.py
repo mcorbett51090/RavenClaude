@@ -23,6 +23,7 @@ Exit 0 = every selected case passed, 1 = at least one failed, 2 = usage error.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import subprocess
@@ -464,6 +465,71 @@ def case_d3() -> None:
         "UNKNOWN" in r.stderr + r.stdout and "✓" not in r.stdout,
         f"HTTP 503 must be UNKNOWN: {describe(r)}",
     )
+
+
+# --------------------------------------------------------------------------------------
+# gh-health.py status-page probe (D-4)
+# --------------------------------------------------------------------------------------
+GH_HEALTH = "scripts/gh-health.py"
+
+
+def _load_module(rel: str, name: str):
+    """Import a hyphen-named script by path (registered in sys.modules so dataclasses work)."""
+    spec = importlib.util.spec_from_file_location(name, target(rel))
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@case("D-4")
+def case_d4() -> None:
+    """The status probe must treat a 200 body of the wrong shape as UNKNOWN, and never crash."""
+    gh = _load_module(GH_HEALTH, "gh_health_under_test")
+    green = {
+        "status": gh.GREEN_STATUS,
+        "components": gh.OK_COMPONENTS,
+        "incidents": gh.NO_INCIDENTS,
+    }
+
+    def probe(**override):
+        return gh.probe_status_page(gh.FakeTransport(**{**green, **override}))
+
+    p = probe()
+    expect(
+        (p.state, p.finding) == (gh.RAN, gh.CLEAN), f"control: valid green is RAN/clean: {p.state}"
+    )
+    p = probe(incidents=gh.AN_INCIDENT)
+    expect(
+        (p.state, p.finding) == (gh.RAN, gh.DEGRADED),
+        f"control: a real incident: {p.state}/{p.finding}",
+    )
+
+    bad_bodies = {
+        "incidents: null": {"incidents": {"incidents": None}},
+        "incidents: {}": {"incidents": {}},
+        "incidents: message body": {"incidents": {"message": "Service Unavailable"}},
+        "incidents: a bare list": {"incidents": []},
+        "components: {}": {"components": {}},
+        "components: null": {"components": {"components": None}},
+        "status: {}": {"status": {}},
+        "status: no indicator": {"status": {"status": {"description": "x"}}},
+        "status: indicator not a str": {"status": {"status": {"indicator": None}}},
+    }
+    for label, override in bad_bodies.items():
+        try:
+            p = probe(**override)
+        except Exception as exc:  # the old behaviour for 'incidents: null' was a TypeError
+            raise AssertionError(
+                f"{label}: probe crashed with {type(exc).__name__}: {exc}"
+            ) from exc
+        expect(
+            p.state == gh.FAILED,
+            f"{label}: a wrongly-shaped 200 must be a FAILED (UNKNOWN) probe, got {p.state}/{p.finding}",
+        )
+        expect(
+            "unexpected status-page shape" in p.reason, f"{label}: reason says why: {p.reason!r}"
+        )
 
 
 # --------------------------------------------------------------------------------------
