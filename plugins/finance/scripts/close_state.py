@@ -7,8 +7,17 @@ flux) is SUBMITTED INTO this state machine. It exists to make the close's contro
 public "AP agent released $92K past a documented control" incident (2025) is a
 control that was written down but not enforced. Here the state machine REFUSES
 illegal transitions and REFUSES a same-actor approval above the entity's
-materiality threshold, and the audit log is append-only + hash-chained so any
-retroactive edit breaks the chain and is detectable.
+materiality threshold, and the audit log is append-only + hash-chained so an edit
+to any event that is STILL IN the log breaks the chain and is detectable. `verify`
+also replays the event stream and compares the state it implies (state / preparer /
+approver / package_amount / self_certified) against state.json, so a hand-edited
+state.json no longer passes.
+
+RESIDUAL LIMIT, STATED PLAINLY: deleting the LAST event(s) from audit.jsonl leaves a
+shorter chain that is still internally valid, so the chain alone cannot see tail
+truncation. `verify` prints the event count and the full chain-tip hash; truncation is
+detectable only by comparing them with a count/tip the auditor recorded EARLIER (the
+off-box signer / WORM sink the IdP tier adds). Nothing local closes that.
 
   submit    draft      -> submitted     (preparer hands the package to review)
   review    submitted  -> in_review     (a reviewer picks it up)
@@ -79,6 +88,48 @@ def _event_hash(prev_hash: str, payload: dict) -> str:
     """Hash of (prev_hash + canonical payload). Chains each event to its predecessor."""
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256((prev_hash + canonical).encode("utf-8")).hexdigest()
+
+
+# state.json fields `verify` re-derives from the audit stream (the SoD / lock evidence).
+_REPLAYED_FIELDS = (
+    "state",
+    "preparer",
+    "approver",
+    "package_amount",
+    "self_certified",
+    "source_tb_sha256",
+)
+
+
+def _replay(events: list) -> dict:
+    """The state.json an honest run of these events leaves behind (mirrors the writers).
+
+    Like the live code, reject/reopen only move `state`; they do not clear the preparer,
+    approver or self_certified fields. DENIED:* events never touch state.
+    """
+    exp: dict = {"state": "draft", "preparer": None, "package_amount": None, "self_certified": None}
+    for ev in events:
+        action, actor, detail = ev.get("action", ""), ev.get("actor"), ev.get("detail") or {}
+        if action == "submit":
+            exp.update(state="submitted", preparer=actor, package_amount=detail.get("amount"))
+            if "source_tb_sha256" in detail:
+                exp["source_tb_sha256"] = detail["source_tb_sha256"]
+        elif action == "review":
+            exp["state"] = "in_review"
+        elif action == "approve":
+            exp.update(state="approved", approver=actor)
+        elif action in ("reject", "reopen"):
+            exp["state"] = "draft"
+        elif action == "lock":
+            exp.update(state="locked", self_certified=detail.get("self_certified"))
+    return exp
+
+
+def _same(a, b) -> bool:
+    """Equality that treats NaN == NaN (a NaN package_amount must not self-mismatch)."""
+    if isinstance(a, float) and isinstance(b, float) and a != a and b != b:
+        return True
+    return a == b
 
 
 class CloseLedger:
@@ -276,27 +327,51 @@ class CloseLedger:
         return st
 
     def verify(self) -> tuple[bool, str]:
-        """Recompute the hash chain end-to-end. Returns (ok, message)."""
-        if not os.path.exists(self.audit_path):
-            return True, "no audit log yet (empty chain is trivially valid)"
+        """Recompute the hash chain end-to-end, then replay it against state.json.
+
+        Returns (ok, message). The message carries the event count and the FULL chain-tip
+        hash: tail truncation leaves a valid shorter chain, so it is detectable only
+        against a count/tip recorded earlier (see the module docstring).
+        """
         prev = "GENESIS"
         n = 0
-        with open(self.audit_path) as fh:
-            for i, line in enumerate(fh, 1):
-                line = line.strip()
-                if not line:
-                    continue
-                ev = json.loads(line)
-                if ev.get("prev_hash") != prev:
-                    return False, f"line {i}: prev_hash mismatch (chain broken/reordered)"
-                expected = _event_hash(
-                    prev, {k: ev[k] for k in ("action", "actor", "ts", "detail", "prev_hash")}
+        events: list = []
+        if os.path.exists(self.audit_path):
+            with open(self.audit_path) as fh:
+                for i, line in enumerate(fh, 1):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    ev = json.loads(line)
+                    if ev.get("prev_hash") != prev:
+                        return False, f"line {i}: prev_hash mismatch (chain broken/reordered)"
+                    expected = _event_hash(
+                        prev, {k: ev[k] for k in ("action", "actor", "ts", "detail", "prev_hash")}
+                    )
+                    if ev.get("hash") != expected:
+                        return (
+                            False,
+                            f"line {i}: hash mismatch (event '{ev.get('action')}' tampered)",
+                        )
+                    prev = ev["hash"]
+                    n += 1
+                    events.append(ev)
+        try:
+            st = self.load_state()
+        except (SystemExit, ValueError) as exc:
+            return False, f"state.json unreadable: {getattr(exc, 'code', None) or exc}"
+        expected_state = _replay(events)
+        for field in _REPLAYED_FIELDS:
+            if not _same(st.get(field), expected_state.get(field)):
+                return False, (
+                    f"state.json field '{field}' = {st.get(field)!r} but the audit log replays "
+                    f"to {expected_state.get(field)!r} (state.json edited outside the ledger?)"
                 )
-                if ev.get("hash") != expected:
-                    return False, f"line {i}: hash mismatch (event '{ev.get('action')}' tampered)"
-                prev = ev["hash"]
-                n += 1
-        return True, f"chain valid: {n} event(s), tip {prev[:12]}…"
+        tip = prev if n else "GENESIS"
+        return True, (
+            f"chain valid: {n} event(s), tip {tip}; state.json consistent with the replayed "
+            "events (record the count + tip: tail truncation is only detectable against them)"
+        )
 
 
 def _print(st: dict) -> None:

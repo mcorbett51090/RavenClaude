@@ -126,6 +126,78 @@ def main():
             refused = "SoD" in str(e.code)
         check("a NaN package_amount already in state.json fails CLOSED (self-approve REFUSED)", refused)
 
+    print("A-12 — verify replays the audit stream against state.json")
+    import re as _re
+
+    def _approved(d):
+        def cs(*a):
+            return py("close_state.py", "--run-dir", d, "--now", "2026-07-06T00:00:00+00:00", *a)
+        cs("submit", "--actor", "alice", "--amount", "5000")
+        cs("review", "--actor", "bob")
+        cs("approve", "--actor", "carol", "--threshold", "1000")
+        return cs
+
+    def _edit_state(d, **kw):
+        sp = os.path.join(d, "state.json")
+        st = json.load(open(sp))
+        st.update(kw)
+        json.dump(st, open(sp, "w"), indent=2)
+
+    with tempfile.TemporaryDirectory() as d:
+        cs = _approved(d)
+        ok = cs("verify")
+        check("untampered approved package: verify OK (rc0)", ok.returncode == 0)
+        m = _re.search(r"(\d+) event\(s\), tip ([0-9a-f]{64})", ok.stdout)
+        check("verify prints the event count and the FULL chain-tip hash", m is not None and m.group(1) == "3")
+        recorded_tip = m.group(2) if m else None
+    with tempfile.TemporaryDirectory() as d:
+        cs = _approved(d)
+        _edit_state(d, state="locked", self_certified=False)
+        r = cs("verify")
+        check("state.json hand-edited to locked/self_certified:false -> verify FAILS (rc!=0)",
+              r.returncode != 0 and r.stdout.startswith("FAIL"))
+        check("...and the failure names the mismatched field", "'state'" in r.stdout)
+    for field, bad in (("approver", "dave"), ("preparer", "carol"), ("package_amount", 1.0)):
+        with tempfile.TemporaryDirectory() as d:
+            cs = _approved(d)
+            _edit_state(d, **{field: bad})
+            r = cs("verify")
+            check(f"state.json {field} edited -> verify FAILS naming '{field}'",
+                  r.returncode != 0 and f"'{field}'" in r.stdout)
+    with tempfile.TemporaryDirectory() as d:
+        cs = _approved(d)
+        cs("lock", "--actor", "carol", "--approval-token", "human-entered")
+        check("lock with a non-agent token (self_certified false): verify OK", cs("verify").returncode == 0)
+        _edit_state(d, self_certified=True)
+        r = cs("verify")
+        check("locked package flipped to self_certified:true -> verify FAILS naming 'self_certified'",
+              r.returncode != 0 and "'self_certified'" in r.stdout)
+    with tempfile.TemporaryDirectory() as d:
+        cs = _approved(d)
+        os.remove(os.path.join(d, "state.json"))
+        check("state.json deleted after an approved package -> verify FAILS", cs("verify").returncode != 0)
+    with tempfile.TemporaryDirectory() as d:
+        cs = _approved(d)
+        ap = os.path.join(d, "audit.jsonl")
+        lines = open(ap).read().splitlines()
+        open(ap, "w").write("\n".join(lines[:-1]) + "\n")
+        check("last audit line deleted with state.json untouched -> verify FAILS (state disagrees)",
+              cs("verify").returncode != 0)
+        # The documented residual limit: truncate the tail AND rewind state.json consistently.
+        _edit_state(d, state="in_review")
+        sp = os.path.join(d, "state.json")
+        st = json.load(open(sp))
+        st.pop("approver", None)
+        json.dump(st, open(sp, "w"), indent=2)
+        r = cs("verify")
+        m2 = _re.search(r"(\d+) event\(s\), tip ([0-9a-f]{64})", r.stdout)
+        check("consistent tail truncation still passes (documented limit) but prints the SHORTER "
+              "count and a DIFFERENT tip to compare with a recorded one",
+              r.returncode == 0 and m2 is not None and m2.group(1) == "2"
+              and m2.group(2) != recorded_tip)
+    check("close_state.py docstring states the tail-truncation limit honestly",
+          "RESIDUAL LIMIT" in open(os.path.join(HERE, "close_state.py")).read())
+
     print("P4 — orchestrator submit-only invariant")
     src = open(os.path.join(HERE, "controller_cycle.py")).read()
     # strip comments/strings-ish: just assert no .approve(/.lock(/.reopen( call on a ledger
