@@ -1011,6 +1011,32 @@ def _h22() -> None:
     need("65.0%" in funnel.stdout, "a percent still works", funnel)
 
 
+# ---------------------------------------------------------------------------
+# H-23  esg-sustainability-reporting/ghg_calc.py: inventory crashed on short CSV rows
+# ---------------------------------------------------------------------------
+
+GHG_CALC = "plugins/esg-sustainability-reporting/scripts/ghg_calc.py"
+
+
+def _inventory(csv_text: str) -> subprocess.CompletedProcess[str]:
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp, "inv.csv")
+        path.write_text(csv_text, encoding="utf-8")
+        return run(GHG_CALC, "inventory", "--csv", str(path))
+
+
+@case("H-23", "ghg_calc inventory: a CSV row shorter than the header exits 2 naming the row")
+def _h23() -> None:
+    header = "scope,activity,emission_factor\n"
+    short = _inventory(header + "1,100,0.5\n2,40\n")  # row 3 lacks emission_factor
+    need(short.returncode == 2, "a short row must exit 2, not crash with a TypeError", short)
+    need("row 3" in short.stderr, "the error must name the row", short)
+    need("Traceback" not in short.stderr, "no traceback for a short row", short)
+
+    ok = _inventory(header + "1,100,0.5\n2,40,0.25\n")
+    need(ok.returncode == 0 and "GROSS TOTAL" in ok.stdout, "a well-formed CSV still works", ok)
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
