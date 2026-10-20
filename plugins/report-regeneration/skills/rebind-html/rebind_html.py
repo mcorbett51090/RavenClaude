@@ -142,8 +142,8 @@ def _id_anchor(elem_id: str) -> dict:
 def _escape_inner(value: str) -> str:
     """HTML-escape a value written into a node's inner content (P3 #16), for parity with the Office
     engine and to keep an untrusted new-data literal (`<script>`, `&`, `>`) from breaking out of its
-    element. Element-content escaping only (`&`, `<`, `>`); attribute quotes are handled separately
-    by the attribute-write path."""
+    element. Element-content escaping only (`&`, `<`, `>`); attribute values are escaped, quotes
+    included, by `_inject_attr_into_open_tag` (B-6)."""
     return html.escape(str(value), quote=False)
 
 
@@ -221,18 +221,27 @@ def _read_attr(tag_text: str, name: str) -> str:
     return m.group(1) if m else ""
 
 
+_ATTR_NAME = re.compile(r"[A-Za-z_:][-A-Za-z0-9_:.]*")
+
+
 def _inject_attr_into_open_tag(open_tag_text: str, name: str, value: str) -> str:
     """Add-or-replace a single attribute directly on a captured `<tag ...>` (or
-    self-closed `<tag ... />`) string, preserving the self-closing slash if present."""
+    self-closed `<tag ... />`) string, preserving the self-closing slash if present.
+    B-6: the name must be a plain attribute name and the value is written HTML-escaped
+    (quotes included), so new-data can neither close the attribute nor add one; the
+    replacement is a function, so a backslash or group reference is never parsed."""
+    if not _ATTR_NAME.fullmatch(name or ""):
+        raise RebindError(f"refusing to write attribute {name!r}: not a valid attribute name")
+    attr = f'{name}="{html.escape(str(value), quote=True)}"'
     body = open_tag_text[:-1]  # strip the trailing '>'
     self_closing = body.rstrip().endswith("/")
     if self_closing:
         body = body.rstrip()[:-1].rstrip()
     pattern = re.compile(r'\b' + re.escape(name) + r'="[^"]*"')
     if pattern.search(body):
-        body = pattern.sub(f'{name}="{value}"', body, count=1)
+        body = pattern.sub(lambda _m: attr, body, count=1)
     else:
-        body = body + f' {name}="{value}"'
+        body = body + " " + attr
     return body + (" />" if self_closing else ">")
 
 

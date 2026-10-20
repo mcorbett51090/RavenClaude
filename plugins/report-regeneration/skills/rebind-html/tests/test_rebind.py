@@ -273,6 +273,44 @@ class TestCoreMechanics(unittest.TestCase):
                 rh.load_manifest(path)
 
 
+class TestAttributeWrites(unittest.TestCase):
+    """B-6: new-data written into an attribute is escaped and never parsed as a regex template."""
+
+    def _img_attrs(self, html_text):
+        found = []
+
+        class P(html.parser.HTMLParser):
+            def handle_starttag(self, tag, attrs):
+                if tag == "img":
+                    found.append(attrs)
+
+        P().feed(html_text)
+        return found
+
+    def _rebind_chart(self, asset):
+        manifest = copy.deepcopy(MANIFEST)
+        manifest["bindings"] = [REGENERATE_IMAGE_BINDING]
+        data = copy.deepcopy(NEW_DATA)
+        data["assets"]["chart"] = asset
+        output, _changes, _n = rh.rebind(TEMPLATE, manifest, data)
+        return [a for a in self._img_attrs(output) if ("id", "chart") in a][0]
+
+    def test_quote_in_value_cannot_add_an_attribute(self):
+        attrs = self._rebind_chart({"src": 'x.png" onerror="alert(1)', "alt": 'Chart: "Revenue"'})
+        self.assertEqual([k for k, _ in attrs], ["id", "data-role", "src", "alt"])
+        self.assertEqual(dict(attrs)["src"], 'x.png" onerror="alert(1)')
+        self.assertEqual(dict(attrs)["alt"], 'Chart: "Revenue"')
+
+    def test_backslashes_and_group_references_are_written_verbatim(self):
+        attrs = dict(self._rebind_chart({"src": "C:\\charts\\q3.png", "alt": "Margin \\1 trend"}))
+        self.assertEqual(attrs["src"], "C:\\charts\\q3.png")
+        self.assertEqual(attrs["alt"], "Margin \\1 trend")
+
+    def test_invalid_attribute_name_is_refused(self):
+        with self.assertRaises(rh.RebindError):
+            rh._inject_attr_into_open_tag('<img id="chart">', 'src onload="alert(1)" x', "y")
+
+
 class TestSampleReportCorpus(unittest.TestCase):
     """End-to-end against the real Phase-0 corpus fixture (tests/fixtures/
     report-regeneration/sample-report.html)."""
