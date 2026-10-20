@@ -1003,6 +1003,49 @@ def case_d13() -> None:
 
 
 # --------------------------------------------------------------------------------------
+# check-ratchet-freshness.py: an empty result is not a clean one (D-14)
+# --------------------------------------------------------------------------------------
+RATCHET_FRESHNESS = "scripts/check-ratchet-freshness.py"
+
+
+@case("D-14")
+def case_d14() -> None:
+    """--check must fail when no ratchet state file exists, and still pass the real repo."""
+    with tempfile.TemporaryDirectory() as td:
+
+        def git(*a: str) -> None:
+            ident = ["-c", "user.name=t", "-c", "user.email=t@example.com"]
+            r = run(["git", *ident, "-C", td, *a], drop=GIT_ENV)
+            expect(r.returncode == 0, f"git {' '.join(a)} failed: {describe(r)}")
+
+        git("init", "-q")
+        Path(td, "seed.txt").write_text("x\n")
+        git("add", "seed.txt")
+        git("commit", "-q", "-m", "base")
+        cmd = ["python3", target(RATCHET_FRESHNESS), "--root", td, "--base", "HEAD", "--check"]
+        r = run(cmd, drop=GIT_ENV)
+        expect(
+            r.returncode == 1,
+            f"--check on a tree with NO ratchet files must fail (empty is not clean): {describe(r)}",
+        )
+        expect("EMPTY" in r.stdout, f"the failure must say why: {describe(r)}")
+
+        # With one ratchet file correctly stamped against the merge base it passes again.
+        mb = run(["git", "-C", td, "rev-parse", "HEAD"], drop=GIT_ENV).stdout.strip()
+        ratchet = Path(td, "tests", "fixtures", "model-tier-ratchet.json")
+        ratchet.parent.mkdir(parents=True)
+        ratchet.write_text(json.dumps({"n": 1, "measured_against": mb}))
+        r = run(cmd, drop=GIT_ENV)
+        expect(r.returncode == 0, f"a present, stamped ratchet must pass: {describe(r)}")
+
+    # The real repo, and the declared teeth exit, are unchanged.
+    r = run(["python3", target(RATCHET_FRESHNESS), "--check"], cwd=str(REPO))
+    expect(r.returncode == 0, f"the real repo must still pass --check: {describe(r)}")
+    r = run(["python3", target(RATCHET_FRESHNESS), "--must-fail"], cwd=str(REPO))
+    expect(r.returncode == 3, f"--must-fail must still exit 3 (the teeth code): {describe(r)}")
+
+
+# --------------------------------------------------------------------------------------
 # generative-web-media: optimize-image.mjs
 # --------------------------------------------------------------------------------------
 OPTIMIZE = "plugins/generative-web-media/scripts/web-optimize/optimize-image.mjs"
