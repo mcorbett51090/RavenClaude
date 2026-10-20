@@ -22,7 +22,8 @@ Usage:
       --provider xai --license commercial --indemnity none [--c2pa present] \\
       [--client] [--override "served via the paid BFL API"]
   provenance.py audit --ledger media/provenance.jsonl [--client]
-  provenance.py audit --dir media           # audit every *.jsonl under a dir
+  provenance.py audit --dir media           # audit every *.jsonl under a dir (gen-budget
+                                            # spend ledgers are skipped + listed on stderr)
 """
 
 from __future__ import annotations
@@ -156,13 +157,28 @@ def _audit_entries(
     return problems, warnings
 
 
+def _is_spend_ledger(path: Path) -> bool:
+    """True only for a recognisable gen-budget spend ledger: it parses as JSON Lines, is
+    non-empty, every entry has 'line_cost' and none has 'asset'. Anything else (including a
+    malformed or mixed file) is NOT skipped, so an unknown file is still audited."""
+    try:
+        entries = _read_ledger(path)
+    except (ValueError, OSError):
+        return False
+    return bool(entries) and all("line_cost" in e and "asset" not in e for e in entries)
+
+
 def cmd_audit(args: argparse.Namespace) -> int:
     ledgers: list[Path] = []
     if args.dir:
         d = Path(args.dir)
         if not d.is_dir():
             return _loud_fail(f"--dir is not a directory: {d}")
-        ledgers = sorted(d.rglob("*.jsonl"))
+        found = sorted(d.rglob("*.jsonl"))
+        ledgers = [p for p in found if not _is_spend_ledger(p)]
+        for p in found:
+            if p not in ledgers:
+                sys.stderr.write(f"[provenance] skipped (gen-budget spend ledger): {p}\n")
         if not ledgers:
             return _loud_fail(f"No *.jsonl provenance ledgers found under {d}")
     elif args.ledger:
@@ -240,7 +256,11 @@ def main() -> int:
 
     aud = sub.add_parser("audit", help="audit a ledger (or a dir of ledgers) for traps + gaps")
     aud.add_argument("--ledger", help="path to a .jsonl ledger")
-    aud.add_argument("--dir", help="directory to scan recursively for *.jsonl")
+    aud.add_argument(
+        "--dir",
+        help="directory to scan recursively for *.jsonl (a recognisable gen-budget spend "
+        "ledger is skipped and listed on stderr; every other file is audited)",
+    )
     aud.add_argument("--client", action="store_true", help="treat every asset as client-scoped")
     aud.set_defaults(func=cmd_audit)
 

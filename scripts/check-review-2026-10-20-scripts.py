@@ -237,6 +237,67 @@ def case_a4() -> None:
         )
 
 
+@case("A-5")
+def case_a5() -> None:
+    """`audit --dir media` must not fail a gen-budget spend ledger as missing provenance."""
+    with tempfile.TemporaryDirectory() as td:
+        media = os.path.join(td, "media")
+        expect(
+            _prov_record(os.path.join(media, "provenance.jsonl"), "grok-image").returncode == 0,
+            "record",
+        )
+        spend = os.path.join(media, "spend.jsonl")
+        r = run(
+            ["python3", target(GEN_BUDGET), "add", "--ledger", spend, "--model", "m"]
+            + ["--unit-price", "0.055", "--count", "8"]
+        )
+        expect(r.returncode == 0, f"gen-budget add failed: {describe(r)}")
+        audit = ["python3", target(PROVENANCE), "audit", "--dir", media]
+        r = run(audit)
+        expect(
+            r.returncode == 0,
+            f"provenance + spend ledger side by side must audit ok: {describe(r)}",
+        )
+        expect(
+            "skipped (gen-budget spend ledger)" in r.stderr and "spend.jsonl" in r.stderr,
+            f"the skipped spend ledger must be listed on stderr: {describe(r)}",
+        )
+
+        # Fail-closed: only a RECOGNISABLE spend ledger is skipped.
+        bad = os.path.join(td, "bad")
+        os.makedirs(bad)
+        Path(bad, "ledger.jsonl").write_text("this is not json\n")
+        r = run(["python3", target(PROVENANCE), "audit", "--dir", bad])
+        expect(
+            r.returncode == 1,
+            f"a malformed ledger.jsonl must still be audited and fail: {describe(r)}",
+        )
+        mixed = os.path.join(td, "mixed")
+        os.makedirs(mixed)
+        Path(mixed, "ledger.jsonl").write_text('{"line_cost": 1.0}\n{"model": "grok-image"}\n')
+        r = run(["python3", target(PROVENANCE), "audit", "--dir", mixed])
+        expect(
+            r.returncode == 1,
+            f"a half-spend, half-unknown file must still be audited: {describe(r)}",
+        )
+        has_asset = os.path.join(td, "has_asset")
+        os.makedirs(has_asset)
+        Path(has_asset, "spend.jsonl").write_text('{"asset": "a.avif", "line_cost": 1.0}\n')
+        r = run(["python3", target(PROVENANCE), "audit", "--dir", has_asset])
+        expect(
+            r.returncode == 1,
+            f"an entry that names an asset is provenance, not spend: {describe(r)}",
+        )
+        only_spend = os.path.join(td, "only_spend")
+        os.makedirs(only_spend)
+        Path(only_spend, "spend.jsonl").write_text(Path(spend).read_text())
+        r = run(["python3", target(PROVENANCE), "audit", "--dir", only_spend])
+        expect(
+            r.returncode == 1,
+            f"a dir holding only spend ledgers has no provenance to audit: {describe(r)}",
+        )
+
+
 # --------------------------------------------------------------------------------------
 # generative-web-media: optimize-image.mjs
 # --------------------------------------------------------------------------------------
