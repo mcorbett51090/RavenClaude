@@ -769,6 +769,72 @@ def case_c17(root: Path) -> None:
         shutil.rmtree(work, ignore_errors=True)
 
 
+# ─── C-18: fix_summary crashed on bare-id applied entries; a failed git diff was silent
+FIXSUM_REL = "plugins/ravenclaude-core/skills/repo-review/scripts/fix_summary.py"
+
+
+def case_c18(root: Path) -> None:
+    fs = _load(root, FIXSUM_REL, "c18_fix_summary")
+    try:
+        rows, anomalies, _skipped, touched = fs.build_rows(
+            {}, [{"file": "a.py", "applied": ["F1"]}]
+        )
+    except Exception as exc:  # noqa: BLE001 — the pre-fix crash is the finding
+        raise _Fail(
+            f"build_rows crashed on a bare-id applied entry: {type(exc).__name__}: {exc}"
+        ) from exc
+    _check(
+        rows == [] and any("F1" in str(a.get("id")) for a in anomalies),
+        "a bare-id applied entry -> no crash, listed as an anomaly",
+    )
+    _check("a.py" in touched, "the file the fix agent claims it touched is still counted")
+
+    w = Path(tempfile.mkdtemp(prefix="c18-", dir=_TMP))
+    (w / "merged.json").write_text(
+        json.dumps({"survivors": [{"id": "f2", "file": "a.py", "line": 3}]})
+    )
+    (w / "receipts").mkdir()
+    (w / "receipts/a.py.json").write_text(
+        json.dumps(
+            {"file": "a.py", "applied": ["F1", {"id": "f2", "summary": "fixed it"}], "skipped": []}
+        )
+    )
+    base_args = [
+        "--merged",
+        str(w / "merged.json"),
+        "--fix-receipts-dir",
+        str(w / "receipts"),
+        "--out-summary",
+        str(w / "summary.md"),
+    ]
+    rc = fs.main(base_args + ["--out-patch", str(w / "ok.patch"), "--out-stat", str(w / "ok.stat")])
+    summary = (w / "summary.md").read_text() if (w / "summary.md").exists() else ""
+    _check(
+        rc == 0 and "| f2 |" in summary and "Applied: 1" in summary,
+        f"the summary is still written for the good entry (rc={rc})",
+    )
+    _check("`F1`" in summary, "the malformed entry is listed under Anomalies")
+
+    rc = fs.main(
+        base_args
+        + [
+            "--out-patch",
+            str(w / "bad.patch"),
+            "--out-stat",
+            str(w / "bad.stat"),
+            "--repo-root",
+            str(w / "no-such-repo"),
+        ]
+    )
+    patch = (w / "bad.patch").read_text()
+    stat = (w / "bad.stat").read_text()
+    _check(rc == 1, f"a failing git diff exits non-zero (rc={rc})")
+    _check(
+        patch.startswith("# ERROR") and stat.startswith("# ERROR"),
+        "a failing git diff leaves an ERROR marker, not a 0-byte patch",
+    )
+
+
 CASES = {
     "C-1": case_c1,
     "C-2": case_c2,
@@ -779,6 +845,7 @@ CASES = {
     "C-14": case_c14,
     "C-16": case_c16,
     "C-17": case_c17,
+    "C-18": case_c18,
 }
 
 
