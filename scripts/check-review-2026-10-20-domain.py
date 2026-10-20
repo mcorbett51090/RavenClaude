@@ -873,6 +873,35 @@ def _h19() -> None:
     need(ok.returncode == 0 and "burn_rate" in ok.stdout, "a valid window still works", ok)
 
 
+# ---------------------------------------------------------------------------
+# H-20  clinical-trials/trials_calc.py: retention-roi footer backwards, impossible break-even
+# ---------------------------------------------------------------------------
+
+TRIALS_CALC = "plugins/clinical-trials/scripts/trials_calc.py"
+
+
+def _retention(dropout: str, program_cost: str) -> subprocess.CompletedProcess[str]:
+    args = ["--enrolled", "100", "--dropout-rate", dropout, "--replacement-cost", "1000"]
+    return run(TRIALS_CALC, "retention-roi", *args, "--intervention-cost-per-patient", program_cost)
+
+
+@case("H-20", "trials_calc retention-roi: correct footer, impossible break-even flagged")
+def _h20() -> None:
+    impossible = _retention("2%", "400")  # needs a 40-point cut out of a 2% rate
+    need(impossible.returncode == 0, "retention-roi must succeed", impossible)
+    need(
+        "cannot break even: required cut exceeds the dropout rate" in impossible.stdout,
+        "an impossible break-even must be flagged",
+        impossible,
+    )
+    need("pays for itself" not in impossible.stdout, "no 'pays for itself' footer", impossible)
+
+    normal = _retention("30%", "100")  # a 10-point cut out of 30%
+    need("cannot break even" not in normal.stdout, "a reachable break-even is not flagged", normal)
+    need("above that cut it pays for itself" in normal.stdout, "corrected footer", normal)
+    need("below that it pays for itself" not in normal.stdout, "the backwards footer is gone", normal)
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
