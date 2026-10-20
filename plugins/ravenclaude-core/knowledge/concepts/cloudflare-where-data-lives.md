@@ -6,7 +6,7 @@ kind: platform-fact
 order: 16
 summary: "Five stores, one question each: rows you query = D1, files = R2 (egress is free), read-mostly config = KV (up to 60s stale), coordination = Durable Objects, work to hand off = Queues."
 see_also: [cloudflare-what-runs-your-site, cloudflare-who-gets-in]
-last_verified: 2026-07-21
+last_verified: 2026-10-20
 refresh_when: "R2 starts charging egress or changes the $0.015/GB-month or Class A/B prices, D1 raises the 10 GB per-database cap or stops processing queries one at a time, KV's stated 60-second propagation window changes, or Queues changes its free allocation."
 sources:
   - label: "Cloudflare Docs — D1 overview"
@@ -19,8 +19,14 @@ sources:
     url: "https://developers.cloudflare.com/kv/concepts/how-kv-works/"
   - label: "Cloudflare Docs — Durable Objects overview"
     url: "https://developers.cloudflare.com/durable-objects/"
+  - label: "Cloudflare Docs — What are Durable Objects?"
+    url: "https://developers.cloudflare.com/durable-objects/concepts/what-are-durable-objects/"
+  - label: "Cloudflare Docs — Durable Objects limits"
+    url: "https://developers.cloudflare.com/durable-objects/platform/limits/"
   - label: "Cloudflare Docs — Durable Objects in-memory state"
     url: "https://developers.cloudflare.com/durable-objects/reference/in-memory-state/"
+  - label: "Cloudflare Docs — Queues overview"
+    url: "https://developers.cloudflare.com/queues/"
   - label: "Cloudflare Docs — Queues pricing"
     url: "https://developers.cloudflare.com/queues/platform/pricing/"
 ---
@@ -57,7 +63,7 @@ KV _"achieves high performance by being eventually-consistent."_ A write is usua
 
 _"Each Durable Object has a globally-unique name, which allows you to send requests to a specific object from anywhere in the world"_ and — the property everything else rests on — _"each Durable Object has one active instance at any particular time. All requests sent to that Durable Object are handled by that same instance."_ That is the coordination primitive: give a chat room, a document, a game match, or a rate-limit bucket its own ID and every client converges on one authority instead of racing.
 
-Its storage is _"durable, transactional, and strongly consistent"_ (up to 10 GB per object), and the SQLite storage backend exposes both SQL and key-value APIs. The mistake to avoid: in-memory variables are a cache, not state — _"because in-memory state is not preserved across eviction or hibernation, persist anything important to storage."_
+Its storage is _"durable, transactional, and strongly consistent"_ (up to 10 GB per object on Workers Paid, 1 GB on Free), and the SQLite storage backend exposes both SQL and key-value APIs. The mistake to avoid: in-memory variables are a cache, not state — _"because in-memory state is not preserved across eviction or hibernation, persist anything important to storage."_
 
 ### Queues — take it out of the request path
 
