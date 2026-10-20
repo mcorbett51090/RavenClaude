@@ -110,10 +110,12 @@ class _TreeBuilder(HTMLParser):
     def __init__(self, source: str) -> None:
         super().__init__(convert_charrefs=True)
         self._source = source
-        # line -> absolute char offset of that line's start (1-based lines, as html.parser reports)
+        # line -> absolute char offset of that line's start (1-based lines, as html.parser reports).
+        # B-8: split on '\n' ONLY — html.parser counts lines by '\n', whereas str.splitlines() also
+        # breaks on \r, \v, \f, \x1c-\x1e, \x85, U+2028/9 and would shift every later span.
         self._line_starts = [0]
-        for line in source.splitlines(keepends=True):
-            self._line_starts.append(self._line_starts[-1] + len(line))
+        for line in source.split("\n"):
+            self._line_starts.append(self._line_starts[-1] + len(line) + 1)
         self.root = _El("#document", {}, None)
         self._stack: list[_El] = [self.root]
 

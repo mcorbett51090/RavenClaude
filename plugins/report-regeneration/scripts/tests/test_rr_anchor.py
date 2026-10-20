@@ -139,6 +139,20 @@ class TestSpansAndReplace(unittest.TestCase):
             "Heading One",
         )
 
+    def test_non_newline_line_separators_do_not_shift_spans(self):
+        # B-8: html.parser counts lines by '\n' only; str.splitlines() also breaks on these, which
+        # shifted every later span and wrote into the wrong place.
+        anchor = {"kind": "css_selector", "value": "#wrap > p:nth-of-type(2)"}
+
+        def doc(sep):
+            return '<div id="wrap">\n<p>intro' + sep + 'text</p>\n<p>OLD</p>\n</div>\n'
+
+        control = rr_anchor.replace_inner(doc(""), anchor, "NEW")
+        for sep in ("\u2028", "\x85", "\x0c", "\x0b", "\x1c", "\r", "\r\n"):
+            with self.subTest(sep=repr(sep)):
+                out = rr_anchor.replace_inner(doc(sep), anchor, "NEW")
+                self.assertEqual(out, control.replace("introtext", "intro" + sep + "text"))
+
 
 class TestAgainstInferProducerOverCorpus(unittest.TestCase):
     """The load-bearing cross-check: every anchor infer PRODUCES over the real corpus must resolve
