@@ -223,6 +223,31 @@ def main():
         check("flux on the summed account: 300 vs prior 100 -> movement 200.0",
               "1000" in mv and mv["1000"]["movement"] == 200.0)
 
+    print("A-19 — RLS denial script: docker missing is a SKIP (rc3), never a green exit 0")
+    import shutil
+    rls_sh = os.path.join(HERE, "..", "skills", "warehouse-dashboard", "models", "rls",
+                          "run_rls_denial_test.sh")
+    bash = shutil.which("bash")
+    with tempfile.TemporaryDirectory() as d:
+        for tool in ("dirname", "seq"):  # the script's own needs; deliberately NOT docker
+            if shutil.which(tool):
+                os.symlink(shutil.which(tool), os.path.join(d, tool))
+        base_env = {"PATH": d, "HOME": d}
+        check("test PATH really has no docker", shutil.which("docker", path=d) is None)
+
+        def rls(**extra):
+            return subprocess.run([bash, rls_sh], capture_output=True, text=True,
+                                  env={**base_env, **extra})
+        r = rls()
+        check("PATH without docker -> rc 3", r.returncode == 3)
+        check("...with the 'SKIP - THIS IS NOT A PASS' banner", "SKIP - THIS IS NOT A PASS" in r.stdout)
+        r = rls(RLS_TEST_ALLOW_SKIP="1")
+        check("RLS_TEST_ALLOW_SKIP=1 -> rc 0 with the SAME banner",
+              r.returncode == 0 and "SKIP - THIS IS NOT A PASS" in r.stdout)
+        check("only the literal value 1 acknowledges a skip (RLS_TEST_ALLOW_SKIP=0 -> rc 3)",
+              rls(RLS_TEST_ALLOW_SKIP="0").returncode == 3)
+    check("run_rls_denial_test.sh is still executable", os.access(rls_sh, os.X_OK))
+
     print("P4 — orchestrator submit-only invariant")
     src = open(os.path.join(HERE, "controller_cycle.py")).read()
     # strip comments/strings-ish: just assert no .approve(/.lock(/.reopen( call on a ledger
