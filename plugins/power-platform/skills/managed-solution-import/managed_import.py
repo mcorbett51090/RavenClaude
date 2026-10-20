@@ -506,8 +506,31 @@ def _resolve_env(args, cfg: dict) -> tuple[str, str | None, str | None]:
     return env_url, settings_file, oid
 
 
-def _classified_prod(env_name: str | None, cfg: dict) -> bool:
-    return bool(env_name) and env_name in ((cfg.get("prod_guard") or {}).get("environments", []))
+def _host_of(url: object) -> str | None:
+    """Normalised host (lower-case, no trailing dot) of a URL, or None."""
+    host = (urlparse(str(url)).hostname or "").lower().rstrip(".") if url else ""
+    return host or None
+
+
+def _prod_env_name(env_name: str | None, env_url: str | None, cfg: dict) -> str | None:
+    """The PROD-guarded config environment this run targets, or None (B-14). Classified by
+    NAME (--env) and ALSO by the resolved URL: --env-url / --env dev --env-url <prod> reach a
+    prod org without naming it, so the host is compared against the url of every config env
+    listed in prod_guard.environments. An unknown URL stays unclassified (no new refusal)."""
+    guarded = (cfg.get("prod_guard") or {}).get("environments", [])
+    if env_name and env_name in guarded:
+        return env_name
+    host = _host_of(env_url)
+    if host:
+        for name in guarded:
+            entry = (cfg.get("environments") or {}).get(name)
+            if isinstance(entry, dict) and _host_of(entry.get("url")) == host:
+                return name
+    return None
+
+
+def _classified_prod(env_name: str | None, cfg: dict, env_url: str | None = None) -> bool:
+    return _prod_env_name(env_name, env_url, cfg) is not None
 
 
 def cmd_baseline(args, cfg) -> int:
@@ -663,7 +686,8 @@ def cmd_preflight(args, cfg) -> int:
 def cmd_import(args, cfg) -> int:
     env_url, settings_file, oid = _resolve_env(args, cfg)
     # Step 0 — PROD guard (FM7: aware datetime; approved honored before tz can hard-fail).
-    if _classified_prod(args.env, cfg):
+    prod_name = _prod_env_name(args.env, env_url, cfg)
+    if prod_name:
         from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
         tzname = ((cfg.get("prod_guard") or {}).get("timezone")) or "UTC"
@@ -677,7 +701,7 @@ def cmd_import(args, cfg) -> int:
                 )
                 return EXIT_PROD_GUARD
             now = datetime.now().astimezone()
-        blocked, reason = prod_guard_verdict(now, args.env, cfg.get("prod_guard"), args.approved)
+        blocked, reason = prod_guard_verdict(now, prod_name, cfg.get("prod_guard"), args.approved)
         _eprint(f"[managed-import] PROD guard: {reason}")
         if blocked:
             return EXIT_PROD_GUARD

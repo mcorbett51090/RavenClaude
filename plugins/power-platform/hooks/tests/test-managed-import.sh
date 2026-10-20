@@ -7,7 +7,9 @@
 #   Teeth: a mutant whose reactivation_targets() returns [] no longer targets the recreated flow.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SK="$(cd "$HERE/../.." && pwd)/skills/managed-solution-import/managed_import.py"
+# MANAGED_IMPORT_PY lets a caller point the whole test at another copy of the module
+# (used to show the orchestration cases fail against a pre-fix tree).
+SK="${MANAGED_IMPORT_PY:-$(cd "$HERE/../.." && pwd)/skills/managed-solution-import/managed_import.py}"
 fails=0
 pass() { echo "  ✓ $1"; }
 fail() {
@@ -106,6 +108,72 @@ sys.exit(1 if bad else 0)
 PY
 }
 
+# Orchestration cases (mocked network + pac; no tenant). Section name in $2.
+assert_orch() {
+  python3 - "$1" "$2" <<'PY'
+import contextlib, importlib.util, io, json, os, sys, tempfile, types, urllib.error
+from datetime import datetime, timezone
+
+spec = importlib.util.spec_from_file_location("mi", sys.argv[1])
+mi = importlib.util.module_from_spec(spec); spec.loader.exec_module(mi)
+SECTION = sys.argv[2]
+TMP = tempfile.mkdtemp()
+checks = []
+def ck(name, cond): checks.append((name, bool(cond)))
+
+PROD = "https://prod.crm.dynamics.com"
+DEV = "https://dev.crm.dynamics.com"
+OTHER = "https://other.crm.dynamics.com"
+
+class FixedDT(datetime):  # Monday 2026-06-29 10:00 in whatever tz is asked for
+    @classmethod
+    def now(cls, tz=None):
+        return datetime(2026, 6, 29, 10, 0, tzinfo=tz or timezone.utc)
+mi.datetime = FixedDT
+
+state = {"flows": []}
+mi.acquire_token = lambda url: "tok"
+mi.query_solution_flows = lambda opener, org, tok, oid: [dict(f) for f in state["flows"]]
+mi._pac_on_path = lambda: True
+
+def call(argv, cfg_obj=None):
+    """Run mi.main in-process; return (rc, stderr). A raised exception is rc 'RAISED:<type>'."""
+    full = list(argv)
+    if cfg_obj is not None:
+        path = os.path.join(TMP, "cfg.json")
+        with open(path, "w") as fh: json.dump(cfg_obj, fh)
+        full += ["--config", path]
+    err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            rc = mi.main(full)
+    except BaseException as e:  # noqa: BLE001 - an escaped exception is the failure under test
+        rc = "RAISED:" + type(e).__name__
+    return rc, err.getvalue()
+
+if SECTION == "b14":
+    # B-14: the PROD business-hours guard must also classify by the RESOLVED env URL.
+    cfg = {"environments": {"prod": {"url": PROD}, "dev": {"url": DEV}},
+           "prod_guard": {"environments": ["prod"], "timezone": "UTC",
+                          "business_hours": {"window": "09:00-17:00"}}}
+    base = ["import", "--solution-path", "s.zip", "--skip-preflight", "--dry-run",
+            "--baseline-file", os.path.join(TMP, "b14.json")]
+    G = mi.EXIT_PROD_GUARD
+    ck("b14 control: --env prod is blocked", call(base + ["--env", "prod"], cfg)[0] == G)
+    ck("b14 --env-url equal to the prod url is blocked", call(base + ["--env-url", PROD], cfg)[0] == G)
+    ck("b14 --env dev --env-url <prod url> is blocked", call(base + ["--env", "dev", "--env-url", PROD], cfg)[0] == G)
+    ck("b14 prod url match is host-normalised (case)", call(base + ["--env-url", "https://PROD.crm.dynamics.com"], cfg)[0] == G)
+    ck("b14 --approved still overrides a url-classified prod", call(base + ["--env-url", PROD, "--approved"], cfg)[0] == mi.EXIT_OK)
+    ck("b14 a non-prod config url proceeds", call(base + ["--env-url", DEV], cfg)[0] == mi.EXIT_OK)
+    ck("b14 an unknown url stays unclassified (no new refusal)", call(base + ["--env-url", OTHER], cfg)[0] == mi.EXIT_OK)
+    ck("b14 --env dev alone proceeds", call(base + ["--env", "dev"], cfg)[0] == mi.EXIT_OK)
+
+bad = [n for n, ok in checks if not ok]
+print("MISSING:" + ",".join(bad) if bad else "ALLPASS")
+sys.exit(1 if bad else 0)
+PY
+}
+
 echo "A — pure-logic core"
 out="$(assert_core "$SK")"
 if [ "$out" = "ALLPASS" ]; then pass "all core assertions hold"; else fail "core assertions failed -> $out"; fi
@@ -124,6 +192,10 @@ else
     fail "must-fail: neutered targeting still passed FM6 (no teeth) -> $mout"
   fi
 fi
+
+echo "C — orchestration (mocked network/pac): B-14 PROD guard also classifies by the resolved env url"
+out="$(assert_orch "$SK" b14)"
+if [ "$out" = "ALLPASS" ]; then pass "B-14 prod guard holds for --env-url / --env+--env-url, unknown urls unaffected"; else fail "B-14 orchestration failed -> $out"; fi
 
 echo ""
 if [ "$fails" -eq 0 ]; then
