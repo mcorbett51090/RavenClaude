@@ -49,9 +49,16 @@ def target(rel: str) -> str:
 
 
 def run(
-    cmd: list[str], *, cwd: str | None = None, env: dict | None = None, stdin: str | None = None
+    cmd: list[str],
+    *,
+    cwd: str | None = None,
+    env: dict | None = None,
+    stdin: str | None = None,
+    drop: tuple[str, ...] = (),
 ):
     full_env = dict(os.environ)
+    for name in drop:
+        full_env.pop(name, None)
     if env:
         full_env.update(env)
     return subprocess.run(
@@ -529,6 +536,66 @@ def case_d4() -> None:
         )
         expect(
             "unexpected status-page shape" in p.reason, f"{label}: reason says why: {p.reason!r}"
+        )
+
+
+# --------------------------------------------------------------------------------------
+# worktree-new.sh (D-6)
+# --------------------------------------------------------------------------------------
+WORKTREE_NEW = "scripts/worktree-new.sh"
+GIT_ENV = ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_PREFIX")
+
+
+@case("D-6")
+def case_d6() -> None:
+    """Attaching to a stale agent/<slug> branch must warn loudly and report the real tip."""
+    with tempfile.TemporaryDirectory() as td:
+        repo = os.path.join(td, "repo")
+        os.makedirs(repo)
+
+        def git(*a: str) -> subprocess.CompletedProcess:
+            ident = ["-c", "user.name=t", "-c", "user.email=t@example.com"]
+            r = run(["git", *ident, "-c", "commit.gpgsign=false", *a], cwd=repo, drop=GIT_ENV)
+            expect(r.returncode == 0, f"git {' '.join(a)} failed: {describe(r)}")
+            return r
+
+        git("init", "-q")
+        git("symbolic-ref", "HEAD", "refs/heads/main")
+        Path(repo, "a.txt").write_text("a\n")
+        git("add", "a.txt")
+        git("commit", "-q", "-m", "one")
+        old_sha = git("rev-parse", "--short", "HEAD").stdout.strip()
+        git("branch", "agent/job1")  # a stale branch left behind by an earlier, cleaned swarm
+        for name in ("b.txt", "c.txt"):
+            Path(repo, name).write_text("x\n")
+            git("add", name)
+            git("commit", "-q", "-m", name)
+
+        r = run(["bash", target(WORKTREE_NEW), "job1", "main"], cwd=repo, drop=GIT_ENV)
+        out = r.stdout + r.stderr
+        expect(
+            r.returncode == 0, f"attaching must still succeed (warn, do not fail): {describe(r)}"
+        )
+        expect("WARNING" in out, f"a loud WARNING is required: {out!r}")
+        expect(old_sha in out, f"the existing tip sha {old_sha} must be reported: {out!r}")
+        expect("2 commit(s) behind" in out, f"how far behind base must be reported: {out!r}")
+        expect(
+            "attached to existing branch agent/job1" in out, f"report must say attached: {out!r}"
+        )
+        expect("base:   main" not in out, f"must not claim a base it did not use: {out!r}")
+        expect(
+            not Path(repo, ".claude", "worktrees", "job1", "c.txt").exists(),
+            "(sanity) the worktree really is on the stale tip, without main's newer files",
+        )
+
+        # Control: a fresh slug is created from the base and still reports it, with no warning.
+        r = run(["bash", target(WORKTREE_NEW), "job2", "main"], cwd=repo, drop=GIT_ENV)
+        out = r.stdout + r.stderr
+        expect(r.returncode == 0, f"fresh slug failed: {describe(r)}")
+        expect("base:   main" in out and "WARNING" not in out, f"fresh slug report: {out!r}")
+        expect(
+            Path(repo, ".claude", "worktrees", "job2", "c.txt").exists(),
+            "(sanity) a fresh worktree is on main's tip",
         )
 
 
