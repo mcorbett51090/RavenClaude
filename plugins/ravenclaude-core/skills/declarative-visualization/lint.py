@@ -420,6 +420,11 @@ def main() -> int:
         except json.JSONDecodeError as exc:
             print(f"[error] JSON parse error: {exc}", file=sys.stderr)
             return 2
+        except (RecursionError, MemoryError) as exc:
+            # Deeply nested (or huge) input is not a lint verdict: exit 2 "cannot
+            # parse", never the traceback's exit 1, which reads as "violations found".
+            print(f"[error] JSON parse error: cannot parse ({type(exc).__name__})", file=sys.stderr)
+            return 2
         _walk(obj, violations)
         _check_json_quality(obj, violations, warnings)
         _walk_for_expressions(obj, warnings)

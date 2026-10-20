@@ -509,6 +509,10 @@ def _load_page(path: str) -> dict:
         raise InputError(f"cannot read input {path!r}: {exc}") from exc
     except json.JSONDecodeError as exc:
         raise InputError(f"invalid JSON in {path!r}: {exc}") from exc
+    except (RecursionError, MemoryError) as exc:
+        # Deeply nested (or huge) input must exit 2 "cannot parse", not crash with
+        # a traceback's exit 1, which callers read as "violations found".
+        raise InputError(f"cannot parse JSON in {path!r}: {type(exc).__name__}") from exc
     if not isinstance(data, dict):
         raise InputError(f"page JSON must be an object, got {type(data).__name__}")
     return data

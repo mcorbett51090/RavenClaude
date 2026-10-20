@@ -718,6 +718,57 @@ def case_c16(root: Path) -> None:
     )
 
 
+# ─── C-17: deeply nested JSON crashed the dv / pbir linters with exit 1 ──────
+DVLINT_REL = "plugins/ravenclaude-core/skills/declarative-visualization/lint.py"
+PBIRLINT_REL = "plugins/ravenclaude-core/skills/pbir-layout-engine/lint.py"
+
+
+def case_c17(root: Path) -> None:
+    # Both linters refuse paths outside their own repo root, so the input lives under it
+    # (in the gitignored run dir) and is removed afterwards.
+    runs = root / ".ravenclaude/runs"
+    runs.mkdir(parents=True, exist_ok=True)
+    work = Path(tempfile.mkdtemp(prefix="c17-", dir=runs))
+    try:
+        deep = work / "deep.json"
+        deep.write_text('{"a":' * 3000 + "1" + "}" * 3000)
+        good = work / "good.json"
+        good.write_text(
+            json.dumps(
+                {"$schema": "https://vega.github.io/schema/vega-lite/v5.json", "mark": "bar"}
+            )
+        )
+        for rel, name in (
+            (DVLINT_REL, "declarative-visualization"),
+            (PBIRLINT_REL, "pbir-layout-engine"),
+        ):
+            cp = subprocess.run(
+                [sys.executable, str(root / rel), str(deep)],
+                cwd=str(root),
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            _check(
+                cp.returncode == 2,
+                f"{name}: a 3,000-level nested JSON exits 2 'cannot parse' (got {cp.returncode})",
+            )
+            _check("Traceback" not in cp.stderr, f"{name}: ... with no traceback")
+        cp = subprocess.run(
+            [sys.executable, str(root / DVLINT_REL), str(good)],
+            cwd=str(root),
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        _check(
+            cp.returncode in (0, 1),
+            f"control: a normal spec still gets a lint verdict (rc={cp.returncode})",
+        )
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 CASES = {
     "C-1": case_c1,
     "C-2": case_c2,
@@ -727,6 +778,7 @@ CASES = {
     "C-8": case_c8,
     "C-14": case_c14,
     "C-16": case_c16,
+    "C-17": case_c17,
 }
 
 
