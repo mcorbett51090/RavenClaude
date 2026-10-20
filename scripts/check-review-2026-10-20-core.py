@@ -890,6 +890,96 @@ def case_c19(root: Path) -> None:
     _check(got == "", "an empty runs/ dir resolves to no log")
 
 
+# ─── C-4: a lone refuting vote let a claim survive; Synthesize then crashed ──
+RCDR_REL = "plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js"
+RCDR_MIRROR_REL = ".claude/workflows/rc-deep-research.js"
+_RCDR_HARNESS = r"""
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+const [, , scriptPath, mode, policyJson] = process.argv;
+const src = fs.readFileSync(scriptPath, "utf8").replace(/^export const meta =/m, "const meta =");
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), "rc-rcdr-"));
+const mod = path.join(dir, "wf.mjs");
+fs.writeFileSync(mod, "export default async function run(agent, parallel, pipeline, phase, log, args, budget) {\n" + src + "\n}\n");
+const { default: run } = await import(pathToFileURL(mod).href);
+const logs = [];
+let n = 0;
+let synthesized = false;
+async function agent(prompt, opts = {}) {
+  const l = opts.label || "";
+  if (l === "load-dispatch-config") return "NOT_FOUND";
+  if (l === "rc-read")
+    return { found: true, enabled: true, content: { enabled: true, task_class: "research_loop_general", schema_version: "1", verify_policy: JSON.parse(policyJson) } };
+  if (l === "scope") return { question: "q", summary: "s", angles: [{ label: "a1", query: "q1" }, { label: "a2", query: "q2" }, { label: "a3", query: "q3" }] };
+  if (l.startsWith("search:")) return { results: [{ url: "https://example.com/" + l, title: "t", relevance: "high" }] };
+  if (l.startsWith("fetch:")) return { sourceQuality: "primary", claims: [{ claim: "C" + n++, quote: "q", importance: "central" }] };
+  if (/^v\d+:/.test(l) || l.startsWith("v_esc")) {
+    const refuted = mode === "refute" || (mode === "alternate" && !l.endsWith(":C1"));
+    return { refuted, evidence: "e", confidence: "high" };
+  }
+  if (l === "synthesize") { synthesized = true; return { summary: "synth", findings: [], caveats: "c" }; }
+  return "";
+}
+const parallel = async (ts) => Promise.all(ts.map(async (t) => { try { return await t(); } catch (e) { return null; } }));
+const pipeline = async (items, ...stages) => Promise.all(items.map(async (it, i) => { try { let p = it; for (const s of stages) p = await s(p, it, i); return p; } catch (e) { return null; } }));
+let ret;
+let err = null;
+try {
+  ret = await run(agent, parallel, pipeline, () => {}, (m) => logs.push(String(m)), "what is X?", { total: null, spent: () => 0, remaining: () => Infinity });
+} catch (e) {
+  err = String((e && e.message) || e);
+}
+fs.rmSync(dir, { recursive: true, force: true });
+console.log(JSON.stringify({ err, synthesized, stats: ret && ret.stats ? { confirmed: ret.stats.confirmed, killed: ret.stats.killed } : null }));
+"""
+
+
+def _rcdr(root: Path, mode: str, votes: int) -> dict:
+    policy = json.dumps(
+        dict.fromkeys(("primary", "secondary", "blog", "forum", "unreliable"), votes)
+    )
+    cp = subprocess.run(
+        [_node(), str(_harness("rcdr.mjs", _RCDR_HARNESS)), str(root / RCDR_REL), mode, policy],
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if cp.returncode != 0 or not cp.stdout.strip():
+        raise _Fail(f"rc-deep-research harness crashed: {cp.stderr.strip()[-300:]}")
+    return json.loads(cp.stdout.strip().splitlines()[-1])
+
+
+def case_c4(root: Path) -> None:
+    res = _rcdr(root, "refute", 1)
+    _check(
+        res["err"] is None,
+        f"1-vote tier, every vote refutes -> the run does not throw ({res['err']})",
+    )
+    _check(
+        (res["stats"] or {}).get("killed") == 3, f"... and every claim is KILLED ({res['stats']})"
+    )
+    res = _rcdr(root, "alternate", 1)
+    _check(
+        res["err"] is None
+        and res["synthesized"]
+        and (res["stats"] or {}) == {"confirmed": 1, "killed": 2},
+        f"1-vote tier, mixed votes -> refuted claims killed, the rest synthesized without a throw ({res})",
+    )
+    res = _rcdr(root, "support", 3)
+    _check(
+        res["err"] is None and (res["stats"] or {}).get("confirmed") == 3,
+        "control: a 3-vote tier of supporting votes still confirms",
+    )
+    mirror = root / RCDR_MIRROR_REL
+    if mirror.is_file():
+        _check(
+            mirror.read_bytes() == (root / RCDR_REL).read_bytes(),
+            "the .claude/workflows copy is byte-identical",
+        )
+
+
 CASES = {
     "C-1": case_c1,
     "C-2": case_c2,
@@ -902,6 +992,7 @@ CASES = {
     "C-17": case_c17,
     "C-18": case_c18,
     "C-19": case_c19,
+    "C-4": case_c4,
 }
 
 
