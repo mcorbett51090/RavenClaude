@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import sys
 
 IS_SECTIONS = {"Revenue", "COGS", "OpEx", "OtherIncomeExpense", "Tax"}
@@ -74,7 +75,10 @@ def _read_csv(path: str) -> list[dict]:
 
 
 def load_mapping(path: str) -> dict:
-    """account -> {statement, section, line, normal_balance}."""
+    """account -> {statement, section, line, normal_balance[, cash]}.
+
+    An OPTIONAL `cash` column (true/yes/y/1) tags the account as cash for the draft cash flow;
+    the key is only present when the column is."""
     m: dict[str, dict] = {}
     for i, row in enumerate(_read_csv(path), 2):
         acct = (row.get("account") or "").strip()
@@ -88,6 +92,8 @@ def load_mapping(path: str) -> dict:
             "line": (row.get("line") or "").strip(),
             "normal_balance": (row.get("normal_balance") or "").strip().lower(),
         }
+        if "cash" in row:
+            m[acct]["cash"] = (row.get("cash") or "").strip().lower() in ("true", "yes", "y", "1")
     return m
 
 
@@ -259,38 +265,99 @@ def build_balance_sheet(tb: list[dict], mapping: dict, net_income: float):
     )
 
 
-def build_cashflow_draft(cur_bs_sections, prior_tb, mapping, net_income, cur_bs_lines):
-    """Best-effort indirect CF from two TBs. LABELED unaudited_draft - see docstring."""
+_CASH_LINE_RE = re.compile(r"^cash\b", re.IGNORECASE)
+
+
+def cash_accounts(mapping: dict) -> set:
+    """The accounts that hold cash: those tagged `"cash": true` in the mapping, else (when
+    nothing is tagged) every CurrentAssets account whose line starts with the word "cash"
+    (e.g. "Cash and cash equivalents"). Empty when cash cannot be identified."""
+    tagged = {
+        a for a, mp in mapping.items() if mp.get("cash") is True and mp["section"] in ASSET_SECTIONS
+    }
+    if tagged:
+        return tagged
+    return {
+        a
+        for a, mp in mapping.items()
+        if mp["statement"] == "BS"
+        and mp["section"] == "CurrentAssets"
+        and _CASH_LINE_RE.match(mp["line"])
+    }
+
+
+def _cash_by_section(tb: list, mapping: dict, accts: set) -> dict:
+    """section -> presentation-signed balance of the cash accounts in that section."""
+    out: dict[str, float] = {}
+    for r in tb:
+        if r["account"] in accts:
+            sec = mapping[r["account"]]["section"]
+            out[sec] = out.get(sec, 0.0) + _present(r, sec)
+    return out
+
+
+def build_cashflow_draft(cur_bs_sections, prior_tb, mapping, net_income, cur_bs_lines, cur_tb=None):
+    """Best-effort indirect CF from two TBs. LABELED unaudited_draft - see docstring.
+
+    `net_change_in_cash` is the balance-sheet cash MOVEMENT (current - prior balance of the
+    identified cash accounts). Deriving it as operating + investing + financing instead is a
+    tautology: with cash left inside the current-asset delta the three sections always sum to
+    the PRIOR period's net income, whatever happened to cash. With no identifiable cash account
+    it is None (rendered n/a), not a number that restates last period's profit."""
     prior_is, prior_ni, _ = build_income_statement(prior_tb, mapping)
     _, prior_sect, prior_raw = build_balance_sheet(prior_tb, mapping, prior_ni)
+
+    accts = cash_accounts(mapping)
+    have_cash = bool(accts) and cur_tb is not None
+    cash_cur = _cash_by_section(cur_tb, mapping, accts) if have_cash else {}
+    cash_prior = _cash_by_section(prior_tb, mapping, accts) if have_cash else {}
 
     # Delta by BS section (current - prior), presentation-signed.
     def delt(sec):
         return round(cur_bs_sections[sec] - prior_raw[sec], 2)
 
-    d_ca = delt("CurrentAssets")
-    d_nca = delt("NonCurrentAssets")
+    def delt_noncash(sec):
+        return round(delt(sec) - (cash_cur.get(sec, 0.0) - cash_prior.get(sec, 0.0)), 2)
+
+    d_ca = delt_noncash("CurrentAssets")  # excludes the identified cash accounts
+    d_nca = delt_noncash("NonCurrentAssets")
     d_cl = delt("CurrentLiabilities")
     d_ncl = delt("NonCurrentLiabilities")
     d_eq = delt("Equity")
     # Operating: NI + increase in current liabilities - increase in (non-cash) current assets.
-    # NOTE: we cannot separate cash from other current assets reliably without tagging,
-    # so this is deliberately coarse and flagged unaudited.
     operating = round(net_income + d_cl - d_ca, 2)
     investing = round(-d_nca, 2)  # asset increase = cash outflow
     financing = round(d_ncl + d_eq, 2)  # NI already in operating; d_eq here is coarse
-    net_change = round(operating + investing + financing, 2)
+    caveat = (
+        "Indirect CF derived from two trial balances only. Operating/investing/"
+        "financing splits and non-cash adjustments are NOT reliably derivable from "
+        "a TB; treat as a draft sanity check, not a GAAP cash-flow statement."
+    )
+    if have_cash:
+        net_change = round(sum(cash_cur.values()) - sum(cash_prior.values()), 2)
+        unreconciled = round(net_change - (operating + investing + financing), 2)
+        caveat += (
+            " net_change_in_cash is the balance-sheet cash movement (current minus prior "
+            "balance of the cash accounts); unreconciled_difference is that movement minus "
+            "the sum of the three sections - what a TB-only split cannot explain, shown "
+            "rather than plugged."
+        )
+    else:
+        net_change = unreconciled = None
+        caveat += (
+            " No cash account could be identified, so net_change_in_cash is n/a (not a "
+            "figure that merely restates the prior period's net income). Tag a cash account: "
+            "add a `cash` column set to true in the COA mapping, or map it to a CurrentAssets "
+            "line that starts with 'Cash'."
+        )
     return {
         "label": "unaudited_draft",
-        "caveat": (
-            "Indirect CF derived from two trial balances only. Operating/investing/"
-            "financing splits and non-cash adjustments are NOT reliably derivable from "
-            "a TB; treat as a draft sanity check, not a GAAP cash-flow statement."
-        ),
+        "caveat": caveat,
         "cash_from_operating": operating,
         "cash_from_investing": investing,
         "cash_from_financing": financing,
         "net_change_in_cash": net_change,
+        "unreconciled_difference": unreconciled,
     }
 
 
@@ -342,7 +409,7 @@ def run(entity, mapping_path, tb_path, gl_detail=None, prior_tb_path=None, stric
             )
             raise SystemExit(4)
         out["cash_flow"] = build_cashflow_draft(
-            bs_sections, prior_tb, mapping, net_income, bs_stmt["lines"]
+            bs_sections, prior_tb, mapping, net_income, bs_stmt["lines"], tb
         )
     if gl_detail:
         det = _read_csv(gl_detail)
