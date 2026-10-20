@@ -18,8 +18,10 @@
 //   });
 //
 // ENVIRONMENT:
-//   JWT_SIGNING_KEY — required. HS256 shared secret or RS256 private key.
-//     32+ bytes of random for HS256. Never inline in source.
+//   JWT_SIGNING_KEY — required. HS256 shared secret: 32+ bytes of random.
+//     Never inline in source. This module signs and verifies HS256 only; a
+//     PEM private key placed here would just be used as an HMAC secret (see
+//     the RS256 note at the end of this file).
 //   JWT_KEY_VERSION — optional. Used in the token header for rotation.
 //
 // DO NOT:
