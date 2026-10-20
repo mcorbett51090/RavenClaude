@@ -75,6 +75,20 @@ def load_receipts(receipts_dir: str) -> list[dict]:
 # --------------------------------------------------------------------------
 
 
+def applied_entries(receipt: dict) -> tuple[list[dict], list[object]]:
+    """Split a receipt's `applied` into usable {id, summary} objects and malformed
+    entries. A fix agent can write bare ids (`applied: ["F1"]`) or a non-list, and this
+    script runs AFTER the edits are on disk, so a malformed entry must become an
+    anomaly, never a crash that leaves applied edits with no summary."""
+    applied = receipt.get("applied", []) or []
+    if not isinstance(applied, list):
+        return [], [applied]
+    return (
+        [e for e in applied if isinstance(e, dict)],
+        [e for e in applied if not isinstance(e, dict)],
+    )
+
+
 def build_rows(
     merged_index: dict[str, dict], receipts: list[dict]
 ) -> tuple[list[dict], list[dict], int, set]:
@@ -93,12 +107,17 @@ def build_rows(
 
     for receipt in sorted_receipts:
         file_ = receipt.get("file", "?")
-        applied = receipt.get("applied", []) or []
+        applied, malformed = applied_entries(receipt)
         skipped = receipt.get("skipped", []) or []
 
-        if applied:
+        if applied or malformed:
             files_touched.add(file_)
         total_skipped += len(skipped)
+
+        for entry in malformed:
+            anomalies.append(
+                {"id": str(entry)[:80], "file": file_, "summary": "", "kind": "malformed"}
+            )
 
         for entry in applied:
             fid = entry.get("id", "?")
@@ -206,6 +225,12 @@ def write_summary(
         lines.append("")
         lines.append("## Anomalies")
         for a in anomalies:
+            if a.get("kind") == "malformed":
+                lines.append(
+                    "- applied entry `{id}` (file: {file}) is not an {{id, summary}} object "
+                    "-- skipped, not counted as applied".format(id=a["id"], file=a["file"])
+                )
+                continue
             lines.append(
                 "- id `{id}` (file: {file}) was applied but not found in "
                 "merged.json survivors -- summary: {summary}".format(
@@ -223,27 +248,47 @@ def write_summary(
 _GIT_SAFE = ["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null"]
 
 
-def write_patch_and_stat(patch_path: str, stat_path: str, repo_root: str | None) -> None:
+def _git_diff(repo_root: str, extra: list[str]) -> tuple[str, str | None]:
+    """Run one read-only `git diff`; return (stdout, error), error None on success."""
+    try:
+        proc = subprocess.run(
+            _GIT_SAFE + ["-C", repo_root, "diff", "--no-ext-diff", "--no-textconv"] + extra,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as exc:
+        return "", "git could not run: %s" % exc
+    if proc.returncode != 0:
+        why = (proc.stderr or "").strip().splitlines()
+        return "", "git diff exited %d: %s" % (proc.returncode, why[0] if why else "no stderr")
+    return proc.stdout, None
+
+
+def write_patch_and_stat(patch_path: str, stat_path: str, repo_root: str | None) -> bool:
     """Capture `git diff` / `git diff --stat` when repo_root is given;
     otherwise write a placeholder comment to each output file.
+
+    Returns False when git failed (a bad --repo-root, git missing). Both files then
+    carry an ERROR marker: a failed capture written as a 0-byte patch would read as
+    an empty change set.
     """
     if repo_root:
-        diff = subprocess.run(
-            _GIT_SAFE + ["-C", repo_root, "diff", "--no-ext-diff", "--no-textconv"],
-            capture_output=True,
-            text=True,
-        ).stdout
-        stat = subprocess.run(
-            _GIT_SAFE + ["-C", repo_root, "diff", "--no-ext-diff", "--no-textconv", "--stat"],
-            capture_output=True,
-            text=True,
-        ).stdout
+        diff, diff_err = _git_diff(repo_root, [])
+        stat, stat_err = _git_diff(repo_root, ["--stat"])
+        err = diff_err or stat_err
+        if err:
+            print("error: patch not captured -- %s" % err, file=sys.stderr)
+            marker = "# ERROR: patch NOT captured -- %s\n" % err
+            _write_atomic(patch_path, marker)
+            _write_atomic(stat_path, marker)
+            return False
         _write_atomic(patch_path, diff)
         _write_atomic(stat_path, stat)
     else:
         placeholder = "# no --repo-root given; patch not captured\n"
         _write_atomic(patch_path, placeholder)
         _write_atomic(stat_path, placeholder)
+    return True
 
 
 # --------------------------------------------------------------------------
@@ -281,7 +326,8 @@ def main(argv: list[str] | None = None) -> int:
 
     merged_index = load_merged(args.merged)
     receipts = load_receipts(args.fix_receipts_dir)
-    total_applied = sum(len(r.get("applied", []) or []) for r in receipts)
+    # Count only well-formed applied entries; malformed ones are anomalies (build_rows).
+    total_applied = sum(len(applied_entries(r)[0]) for r in receipts)
 
     rows, anomalies, total_skipped, files_touched = build_rows(merged_index, receipts)
 
@@ -291,7 +337,8 @@ def main(argv: list[str] | None = None) -> int:
     if not ok:
         return 1
 
-    write_patch_and_stat(args.out_patch, args.out_stat, args.repo_root)
+    if not write_patch_and_stat(args.out_patch, args.out_stat, args.repo_root):
+        return 1
     return 0
 
 

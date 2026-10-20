@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.5.10] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-13 fix dead and blind grep -E checks in four advisory hooks (riders H-11, H-12, H-14)
+
 ## [0.5.9] — 2026-09-21
 
 ### Fixed

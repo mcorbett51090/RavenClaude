@@ -212,6 +212,39 @@ class TestCoreMechanics(unittest.TestCase):
         with self.assertRaises(rh.RebindError):
             rh.render_template("{% if true %}x{% endif %}", NEW_DATA)
 
+    # ── B-1: a new-data template is rendered ONLY in a Jinja SandboxedEnvironment ──
+
+    def _require_jinja2(self):
+        if rh.jinja2 is None:
+            print("\n[SKIP — NOT A PASS] B-1 sandbox test needs jinja2; it is absent here, so the "
+                  "SSTI guard is UNVERIFIED in this run", file=sys.stderr)
+            self.skipTest("SKIP — NOT A PASS: jinja2 absent, B-1 sandbox unverified")
+
+    def test_b1_ssti_payload_in_new_data_is_refused_not_executed(self):
+        self._require_jinja2()
+        with tempfile.TemporaryDirectory() as td:
+            marker = Path(td) / "pwned.txt"
+            payload = ("{{ cycler.__init__.__globals__.os.popen('echo PWNED > %s; id').read() }}"
+                       % marker)
+            manifest = copy.deepcopy(MANIFEST)
+            manifest["bindings"] = [REGENERATE_TEXT_BINDING]
+            data = copy.deepcopy(NEW_DATA)
+            data["templates"]["narrative"] = payload
+            with self.assertRaises(rh.RebindError) as ctx:
+                rh.rebind(TEMPLATE, manifest, data)
+            self.assertNotIn("uid=", str(ctx.exception))
+            self.assertFalse(marker.exists(), "B-1: the template payload ran a shell command")
+
+    def test_b1_benign_jinja_loop_still_renders_in_the_sandbox(self):
+        self._require_jinja2()
+        rendered = rh.render_template("{% for x in items %}{{ x }}{% endfor %}", {"items": ["a", "b"]})
+        self.assertEqual(rendered, "ab")
+
+    def test_b1_substituted_value_is_never_rerendered_as_a_template(self):
+        self._require_jinja2()
+        rendered = rh.render_template("Note: {{ note }}", {"note": "{{ 7 * 7 }}"})
+        self.assertEqual(rendered, "Note: {{ 7 * 7 }}")
+
     def test_load_manifest_rejects_frozen_with_data_query(self):
         bad = copy.deepcopy(MANIFEST)
         bad["bindings"] = [dict(FROZEN_BINDING, data_query={"kind": "none", "expression": "x"})]
@@ -238,6 +271,59 @@ class TestCoreMechanics(unittest.TestCase):
             path.write_text(json.dumps(bad), encoding="utf-8")
             with self.assertRaises(rh.RebindError):
                 rh.load_manifest(path)
+
+
+class TestAttributeWrites(unittest.TestCase):
+    """B-6: new-data written into an attribute is escaped and never parsed as a regex template."""
+
+    def _img_attrs(self, html_text):
+        found = []
+
+        class P(html.parser.HTMLParser):
+            def handle_starttag(self, tag, attrs):
+                if tag == "img":
+                    found.append(attrs)
+
+        P().feed(html_text)
+        return found
+
+    def _rebind_chart(self, asset):
+        manifest = copy.deepcopy(MANIFEST)
+        manifest["bindings"] = [REGENERATE_IMAGE_BINDING]
+        data = copy.deepcopy(NEW_DATA)
+        data["assets"]["chart"] = asset
+        output, _changes, _n = rh.rebind(TEMPLATE, manifest, data)
+        return [a for a in self._img_attrs(output) if ("id", "chart") in a][0]
+
+    def test_quote_in_value_cannot_add_an_attribute(self):
+        attrs = self._rebind_chart({"src": 'x.png" onerror="alert(1)', "alt": 'Chart: "Revenue"'})
+        self.assertEqual([k for k, _ in attrs], ["id", "data-role", "src", "alt"])
+        self.assertEqual(dict(attrs)["src"], 'x.png" onerror="alert(1)')
+        self.assertEqual(dict(attrs)["alt"], 'Chart: "Revenue"')
+
+    def test_backslashes_and_group_references_are_written_verbatim(self):
+        attrs = dict(self._rebind_chart({"src": "C:\\charts\\q3.png", "alt": "Margin \\1 trend"}))
+        self.assertEqual(attrs["src"], "C:\\charts\\q3.png")
+        self.assertEqual(attrs["alt"], "Margin \\1 trend")
+
+    def test_invalid_attribute_name_is_refused(self):
+        with self.assertRaises(rh.RebindError):
+            rh._inject_attr_into_open_tag('<img id="chart">', 'src onload="alert(1)" x', "y")
+
+    def test_only_the_real_element_and_attribute_are_rewritten(self):
+        # B-7: the id regex also matched data-id="chart", commented-out markup and data-src.
+        template = ('<html><body><!-- <img id="chart" src="old-comment.png"> -->'
+                    '<div data-id="chart" class="w"></div>'
+                    '<img id="chart" data-src="lazy.png" src=\'OLD.png\' alt="Old chart"></body></html>')
+        manifest = copy.deepcopy(MANIFEST)
+        manifest["bindings"] = [REGENERATE_IMAGE_BINDING]
+        output, _changes, _n = rh.rebind(template, manifest, NEW_DATA)
+        self.assertIn('<!-- <img id="chart" src="old-comment.png"> -->', output)
+        self.assertIn('<div data-id="chart" class="w"></div>', output)
+        real = [a for a in self._img_attrs(output) if ("id", "chart") in a][0]
+        self.assertEqual(dict(real)["src"], NEW_DATA["assets"]["chart"]["src"])
+        self.assertEqual(dict(real)["data-src"], "lazy.png")
+        self.assertNotIn("OLD.png", output, "the old src must be absent from the real tag")
 
 
 class TestSampleReportCorpus(unittest.TestCase):

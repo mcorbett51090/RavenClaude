@@ -396,7 +396,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # 173/175/193/194/267-281 above). 306 (headless claude -p call shape — a
       # repo-wide call-site lint, no better fit than core), 307 (the headless
       # usage recorder's self-test + teeth — same generic-self-test family).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289 301 302 306 307"
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289 301 302 306 307 317"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -11703,6 +11703,37 @@ if command -v python3 >/dev/null 2>&1; then
   gate "claude-launch-safeguard: P1/P2 self-tests + P3 discriminator conjunct-3 mutant teeth" must_pass "$rc"
 else
   _skip_or_fail "Gate 282 (claude-launch-safeguard)" python3
+fi
+
+echo "── Gate 317: 2026-10-20 review regression cases (core / scripts / domain) ──"
+# One case per fixed finding from the 2026-10-20 autonomous repo review (PR
+# #1389): core skills/monitors/launcher (C-*), marketplace root scripts + CI
+# (D-*, plus the A/B ones that live in root-adjacent tooling), and the domain
+# calculators + hooks (H-*). Every case was shown to FAIL against the pre-fix
+# tree at authoring time (each script takes --root <pre-fix copy>; the revert
+# evidence is in the review doc's per-package notes). Exit 2 = a case could not
+# run (missing node/perl/pgrep), which fails the gate rather than passing it.
+# Numbered 317 to clear PR #1387's 310-316; placed after Gate 282 and added
+# only to the `core` suite so it does not collide with #1387's hunks.
+if command -v python3 >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
+  # Filenames spelled out literally (not built from a loop variable): the
+  # inventory sweep's call-graph probe finds a caller by the literal filename.
+  for _rv in scripts/check-review-2026-10-20-core.py \
+    scripts/check-review-2026-10-20-scripts.py \
+    scripts/check-review-2026-10-20-domain.py \
+    plugins/team-portfolio/scripts/test_portfolio.py \
+    plugins/web-design/scripts/test_web_design_checks.py; do
+    rc=0; RV_OUT="$(python3 "$_rv" 2>&1)" || rc=$?
+    # On failure, print every FAIL / NOT RUN line before the tail: the tail alone
+    # can cut off the failing case, as it did when C-17 failed only on CI's Python.
+    if [[ "$rc" -ne 0 ]]; then
+      echo "$RV_OUT" | grep -E '^ +(FAIL|NOT RUN) ' || true
+      echo "$RV_OUT" | tail -n 20
+    fi
+    gate "2026-10-20 review regressions (${_rv##*/})" must_pass "$rc"
+  done
+else
+  _skip_or_fail "Gate 317 (2026-10-20 review regressions)" "python3 + node"
 fi
 
 # CLI-contract spot checks (PR-C hard constraints). Deliberately does NOT

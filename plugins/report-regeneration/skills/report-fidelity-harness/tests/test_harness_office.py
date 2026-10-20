@@ -606,6 +606,50 @@ def test_every_office_receipt_is_schema_valid():
         assert r["overall_gate"] in ("FAIL", "PARTIAL")
 
 
+# ── B-28: the zip-bomb caps fail closed, never a partial scan ─────────────────
+
+def _filler_parts(n: int) -> dict:
+    return {f"customXml/f{i:05d}.xml": "<x/>" for i in range(n)}
+
+
+def test_office_container_over_the_part_cap_is_refused_not_half_scanned():
+    # 8,001 parts + the leak in the last one: the reader used to stop at 8,000 and V4 passed.
+    leak = {"word/zzz-leak.xml": "<x>" + _OLD_COMPANY + "</x>"}
+    extra = dict(_filler_parts(8001), **leak)
+    out = _write("over-cap.docx", _make_docx(_template_body(), extra_parts=extra))
+    try:
+        receipt = _run_office(out, _clean_manifest(), _new_data())
+    except harness.HarnessError as exc:
+        assert "part cap" in str(exc)
+    else:
+        raise AssertionError("an over-cap container produced a receipt: V4 {}".format(
+            _legs(receipt)["V4"]["verdict"]))
+
+
+def test_office_nested_cache_over_the_part_cap_fails_v4():
+    nested = _zip_bytes(dict(_filler_parts(8001), **{"xl/worksheets/sheet1.xml": "<v>9876543</v>"}))
+    out = _write("nested-over-cap.docx", _make_docx(
+        _template_body(), extra_parts={"word/embeddings/Microsoft_Excel_Worksheet.xlsx": nested}))
+    receipt = _run_office(out, _clean_manifest(), _new_data())
+    assert _legs(receipt)["V4"]["verdict"] == "PROBE_ERROR", _legs(receipt)["V4"]["evidence"]
+    assert receipt["overall_gate"] == "FAIL"
+
+
+def test_office_part_over_the_size_cap_is_refused_before_reading():
+    saved = harness._OFFICE_MAX_PART_BYTES
+    harness._OFFICE_MAX_PART_BYTES = 1024
+    try:
+        raw = _make_docx(_template_body(), extra_parts={"word/big.xml": "<x>" + "0" * 4096 + "</x>"})
+        try:
+            harness._office_parts_from_bytes(raw, "big.docx", require_document=True)
+        except harness.HarnessError as exc:
+            assert "word/big.xml" in str(exc)
+        else:
+            raise AssertionError("a part over the size cap was read")
+    finally:
+        harness._OFFICE_MAX_PART_BYTES = saved
+
+
 # ── standalone runner (no pytest required) ─────────────────────────────────────
 
 def _main() -> int:

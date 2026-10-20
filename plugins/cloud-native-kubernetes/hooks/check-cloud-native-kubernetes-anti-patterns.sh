@@ -54,7 +54,7 @@ command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
 
 
 findings=()
-if grep -nEi "image:\\s*\\S+:latest|image:\\s*[^@\\s]+\\s*$" "$scan_target" >/dev/null 2>&1; then
+if grep -nEi "image:[[:space:]]*[^[:space:]]+:latest|image:[[:space:]]*[^@[:space:]]+[[:space:]]*$" "$scan_target" >/dev/null 2>&1; then
   findings+=("Container image not pinned by digest (':latest' or floating tag) — pin by digest for reproducibility.")
 fi
 if grep -nEi "runAsNonRoot:\\s*false|privileged:\\s*true|runAsUser:\\s*0\\b" "$scan_target" >/dev/null 2>&1; then

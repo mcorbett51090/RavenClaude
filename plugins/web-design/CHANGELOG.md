@@ -2,6 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.18.6] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- A-24 flesch_kincaid check fails closed on unscorable text
+- A-23 say strict mode feeds findings back, not that it blocks
+- A-25 colour check exempts token files by basename, sees 4/8-digit hex
+
 ## [0.18.5] — 2026-10-13
 
 ### Added
