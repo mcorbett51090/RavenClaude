@@ -26,6 +26,7 @@ import argparse
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -640,6 +641,83 @@ def case_d6() -> None:
             Path(repo, ".claude", "worktrees", "job2", "c.txt").exists(),
             "(sanity) a fresh worktree is on main's tip",
         )
+
+
+# --------------------------------------------------------------------------------------
+# Power Platform PostToolUse hooks without jq (B-21)
+# --------------------------------------------------------------------------------------
+PP_TMDL_HOOK = "plugins/power-platform/hooks/validate-tmdl-measure-metadata.sh"
+PP_FLOW_HOOK = "plugins/power-platform/hooks/validate-flow-action-names.sh"
+
+
+def _bin_dir_without(td: str, *, drop: tuple[str, ...]) -> str:
+    """A PATH directory of symlinks to the tools the hooks need, minus `drop`."""
+    bindir = tempfile.mkdtemp(prefix="bin-", dir=td)
+    for tool in ("cat", "awk", "sed", "grep", "dirname", "python3", "jq", "env", "tr"):
+        found = shutil.which(tool)
+        if found and tool not in drop:
+            os.symlink(found, os.path.join(bindir, tool))
+    return bindir
+
+
+@case("B-21")
+def case_b21() -> None:
+    """Without jq the hooks must still run their check (python3) or say they were skipped."""
+    bash = shutil.which("bash")
+    expect(bash is not None and shutil.which("python3") is not None, "bash + python3 are required")
+    with tempfile.TemporaryDirectory() as td:
+        tmdl = os.path.join(td, "model", "Sales.tmdl")
+        flow = os.path.join(td, "sol", "workflows", "f.json")
+        for path, text in (
+            (tmdl, "table Sales\n  measure Total = SUM(Sales[Amount])\n"),
+            (
+                flow,
+                json.dumps({"properties": {"definition": {"actions": {"Compose_2": {}}}}}),
+            ),
+        ):
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            Path(path).write_text(text)
+
+        def fire(hook: str, path: str, bindir: str) -> subprocess.CompletedProcess:
+            payload = json.dumps({"tool_name": "Edit", "tool_input": {"file_path": path}})
+            return run([bash, target(hook)], stdin=payload, env={"PATH": bindir})
+
+        no_jq = _bin_dir_without(td, drop=("jq",))
+        for hook, path, needle in (
+            (PP_TMDL_HOOK, tmdl, "measure Total"),
+            (PP_FLOW_HOOK, flow, "Compose_2"),
+        ):
+            r = fire(hook, path, no_jq)
+            expect(
+                r.returncode == 0, f"{Path(hook).name}: advisory hook must exit 0: {describe(r)}"
+            )
+            expect(
+                needle in r.stderr,
+                f"{Path(hook).name}: with jq missing the check must still run: {describe(r)}",
+            )
+
+        # Neither jq nor python3: the hook cannot read its payload, so it must SAY so.
+        bare = os.path.join(td, "bare")
+        os.makedirs(bare)
+        for tool in ("cat", "awk", "sed", "grep", "dirname"):
+            os.symlink(shutil.which(tool), os.path.join(bare, tool))
+        for hook, path in ((PP_TMDL_HOOK, tmdl), (PP_FLOW_HOOK, flow)):
+            r = fire(hook, path, bare)
+            expect(r.returncode == 0, f"{Path(hook).name}: must stay fail-safe: {describe(r)}")
+            expect(
+                "check skipped" in r.stderr and "jq" in r.stderr,
+                f"{Path(hook).name}: with no jq and no python3 it must print a skip line: {describe(r)}",
+            )
+
+        # Control: with jq present the behaviour is unchanged.
+        with_jq = _bin_dir_without(td, drop=())
+        r = fire(PP_TMDL_HOOK, tmdl, with_jq)
+        expect("measure Total" in r.stderr, f"control (jq present): {describe(r)}")
+        # A payload for a non-matching file is still silent.
+        other = os.path.join(td, "notes.txt")
+        Path(other).write_text("x")
+        r = fire(PP_TMDL_HOOK, other, no_jq)
+        expect(r.stderr == "", f"a non-TMDL path must stay silent without jq: {describe(r)}")
 
 
 # --------------------------------------------------------------------------------------
