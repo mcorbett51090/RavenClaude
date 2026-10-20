@@ -21,6 +21,7 @@ No live credentials, no live sockets, all fixtures synthetic/obviously-fake.
 from __future__ import annotations
 
 import csv
+import inspect
 import json
 import os
 import socket
@@ -28,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -732,6 +734,36 @@ def main():
     check("tie_out RAISES on a non-tying TB", raised)
     thr = suiteql.pull(_ns_tx("netsuite_m2m/suiteql_tb_throttled"), "q", limit=100)
     check("throttled page (429) retries with backoff, loses no rows", len(thr) == 8)
+
+    class _Throttled429:
+        """One 429 page carrying a Retry-After header, then a normal last page."""
+
+        def __init__(self, retry_after):
+            self.n = 0
+            self.retry_after = retry_after
+
+        def suiteql(self, query, *, limit=1000, offset=0):
+            self.n += 1
+            if self.n == 1:
+                return {"status": 429, "headers": {"Retry-After": self.retry_after}, "body": ""}
+            return {"status": 200, "items": [{"account": "1", "amount": 0}], "hasMore": False}
+
+    slept: list = []
+    got = suiteql.pull(_Throttled429("2"), "q", sleep=slept.append)
+    check(
+        "429 page with Retry-After: 2 calls the injected sleep with 2 (A-14)",
+        slept == [2.0] and len(got) == 1,
+    )
+    check(
+        "pull()'s DEFAULT sleep is time.sleep, not a no-op (A-14)",
+        inspect.signature(suiteql.pull).parameters["sleep"].default is time.sleep,
+    )
+    t0 = time.monotonic()
+    suiteql.pull(_Throttled429("0.3"), "q")  # NO injected sleep: the default must really wait
+    check(
+        "default-sleep pull() really waits out a Retry-After (A-14)",
+        time.monotonic() - t0 >= 0.25,
+    )
     capped = False
     try:
         suiteql.pull(_ns_tx("netsuite_m2m/suiteql_tb"), "q", limit=2, cap=3)

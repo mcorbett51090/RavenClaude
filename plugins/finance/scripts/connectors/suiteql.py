@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
@@ -101,11 +102,12 @@ def _page_field(page, key, default=None):
 
 
 def pull(transport, query, *, limit=1000, cap=SUITEQL_RESULT_CAP,
-         retry_after=honor_retry_after, sleep=lambda s: None, max_retries=5) -> list:
+         retry_after=honor_retry_after, sleep=time.sleep, max_retries=5) -> list:
     """Serially page a SuiteQL query via transport.suiteql(query, limit=, offset=). Each page
     exposes items + hasMore (+ optional status/headers for 429/5xx retry). Accumulates rows,
-    honors Retry-After backoff on a throttled page, and HARD-STOPS at `cap` (loud) — a trial
-    balance is never silently truncated."""
+    honors Retry-After backoff on a throttled page (really sleeping: `sleep` defaults to
+    time.sleep, tests inject a no-op), and HARD-STOPS at `cap` (loud) — a trial balance is
+    never silently truncated."""
     rows: list = []
     offset = 0
     while True:
