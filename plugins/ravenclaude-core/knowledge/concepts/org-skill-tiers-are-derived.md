@@ -29,7 +29,7 @@ covers:
   - plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/drafting-customer-replies/reference/tone.md
   - plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/screening-vendor-invoices/SKILL.md
   - plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/screening-vendor-invoices/reference/tolerances.md
-covers_digest: "sha256:97edf90d26b4700772017c0a7f3cac124585bee7c9251ab70dff6dfc830a8a08"
+covers_digest: "sha256:9c743b2b41cef15842561bc7301013902442938ca5a71c95fa18d837b1b4eefd"
 nuance: "A rule's tier is READ from `reference/platform-constraints.md`, never hand-set, so a constraint the vendor contradicts itself on ships as WARN instead of a guess. Research moves the packer's default and never the tier: docs say what the platform emits, not what its unpacker accepts."
 nuance_evidence:
   measured: 2026-08-25

@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.4] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-20 retention-roi footer was backwards and impossible break-evens went unflagged
+
 ## [0.3.3] — 2026-08-14
 
 ### Changed

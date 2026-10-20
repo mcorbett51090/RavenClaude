@@ -12,7 +12,7 @@ covers:
   - plugins/ravenclaude-core/hooks/_rc-runtime.sh
   - plugins/ravenclaude-core/hooks/pretool-record-check.sh
   - scripts/check-hook-launch-line.py
-covers_digest: "sha256:895ee8f2abc26c6ab82d7746310b2af97367d3702ea7041afcd6eeb29d5cfcc6"
+covers_digest: "sha256:22d0e80957bdb91652d49c938fd8bcd9ec08b6952b4562b55432142c6ee925dd"
 nuance: "Claude Code 2.1.260 exports project settings env into every hook (sh -c): a planted BASH_ENV ran in every bash hook, a planted PATH chose jq. The hardened launch line keeps them out; env-integrity-guard.sh denies every tool call. A real LD_PRELOAD library cannot be stopped, only refused."
 nuance_evidence:
   measured: 2026-10-18

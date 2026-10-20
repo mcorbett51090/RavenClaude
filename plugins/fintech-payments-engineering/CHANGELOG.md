@@ -2,7 +2,7 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.3.5] — 2026-10-19
+## [0.3.6] — 2026-10-20
 
 ### Fixed
 
@@ -11,6 +11,12 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
 Fixtures that drive the hook exactly as `hooks.json` registers it (fires on the anti-pattern, silent on clean code) are in `scripts/check-domain-hook-teeth.py` (control: the same fixtures run against the pre-fix hook fail, the anti-pattern case printing nothing).
 
 **Migration:** none. The hook is advisory; expect these checks to fire where they never did.
+
+## [0.3.5] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-9 recon_diff exits 2 on malformed CSV rows and accepts BOM files
 
 ## [0.3.4] — 2026-09-10
 

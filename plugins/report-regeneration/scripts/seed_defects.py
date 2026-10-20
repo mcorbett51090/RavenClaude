@@ -394,7 +394,7 @@ def inject_D10(html_text: str) -> tuple[str, list[dict]]:
                      "before": f"{n} scope attribute(s) present", "after": "0 present"})
 
     new_html, n = re.subn(
-        r"\s*<caption>.*?</caption>\n?", "", new_html, count=1, flags=re.DOTALL
+        r"\s*<caption\b[^>]*>.*?</caption>\n?", "", new_html, count=1, flags=re.DOTALL
     )
     if n != 1:
         raise SeedDefectError("expected exactly one <caption> — fixture drifted?")

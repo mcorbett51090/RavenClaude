@@ -2,7 +2,7 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.12.12] — 2026-10-19
+## [0.12.13] — 2026-10-20
 
 ### Fixed
 
@@ -16,6 +16,13 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   `test_app_saved_views.py` (stdlib, no Snowflake needed). **Migration:** affects newly copied templates;
   an existing copy keeps its code. Saved views whose names fall outside the new character set can still
   be loaded but not re-saved under that name.
+
+## [0.12.12] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-7 PSM exporter serialises Decimal/date values and decodes OBJECT/ARRAY columns
+- H-8 PSM exporter --validate finds (or names) its schema and --allow-real-ids stops promising masking
 
 ## [0.12.11] — 2026-10-18
 

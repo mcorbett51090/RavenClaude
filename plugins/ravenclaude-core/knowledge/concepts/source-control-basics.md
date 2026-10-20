@@ -9,9 +9,7 @@ see_also: [getting-started, layout-hook]
 last_verified: 2026-08-24
 refresh_when: "Git or GitHub change a load-bearing default (branch name, PR flow), or the marketplace's PR conventions or branch-archive contract change."
 sources:
-  - label: "AGENTS.md — PR conventions"
-    url: "AGENTS.md"
-  - label: "AGENTS.md — House rules (branch-archive)"
+  - label: "AGENTS.md — PR conventions; House rules (branch-archive)"
     url: "AGENTS.md"
   - label: "branch-archive skill"
     url: "plugins/ravenclaude-core/skills/branch-archive/SKILL.md"

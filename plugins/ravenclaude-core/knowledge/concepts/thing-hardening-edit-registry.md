@@ -25,9 +25,7 @@ verify:
   probe: "plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh"
   teeth_exit: 1
 sources:
-  - label: "PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15"
-    url: https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml
-  - label: knowledge/thing-harden-transforms.yaml
+  - label: "knowledge/thing-harden-transforms.yaml (PE DIGEST ship Thing hardening EDIT 0.323.5, 2026-09-15)"
     url: https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml
 ---
 

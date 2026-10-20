@@ -9,12 +9,15 @@
 // ---------------------------------------------------------------------------
 
 const FORMULA_LEAD = /^[=+\-@\t\r]/;
+// A plain number (e.g. a refund of -12.50) cannot be a formula, so it is
+// left as-is; prefixing it would turn a numeric column into text.
+const PLAIN_NUMBER = /^[+-]?\d+(\.\d+)?([eE][+-]?\d+)?$/;
 
 export function toCsvRow(values: unknown[]): string {
   return values
     .map((v) => {
       let s = String(v ?? "");
-      if (FORMULA_LEAD.test(s)) s = `'${s}`;
+      if (FORMULA_LEAD.test(s) && !PLAIN_NUMBER.test(s)) s = `'${s}`;
       return /["\r\n,]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     })
     .join(",");

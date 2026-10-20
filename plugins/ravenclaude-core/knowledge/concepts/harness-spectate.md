@@ -16,7 +16,7 @@ covers:
   - plugins/ravenclaude-core/hooks/spectate-steer.sh
   - plugins/ravenclaude-core/monitors/watch-spectate.sh
   - plugins/ravenclaude-core/skills/spectate/SKILL.md
-covers_digest: "sha256:a9671eb3ece30a8d593f3b6ad5ce3be5708174e3a0f9320432054091ce1e6bd8"
+covers_digest: "sha256:85f6e16de0cdf8079cbc9c50d2a0eae77375f5c3091a52e0da337536cfea4929"
 nuance: "An empty Spectate stream reduces every node to idle with cause-not-established; a capability cell whose state is unknown never reduces to unavailable-harness."
 nuance_evidence:
   measured: 2026-10-09

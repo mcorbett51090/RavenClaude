@@ -209,5 +209,81 @@ class TestRebindManifest(unittest.TestCase):
         self.assertTrue(cli_out.is_file())
 
 
+class TestIdlessNodeGetsTheSameChecks(unittest.TestCase):
+    """B-5: the earned-frozen taint / new-dataset / detector checks read only id'd nodes' text, so
+    an id-less (css_selector-anchored) node carrying an old figure stayed frozen."""
+
+    def test_idless_node_is_demoted_like_its_idd_twin(self):
+        plugin = _SKILL_DIR.parent.parent
+        infer_dir = plugin / "skills" / "infer-report-structure"
+        if str(infer_dir) not in sys.path:
+            sys.path.insert(0, str(infer_dir))
+        import infer
+
+        template = ("<!DOCTYPE html><html><head><title>Northwind Report</title>\n"
+                    '<!--\n  old_company: "Ridgeline Fabricators Inc."\n-->\n</head><body>'
+                    '<section id="s"><h2>Ridgeline Fabricators Inc. Overview</h2>'
+                    '<h2 id="x">Ridgeline Fabricators Inc. Overview</h2></section></body></html>')
+        rsg, _ = infer.build_rsg(template, "t")
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            (td / "t.html").write_text(template, encoding="utf-8")
+            (td / "rsg.json").write_text(json.dumps(rsg), encoding="utf-8")
+            (td / "nd.json").write_text(json.dumps({"source_ref": "x", "values": {"a": "1"}}), encoding="utf-8")
+            result = bm.run(td / "rsg.json", td / "t.html", td / "nd.json", td / "m.json")
+        by_node = {d["node_id"]: d for d in result["decisions"]}
+        idd, idless = by_node["x"], by_node["#s > h2:nth-of-type(1)"]
+        self.assertEqual(idd["final_class"], "needs-review")
+        self.assertEqual((idless["final_class"], idless["taint_hit"]), (idd["final_class"], idd["taint_hit"]))
+
+
+class TestDaxBindKey(unittest.TestCase):
+    """B-12: a template data-bind is interpolated into the DAX a Power BI binding runs."""
+
+    def test_crafted_data_bind_is_rejected(self):
+        evil = 'x"]), EVALUATE TOPN(100, Salaries)'
+        with self.assertRaises(bm.BuildManifestError):
+            bm.propose_query("surgical", "kpi-value", "xmla", evil, "pbi")
+
+    def test_normal_keys_still_build_the_generated_query(self):
+        q = bm.propose_query("surgical", "kpi-value", "rest", "Revenue Total", "pbi")
+        self.assertEqual(q["expression"], 'EVALUATE ROW("Revenue Total", [Revenue Total])')
+        q = bm.propose_query("surgical", "kpi-value", "xmla", "", "pbi")
+        self.assertEqual(q["expression"], 'EVALUATE ROW("value", [Measure])')
+
+
+class TestUnannotatedNeedsReviewIsBound(unittest.TestCase):
+    """B-2: infer demotes an unannotated <p>$1,234</p> to needs-review; build_manifest must bind
+    it (it used to drop every static-chrome node), so rebind badges and counts it."""
+
+    def test_unannotated_data_shaped_paragraph_is_bound_badged_and_counted(self):
+        plugin = _SKILL_DIR.parent.parent
+        for sub_dir in (plugin / "skills" / "infer-report-structure", plugin / "skills" / "rebind-html"):
+            if str(sub_dir) not in sys.path:
+                sys.path.insert(0, str(sub_dir))
+        import infer
+        import rebind_html
+
+        template = ("<!DOCTYPE html><html><head><title>Report</title></head><body>"
+                    "<h1>Quarterly report</h1><p>Revenue for the quarter was $1,234</p></body></html>")
+        rsg, _ = infer.build_rsg(template, "unannotated")
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "t.html"
+            path.write_text(template, encoding="utf-8")
+            index = bm.parse_template(path)["elements"]
+            taint = bm.build_taint_dictionary(path)
+        manifest, _ = bm.build_manifest(
+            rsg, index, taint, {"source_ref": "new", "value_domain": [], "source_period": None},
+            "0.1.0", 0.7)
+        self.assertEqual(bm.validate_manifest(manifest), [])
+        review = [b for b in manifest["bindings"] if b["class"] == "needs-review"]
+        self.assertEqual([b["anchor"]["value"] for b in review],
+                         ["html > body:nth-of-type(1) > p:nth-of-type(1)"],
+                         "B-2: the demoted data-shaped <p> must get a needs-review binding")
+        output, _changes, needs_review_count = rebind_html.rebind(template, manifest, {})
+        self.assertGreaterEqual(needs_review_count, 1)
+        self.assertIn("NEEDS REVIEW", output)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

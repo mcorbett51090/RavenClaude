@@ -25,7 +25,7 @@ Every entry below names its owning plugin. To bring a disabled plugin's skills b
 /reload-plugins
 ```
 
-## Index (968 skills across 184 plugins)
+## Index (969 skills across 184 plugins)
 
 | Skill | Plugin | Description |
 |---|---|---|
@@ -247,6 +247,7 @@ Every entry below names its owning plugin. To bring a disabled plugin's skills b
 | `set-up-data-observability-monitors` | `data-quality-observability` | Stand up the observability monitors that watch for the unknown over time — freshness, volume, schema-drift, and distribution/anomaly monitors — each anchored to a baseline and a tolerance (not a hard-coded magic number), then wire owner-routed alerting and link a data-incident runbook. Reach for this when the user asks "set up freshness/volume monitors", "alert us before a stakeholder notices bad data", or "detect schema drift and distribution anomalies". Used by `data-quality-engineer` (primary). |
 | `eda-workflow` | `data-science-research` | Run a disciplined exploratory pass before anyone models: profile the data (shape, types, missingness, cardinality, distributions), make and document cleaning decisions, visualize distributions and relationships, spot leakage candidates and target-definition problems, generate hypotheses, and communicate findings with their uncertainty. |
 | `feature-engineering-and-modeling` | `data-science-research` | Engineer features and fit, select, and honestly evaluate classical models on tabular data: build leakage-aware features, set a baseline, choose between regression / trees / gradient boosting, build a leakage-safe cross-validation harness with every transform fit inside the fold, and pick the metric from the decision and its cost structure. |
+| `find-plot-recipe` | `data-science-research` | Look up a library-agnostic plot recipe and runnable implementations across 15 charting libraries (matplotlib, seaborn, plotly, bokeh, altair, ggplot2, Makie, D3, ECharts, ...) from anyplot.ai's public read-only API during the EDA visualization step. Opt-in third-party reference — public HTTP API by default, remote MCP strictly opt-in. Verify AI-generated code before trusting it. |
 | `reproducible-research` | `data-science-research` | Make an analysis re-runnable by anyone: enforce notebook hygiene (top-to-bottom-clean, no out-of-order state), pin environments and dependencies in a lockfile, set and thread random seeds, version data and artifacts, track experiments (params + metrics + code/data version per run), and convert a run-once notebook into a scripted, deterministic pipeline. |
 | `cdc-pipeline-setup` | `data-streaming-engineering` | Step-by-step playbook for standing up a Change Data Capture pipeline with Debezium — source connector configuration, slot management, snapshot strategy, and handling common failure modes. |
 | `consumer-lag-triage` | `data-streaming-engineering` | Structured triage procedure for diagnosing and resolving Kafka consumer group lag — distinguishes slow consumer, under-partitioned topic, rebalance storm, and broker-side causes. |

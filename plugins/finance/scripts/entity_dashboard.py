@@ -324,6 +324,12 @@ def render_dashboard(pkg: dict) -> str:
     cf = st.get("cash_flow")
     cf_block = ""
     if cf:
+        unrec_row = ""
+        if cf.get("unreconciled_difference") is not None:
+            unrec_row = (
+                "\n          <tr><td>Unreconciled difference (draft)</td>"
+                f"<td class='num'>{_money(cf.get('unreconciled_difference'))}</td></tr>"
+            )
         cf_block = f"""
       <section>
         <h2>Cash flow <span class="pill warn">{html.escape(str(cf.get('label', 'unaudited_draft')))}</span></h2>
@@ -332,7 +338,7 @@ def render_dashboard(pkg: dict) -> str:
           <tr><td>Cash from operating</td><td class='num'>{_money(cf.get('cash_from_operating'))}</td></tr>
           <tr><td>Cash from investing</td><td class='num'>{_money(cf.get('cash_from_investing'))}</td></tr>
           <tr><td>Cash from financing</td><td class='num'>{_money(cf.get('cash_from_financing'))}</td></tr>
-          <tr class='subtotal'><td>Net change in cash</td><td class='num'>{_money(cf.get('net_change_in_cash'))}</td></tr>
+          <tr class='subtotal'><td>Net change in cash</td><td class='num'>{_money(cf.get('net_change_in_cash'), dash='n/a')}</td></tr>{unrec_row}
         </tbody></table></div>
       </section>"""
 

@@ -95,6 +95,14 @@ function sumLineItems(lineItems: CreateCheckoutInput["lineItems"]): Money {
         `All line items must share one currency for a single PaymentIntent (saw "${currency}" and "${item.amount.currency}").`,
       );
     }
+    // A negative, zero or fractional value would let one line net another
+    // down, or round to a different charge than the catalog says.
+    if (!Number.isSafeInteger(item.amount.amount) || item.amount.amount <= 0) {
+      throw new Error(`Line item "${item.name}": amount must be a positive integer (minor units).`);
+    }
+    if (!Number.isSafeInteger(item.quantity) || item.quantity <= 0) {
+      throw new Error(`Line item "${item.name}": quantity must be a positive integer.`);
+    }
     amount += item.amount.amount * item.quantity;
   }
   return { amount, currency };

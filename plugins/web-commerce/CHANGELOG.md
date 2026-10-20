@@ -2,7 +2,7 @@
 
 All notable changes to the `web-commerce` plugin. Versions follow semver; the plugin's `version` in `.claude-plugin/plugin.json` is the source of truth.
 
-## 0.1.3 — 2026-10-19
+## 0.1.4 — 2026-10-20
 
 ### Fixed
 
@@ -31,6 +31,13 @@ All notable changes to the `web-commerce` plugin. Versions follow semver; the pl
 atomic `setIfAbsent()` and `delete()` (Cloudflare Workers KV has no atomic set-if-absent; back the
 claim with a Durable Object or D1). Code that calls `verifyAndParseSquareWebhook` directly must call
 `remember(event.id)` after its side effects succeed, or `release(event.id)` when they fail.
+
+## 0.1.3 — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- E-1 stripe framework checkout resolves prices server-side
+- E-10 time out stalled Square and Shopify Storefront calls
 
 ## 0.1.2 — 2026-09-10
 

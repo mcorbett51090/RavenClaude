@@ -11,7 +11,7 @@ covers:
   - .github/workflows/regenerate-artifacts.yml
   - scripts/concepts.py
   - scripts/spike-selfheal-contract.sh
-covers_digest: "sha256:1468732331aa8002f11e726689694ad8f5423a26f3370e13228d7a5263c9d09e"
+covers_digest: "sha256:e68d056ff57df98aa5136037d8531b1b067af607ffdd7344a0bcfdbc9761ffa9"
 nuance: "`regenerate-artifacts.yml` greps `RC-CONCEPTS-CLASS: human-reverify-required` (plus a one-release prose OR-fallback); an unmarked class runs `exit '$_crc'` and every later self-heal step is skipped."
 nuance_evidence:
   measured: 2026-08-19
