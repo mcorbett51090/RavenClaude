@@ -217,6 +217,7 @@ def translate(entity: dict, mapping: dict, tb: list, rates: dict, presentation: 
     trail = []
     translated = []
     usd_debit_sum = usd_credit_sum = 0.0
+    raw_debit_sum = raw_credit_sum = 0.0  # UNROUNDED, for the CTA self-check only
     for r in tb:
         mp = mapping[r["account"]]
         rc = mp["rate_class"]
@@ -225,6 +226,8 @@ def translate(entity: dict, mapping: dict, tb: list, rates: dict, presentation: 
         c = round(r["credit"] * rate, 2)
         usd_debit_sum += d
         usd_credit_sum += c
+        raw_debit_sum += r["debit"] * rate
+        raw_credit_sum += r["credit"] * rate
         translated.append(
             {"account": r["account"], "description": r["description"], "debit": d, "credit": c}
         )
@@ -322,8 +325,18 @@ def translate(entity: dict, mapping: dict, tb: list, rates: dict, presentation: 
 
     if method == "current_rate":
         theory = analytical_cta(tb, mapping, rates, net_income_func)
-        passes = abs(theory - imbalance) < 0.01
-        out["cta_self_check"] = {"analytical": theory, "plug": imbalance, "passes": passes}
+        # The emitted plug (and the translated TB) stay on the ROUNDED imbalance so the TB
+        # balances line by line, but per-line 2dp rounding accumulates (a 40-account TB drifts
+        # past 0.01 on most inputs). The analytical figure is exact, so compare it with the
+        # UNROUNDED translated imbalance; the 0.01 tolerance is deliberately not widened.
+        plug_unrounded = raw_debit_sum - raw_credit_sum
+        passes = abs(theory - plug_unrounded) < 0.01
+        out["cta_self_check"] = {
+            "analytical": theory,
+            "plug": imbalance,
+            "plug_unrounded": round(plug_unrounded, 6),
+            "passes": passes,
+        }
         if not passes:
             sys.stderr.write(
                 f"BLOCKED: CTA self-check failed - balancing plug {imbalance:,.2f} != "

@@ -49,6 +49,69 @@ def subtotals_match(got: dict, want: dict) -> bool:
     return all(k in got and abs(got[k] - v) < 0.01 for k, v in want.items())
 
 
+# Seeds for the generated wide-TB regression (A-1). Per-line 2dp rounding accumulates, so a
+# 40-account TB drifts past 0.01 on most inputs; with the pre-fix self-check (which compared
+# the analytical CTA with the ROUNDED imbalance) seeds 1, 2, 4, 6, 7, 8, 10 and 11 below all
+# exited rc5 on a correct translation. Do not shrink this list without re-proving the teeth.
+WIDE_SEEDS = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+
+
+def gen_wide_book(seed: int, d: str, n: int = 40, with_synthetic: bool = False):
+    """Write a deterministic n-account EUR COA + balanced TB (cents-level amounts) into d.
+
+    The COA carries NO synthetic __CTA__/__REMEAS_GL__ rows unless with_synthetic. Returns
+    (coa_path, tb_path). The TB is balanced exactly by adjusting the first Equity row.
+    """
+    import random
+    rng = random.Random(seed)
+    kinds = [("CurrentAssets", "BS", "debit", "MONETARY"),
+             ("NonCurrentAssets", "BS", "debit", "NONMONETARY"),
+             ("CurrentLiabilities", "BS", "credit", "MONETARY"),
+             ("Equity", "BS", "credit", "EQUITY_CONTRIB"),
+             ("Revenue", "IS", "credit", "REV_EXP"),
+             ("OpEx", "IS", "debit", "REV_EXP")]
+    coa, tb = [], []
+    for i in range(n):
+        sec, st, nb, rc = kinds[i % len(kinds)]
+        acct = str(1000 + i)
+        coa.append([acct, f"Acct {acct}", st, sec, f"Line {sec} {acct}", nb, rc])
+        cents = rng.randint(100_00, 90_000_00) + rng.randint(1, 99)
+        tb.append([acct, f"Acct {acct}", cents if nb == "debit" else 0,
+                   cents if nb == "credit" else 0])
+    diff = sum(r[2] for r in tb) - sum(r[3] for r in tb)
+    eq = next(r for r, c in zip(tb, coa) if c[3] == "Equity")
+    if diff >= 0:
+        eq[3] += diff
+    else:
+        eq[2] += -diff
+    if with_synthetic:
+        coa.append(["__CTA__", "CTA", "BS", "Equity", "Cumulative translation adjustment (CTA)",
+                    "credit", "EQUITY_RE"])
+        coa.append(["__REMEAS_GL__", "Remeasurement", "IS", "OtherIncomeExpense",
+                    "Remeasurement gain/(loss)", "credit", "REV_EXP"])
+    coa_path, tb_path = os.path.join(d, f"coa-{seed}.csv"), os.path.join(d, f"tb-{seed}.csv")
+    with open(coa_path, "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["account", "description", "statement", "section", "line",
+                    "normal_balance", "rate_class"])
+        w.writerows(coa)
+    with open(tb_path, "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["account", "description", "debit", "credit", "entity", "period", "currency"])
+        for r in tb:
+            w.writerow([r[0], r[1], f"{r[2] / 100:.2f}", f"{r[3] / 100:.2f}",
+                        "EURSUB", "2026-06", "EUR"])
+    return coa_path, tb_path
+
+
+def run_rc(fn, *a, **k):
+    """Call fn; return (result, exit_code) with SystemExit mapped to its code."""
+    try:
+        return fn(*a, **k), 0
+    except SystemExit as e:
+        return None, e.code
+
+
 def main():
     import remeasure as rm  # noqa
 
@@ -213,6 +276,50 @@ def main():
     current_ord = rm.rate_for("current_rate", "REV_EXP", "6000", branch_rates)
     check("current_rate: BOTH REV_EXP_HIST and REV_EXP resolve to AVERAGE (split ignored)",
           abs(current_hist - 1.05) < 1e-9 and abs(current_ord - 1.05) < 1e-9)
+
+    print("W1.10 — wide generated TB: per-line rounding must NOT trip the CTA self-check (A-1)")
+    with tempfile.TemporaryDirectory() as d:
+        rates_wide = os.path.join(d, "rates-wide.json")
+        with open(rates_wide, "w") as fh:
+            json.dump({"method": "current_rate", "closing": 1.0837, "average": 1.0592,
+                       "historical": {"default": 1.0123}}, fh)
+        codes, all_pass, drift = [], True, 0.0
+        for seed in WIDE_SEEDS:
+            coa_w, tb_w = gen_wide_book(seed, d)
+            res, rc = run_rc(rm.run, ENT, coa_w, tb_w, rates_wide)
+            codes.append(rc)
+            if res is not None:
+                all_pass = all_pass and res["cta_self_check"]["passes"]
+                sc = res["cta_self_check"]
+                drift = max(drift, abs(sc["plug"] - sc.get("plug_unrounded", sc["plug"])))
+        check("every generated 40-account EUR TB translates (rc0, never rc5): " + str(codes),
+              all(c == 0 for c in codes))
+        check("cta_self_check.passes true on every generated TB", all_pass)
+        check("rounded plug is kept on the TB while plug_unrounded is reported "
+              "(max |plug - plug_unrounded| %.4f)" % drift, 0 < drift < 1.0)
+        coa_w, tb_w = gen_wide_book(WIDE_SEEDS[0], d)
+        res, _ = run_rc(rm.run, ENT, coa_w, tb_w, rates_wide)
+        check("emitted translated TB still balances to the cent on rounded lines",
+              res is not None
+              and abs(sum(r["debit"] for r in res["translated_tb"])
+                      - sum(r["credit"] for r in res["translated_tb"])) < 0.01)
+        # Must-fail control: a genuinely WRONG translation (equity at the CLOSING rate instead
+        # of historical) must still BLOCK rc5 on the wide book AND on the golden example.
+        real_rate_for = rm.rate_for
+
+        def wrong_rate_for(method, rate_class, account, rates):
+            if rate_class in rm.EQUITY_CLASSES:
+                return float(rates["closing"])
+            return real_rate_for(method, rate_class, account, rates)
+
+        rm.rate_for = wrong_rate_for
+        try:
+            _, rc_wide = run_rc(rm.run, ENT, coa_w, tb_w, rates_wide)
+            _, rc_gold = run_rc(rm.run, ENT, COA, TB, RATES_CUR)
+        finally:
+            rm.rate_for = real_rate_for
+        check("equity-at-closing (wrong) still BLOCKS rc5 on the wide TB", rc_wide == 5)
+        check("equity-at-closing (wrong) still BLOCKS rc5 on the golden example", rc_gold == 5)
 
     n_pass = sum(1 for _, ok in results if ok)
     print(f"\n{n_pass}/{len(results)} acceptance tests passed.")
