@@ -8,6 +8,8 @@ Exits 0 iff every case passes.
     empty, markup-only and non-Latin-script input exit 2 [UNASSESSABLE].
   - check-web-anti-patterns.sh is PostToolUse: no doc may claim that
     WEB_DESIGN_STRICT=1 blocks the edit (review A-23).
+  - its hardcoded-colour check exempts token files by basename only and
+    sees 3/4/6/8-digit hex (review A-25).
 """
 
 from __future__ import annotations
@@ -110,6 +112,34 @@ class StrictModeIsNotABlock(unittest.TestCase):
                 fh.write(".a { color: #123456; }\n")
             self.assertEqual(run_hook(css, strict=False).returncode, 0)
             self.assertEqual(run_hook(css, strict=True).returncode, 2)
+
+
+class HardcodedColorCheck(unittest.TestCase):
+    """Review A-25: exempt token files by basename only; see 4- and 8-digit hex."""
+
+    def findings(self, rel_path: str, css: str) -> int:
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, rel_path)
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(css)
+            return run_hook(path, strict=False).stderr.count("[hardcoded-color]")
+
+    def test_a_tokens_named_directory_does_not_exempt_its_files(self):
+        self.assertEqual(self.findings("design-tokens-site/src/a.css", ".a{color:#abc}\n"), 1)
+
+    def test_a_token_file_is_still_exempt(self):
+        self.assertEqual(self.findings("site/src/tokens.css", ".a{color:#abc}\n"), 0)
+        self.assertEqual(self.findings("site/src/palette.css", ".a{color:#abc}\n"), 0)
+
+    def test_8_and_4_digit_hex_are_flagged(self):
+        self.assertEqual(self.findings("site/src/c.css", ".a{color:#11223344}\n"), 1)
+        self.assertEqual(self.findings("site/src/d.css", ".a{color:#abcd}\n"), 1)
+
+    def test_3_and_6_digit_hex_still_flagged_and_5_digit_is_not(self):
+        self.assertEqual(self.findings("site/src/e.css", ".a{color:#123456}\n"), 1)
+        self.assertEqual(self.findings("site/src/f.css", ".a{color:#fff}\n"), 1)
+        self.assertEqual(self.findings("site/src/g.css", ".a{content:'#12345'}\n"), 0)
 
 
 if __name__ == "__main__":

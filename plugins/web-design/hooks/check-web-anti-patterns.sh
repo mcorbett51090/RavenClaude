@@ -36,8 +36,10 @@ fi
 [[ -z "$file" ]] && exit 0
 [[ ! -f "$file" ]] && exit 0
 
-# Allow token files to define hex colors (that's their job).
-case "$file" in
+# Allow token files to define hex colors (that's their job). Matched on the
+# file's basename only, so a project under e.g. ~/design-tokens-site/ is
+# still checked.
+case "${file##*/}" in
   *tokens*|*design-tokens*|*colors.*|*palette.*) skip_color_check=1 ;;
   *) skip_color_check=0 ;;
 esac
@@ -83,12 +85,12 @@ esac
 if [[ "$skip_color_check" -eq 0 ]]; then
   case "$file" in
     *.css|*.scss|*.sass|*.less|*.jsx|*.tsx|*.vue|*.svelte|*.astro)
-      # 3 or 6 hex chars (case-insensitive). Common values that often
-      # represent tokens like #fff/#000 are flagged too — review them.
-      if grep -Eni '#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?\b' "$file" >/dev/null 2>&1; then
+      # 3, 4, 6 or 8 hex chars (#rgb, #rgba, #rrggbb, #rrggbbaa). Common
+      # values that often represent tokens like #fff/#000 are flagged too.
+      if grep -Eni '#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b' "$file" >/dev/null 2>&1; then
         while IFS= read -r line; do
           violations+=("  [hardcoded-color] $file: $line — use a design token instead. See house opinion §3 #4.")
-        done < <(grep -En '#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?\b' "$file" | head -3)
+        done < <(grep -En '#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b' "$file" | head -3)
       fi
       ;;
   esac
