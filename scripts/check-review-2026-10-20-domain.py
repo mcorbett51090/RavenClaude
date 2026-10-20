@@ -324,6 +324,30 @@ def _h2() -> None:
     need(abs(float(got.group(1)) - 80.0) < 0.5, f"power at the MDE must be ~80%: {got.group(1)}", power)
 
 
+# ---------------------------------------------------------------------------
+# H-3  security-engineering/sec_risk.py: --auth-required fail-safe was inverted
+# ---------------------------------------------------------------------------
+
+SEC_RISK = "plugins/security-engineering/scripts/sec_risk.py"
+
+
+def _sec_band(*extra: str) -> str:
+    base = ["risk-band", "--cvss", "8.0", "--reachable", "yes", "--kev", "no"]
+    proc = run(SEC_RISK, *base, "--internet-exposed", "yes", *extra)
+    need(proc.returncode == 0, "risk-band must succeed", proc)
+    found = re.search(r"RISK BAND\s*:\s*(\w+)", proc.stdout)
+    need(found is not None, "risk-band must print a band", proc)
+    return found.group(1)
+
+
+@case("H-3", "sec_risk treats --auth-required unknown/omitted as no authentication")
+def _h3() -> None:
+    need(_sec_band("--auth-required", "unknown") == "CRITICAL", "unknown must be CRITICAL")
+    need(_sec_band() == "CRITICAL", "the omitted flag must be CRITICAL")
+    need(_sec_band("--auth-required", "no") == "CRITICAL", "no must be CRITICAL")
+    need(_sec_band("--auth-required", "yes") == "HIGH", "yes must stay the lower HIGH band")
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
