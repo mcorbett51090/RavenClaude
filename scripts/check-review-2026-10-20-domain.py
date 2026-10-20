@@ -1037,6 +1037,34 @@ def _h23() -> None:
     need(ok.returncode == 0 and "GROSS TOTAL" in ok.stdout, "a well-formed CSV still works", ok)
 
 
+# ---------------------------------------------------------------------------
+# H-25  memory-engineering/memory_engineering_calc.py: cache-breaking cheaper than stable
+# ---------------------------------------------------------------------------
+
+MEMORY_CALC = "plugins/memory-engineering/scripts/memory_engineering_calc.py"
+
+
+def _cache_economics(invalidations: str) -> tuple[int, int]:
+    args = ["--prefix-tokens", "10000", "--cache-write-multiplier", "1.25"]
+    args += ["--cache-read-multiplier", "0.1", "--turns-per-month", "1000"]
+    proc = run(MEMORY_CALC, "cache-economics", *args, "--invalidations-per-N-turns", invalidations)
+    need(proc.returncode == 0, "cache-economics must succeed", proc)
+    breaking = re.search(r"Cache-breaking\s*:\s*([\d,]+)", proc.stdout)
+    stable = re.search(r"Stable prefix\s*:\s*([\d,]+)", proc.stdout)
+    need(breaking is not None and stable is not None, "both totals must be printed", proc)
+    return int(breaking.group(1).replace(",", "")), int(stable.group(1).replace(",", ""))
+
+
+@case("H-25", "memory cache-economics: cache-breaking never costs less than stable")
+def _h25() -> None:
+    for rate in ("0", "0.0005"):  # 0 and 0.5 invalidations a month at 1000 turns
+        breaking, stable = _cache_economics(rate)
+        need(breaking >= stable, f"rate {rate}: breaking {breaking:,} < stable {stable:,}")
+    need(_cache_economics("0")[0] == _cache_economics("0")[1], "zero invalidations must converge")
+    breaking, stable = _cache_economics("0.1")  # 100 invalidations a month: unchanged and dearer
+    need(breaking == 2_150_000 and breaking > stable, f"rate 0.1: got {breaking:,} vs {stable:,}")
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
