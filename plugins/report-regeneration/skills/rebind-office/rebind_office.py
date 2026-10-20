@@ -107,6 +107,7 @@ except Exception:  # pragma: no cover
 
 try:
     import jinja2  # optional acceleration only — every stdlib-only template still works
+    import jinja2.sandbox  # B-1: the ONLY environment a template is ever rendered in
 except ImportError:  # pragma: no cover - exercised whenever jinja2 isn't installed
     jinja2 = None
 
@@ -197,7 +198,11 @@ def render_template(template_text: str, data: Any) -> str:
     ALWAYS work via stdlib string.Template (no third-party package). If the template text ALSO
     uses native Jinja control syntax ({{ }} / {% %}), jinja2 is imported gracefully to render
     that richer subset; its absence in THAT case is a loud RebindOfficeError, never a silent
-    stdlib mis-render of control-flow syntax."""
+    stdlib mis-render of control-flow syntax.
+
+    B-1: the template text comes from (untrusted) new-data, so Jinja renders ONLY in a
+    SandboxedEnvironment — an attribute-walk payload raises SecurityError (a TemplateError, so a
+    RebindOfficeError) instead of executing. Substituted values are never re-rendered."""
     needs_jinja = ("{{" in template_text) or ("{%" in template_text)
     if needs_jinja:
         if jinja2 is None:
@@ -205,7 +210,7 @@ def render_template(template_text: str, data: Any) -> str:
                 "template uses Jinja control syntax ({{ }} / {% %}) but jinja2 is not installed "
                 "— install jinja2, or rewrite the template using only ${dotted.path} placeholders"
             )
-        env = jinja2.Environment(autoescape=False, undefined=jinja2.StrictUndefined)
+        env = jinja2.sandbox.SandboxedEnvironment(autoescape=False, undefined=jinja2.StrictUndefined)
         try:
             return env.from_string(template_text).render(**data)
         except jinja2.exceptions.TemplateError as exc:

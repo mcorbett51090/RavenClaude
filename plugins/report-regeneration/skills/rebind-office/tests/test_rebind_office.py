@@ -307,6 +307,35 @@ class TestRebindOffice(unittest.TestCase):
             ro.parse_rels(hostile)
 
 
+class TestJinjaSandbox(unittest.TestCase):
+    """B-1: a regenerate template comes from (untrusted) new-data, so Jinja renders ONLY in a
+    SandboxedEnvironment. Without jinja2 these tests SKIP loudly — a skip is not a pass."""
+
+    def setUp(self):
+        if ro.jinja2 is None:
+            print("\n[SKIP — NOT A PASS] B-1 sandbox test needs jinja2; it is absent here, so the "
+                  "SSTI guard is UNVERIFIED in this run", file=sys.stderr)
+            self.skipTest("SKIP — NOT A PASS: jinja2 absent, B-1 sandbox unverified")
+
+    def test_b1_ssti_payload_in_new_data_is_refused_not_executed(self):
+        if not SAMPLE_DOCX_PATH.is_file():
+            self.skipTest(f"corpus fixture not found: {SAMPLE_DOCX_PATH}")
+        with tempfile.TemporaryDirectory() as td:
+            marker = Path(td) / "pwned.txt"
+            payload = ("{{ cycler.__init__.__globals__.os.popen('echo PWNED > %s; id').read() }}"
+                       % marker)
+            data = _new_data()
+            data["templates"]["intro"] = payload
+            with self.assertRaises(ro.RebindOfficeError) as ctx:
+                ro.rebind(SAMPLE_DOCX_PATH.read_bytes(), _manifest(), data)
+            self.assertNotIn("uid=", str(ctx.exception))
+            self.assertFalse(marker.exists(), "B-1: the template payload ran a shell command")
+
+    def test_b1_benign_jinja_loop_still_renders_in_the_sandbox(self):
+        rendered = ro.render_template("{% for x in items %}{{ x }}{% endfor %}", {"items": ["a", "b"]})
+        self.assertEqual(rendered, "ab")
+
+
 class TestCLI(unittest.TestCase):
     """Process-boundary tests: exit codes, path-guard, and the works-on-a-copy guarantee
     (the template .docx is never mutated on disk)."""

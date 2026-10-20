@@ -70,6 +70,7 @@ from pathlib import Path
 
 try:
     import jinja2  # optional acceleration only — every stdlib-only template still works
+    import jinja2.sandbox  # B-1: the ONLY environment a template is ever rendered in
 except ImportError:  # pragma: no cover - exercised whenever jinja2 isn't installed
     jinja2 = None
 
@@ -399,7 +400,13 @@ def render_template(template_text: str, data) -> str:
     plugin exercises. If the template text ALSO uses native Jinja control syntax
     (`{{ }}` / `{% %}`, for loops/conditionals stdlib templating cannot express), jinja2
     is imported gracefully to render that richer subset; its absence in THAT case is a
-    loud RebindError, never a silent stdlib mis-render of control-flow syntax."""
+    loud RebindError, never a silent stdlib mis-render of control-flow syntax.
+
+    B-1: the template text comes from new-data (the regenerate contract), and new-data is built
+    from the NEW source reports — untrusted. So Jinja renders ONLY in a SandboxedEnvironment:
+    `{{ cycler.__init__.__globals__.os.popen(...) }}` raises SecurityError (a TemplateError, so a
+    RebindError) instead of running a command. Substituted values are output as text, never
+    re-rendered as a template."""
     needs_jinja = ("{{" in template_text) or ("{%" in template_text)
     if needs_jinja:
         if jinja2 is None:
@@ -408,7 +415,7 @@ def render_template(template_text: str, data) -> str:
                 "installed in this environment — install jinja2, or rewrite the template "
                 "using only ${dotted.path} placeholders (stdlib-only path)"
             )
-        env = jinja2.Environment(autoescape=False, undefined=jinja2.StrictUndefined)
+        env = jinja2.sandbox.SandboxedEnvironment(autoescape=False, undefined=jinja2.StrictUndefined)
         try:
             return env.from_string(template_text).render(**data)
         except jinja2.exceptions.TemplateError as exc:

@@ -212,6 +212,39 @@ class TestCoreMechanics(unittest.TestCase):
         with self.assertRaises(rh.RebindError):
             rh.render_template("{% if true %}x{% endif %}", NEW_DATA)
 
+    # ── B-1: a new-data template is rendered ONLY in a Jinja SandboxedEnvironment ──
+
+    def _require_jinja2(self):
+        if rh.jinja2 is None:
+            print("\n[SKIP — NOT A PASS] B-1 sandbox test needs jinja2; it is absent here, so the "
+                  "SSTI guard is UNVERIFIED in this run", file=sys.stderr)
+            self.skipTest("SKIP — NOT A PASS: jinja2 absent, B-1 sandbox unverified")
+
+    def test_b1_ssti_payload_in_new_data_is_refused_not_executed(self):
+        self._require_jinja2()
+        with tempfile.TemporaryDirectory() as td:
+            marker = Path(td) / "pwned.txt"
+            payload = ("{{ cycler.__init__.__globals__.os.popen('echo PWNED > %s; id').read() }}"
+                       % marker)
+            manifest = copy.deepcopy(MANIFEST)
+            manifest["bindings"] = [REGENERATE_TEXT_BINDING]
+            data = copy.deepcopy(NEW_DATA)
+            data["templates"]["narrative"] = payload
+            with self.assertRaises(rh.RebindError) as ctx:
+                rh.rebind(TEMPLATE, manifest, data)
+            self.assertNotIn("uid=", str(ctx.exception))
+            self.assertFalse(marker.exists(), "B-1: the template payload ran a shell command")
+
+    def test_b1_benign_jinja_loop_still_renders_in_the_sandbox(self):
+        self._require_jinja2()
+        rendered = rh.render_template("{% for x in items %}{{ x }}{% endfor %}", {"items": ["a", "b"]})
+        self.assertEqual(rendered, "ab")
+
+    def test_b1_substituted_value_is_never_rerendered_as_a_template(self):
+        self._require_jinja2()
+        rendered = rh.render_template("Note: {{ note }}", {"note": "{{ 7 * 7 }}"})
+        self.assertEqual(rendered, "Note: {{ 7 * 7 }}")
+
     def test_load_manifest_rejects_frozen_with_data_query(self):
         bad = copy.deepcopy(MANIFEST)
         bad["bindings"] = [dict(FROZEN_BINDING, data_query={"kind": "none", "expression": "x"})]
