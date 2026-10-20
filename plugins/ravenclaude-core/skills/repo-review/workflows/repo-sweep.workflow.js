@@ -19,7 +19,7 @@ export const meta = {
   description:
     "Whole-repo systematic bug sweep across 8 review dimensions (including ci-cd-actions-security for GitHub Actions/CI-gate defects) — maps the repo into risk-ranked batches, reviews each batch per dimension/model with a cache-hit skip, merges + dedupes findings into a P0-P3 priority breakdown, adversarially verifies every file's survivors, optionally auto-fixes CONFIRMED + fixable findings file-by-file (once, or iteratively via args.converge until no P0-P3 findings remain or no further auto-fixable progress is possible), and reports coverage + convergence honestly.",
   whenToUse:
-    "When the user wants a comprehensive, multi-dimension bug sweep over an entire repository (or a --only/--since-narrowed slice of it), with adversarial verification gating any fix. Requires args.effort to be one of high, xhigh, max, or ultra — low and medium are refused outright, no phase runs for them. Set args.converge:true to loop Review->Merge->Verify->Fix until the repo has 0 open P0-P3 findings or no further auto-fixable progress can be made (capped at args.convergeMaxIterations, default 5). For a plan too large for one invocation's agent-call budget, run scripts/block_planner.py first and dispatch one invocation per block, passing args.batchIds (that block's slice) and args.finalizeBlock:true on the LAST block only — every block must share the SAME args.runId so their Review shards land in one findings dir.",
+    "When the user wants a comprehensive, multi-dimension bug sweep over an entire repository (or a --only/--since-narrowed slice of it), with adversarial verification gating any fix. Requires args.effort to be one of high, xhigh, max, or ultra — low and medium are refused outright, no phase runs for them. Also requires args.runId, a unique id per run (e.g. repo-sweep-$(date -u +%Y%m%dT%H%M%SZ)) — the script has no clock to mint one, so it refuses to start without it, and a non-block run refuses a runId whose findings dir already holds shards. Set args.converge:true to loop Review->Merge->Verify->Fix until the repo has 0 open P0-P3 findings or no further auto-fixable progress can be made (capped at args.convergeMaxIterations, default 5). For a plan too large for one invocation's agent-call budget, run scripts/block_planner.py first and dispatch one invocation per block, passing args.batchIds (that block's slice) and args.finalizeBlock:true on the LAST block only — every block must share the SAME args.runId so their Review shards land in one findings dir.",
   phases: [
     {
       title: "Map",
@@ -57,9 +57,10 @@ export const meta = {
 // ─── Resume-safe ordinal clock shim (Date.now()/new Date() THROW in a workflow
 // script — they would break resume) — copied verbatim from the pattern used by
 // plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js. These
-// are monotonic ORDINALS, not wall-clock ms; good enough for a run-id suffix
-// and a store --timestamp argument, never for anything a human reads as a
-// real time.
+// are monotonic ORDINALS, not wall-clock ms; good enough for a store
+// --timestamp argument, never for anything a human reads as a real time, and
+// NEVER a run-id source: the counter restarts at 1000 on every invocation, so
+// an id derived from it is the same constant on every run (see RUN_ID below).
 let _wfClock = 1_000;
 const _now = () => (_wfClock += 1);
 const _isoNow = () => "1970-01-01T00:00:00.000Z";
@@ -492,10 +493,24 @@ if (!isSafeShellArg(REPO_PATH, SAFE_PATH_RE)) {
   };
 }
 
+// args.runId is REQUIRED. The script has no real clock (_now() above is an
+// ordinal counter that restarts at 1000 on every invocation), so a default id
+// derived from it was the constant "repo-sweep-1001" on every run: every sweep
+// in a repo shared one run dir, and Merge read the previous run's shards as
+// this run's findings. Uniqueness has to come from the caller.
 const RUN_ID =
   args && typeof args === "object" && typeof args.runId === "string" && args.runId.trim()
     ? args.runId.trim()
-    : `repo-sweep-${_now()}`;
+    : "";
+if (!RUN_ID) {
+  return {
+    error:
+      `repo-sweep requires args.runId, a unique id for this run (e.g. ` +
+      `repo-sweep-$(date -u +%Y%m%dT%H%M%SZ), minted in a shell before dispatch). This script has no ` +
+      `clock to mint one itself, and a fixed default would make every sweep in this repo share one ` +
+      `.ravenclaude/runs/<runId>/findings/ dir, merging an earlier run's shards into this one.`,
+  };
+}
 if (!isSafeShellArg(RUN_ID, SAFE_RUN_ID_RE)) {
   return {
     error:
@@ -509,6 +524,11 @@ if (!isSafeShellArg(RUN_ID, SAFE_RUN_ID_RE)) {
 
 const RUN_DIR = joinPath(REPO_PATH, ".ravenclaude/runs", RUN_ID);
 const PLAN_PATH = joinPath(RUN_DIR, "review-plan.json");
+// Shared across the WHOLE run (every iteration) AND across every block
+// invocation sharing this run_id — see resolveBatchesForFiles() below for
+// why a per-iteration-suffixed dir would silently drop still-valid findings
+// once convergence iterations stop re-reviewing every batch.
+const FINDINGS_DIR = joinPath(RUN_DIR, "findings");
 const CACHE_DIR = joinPath(REPO_PATH, ".ravenclaude/repo-review-cache");
 
 const crossModelRequested = !!(args && args.crossModel === true);
@@ -651,6 +671,57 @@ if (SINCE_VALUE && !isSafeShellArg(SINCE_VALUE, SAFE_PATHSPEC_RE)) {
 }
 const sinceFlag = SINCE_VALUE ? ` --since ${SINCE_VALUE}` : "";
 
+// ─── Fresh-run preflight (non-block mode only) ─────────────────────────────
+// FINDINGS_DIR is never cleared and findings_merge.py reads EVERY shard in it,
+// so a single-shot run into a run dir an earlier run already populated would
+// silently merge that run's shards (another tier, another --only scope, code
+// since fixed) into this one's Merge/Verify/Fix. Block mode shares the dir
+// across invocations ON PURPOSE, so it is exempt. Fail closed: a preflight
+// that cannot answer is a refusal, never a pass.
+const FINDINGS_PREFLIGHT_SCHEMA = {
+  type: "object",
+  required: ["exists", "shard_count"],
+  properties: { exists: { type: "boolean" }, shard_count: { type: "integer" } },
+};
+const BLOCK_MODE_REQUESTED = !!(args && Array.isArray(args.batchIds) && args.batchIds.length > 0);
+if (!BLOCK_MODE_REQUESTED) {
+  const findingsCheck = await agent(
+    [
+      `Check whether the directory ${FINDINGS_DIR} exists. Do NOT create, modify, or delete anything.`,
+      `If it does not exist, return {exists: false, shard_count: 0}.`,
+      `If it exists, count the regular files directly inside it and return {exists: true, shard_count: <that count>}.`,
+      `Return ONLY structured output.`,
+    ].join("\n"),
+    {
+      label: "preflight:findings-dir",
+      phase: "Map",
+      schema: FINDINGS_PREFLIGHT_SCHEMA,
+      model: CACHE_CHECK_MODEL,
+    },
+  ).catch(() => null);
+  if (
+    !findingsCheck ||
+    typeof findingsCheck.exists !== "boolean" ||
+    typeof findingsCheck.shard_count !== "number"
+  ) {
+    return {
+      error:
+        `repo-sweep could not confirm that ${FINDINGS_DIR}/ is empty before starting run "${RUN_ID}" ` +
+        `(the preflight check returned no usable answer), so it did not start. Re-dispatch with a new ` +
+        `unique args.runId.`,
+    };
+  }
+  if (findingsCheck.exists && findingsCheck.shard_count > 0) {
+    return {
+      error:
+        `repo-sweep refuses to start run "${RUN_ID}": ${FINDINGS_DIR}/ already holds ` +
+        `${findingsCheck.shard_count} file(s) from an earlier run, and Merge would read them as this ` +
+        `run's findings. Pass a NEW unique args.runId. To deliberately continue that run into the same ` +
+        `findings dir, use block mode (args.batchIds), which shares the dir on purpose.`,
+    };
+  }
+}
+
 const mapReceipt = await agent(
   [
     `Run this exact command (the shell expands ${PLUGIN_ROOT_EXPR} to the installed plugin root):`,
@@ -740,11 +811,6 @@ if (BLOCK_MODE) {
       `total batch(es) — ${FINALIZE_BLOCK ? "FINALIZE block (runs Merge/Verify/Fix/Report/converge after)" : "review-only block (returns after Review)"}.`,
   );
 }
-// Shared across the WHOLE run (every iteration) AND across every block
-// invocation sharing this run_id — see resolveBatchesForFiles() below for
-// why a per-iteration-suffixed dir would silently drop still-valid findings
-// once convergence iterations stop re-reviewing every batch.
-const FINDINGS_DIR = joinPath(RUN_DIR, "findings");
 
 if (BLOCK_MODE) {
   await runReviewPhase(FINDINGS_DIR, iteration1ReviewBatchIds);
