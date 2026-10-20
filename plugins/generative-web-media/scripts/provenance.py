@@ -71,6 +71,12 @@ def _is_non_commercial(e: dict) -> bool:
     return any(FLUX_DEV_RE.search(_normalise(f)) for f in fields)
 
 
+def _present(value: object) -> bool:
+    """A required field is present only as a non-blank string: str(None) is 'None' and
+    str([]) is '[]', so a stringified null/empty container must not count."""
+    return isinstance(value, str) and bool(value.strip())
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -94,7 +100,7 @@ def cmd_record(args: argparse.Namespace) -> int:
         "for_client": bool(args.client),
         "override": (args.override or "").strip(),
     }
-    missing = [f for f in REQUIRED_FIELDS if not str(entry.get(f, "")).strip()]
+    missing = [f for f in REQUIRED_FIELDS if not _present(entry.get(f))]
     if missing:
         return _loud_fail(f"Refusing to record — missing required field(s): {', '.join(missing)}")
 
@@ -130,9 +136,9 @@ def _audit_entries(
     problems: list[str] = []
     warnings: list[str] = []
     for idx, e in enumerate(entries):
-        asset = e.get("asset", f"<entry {idx}>")
+        asset = e["asset"] if _present(e.get("asset")) else f"<entry {idx}>"
         for f in REQUIRED_FIELDS:
-            if not str(e.get(f, "")).strip():
+            if not _present(e.get(f)):
                 problems.append(f"{source}: {asset} — missing provenance field '{f}'")
         is_client = client_scope or bool(e.get("for_client"))
         if is_client and _is_non_commercial(e):

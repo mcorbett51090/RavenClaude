@@ -245,6 +245,49 @@ def case_a4() -> None:
         )
 
 
+@case("A-33")
+def case_a33() -> None:
+    """A required provenance field only counts as present when it is a non-blank string."""
+    good = {
+        "asset": "media/a.avif",
+        "prompt": "p",
+        "model": "grok-image",
+        "provider": "xai",
+        "license": "commercial",
+        "indemnity": "none",
+    }
+    with tempfile.TemporaryDirectory() as td:
+        ledger = os.path.join(td, "ok.jsonl")
+        Path(ledger).write_text(json.dumps(good) + "\n")
+        r = _prov_audit(ledger)
+        expect(r.returncode == 0, f"control: a complete entry must pass: {describe(r)}")
+
+        for label, patch in {
+            "null asset + prompt": {"asset": None, "prompt": None},
+            "empty list": {"license": []},
+            "empty object": {"provider": {}},
+            "number": {"indemnity": 0},
+            "boolean": {"model": False},
+            "blank string": {"prompt": "   "},
+        }.items():
+            bad = os.path.join(td, "bad.jsonl")
+            Path(bad).write_text(json.dumps({**good, **patch}) + "\n")
+            r = _prov_audit(bad)
+            expect(
+                r.returncode == 1 and "AUDIT FAILED" in r.stderr,
+                f"{label}: a non-string / blank required field is missing provenance: {describe(r)}",
+            )
+            field = next(iter(patch))
+            expect(
+                f"missing provenance field '{field}'" in r.stderr,
+                f"{label}: the finding must name '{field}': {describe(r)}",
+            )
+        # The finding must not call a null asset 'None'.
+        Path(td, "nul.jsonl").write_text(json.dumps({**good, "asset": None}) + "\n")
+        r = _prov_audit(os.path.join(td, "nul.jsonl"))
+        expect("None —" not in r.stderr, f"a null asset must not be named 'None': {describe(r)}")
+
+
 @case("A-5")
 def case_a5() -> None:
     """`audit --dir media` must not fail a gen-budget spend ledger as missing provenance."""
