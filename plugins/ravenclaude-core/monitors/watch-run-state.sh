@@ -46,6 +46,18 @@
 #   and when it disappears or a newer run dir appears we re-resolve — bounded,
 #   no busy-spin, no restart storm.
 #
+# WHICH LOG, AND FROM WHICH LINE
+#   * When $CLAUDE_SESSION_ID is set we follow ONLY runs/<that id>/ (sanitized
+#     the way _emit-event.sh names the dir). Picking the newest log by mtime
+#     across ALL sessions made two concurrent sessions in one checkout flap:
+#     every switch restarted tail at EOF, dropping events, and the
+#     notifications mixed sessions. Without the id we keep newest-by-mtime.
+#   * Only the log that already exists when the monitor starts is joined at its
+#     end (its backlog is history). A log first seen later is read from line 1:
+#     a session's log is created BY its first event, so starting at EOF lost
+#     the first deny/warn of every new log. A log we already followed once is
+#     rejoined at its end, so a switch back never replays it.
+#
 # CLAUDE-CODE-ONLY
 #   Plugin monitors are a Claude Code component (v2.1.105+) and run only in
 #   interactive CLI sessions on hosts where the Monitor tool is available. There
@@ -73,10 +85,28 @@ RUNS_DIR="$PROJECT_DIR/.ravenclaude/runs"
 
 # --- helpers ----------------------------------------------------------------
 
-# Print the single newest hook-events.jsonl under .ravenclaude/runs/, or empty.
-# Newest = most-recently-modified, so a fresh run dir's log wins automatically.
+# The run-dir name hooks use for $CLAUDE_SESSION_ID (same rule as
+# _ee_sanitize_session in hooks/_emit-event.sh). Empty when the id is unset.
+session_run_name() {
+  [ -n "${CLAUDE_SESSION_ID:-}" ] || return 0
+  local s
+  s="$(printf '%s' "$CLAUDE_SESSION_ID" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
+  case "$s" in . | .. | "") s="unknown" ;; esac
+  printf '%s\n' "$s"
+}
+
+# Print the hook-events.jsonl to follow, or empty: this session's own log when
+# $CLAUDE_SESSION_ID is set (never another session's), else the single newest
+# one under .ravenclaude/runs/ — most-recently-modified, so a fresh run dir's
+# log wins automatically.
 newest_log() {
   [ -d "$RUNS_DIR" ] || return 0
+  local _sess
+  _sess="$(session_run_name)"
+  if [ -n "$_sess" ]; then
+    [ -f "$RUNS_DIR/$_sess/hook-events.jsonl" ] && printf '%s\n' "$RUNS_DIR/$_sess/hook-events.jsonl"
+    return 0
+  fi
   # Enumerate with -print0 (space-safe) and pick the newest by mtime OURSELVES.
   # We deliberately do NOT use `find -printf` — that is a GNU-find extension;
   # stock macOS/BSD find exits with "unknown primary -printf", the 2>/dev/null
@@ -144,10 +174,20 @@ emit_derived() {
   printf '%s\n' "$line"
 }
 
+# True when $1 is one of the newline-separated lines of $2 (no pipe, so no
+# SIGPIPE-under-pipefail false negative on a long list).
+_line_in() {
+  local _l
+  while IFS= read -r _l; do
+    [ "$_l" = "$1" ] && return 0
+  done <<<"$2"
+  return 1
+}
+
 # --- main loop --------------------------------------------------------------
-# Resolve the newest log, tail it from its current end (so we only report NEW
-# verdicts, not replay the whole backlog), and when it vanishes / is superseded
-# by a newer run dir, re-resolve. tail's own --pid isn't available portably, so
+# Resolve the log, tail it (from its end if it existed at startup, so the
+# backlog is not replayed; from line 1 if it appeared later), and when it
+# vanishes / is superseded by a newer run dir, re-resolve. tail's own --pid isn't available portably, so
 # we bound each tail by re-checking the newest log on a poll and restarting the
 # tail if it changed. Fail-safe at every step: a missing dir/file just sleeps.
 #
@@ -157,7 +197,7 @@ emit_derived() {
 # guard runs the loop in production exactly as before.
 
 _run_monitor_loop() {
-  local current=""
+  local current="" first_pass=1 followed="" tail_from
   while true; do
     local log
     log="$(newest_log || true)"
@@ -166,15 +206,26 @@ _run_monitor_loop() {
       # No runs dir yet, or no jsonl yet, or it disappeared. Idle-poll; do NOT
       # tail a glob (that crash-loops on an empty match). Just wait and re-check.
       current=""
+      first_pass=0
       sleep "$POLL_SECONDS"
       continue
     fi
 
     if [ "$log" != "$current" ]; then
-      # A new (or first) log to follow. Start at end-of-file so we stream only
-      # verdicts that land from now on. `tail -F` (capital) re-opens on truncate/
-      # rotate of THIS one named file; it does not exit on a missing glob because
-      # we always hand it a concrete, existing path.
+      # A new (or first) log to follow. The log present at startup, and any log
+      # already followed once, are joined at end-of-file; a log first seen
+      # after startup is read from line 1, because its first line is the event
+      # that created it. `tail -F` (capital) re-opens on truncate/rotate of THIS
+      # one named file; it does not exit on a missing glob because we always
+      # hand it a concrete, existing path.
+      if _line_in "$log" "$followed"; then
+        tail_from="0"
+      else
+        if [ "$first_pass" -eq 1 ]; then tail_from="0"; else tail_from="+1"; fi
+        followed="$followed
+$log"
+      fi
+      first_pass=0
       current="$log"
       # Stream until either the file is gone or a newer run dir appears, then
       # break out to re-resolve. We background the tail and poll alongside it so
@@ -187,7 +238,7 @@ _run_monitor_loop() {
       # would only kill the reader loop and orphan the real `tail -F` process,
       # which keeps following the now-superseded log file forever: one leaked
       # `tail -F` per run-dir rotation for the life of the session.
-      ( tail -n0 -F "$log" 2>/dev/null | while IFS= read -r jsonl_line; do
+      ( tail -n "$tail_from" -F "$log" 2>/dev/null | while IFS= read -r jsonl_line; do
           emit_derived "$jsonl_line" || true
         done ) &
       tail_pid=$!

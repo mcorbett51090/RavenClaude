@@ -27,9 +27,11 @@ import argparse
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -424,11 +426,129 @@ def case_c3(root: Path) -> None:
     )
 
 
+# ─── C-7: monitors dropped each new log's first event and flapped across sessions
+RUNSTATE_REL = "plugins/ravenclaude-core/monitors/watch-run-state.sh"
+SPECTATE_REL = "plugins/ravenclaude-core/monitors/watch-spectate.sh"
+
+
+def _hook_event(rule: str) -> str:
+    return (
+        json.dumps(
+            {
+                "verdict": "deny",
+                "hook": "guard-x.sh",
+                "tool": "Bash",
+                "rule": rule,
+                "path": "/secret/p",
+            }
+        )
+        + "\n"
+    )
+
+
+def _append(path: Path, line: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(line)
+
+
+def _watch(script: Path, project: Path, steps, session: str | None = None) -> str:
+    """Run a monitor against `project`, perform the timed `steps`, return its stdout."""
+    out = project / "monitor.out"
+    env = dict(os.environ)
+    env.update(
+        CLAUDE_PROJECT_DIR=str(project),
+        RC_MONITOR_POLL_SECONDS="1",
+        RC_SPECTATE_MONITOR_POLL_SECONDS="1",
+    )
+    env.pop("CLAUDE_SESSION_ID", None)
+    if session:
+        env["CLAUDE_SESSION_ID"] = session
+    with out.open("w") as fh:
+        proc = subprocess.Popen(
+            ["bash", str(script)],
+            env=env,
+            stdout=fh,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        try:
+            time.sleep(1.5)
+            for action, pause in steps:
+                action()
+                time.sleep(pause)
+        finally:
+            try:
+                os.killpg(proc.pid, signal.SIGTERM)
+            except OSError:
+                pass
+            proc.wait(timeout=10)
+    return out.read_text(encoding="utf-8")
+
+
+def case_c7(root: Path) -> None:
+    script = root / RUNSTATE_REL
+    # A log already present at startup is joined at its end; a log created after
+    # startup is read from line 1, so the event that created it is notified.
+    p1 = Path(tempfile.mkdtemp(prefix="c7a-", dir=_TMP))
+    _append(p1 / ".ravenclaude/runs/old/hook-events.jsonl", _hook_event("backlog-event"))
+    new_log = p1 / ".ravenclaude/runs/sess1/hook-events.jsonl"
+    got = _watch(
+        script,
+        p1,
+        [
+            (lambda: _append(new_log, _hook_event("first-event")), 3.0),
+            (lambda: _append(new_log, _hook_event("second-event")), 2.5),
+        ],
+    )
+    _check("rule: first-event" in got, "the first event of a log created after startup is notified")
+    _check("rule: second-event" in got, "later events of that log are notified")
+    _check("backlog-event" not in got, "the backlog of the log present at startup is not replayed")
+    _check("/secret/p" not in got, "the path field is never echoed")
+
+    # Two concurrent sessions, CLAUDE_SESSION_ID=sessA: only sessA's events, no flapping.
+    p2 = Path(tempfile.mkdtemp(prefix="c7b-", dir=_TMP))
+    a = p2 / ".ravenclaude/runs/sessA/hook-events.jsonl"
+    b = p2 / ".ravenclaude/runs/sessB/hook-events.jsonl"
+    steps = []
+    for i in range(1, 4):
+        steps.append((lambda i=i: _append(a, _hook_event(f"a{i}")), 1.3))
+        steps.append((lambda i=i: _append(b, _hook_event(f"b{i}")), 1.3))
+    got = _watch(script, p2, steps + [(lambda: None, 1.5)], session="sessA")
+    a_hits = [r for r in ("a1", "a2", "a3") if f"rule: {r})" in got]
+    b_hits = [r for r in ("b1", "b2", "b3") if f"rule: {r})" in got]
+    _check(
+        a_hits == ["a1", "a2", "a3"], f"every event of this session's log is notified ({a_hits})"
+    )
+    _check(b_hits == [], f"no event of the other session's log is notified ({b_hits})")
+
+    # The spectate monitor: a new spectate log's session.start (its creating event) is notified.
+    p3 = Path(tempfile.mkdtemp(prefix="c7c-", dir=_TMP))
+    spec = p3 / ".ravenclaude/runs/s1/spectate-events.jsonl"
+    got = _watch(
+        root / SPECTATE_REL,
+        p3,
+        [
+            (
+                lambda: _append(
+                    spec, json.dumps({"kind": "session.start", "session_id": "s1"}) + "\n"
+                ),
+                3.0,
+            )
+        ],
+    )
+    _check(
+        "spectate session.start" in got,
+        "watch-spectate: the session.start that created a new log is notified",
+    )
+
+
 CASES = {
     "C-1": case_c1,
     "C-2": case_c2,
     "C-11": case_c11,
     "C-3": case_c3,
+    "C-7": case_c7,
 }
 
 
