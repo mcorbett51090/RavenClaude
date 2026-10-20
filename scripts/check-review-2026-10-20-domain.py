@@ -424,6 +424,60 @@ def _h4() -> None:
     need(_apex_kinds("E.cls", _APEX_CLEAN) == [], "clean controls must stay unflagged")
 
 
+# ---------------------------------------------------------------------------
+# H-6  graph-engineering lint_graph_shape.py + flag-graph-smells.sh: typed unbounded paths
+# ---------------------------------------------------------------------------
+
+GRAPH_LINT = "plugins/graph-engineering/scripts/lint_graph_shape.py"
+GRAPH_HOOK = "plugins/graph-engineering/hooks/flag-graph-smells.sh"
+
+_GRAPH_UNBOUNDED = [
+    "MATCH (a:P)-[:KNOWS*]->(b) RETURN b",
+    "MATCH (a:P)-[r:KNOWS*1..]->(b) RETURN b",
+    "MATCH (a:P)-[:KNOWS|FRIEND*..]->(b) RETURN b",
+    "MATCH (a:P)-[:KNOWS*]-(b) RETURN b",
+    "MATCH (a:P)<-[:KNOWS|:FRIEND*]-(b) RETURN b",
+    "MATCH (a:P)-[*]->(b) RETURN b",  # untyped control: flagged before and after
+]
+_GRAPH_BOUNDED = [
+    "MATCH (a:P)-[:KNOWS*1..3]->(b) RETURN b",
+    "MATCH (a:P)-[r:KNOWS*..5]->(b) RETURN b",
+    "MATCH (a:P)-[:KNOWS|FRIEND*1..4]->(b) RETURN b",
+    "MATCH (a:P)-[:KNOWS*2]->(b) RETURN b",
+]
+
+
+def run_hook(
+    hook: str, target: Path, **env: str
+) -> subprocess.CompletedProcess[str]:
+    """Run an advisory domain hook the way Claude Code does: file path as $1."""
+    return subprocess.run(
+        ["bash", str(ROOT / hook), str(target)],
+        capture_output=True,
+        text=True,
+        timeout=TIMEOUT,
+        env={**os.environ, **env},
+        check=False,
+    )
+
+
+@case("H-6", "unbounded variable-length paths on typed edges are flagged by script and hook")
+def _h6() -> None:
+    wrong: list[str] = []  # collect every miss so a failure shows script AND hook coverage
+    with tempfile.TemporaryDirectory() as tmp:
+        for n, line in enumerate(_GRAPH_UNBOUNDED + _GRAPH_BOUNDED):
+            path = Path(tmp, f"q{n}.cypher")
+            path.write_text(line + "\n", encoding="utf-8")
+            should_flag = line in _GRAPH_UNBOUNDED
+            lint = run(GRAPH_LINT, "--strict", str(path))
+            hook = run_hook(GRAPH_HOOK, path, GRAPH_SMELLS_STRICT="1")
+            if (lint.returncode == 1) != should_flag:
+                wrong.append(f"script flagged={lint.returncode == 1} on {line!r}")
+            if (hook.returncode == 2) != should_flag:
+                wrong.append(f"hook flagged={hook.returncode == 2} on {line!r}")
+    need(not wrong, "typed unbounded path coverage is wrong: " + "; ".join(wrong))
+
+
 # ===========================================================================
 # driver
 # ===========================================================================

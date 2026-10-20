@@ -35,10 +35,15 @@ esac
 
 violations=()
 
+# Optional relationship type(s) between the variable and the '*' (POSIX ERE; the '|' is a
+# bracket literal so it can never be read as alternation):
+#   [:KNOWS*]  [r:KNOWS*1..]  [:KNOWS|FRIEND*..]
+rel_types='(:[[:space:]]*[A-Za-z_][A-Za-z0-9_]*([[:space:]]*[|][[:space:]]*:?[[:space:]]*[A-Za-z_][A-Za-z0-9_]*)*[[:space:]]*)?'
+
 # 1. Unbounded [*] or [*..] or [*digits..]  (no upper bound after ..)
-if grep -nE '\[\s*([A-Za-z_][A-Za-z0-9_]*)?\s*\*(\s*[0-9]+)?\s*(\.\.\s*)?\]' "$file" >/dev/null 2>&1; then
+if grep -nE '\[[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)?[[:space:]]*'"$rel_types"'\*([[:space:]]*[0-9]+)?[[:space:]]*(\.\.[[:space:]]*)?\]' "$file" >/dev/null 2>&1; then
   # Allow [*1..3] / [*..5] — a digit AFTER the dots.
-  if grep -nE '\[\s*([A-Za-z_][A-Za-z0-9_]*)?\s*\*(\s*[0-9]+)?\s*\.\.\s*\]|\[\s*([A-Za-z_][A-Za-z0-9_]*)?\s*\*\s*\]' "$file" >/dev/null 2>&1; then
+  if grep -nE '\[[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)?[[:space:]]*'"$rel_types"'\*([[:space:]]*[0-9]+)?[[:space:]]*\.\.[[:space:]]*\]|\[[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)?[[:space:]]*'"$rel_types"'\*[[:space:]]*\]' "$file" >/dev/null 2>&1; then
     violations+=("Unbounded variable-length path ([*], [*..], [*1..]). Give an upper bound ([*1..5]). (bound-variable-length-paths)")
   fi
 fi
