@@ -833,6 +833,27 @@ def _h17() -> None:
     need(counts == want, f"expected {want}, got {counts} (ancestor '_it' must not count)")
 
 
+# ---------------------------------------------------------------------------
+# H-18  email-engineering/email_auth_lint.py: SPF redirect= is a valid terminator
+# ---------------------------------------------------------------------------
+
+EMAIL_LINT = "plugins/email-engineering/scripts/email_auth_lint.py"
+
+
+@case("H-18", "email_auth_lint: no 'No terminal all' for redirect=; warn when both appear")
+def _h18() -> None:
+    redirect = run(EMAIL_LINT, "spf", "v=spf1 redirect=_spf.example.com")
+    need("No terminal" not in redirect.stdout, "redirect= is a valid terminator", redirect)
+    need(redirect.returncode == 0, "a lone redirect= record has no errors", redirect)
+
+    both = run(EMAIL_LINT, "spf", "v=spf1 redirect=x.example.com -all")
+    need("redirect=" in both.stdout and "[WARN]" in both.stdout, "both-present warning", both)
+    need(both.returncode == 0, "the both-present case is a warning, not an error", both)
+
+    bare = run(EMAIL_LINT, "spf", "v=spf1 include:_spf.google.com")
+    need("No terminal 'all'" in bare.stdout, "no all and no redirect must still warn", bare)
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
