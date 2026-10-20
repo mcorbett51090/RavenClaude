@@ -258,6 +258,45 @@ def _h1() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# H-5  microsoft-graph/graph_scope_analyzer.py: application Mail.* etc. not escalated
+# ---------------------------------------------------------------------------
+
+GRAPH_SCOPES = "plugins/microsoft-graph/scripts/graph_scope_analyzer.py"
+
+
+@case("H-5", "graph_scope_analyzer escalates application Mail/Calendars grants without .All")
+def _h5() -> None:
+    apps = "Mail.ReadWrite,Mail.Send,Calendars.ReadWrite"
+    proc = run(GRAPH_SCOPES, "--scopes", "User.Read", "--application", apps, "--json")
+    need(proc.returncode == 1, "application Mail/Calendars grants must exit 1 (escalate)", proc)
+    data = json.loads(proc.stdout)
+    escalated = sorted(f["scope"] for f in data["findings"] if f["severity"] == "escalate")
+    need(
+        escalated == ["Calendars.ReadWrite", "Mail.ReadWrite", "Mail.Send"],
+        f"expected three escalate findings, got {escalated}",
+        proc,
+    )
+    need(data["must_escalate"] is True, "must_escalate must be true", proc)
+    mail = next(f for f in data["findings"] if f["scope"] == "Mail.ReadWrite")
+    need(
+        "application access policy" in (mail["suggestion"] or ""),
+        "Mail.ReadWrite must keep its narrower-alternative suggestion",
+        proc,
+    )
+    text = run(GRAPH_SCOPES, "--scopes", "User.Read", "--application", apps)
+    need("must be escalated" in text.stdout, "verdict line must require escalation", text)
+
+    # Delegated handling is unchanged: a user-bounded Mail.ReadWrite is a NARROW hint only.
+    deleg = run(GRAPH_SCOPES, "--scopes", "Mail.ReadWrite", "--json")
+    need(deleg.returncode == 0, "delegated Mail.ReadWrite alone must not escalate", deleg)
+    need(json.loads(deleg.stdout)["must_escalate"] is False, "delegated: must_escalate", deleg)
+
+    # The scoped '.Selected' variants are not escalated by the prefix rule.
+    sel = run(GRAPH_SCOPES, "--scopes", "User.Read", "--application", "Mail.Read.Selected")
+    need(sel.returncode == 0, "an application '.Selected' scope must not escalate", sel)
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
