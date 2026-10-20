@@ -456,6 +456,7 @@ def run_hook(
         capture_output=True,
         text=True,
         timeout=TIMEOUT,
+        stdin=subprocess.DEVNULL,
         env={**os.environ, **env},
         check=False,
     )
@@ -620,6 +621,143 @@ def _h10() -> None:
     need(_partitions("100", "10", "1.1") == 11, "100 msg/s x 1.1 / 10 must be 11 partitions")
     need(_partitions("40000", "5000", "1.5") == 12, "exact 12.0 must stay 12")
     need(_partitions("1000", "300", "1.0") == 4, "a real fraction (3.33) must still round up")
+
+
+# ---------------------------------------------------------------------------
+# H-13 (+ riders H-11, H-12, H-14)  ERE-bracket class in four domain hooks
+# ---------------------------------------------------------------------------
+
+I18N_HOOK = (
+    "plugins/localization-i18n-engineering/hooks/check-localization-i18n-engineering-anti-patterns.sh"
+)
+K8S_HOOK = "plugins/cloud-native-kubernetes/hooks/check-cloud-native-kubernetes-anti-patterns.sh"
+DS_HOOK = "plugins/data-science-research/hooks/check-data-science-research-anti-patterns.sh"
+M365_HOOK = "plugins/microsoft-365-copilot/hooks/flag-copilot-anti-patterns.sh"
+
+# (hook, pattern as it must appear in the hook source, effective regex, grep flags,
+#  must-match lines, must-not-match lines). A bracket expression has no escapes in POSIX:
+#  `[/\-.]` is an invalid range (grep exits 2, the check is dead), `[^\n]` and `[^.\n]`
+#  also exclude the letter 'n', and `\\\$` demands a literal backslash before the dollar.
+_ERE_ROWS = [
+    (
+        I18N_HOOK,
+        "MM[/.-]DD[/.-]YYYY|DD[/.-]MM[/.-]YYYY|YYYY[/.-]MM[/.-]DD|yyyy[/.-]MM[/.-]dd",
+        r"""(["'`])(MM[/.-]DD[/.-]YYYY|DD[/.-]MM[/.-]YYYY|YYYY[/.-]MM[/.-]DD"""
+        r"""|yyyy[/.-]MM[/.-]dd)\1""",
+        "-Ei",
+        ['const f = "MM/DD/YYYY";', "fmt = 'dd-mm-yyyy'", "f = `yyyy.MM.dd`"],
+        ['const f = "MM/DD";', "f = MM/DD/YYYY", "f = \"MM/DD/YYYY'"],
+    ),
+    (
+        I18N_HOOK,
+        r'"(\$|€|£|¥|₩|₹|₽|¢)"',
+        r'"(\$|€|£|¥|₩|₹|₽|¢)"',
+        "-E",
+        ['const sym = "$";', 'sym = "€"'],
+        ['price = "$5"', 'code = "USD"'],
+    ),
+    (
+        K8S_HOOK,
+        "image:[[:space:]]*[^@[:space:]]+[[:space:]]*$",
+        "image:[[:space:]]*[^[:space:]]+:latest|image:[[:space:]]*[^@[:space:]]+[[:space:]]*$",
+        "-Ei",
+        [
+            "image: redis:7",
+            "  image: registry.example.com/team/app",
+            "image: nginx:latest",
+        ],
+        ["image: redis@sha256:abcdef", "  image: registry.example.com/app@sha256:ab12"],
+    ),
+    (
+        DS_HOOK,
+        "KNNImputer).*\\.fit",
+        r"(StandardScaler|MinMaxScaler|RobustScaler|OneHotEncoder|OrdinalEncoder|TargetEncoder"
+        r"|SimpleImputer|KNNImputer).*\.fit",
+        "-E",
+        ["s = MinMaxScaler(feature_range=(0, 1)).fit(X)", "StandardScaler().fit(X)"],
+        ["s = MinMaxScaler()", "X = pd.read_csv(path)"],
+    ),
+    (
+        M365_HOOK,
+        r"\bRCD\b)[^.]{0,80}(security boundary",
+        r"(restricted (sharepoint )?search|restricted content discovery|\bRSS\b|\bRCD\b)[^.]{0,80}"
+        r"(security boundary|access control|prevents access|blocks access|stops (a )?user)",
+        "-Ei",
+        [
+            "Restricted SharePoint Search is an effective security boundary",
+            "RCD is an extra access control for the library",
+        ],
+        [
+            "RSS is a feature. It is described as a security boundary elsewhere",
+            "Restricted SharePoint Search narrows what Copilot can reach",
+        ],
+    ),
+]
+
+
+def _grep_line(flags: str, pattern: str, line: str) -> int:
+    proc = subprocess.run(
+        ["grep", flags, "--", pattern],
+        input=line + "\n",
+        capture_output=True,
+        text=True,
+        timeout=TIMEOUT,
+        check=False,
+    )
+    return proc.returncode
+
+
+def _hook_says(hook: str, name: str, text: str, strict_env: str, needle: str) -> bool:
+    """Run a hook over a one-line file; True when its advisory mentions `needle`."""
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp, name)
+        target.write_text(text + "\n", encoding="utf-8")
+        proc = run_hook(hook, target, **{strict_env: "1"})
+    return needle in proc.stderr
+
+
+@case("H-13", "four domain hooks: ERE bracket-class bugs fixed (i18n 4b/4c + riders H-11/12/14)")
+def _h13() -> None:
+    problems: list[str] = []
+    for hook, snippet, regex, flags, must, must_not in _ERE_ROWS:
+        if snippet not in (ROOT / hook).read_text(encoding="utf-8"):
+            problems.append(f"{Path(hook).name}: fixed pattern {snippet!r} is not in the hook")
+        for line in must:
+            if (rc := _grep_line(flags, regex, line)) != 0:
+                problems.append(f"{Path(hook).name}: grep rc={rc} (want match) on {line!r}")
+        for line in must_not:
+            if (rc := _grep_line(flags, regex, line)) != 1:
+                problems.append(f"{Path(hook).name}: grep rc={rc} (want no match) on {line!r}")
+
+    # End to end: the real hooks fire (strict mode) on the shapes they used to miss.
+    e2e = [
+        (I18N_HOOK, "L10N_I18N_STRICT", "f.js", 'const f = "MM/DD/YYYY";', "Hard-coded date format"),
+        (I18N_HOOK, "L10N_I18N_STRICT", "f.js", 'const s = "$";', "Hard-coded currency symbol"),
+        (K8S_HOOK, "K8S_STRICT", "d.yaml", "image: registry.example.com/team/app", "not pinned"),
+        (
+            DS_HOOK,
+            "DS_STRICT",
+            "m.py",
+            "import numpy as np\n"
+            "s = MinMaxScaler(feature_range=(0, 1)).fit(X)\n"
+            "train_test_split(X, random_state=0)",
+            "before train_test_split",
+        ),
+        (
+            M365_HOOK,
+            "M365_COPILOT_STRICT",
+            "n.md",
+            "Restricted SharePoint Search is an effective security boundary",
+            "rss-rcd-not-a-boundary",
+        ),
+    ]
+    for hook, strict, name, text, needle in e2e:
+        if not _hook_says(hook, name, text, strict, needle):
+            problems.append(f"{Path(hook).name}: did not report {needle!r} on {text!r}")
+    # ...and stays silent on a digest-pinned image.
+    if _hook_says(K8S_HOOK, "d.yaml", "image: redis@sha256:abcdef", "K8S_STRICT", "not pinned"):
+        problems.append("k8s hook flagged a digest-pinned image")
+    need(not problems, "hook rows failed:\n  " + "\n  ".join(problems))
 
 
 # ===========================================================================

@@ -30,7 +30,7 @@ findings=()
 #    calls .fit_transform / .fit on a transformer AND a split exists, but the fit appears before the split.
 if grep -qE "fit_transform|\.fit\(" "$file" 2>/dev/null \
   && grep -qE "train_test_split|TimeSeriesSplit|GroupKFold|KFold|StratifiedKFold|cross_val" "$file" 2>/dev/null; then
-  fit_line=$(grep -nE "(StandardScaler|MinMaxScaler|RobustScaler|OneHotEncoder|OrdinalEncoder|TargetEncoder|SimpleImputer|KNNImputer)[^\n]*\.fit" "$file" 2>/dev/null | head -1 | cut -d: -f1 || true)
+  fit_line=$(grep -nE "(StandardScaler|MinMaxScaler|RobustScaler|OneHotEncoder|OrdinalEncoder|TargetEncoder|SimpleImputer|KNNImputer).*\.fit" "$file" 2>/dev/null | head -1 | cut -d: -f1 || true)
   split_line=$(grep -nE "train_test_split" "$file" 2>/dev/null | head -1 | cut -d: -f1 || true)
   if [ -n "$fit_line" ] && [ -n "$split_line" ] && [ "$fit_line" -lt "$split_line" ]; then
     findings+=("A transformer is fit (line $fit_line) before train_test_split (line $split_line) — fitting a scaler/encoder/imputer before the split leaks the test set. Fit inside the CV fold (use a Pipeline).")

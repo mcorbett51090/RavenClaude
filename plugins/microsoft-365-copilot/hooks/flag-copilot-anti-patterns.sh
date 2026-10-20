@@ -114,10 +114,10 @@ esac
 # --- Check 5: RSS / RCD sold as a security boundary (§3 #9) ---
 case "$file" in
   *.md)
-    if grep -Eni '(restricted (sharepoint )?search|restricted content discovery|\bRSS\b|\bRCD\b)[^.\n]{0,80}(security boundary|access control|prevents access|blocks access|stops (a )?user)' "$file" >/dev/null 2>&1; then
+    if grep -Eni '(restricted (sharepoint )?search|restricted content discovery|\bRSS\b|\bRCD\b)[^.]{0,80}(security boundary|access control|prevents access|blocks access|stops (a )?user)' "$file" >/dev/null 2>&1; then
       while IFS= read -r line; do
         violations+=("  [rss-rcd-not-a-boundary] $file: $line")
-      done < <(grep -Eni '(restricted (sharepoint )?search|restricted content discovery|\bRSS\b|\bRCD\b)[^.\n]{0,80}(security boundary|access control|prevents access|blocks access|stops (a )?user)' "$file" | head -5)
+      done < <(grep -Eni '(restricted (sharepoint )?search|restricted content discovery|\bRSS\b|\bRCD\b)[^.]{0,80}(security boundary|access control|prevents access|blocks access|stops (a )?user)' "$file" | head -5)
       violations+=("  ^ RSS/RCD are NOT security boundaries — they reduce Copilot's reach, not a user's existing access. See CLAUDE.md §3 #9.")
     fi
     ;;
