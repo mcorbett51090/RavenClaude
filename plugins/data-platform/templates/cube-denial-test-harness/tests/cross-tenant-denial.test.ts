@@ -2,13 +2,20 @@
 //
 // Requires the docker-compose fixture in this directory's parent to be up
 // (`docker compose -f ../docker-compose.yml up -d --wait`) and DP_INTEGRATION=1
-// set — see this directory's README.md for the full run procedure. This file
-// is NOT run by default `vitest`/`npm test` invocations elsewhere in the
-// plugin; it only runs opted-in, via scripts/audit-gates.sh's Tier-4 entry.
+// set — see this directory's README.md for the full run procedure. Without
+// DP_INTEGRATION=1 every test below is SKIPPED (describe.skipIf), so a plain
+// `npm test` collects the file and reports it skipped instead of failing on a
+// connection error. It runs opted-in, via scripts/audit-gates.sh's Tier-4 entry.
+//
+// RLS context: `SELECT set_config('app.tenant_id', $1, true)`, never
+// `SET LOCAL app.tenant_id = $1`. SET is a utility statement and cannot take
+// a bind parameter — Postgres rejects it with `syntax error at or near "$1"`
+// (review E-3, reproduced on PGlite 2026-10-20). set_config's third argument
+// `true` makes it transaction-local, exactly like SET LOCAL.
 //
 // ⛔ Honest limit: this test has been authored and reasoned through carefully
 // (the Cube REST API shape, the access_policy override semantics, the RLS
-// SET LOCAL contract) but has NOT been executed against a live Cube+Postgres
+// set_config contract) but has NOT been executed against a live Cube+Postgres
 // pair in this session — no docker runtime was available in this sandbox.
 // Treat "this test passes" as unverified until it actually runs once, in CI
 // or locally with docker present.
@@ -112,7 +119,9 @@ function mintServiceIdentityToken(): string {
   );
 }
 
-describe("cross-tenant denial (Cube access_policy layer)", () => {
+const describeIntegration = describe.skipIf(!process.env.DP_INTEGRATION);
+
+describeIntegration("cross-tenant denial (Cube access_policy layer)", () => {
   beforeAll(async () => {
     // Assert the resolved Cube server version, not just the compose file's
     // pinned tag (a stale local image cache could silently serve an older
@@ -150,12 +159,12 @@ describe("cross-tenant denial (Cube access_policy layer)", () => {
   });
 
   describe("Postgres RLS layer (defense-in-depth, direct connection)", () => {
-    it("denies a cross-tenant read via SET LOCAL app.tenant_id", async () => {
+    it("denies a cross-tenant read with app.tenant_id set transaction-locally", async () => {
       const client = new pg.Client({ connectionString: PG_CONNECTION_STRING });
       await client.connect();
       try {
         await client.query("BEGIN");
-        await client.query("SET LOCAL app.tenant_id = $1", [TENANT_A]);
+        await client.query("SELECT set_config('app.tenant_id', $1, true)", [TENANT_A]);
         const res = await client.query(
           "SELECT COUNT(*)::int AS n FROM fact_orders WHERE tenant_id = $1",
           [TENANT_B],
@@ -172,7 +181,7 @@ describe("cross-tenant denial (Cube access_policy layer)", () => {
       await client.connect();
       try {
         await client.query("BEGIN");
-        await client.query("SET LOCAL app.tenant_id = $1", [TENANT_A]);
+        await client.query("SELECT set_config('app.tenant_id', $1, true)", [TENANT_A]);
         const res = await client.query(
           "SELECT COUNT(*)::int AS n FROM fact_orders WHERE tenant_id = $1",
           [TENANT_A],
