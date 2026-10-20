@@ -75,6 +75,13 @@ TAINT_SCHEMA_TAG = "report-regeneration/taint-dict@1"
 
 # ── knowledge-dir schemas (single source of truth; loaded, never re-declared here) ──
 
+# The SHARED anchor resolver (../../scripts/rr_anchor.py) — B-5: id-less (css_selector) nodes are
+# resolved through it so the earned-frozen checks read their text too.
+_SCRIPTS_DIR = Path(__file__).resolve().parent.parent.parent / "scripts"
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+import rr_anchor  # noqa: E402
+
 _KNOWLEDGE_DIR = Path(__file__).resolve().parent.parent.parent / "knowledge"
 _MANIFEST_SCHEMA_PATH = _KNOWLEDGE_DIR / "binding-manifest.schema.json"
 _RSG_SCHEMA_PATH = _KNOWLEDGE_DIR / "rsg.schema.json"
@@ -269,6 +276,7 @@ def parse_template(path) -> dict:
     parser.close()
     parser.finalize()
     return {
+        "source": text,
         "elements": parser.elements,
         "visible": "".join(parser.visible),
         "scripts": parser.scripts,
@@ -772,8 +780,43 @@ def propose_query(final_class: str, role: str, pbi_route, bind_key: str, source_
     return query
 
 
+class _TextCollector(html.parser.HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list = []
+
+    def handle_data(self, data):
+        self.parts.append(data)
+
+
+def _selector_index(rsg: dict, template_text: str) -> dict:
+    """B-5: {css_selector value: {tag, attrs, text}} for every id-less RSG node, resolved through
+    rr_anchor over ONE parse of the template (the same shape parse_template gives an id'd node:
+    `text` is every text node inside the element, entities decoded)."""
+    anchors = []
+    stack = [rsg["root"]]
+    while stack:
+        node = stack.pop()
+        if node["anchor"].get("kind") == "css_selector":
+            anchors.append(node["anchor"])
+        stack.extend(node.get("children", []))
+    try:
+        nodes = rr_anchor.resolve_all(template_text, anchors)
+    except rr_anchor.AnchorError as exc:
+        raise BuildManifestError(f"RSG carries an unparseable css_selector anchor: {exc}") from exc
+    index = {}
+    for anchor, found in zip(anchors, nodes):
+        if found is None:
+            continue
+        collector = _TextCollector()
+        collector.feed(found.inner_text(template_text))
+        collector.close()
+        index[anchor["value"]] = {"tag": found.tag, "attrs": found.attrs, "text": "".join(collector.parts)}
+    return index
+
+
 def decide_binding(node: dict, template_index: dict, taint_norm, new_data: dict,
-                   template_id: str, threshold: float) -> tuple:
+                   template_id: str, threshold: float, selector_index: dict | None = None) -> tuple:
     """Return (binding_dict, decision_dict). Enforces raster-force, earned-frozen demotion,
     and sub-threshold-confidence escalation; then proposes the query + provenance."""
     anchor = node["anchor"]
@@ -783,7 +826,10 @@ def decide_binding(node: dict, template_index: dict, taint_norm, new_data: dict,
     prov = node.get("provenance", {})
     pbi_route = prov.get("pbi_route")
 
-    element = template_index.get(anchor["value"]) if anchor.get("kind") == "element_id" else None
+    if anchor.get("kind") == "element_id":
+        element = template_index.get(anchor["value"])
+    else:  # B-5: an id-less node's text, resolved through rr_anchor
+        element = (selector_index or {}).get(anchor["value"])
     rendered = element["text"] if element else ""
     tag = element["tag"] if element else None
     attrs = element["attrs"] if element else {}
@@ -868,13 +914,14 @@ def decide_binding(node: dict, template_index: dict, taint_norm, new_data: dict,
 
 
 def build_manifest(rsg: dict, template_index: dict, taint: dict, new_data: dict,
-                   manifest_version: str, threshold: float) -> tuple:
+                   manifest_version: str, threshold: float, template_text: str | None = None) -> tuple:
     """Walk the RSG in document order (pre-order DFS), emit one binding per NON-static node, and
     per static-chrome node that infer demoted or that bears a data-shaped literal (B-2)."""
     taint_norm = [_norm(v) for v in taint["all"] if len(_norm(v)) >= 2]
     new_data = dict(new_data)
     new_data["_domain_norm"] = [_norm(v) for v in new_data["value_domain"]]
     template_id = rsg.get("template_id", "")
+    selector_index = _selector_index(rsg, template_text) if template_text is not None else {}
 
     bindings = []
     decisions = []
@@ -887,7 +934,7 @@ def build_manifest(rsg: dict, template_index: dict, taint: dict, new_data: dict,
         demoted = node.get("class") != "frozen" or bool(node.get("data_shaped_literal"))
         if not static or (demoted and not under_rewrite):
             binding, decision = decide_binding(
-                node, template_index, taint_norm, new_data, template_id, threshold)
+                node, template_index, taint_norm, new_data, template_id, threshold, selector_index)
             bindings.append(binding)
             decisions.append(decision)
             under_rewrite = under_rewrite or binding["class"] in ("surgical", "regenerate")
@@ -924,7 +971,7 @@ def run(rsg_path, template_path, new_data_path, out_path, taint_out=None,
     # element index is unused for office (its anchors are ooxml_path, never element-indexed), so an
     # empty index is correct, and the taint comes from the decoded-container builder.
     if _detect_template_format(template_path) == "office":
-        template_info = {"elements": {}}
+        template_info = {"elements": {}, "source": None}
         taint = build_taint_dictionary_office(template_path)
     else:
         template_info = parse_template(template_path)
@@ -932,7 +979,8 @@ def run(rsg_path, template_path, new_data_path, out_path, taint_out=None,
     new_data = load_new_data(new_data_path)
 
     manifest, decisions = build_manifest(
-        rsg, template_info["elements"], taint, new_data, manifest_version, threshold)
+        rsg, template_info["elements"], taint, new_data, manifest_version, threshold,
+        template_text=template_info["source"])
     manifest_errors = validate_manifest(manifest)
 
     out_path = Path(out_path)

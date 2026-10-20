@@ -209,6 +209,34 @@ class TestRebindManifest(unittest.TestCase):
         self.assertTrue(cli_out.is_file())
 
 
+class TestIdlessNodeGetsTheSameChecks(unittest.TestCase):
+    """B-5: the earned-frozen taint / new-dataset / detector checks read only id'd nodes' text, so
+    an id-less (css_selector-anchored) node carrying an old figure stayed frozen."""
+
+    def test_idless_node_is_demoted_like_its_idd_twin(self):
+        plugin = _SKILL_DIR.parent.parent
+        infer_dir = plugin / "skills" / "infer-report-structure"
+        if str(infer_dir) not in sys.path:
+            sys.path.insert(0, str(infer_dir))
+        import infer
+
+        template = ("<!DOCTYPE html><html><head><title>Northwind Report</title>\n"
+                    '<!--\n  old_company: "Ridgeline Fabricators Inc."\n-->\n</head><body>'
+                    '<section id="s"><h2>Ridgeline Fabricators Inc. Overview</h2>'
+                    '<h2 id="x">Ridgeline Fabricators Inc. Overview</h2></section></body></html>')
+        rsg, _ = infer.build_rsg(template, "t")
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            (td / "t.html").write_text(template, encoding="utf-8")
+            (td / "rsg.json").write_text(json.dumps(rsg), encoding="utf-8")
+            (td / "nd.json").write_text(json.dumps({"source_ref": "x", "values": {"a": "1"}}), encoding="utf-8")
+            result = bm.run(td / "rsg.json", td / "t.html", td / "nd.json", td / "m.json")
+        by_node = {d["node_id"]: d for d in result["decisions"]}
+        idd, idless = by_node["x"], by_node["#s > h2:nth-of-type(1)"]
+        self.assertEqual(idd["final_class"], "needs-review")
+        self.assertEqual((idless["final_class"], idless["taint_hit"]), (idd["final_class"], idd["taint_hit"]))
+
+
 class TestDaxBindKey(unittest.TestCase):
     """B-12: a template data-bind is interpolated into the DAX a Power BI binding runs."""
 

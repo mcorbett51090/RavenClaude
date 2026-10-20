@@ -404,20 +404,26 @@ def exists(html: str, anchor: Any) -> bool:
         return False
 
 
-def unresolved(html: str, anchors: list) -> list:
-    """The anchors (in order) that name no node in `html`, over ONE parse of the document. Raises
-    AnchorError for an unparseable anchor. (B-9: infer's self-check that what it emits resolves.)"""
+def resolve_all(html: str, anchors: list) -> list:
+    """Resolve every anchor over ONE parse of `html`: a Node per anchor, or None where it names no
+    node. Raises AnchorError for an unparseable anchor (a bug, not an absence)."""
     document = _build_tree(html)
-    missing = []
+    nodes: list = []
     for anchor in anchors:
         kind, value = _normalize_anchor(anchor)
         if kind == "selector":
             _parse_steps(value)  # a malformed selector is a bug, not an absence: let it raise
         try:
-            _resolve_el(document, anchor)
+            nodes.append(Node(_resolve_el(document, anchor)))
         except AnchorError:
-            missing.append(anchor)
-    return missing
+            nodes.append(None)
+    return nodes
+
+
+def unresolved(html: str, anchors: list) -> list:
+    """The anchors (in order) that name no node in `html`, over ONE parse of the document. Raises
+    AnchorError for an unparseable anchor. (B-9: infer's self-check that what it emits resolves.)"""
+    return [a for a, node in zip(anchors, resolve_all(html, anchors)) if node is None]
 
 
 def document_path(html: str, anchor: Any) -> tuple[tuple[str, int], ...]:
