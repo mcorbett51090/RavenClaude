@@ -61,6 +61,9 @@ class Stub:
             raise self.boom
         return self.commits if path.endswith("/commits") else self.issues
 
+    def paginate_ex(self, path, params=None):
+        return self.paginate(path, params), False
+
 
 def commit(login, date="2026-06-05T00:00:00Z", msg="work"):
     return {
@@ -87,7 +90,9 @@ def issue(login, *, pr=False, updated="2026-06-05T00:00:00Z", merged_at=None, st
 
 
 def collect(client, team, repo="o/r"):
-    return pc.collect_repo(client, repo, SINCE, UNTIL, team)
+    """(events, error) - collect_repo may also return a trailing `truncated` list."""
+    res = pc.collect_repo(client, repo, SINCE, UNTIL, team)
+    return res[0], res[1]
 
 
 class FakeResp:
@@ -227,9 +232,95 @@ def sec_a22_transport_errors_fail_soft():
     )
 
 
+def paged_urlopen(commit_pages, issue_pages=1):
+    """A urlopen fake serving `commit_pages` pages of commits (each with a Link rel=next except
+    the last) and `issue_pages` pages of issues, one item per page."""
+    served = {"commits": 0, "issues": 0}
+
+    def fake(req, timeout=0):
+        base = req.full_url.split("?")[0]
+        kind = "commits" if base.endswith("/commits") else "issues"
+        total = commit_pages if kind == "commits" else issue_pages
+        served[kind] += 1
+        page = served[kind]
+        headers = {}
+        if page < total:
+            headers["Link"] = f'<{base}?page={page + 1}>; rel="next"'
+        body = [commit("alice")] if kind == "commits" else [issue("alice")]
+        return FakeResp(json.dumps(body).encode(), headers)
+
+    return fake, served
+
+
+def sec_a29_truncation_is_reported():
+    print("A-29 — hitting the MAX_PAGES ceiling is reported, not silent")
+    config = {"repos": ["o/big"], "team": [{"login": "alice"}], "window_days": 7}
+    fake, served = paged_urlopen(commit_pages=pc.MAX_PAGES + 1)
+    with patched_urlopen(fake):
+        activity = build_quiet(config)
+    check(
+        "the 20-page ceiling still bounds the walk (20 requests, not 21)",
+        served["commits"] == pc.MAX_PAGES,
+    )
+    check(
+        "a 21-page commits stream puts 'o/big: truncated at 20 pages (commits)' in errors",
+        "o/big: truncated at 20 pages (commits)" in activity["errors"],
+    )
+    check(
+        "the events fetched before the ceiling are kept (20 commits)",
+        sum(1 for e in activity["events"] if e["type"] == "commit") == pc.MAX_PAGES,
+    )
+    check(
+        "the issues endpoint is not blamed when only commits overran",
+        not any("(issues)" in e for e in activity["errors"]),
+    )
+    fake, _ = paged_urlopen(commit_pages=1, issue_pages=pc.MAX_PAGES + 1)
+    with patched_urlopen(fake):
+        activity = build_quiet(config)
+    check(
+        "an over-long issues stream is reported with the (issues) kind",
+        "o/big: truncated at 20 pages (issues)" in activity["errors"],
+    )
+    fake, _ = paged_urlopen(commit_pages=pc.MAX_PAGES, issue_pages=3)
+    with patched_urlopen(fake):
+        activity = build_quiet(config)
+    check(
+        "control: EXACTLY 20 pages with no further page is not 'truncated'",
+        activity["errors"] == [],
+    )
+    client = pc.GitHubClient(None)
+    fake, _ = paged_urlopen(commit_pages=pc.MAX_PAGES + 1)
+    ex = getattr(client, "paginate_ex", None)
+    with patched_urlopen(fake):
+        items, cut = ex("/repos/o/big/commits") if ex else ([], None)
+        plain = client.paginate("/repos/o/big/commits")
+    check(
+        "paginate_ex returns (items, truncated=True); paginate still returns the plain list",
+        cut is True and len(items) == pc.MAX_PAGES and isinstance(plain, list),
+    )
+    banner = pr.render_weekly_tracker(
+        {
+            "team": [],
+            "repos": ["o/big"],
+            "window": {},
+            "events": [],
+            "errors": ["o/big: truncated at 20 pages (commits)"],
+        }
+    )
+    check(
+        "the weekly-tracker banner surfaces the truncation entry",
+        "truncated at 20 pages (commits)" in banner,
+    )
+
+
+def build_quiet(config):
+    return pc.build_activity(config, None, "tok")
+
+
 def main():
     sec_a21_case_insensitive_roster()
     sec_a22_transport_errors_fail_soft()
+    sec_a29_truncation_is_reported()
 
     n_pass = sum(1 for _, ok in results if ok)
     print(f"\n{n_pass}/{len(results)} acceptance tests passed.")
