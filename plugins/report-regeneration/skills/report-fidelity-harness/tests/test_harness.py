@@ -334,6 +334,34 @@ def test_bad_input_encoding_or_json_is_exit_2_with_a_json_error_not_a_traceback(
         assert "Traceback" not in proc.stderr
 
 
+def test_taint_flag_accepts_the_build_manifest_taint_dict():
+    # B-4: build_manifest --taint-out writes taint-dict@1; feeding it to --taint crashed V4.
+    import subprocess
+    import sys
+
+    bm = _load("build_manifest_under_test", _SKILL_DIR.parent / "rebind-manifest" / "build_manifest.py")
+    taint_path = _TMP / "taint-dict.json"
+    taint_path.write_text(json.dumps(bm.build_taint_dictionary(_SAMPLE)), encoding="utf-8")
+    bad_path = _TMP / "bad-taint-dict.json"
+    bad_path.write_text(json.dumps({"schema": "report-regeneration/taint-dict@1", "values": [1]}),
+                        encoding="utf-8")
+
+    def run(taint_file):
+        return subprocess.run(
+            [sys.executable, str(_SKILL_DIR / "harness.py"), "--template", str(_SAMPLE),
+             "--output", str(_CLEAN_OUTPUT), "--manifest", str(_MANIFEST), "--new-data", str(_NEW_DATA),
+             "--taint", str(taint_file)],
+            capture_output=True, text=True,
+        )
+
+    proc = run(taint_path)
+    v4 = _legs(json.loads(proc.stdout))["V4"]
+    assert v4["verdict"] in ("pass", "fail"), v4["evidence"]  # V4 ran: no PROBE_ERROR
+    proc = run(bad_path)
+    assert proc.returncode == 2
+    assert "taint-dict@1" in json.loads(proc.stdout)["error"]
+
+
 # ── standalone runner (no pytest required) ─────────────────────────────────────
 
 def _main() -> int:

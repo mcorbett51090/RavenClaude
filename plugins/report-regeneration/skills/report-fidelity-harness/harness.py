@@ -2379,6 +2379,28 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+_TAINT_SHAPE = ('--taint must be a JSON object of {label: literal} with string literals, or the '
+                'taint-dict@1 artifact build_manifest --taint-out writes')
+_TAINT_DICT_SCHEMAS = ("report-regeneration/taint-dict@1", "taint-dict@1")
+
+
+def _taint_override(loaded: object) -> dict:
+    """B-4: --taint accepts the flat {label: literal} dict OR build_manifest's taint-dict@1 artifact
+    ({schema, template, values[], identity_strings[], all[]}), flattened to {label: literal}."""
+    if isinstance(loaded, dict) and loaded.get("schema") in _TAINT_DICT_SCHEMAS:
+        flat: dict = {}
+        for kind in ("identity_strings", "values"):
+            items = loaded.get(kind, [])
+            if not isinstance(items, list) or not all(isinstance(v, str) for v in items):
+                raise HarnessError(f"{_TAINT_SHAPE} (taint-dict@1 {kind!r} must be a list of strings)")
+            for i, v in enumerate(items):
+                flat[f"{kind}_{i}"] = v
+        return flat
+    if not isinstance(loaded, dict) or not all(isinstance(v, str) for v in loaded.values()):
+        raise HarnessError(_TAINT_SHAPE)
+    return loaded
+
+
 def main(argv: list[str]) -> int:
     args = build_parser().parse_args(argv)
     if args.disable_leg and not _disable_allowed():
@@ -2395,10 +2417,7 @@ def main(argv: list[str]) -> int:
     try:
         taint = None
         if args.taint:
-            loaded = load_json(args.taint)
-            if not isinstance(loaded, dict):
-                raise HarnessError("--taint must be a JSON object of {label: literal}")
-            taint = loaded
+            taint = _taint_override(load_json(args.taint))
         receipt = run_harness(
             args.template, args.output, args.manifest, args.new_data,
             taint=taint, disabled_legs=args.disable_leg, report_format=args.report_format,
