@@ -104,6 +104,17 @@ def gen_wide_book(seed: int, d: str, n: int = 40, with_synthetic: bool = False):
     return coa_path, tb_path
 
 
+def consolidate_rc(d: str, coa: str, tb: str):
+    """Run consolidate.py (strict) over ONE USD entity built from (coa, tb); return the result."""
+    cfg = os.path.join(d, "consol-cfg.json")
+    with open(cfg, "w") as fh:
+        json.dump({"schema_version": 1, "group_name": "G", "presentation_currency": "USD",
+                   "fiscal_period": "2026-06",
+                   "entities": [{"profile": USD_ENT, "coa": coa, "tb": tb, "role": "parent"}]}, fh)
+    return subprocess.run([sys.executable, os.path.join(HERE, "consolidate.py"), "--config", cfg],
+                          capture_output=True, text=True)
+
+
 def run_rc(fn, *a, **k):
     """Call fn; return (result, exit_code) with SystemExit mapped to its code."""
     try:
@@ -114,6 +125,7 @@ def run_rc(fn, *a, **k):
 
 def main():
     import remeasure as rm  # noqa
+    from statement_engine import load_mapping as se_load_mapping  # noqa
 
     print("W1.1 — current-rate translation golden")
     cur = rm.run(ENT, COA, TB, RATES_CUR)
@@ -320,6 +332,71 @@ def main():
             rm.rate_for = real_rate_for
         check("equity-at-closing (wrong) still BLOCKS rc5 on the wide TB", rc_wide == 5)
         check("equity-at-closing (wrong) still BLOCKS rc5 on the golden example", rc_gold == 5)
+
+    print("W1.11 — --out-coa: the translated TB's plug rows must be mappable by consolidate (A-15)")
+    with tempfile.TemporaryDirectory() as d:
+        coa_w, tb_w = gen_wide_book(7, d)  # 40 accounts, NO __CTA__/__REMEAS_GL__ rows
+        for method, plug_acct, other_acct in (("current_rate", "__CTA__", "__REMEAS_GL__"),
+                                              ("temporal", "__REMEAS_GL__", "__CTA__")):
+            rates_m = os.path.join(d, f"rates-{method}.json")
+            with open(rates_m, "w") as fh:
+                json.dump({"method": method, "closing": 1.0837, "average": 1.0592,
+                           "historical": {"default": 1.0123}}, fh)
+            out_tb = os.path.join(d, f"usd-{method}.csv")
+            out_coa = os.path.join(d, f"coa-{method}.csv")
+            bare = py("--entity", ENT, "--coa", coa_w, "--tb", tb_w, "--rates", rates_m,
+                      "--out-tb", out_tb)
+            check(f"{method}: --out-tb without --out-coa prints a stderr NOTE naming {plug_acct} "
+                  "and --out-coa",
+                  bare.returncode == 0 and "NOTE" in bare.stderr and plug_acct in bare.stderr
+                  and "--out-coa" in bare.stderr)
+            before = consolidate_rc(d, coa_w, out_tb)
+            check(f"{method}: consolidate with the ORIGINAL COA is BLOCKED (rc3, unmapped {plug_acct})",
+                  before.returncode == 3 and plug_acct in before.stderr)
+            full = py("--entity", ENT, "--coa", coa_w, "--tb", tb_w, "--rates", rates_m,
+                      "--out-tb", out_tb, "--out-coa", out_coa)
+            check(f"{method}: --out-tb + --out-coa runs (rc0) with no NOTE",
+                  full.returncode == 0 and "NOTE" not in full.stderr)
+            after = consolidate_rc(d, out_coa, out_tb)
+            check(f"{method}: consolidate with the --out-coa file succeeds (rc0)",
+                  after.returncode == 0)
+            if after.returncode == 0:
+                cbs = json.loads(after.stdout)["consolidated_subtotals"]["balance_sheet"]
+                check(f"{method}: consolidated balance sheet balances to 0.00 on the 40-account book",
+                      abs(cbs["balance_delta"]) < 0.01)
+            mapped = se_load_mapping(out_coa) if os.path.exists(out_coa) else {}
+            want = {"__CTA__": ("BS", "Equity"),
+                    "__REMEAS_GL__": ("IS", "OtherIncomeExpense")}[plug_acct]
+            check(f"{method}: {plug_acct} appended with the work_map mapping "
+                  f"({want[0]}/{want[1]}); {other_acct} NOT added",
+                  plug_acct in mapped and other_acct not in mapped
+                  and (mapped[plug_acct]["statement"], mapped[plug_acct]["section"]) == want)
+            with open(coa_w, encoding="utf-8") as f1:
+                src_text = f1.read()
+            out_text = open(out_coa, encoding="utf-8").read() if os.path.exists(out_coa) else ""
+            check(f"{method}: every original COA row is preserved verbatim (only appended)",
+                  out_text.startswith(src_text)
+                  and len(out_text.splitlines()) == len(src_text.splitlines()) + 1)
+        # A COA that ALREADY maps the plug rows (the shipped example) is not duplicated or NOTEd.
+        again = os.path.join(d, "coa-example-out.csv")
+        r = py("--entity", ENT, "--coa", COA, "--tb", TB, "--rates", RATES_CUR,
+               "--out-tb", os.path.join(d, "ex.csv"), "--out-coa", again)
+        accts = []
+        if os.path.exists(again):
+            with open(again, encoding="utf-8") as fh:
+                accts = [row["account"] for row in csv.DictReader(fh)]
+        check("a COA that already maps __CTA__ gets no duplicate row", r.returncode == 0
+              and accts.count("__CTA__") == 1)
+        r = py("--entity", ENT, "--coa", COA, "--tb", TB, "--rates", RATES_CUR,
+               "--out-tb", os.path.join(d, "ex2.csv"))
+        check("no NOTE when the input COA already maps the plug rows", "NOTE" not in r.stderr)
+        # Zero-drift no-op: --out-coa is a byte-identical copy.
+        noop = os.path.join(d, "coa-noop.csv")
+        py("--entity", USD_ENT, "--coa", COA, "--tb", USD_TB,
+           "--out-tb", os.path.join(d, "noop-tb.csv"), "--out-coa", noop)
+        with open(COA, "rb") as f1:
+            check("all-USD no-op: --out-coa is a BYTE-IDENTICAL copy of the input COA",
+                  os.path.exists(noop) and f1.read() == open(noop, "rb").read())
 
     n_pass = sum(1 for _, ok in results if ok)
     print(f"\n{n_pass}/{len(results)} acceptance tests passed.")

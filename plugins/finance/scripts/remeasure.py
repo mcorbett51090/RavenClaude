@@ -78,6 +78,24 @@ CTA_ACCT = "__CTA__"
 REMEAS_ACCT = "__REMEAS_GL__"
 CTA_LINE = "Cumulative translation adjustment (CTA)"
 REMEAS_LINE = "Remeasurement gain/(loss)"
+# The mapping each plug account carries. translate() copies it into the in-memory work_map
+# and --out-coa writes the SAME row into a COA, so the two can never disagree.
+PLUG_MAPPINGS = {
+    CTA_ACCT: {
+        "statement": "BS",
+        "section": "Equity",
+        "line": CTA_LINE,
+        "normal_balance": "credit",
+        "rate_class": "EQUITY_RE",
+    },
+    REMEAS_ACCT: {
+        "statement": "IS",
+        "section": "OtherIncomeExpense",
+        "line": REMEAS_LINE,
+        "normal_balance": "credit",
+        "rate_class": "REV_EXP",
+    },
+}
 
 # Exit codes (distinct from statement_engine's 3/4 and consolidate's 2-6 so a caller
 # can tell WHY a translation blocked).
@@ -255,13 +273,7 @@ def translate(entity: dict, mapping: dict, tb: list, rates: dict, presentation: 
         # Plug is the CTA, in BS/Equity. Debit-excess => a credit CTA (gain), and
         # vice-versa; either way its section-signed presentation amount == imbalance.
         d, c = (0.0, imbalance) if imbalance >= 0 else (-imbalance, 0.0)
-        work_map[CTA_ACCT] = {
-            "statement": "BS",
-            "section": "Equity",
-            "line": CTA_LINE,
-            "normal_balance": "credit",
-            "rate_class": "EQUITY_RE",
-        }
+        work_map[CTA_ACCT] = dict(PLUG_MAPPINGS[CTA_ACCT])
         translated.append({"account": CTA_ACCT, "description": CTA_LINE, "debit": d, "credit": c})
         plug = {
             "type": "CTA",
@@ -275,13 +287,7 @@ def translate(entity: dict, mapping: dict, tb: list, rates: dict, presentation: 
     else:  # temporal
         # Plug is the remeasurement gain/(loss), in IS/OtherIncomeExpense -> net income.
         d, c = (0.0, imbalance) if imbalance >= 0 else (-imbalance, 0.0)
-        work_map[REMEAS_ACCT] = {
-            "statement": "IS",
-            "section": "OtherIncomeExpense",
-            "line": REMEAS_LINE,
-            "normal_balance": "credit",
-            "rate_class": "REV_EXP",
-        }
+        work_map[REMEAS_ACCT] = dict(PLUG_MAPPINGS[REMEAS_ACCT])
         translated.append(
             {"account": REMEAS_ACCT, "description": REMEAS_LINE, "debit": d, "credit": c}
         )
@@ -460,6 +466,40 @@ def _write_tb_csv(path: str, entity: dict, rows: list, presentation: str) -> Non
             )
 
 
+def _coa_accounts(path: str) -> set:
+    with open(path, newline="", encoding="utf-8") as fh:
+        return {(r.get("account") or "").strip() for r in csv.DictReader(fh)}
+
+
+def _write_coa_with_plugs(src: str, dst: str, plug_accounts: list) -> list:
+    """Write the input COA plus the synthetic plug row(s) the --out-tb carries.
+
+    The translated TB has a __CTA__ / __REMEAS_GL__ line that a consumer COA never maps, so
+    consolidate.py --strict BLOCKS on it as an unmapped account. The original rows are kept
+    verbatim; only plug accounts the COA does not already map are appended, with the SAME
+    mapping translate() classifies them by. Returns the accounts appended.
+    """
+    with open(src, newline="", encoding="utf-8") as fh:
+        text = fh.read()
+    reader = csv.DictReader(text.splitlines())
+    fields = list(reader.fieldnames or [])
+    have = {(r.get("account") or "").strip() for r in reader}
+    extra = [a for a in plug_accounts if a not in have]
+    if text and not text.endswith("\n"):
+        text += "\n"
+    with open(dst, "w", newline="", encoding="utf-8") as fh:
+        fh.write(text)
+        w = csv.writer(fh, lineterminator="\n")
+        for acct in extra:
+            row = {
+                "account": acct,
+                "description": PLUG_MAPPINGS[acct]["line"],
+                **PLUG_MAPPINGS[acct],
+            }
+            w.writerow([row.get(f, "") for f in fields])
+    return extra
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(
         description="Translate/remeasure one entity's functional-currency TB to a "
@@ -474,6 +514,11 @@ def main(argv=None) -> int:
     )
     p.add_argument("--out", help="write the translation report JSON here (else stdout)")
     p.add_argument("--out-tb", help="write the presentation-currency TB CSV here")
+    p.add_argument(
+        "--out-coa",
+        help="write the input COA plus the synthetic plug row(s) --out-tb carries "
+        "(__CTA__ / __REMEAS_GL__), so consolidate.py can map the translated TB",
+    )
     a = p.parse_args(argv)
 
     out = run(a.entity, a.coa, a.tb, a.rates, a.presentation_currency)
@@ -482,6 +527,9 @@ def main(argv=None) -> int:
         # Byte-identical copy of the source TB (zero-drift guarantee).
         if a.out_tb:
             with open(a.tb, "rb") as src, open(a.out_tb, "wb") as dst:
+                dst.write(src.read())
+        if a.out_coa:  # nothing translated, so no plug rows: a byte-identical COA copy
+            with open(a.coa, "rb") as src, open(a.out_coa, "wb") as dst:
                 dst.write(src.read())
         text = json.dumps(out, indent=2)
         if a.out:
@@ -498,6 +546,22 @@ def main(argv=None) -> int:
     if a.out_tb:
         profile = ec.load(a.entity)
         _write_tb_csv(a.out_tb, profile, out["translated_tb"], a.presentation_currency)
+    plugs = [r["account"] for r in out["translated_tb"] if r["account"] in PLUG_MAPPINGS]
+    if a.out_coa:
+        added = _write_coa_with_plugs(a.coa, a.out_coa, plugs)
+        sys.stderr.write(
+            f"wrote {a.out_coa}  (input COA + {', '.join(added) or 'no new'} plug row(s)); "
+            "point the consolidate.py entity's coa at it\n"
+        )
+    elif a.out_tb:
+        missing = [x for x in plugs if x not in _coa_accounts(a.coa)]
+        if missing:
+            sys.stderr.write(
+                f"NOTE: {a.out_tb} carries synthetic row(s) {', '.join(missing)} that "
+                f"{a.coa} does not map; consolidate.py --strict BLOCKS on them as unmapped. "
+                "Pass --out-coa <path> to write the COA plus those rows, and point the "
+                "entity's coa at it.\n"
+            )
 
     text = json.dumps(out, indent=2)
     if a.out:
