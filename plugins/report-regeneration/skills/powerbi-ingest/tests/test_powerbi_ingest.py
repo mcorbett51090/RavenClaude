@@ -506,6 +506,83 @@ class TestProbeRefactorRegression(_MockServerTestCase):
 # Pure-function unit tests (no server needed)
 # ─────────────────────────────────────────────────────────────────────────────
 
+class TestPlaywrightFallbackTokenScope(unittest.TestCase):
+    """B-18: the fallback's bearer token may reach only https Power BI hosts (no live Playwright)."""
+
+    class _Req:
+        def __init__(self, url):
+            self.url = url
+            self.headers = {"accept": "*/*"}
+
+    class _Route:
+        def __init__(self, request):
+            self.request = request
+            self.sent_headers = "unset"
+
+        def continue_(self, headers=None):
+            self.sent_headers = headers
+
+    def test_host_predicate(self):
+        self.assertTrue(pb._auth_host_allowed("https://app.powerbi.com/groups/me/reports/r"))
+        self.assertTrue(pb._auth_host_allowed("https://wabi-west-us-redirect.analysis.windows.net/q"))
+        for url in ("https://dc.services.visualstudio.com/v2/track",
+                    "https://cdn.example.net/app.js",
+                    "https://app.powerbi.com.evil.example/steal",
+                    "http://app.powerbi.com/insecure"):
+            self.assertFalse(pb._auth_host_allowed(url), url)
+
+    def test_route_handler_attaches_the_token_only_to_allowed_hosts(self):
+        handle = pb._auth_route_handler(FAKE_TOKEN)
+        allowed = self._Route(self._Req("https://app.powerbi.com/x"))
+        handle(allowed, allowed.request)
+        self.assertEqual(allowed.sent_headers["authorization"], f"Bearer {FAKE_TOKEN}")
+        third_party = self._Route(self._Req("https://telemetry.example.com/collect"))
+        handle(third_party, third_party.request)
+        self.assertIsNone(third_party.sent_headers, "a third-party request must go out unmodified")
+
+    def test_report_url_validation(self):
+        self.assertTrue(pb._valid_report_url("https://app.powerbi.com/groups/me/reports/r"))
+        for url in ("http://app.powerbi.com/groups/me/reports/r", "https://evil.example.com/r",
+                    "https://app.powerbi.com.evil.example/r", "file:///etc/passwd", ""):
+            self.assertFalse(pb._valid_report_url(url), url)
+
+    def test_fallback_refuses_a_non_powerbi_report_url_before_launching(self):
+        saved = {k: os.environ.get(k) for k in ("POWERBI_REPORT_URL", "POWERBI_SHOT_AUTH_TOKEN")}
+        orig_available = pb._playwright_available
+        try:
+            pb._playwright_available = lambda: True
+            os.environ["POWERBI_REPORT_URL"] = "https://evil.example.com/steal"
+            os.environ["POWERBI_SHOT_AUTH_TOKEN"] = FAKE_TOKEN
+            outcome = pb._playwright_fallback_attempt(os.path.join(tempfile.gettempdir(), "x.png"))
+        finally:
+            pb._playwright_available = orig_available
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        self.assertFalse(outcome["ok"])
+        self.assertFalse(outcome["attempted"], "no browser may launch for a non-Power-BI URL")
+        self.assertIn("*.powerbi.com", outcome["reason"])
+
+    def test_default_shot_path_is_private_and_not_left_behind(self):
+        keys = _ENV_KEYS + ("POWERBI_REPORT_URL", "POWERBI_SHOT_AUTH_TOKEN")
+        saved = {k: os.environ.pop(k, None) for k in keys}
+        orig_available = pb._playwright_available
+        try:
+            pb._playwright_available = lambda: False  # both routes fail fast, no network
+            receipt = pb.probe_shot()
+        finally:
+            pb._playwright_available = orig_available
+            for k, v in saved.items():
+                if v is not None:
+                    os.environ[k] = v
+        hint = receipt["env"]["POWERBI_SHOT_OUT_PATH"]["resolved_hint"]
+        self.assertNotEqual(os.path.basename(hint), "report-regeneration-powerbi-shot.png",
+                            "the default capture path must not be a fixed, predictable /tmp name")
+        self.assertFalse(os.path.exists(hint), "an unused placeholder must not be left behind")
+
+
 class TestInferTypeAndValue(unittest.TestCase):
     def test_integer(self):
         self.assertEqual(pi.infer_type_and_value(4821300), ("number", "4821300"))
