@@ -348,6 +348,82 @@ def _h3() -> None:
     need(_sec_band("--auth-required", "yes") == "HIGH", "yes must stay the lower HIGH band")
 
 
+# ---------------------------------------------------------------------------
+# H-4  salesforce/apex_governor_smell.py: loops whose '{' is on a later line
+# ---------------------------------------------------------------------------
+
+APEX_SMELL = "plugins/salesforce/scripts/apex_governor_smell.py"
+
+_APEX_ALLMAN = """public class A {
+    public static void run(List<Contact> cons) {
+        for (Contact c : cons)
+        {
+            c.AccountId = [SELECT Id FROM Account LIMIT 1].Id;
+            update c;
+        }
+    }
+}
+"""
+_APEX_MULTILINE_HEADER = """public class B {
+    public static void run(List<Id> ids) {
+        for (Contact c :
+                [SELECT Id FROM Contact WHERE AccountId IN :ids])
+        {
+            insert new Task(WhoId = c.Id);
+        }
+    }
+}
+"""
+_APEX_BRACELESS = """public class C {
+    public static void run(List<Contact> cons) {
+        for (Contact c : cons) insert new Task(WhoId = c.Id);
+    }
+}
+"""
+_APEX_SAME_LINE = """public class D {
+    public static void run(List<Contact> cons) {
+        for (Contact c : cons) { update c; }
+    }
+}
+"""
+# Controls that must stay clean: a header-only bulk-safe query, DML after a do-while
+# terminator and after a loop, and a lower-case SOQL `for update`.
+_APEX_CLEAN = """public class E {
+    public static void run(List<Contact> cons, Boolean flag) {
+        for (Contact c : [SELECT Id FROM Contact]) { c.Name = 'x'; }
+        Integer n = 0;
+        do {
+            n++;
+        } while (n < 3);
+        if (flag) { update cons; }
+        List<Account> locked = [SELECT Id FROM Account for update];
+        update locked;
+    }
+}
+"""
+
+
+def _apex_kinds(name: str, source: str) -> list[str]:
+    with tempfile.TemporaryDirectory() as tmp:
+        Path(tmp, name).write_text(source, encoding="utf-8")
+        proc = run(APEX_SMELL, "--format", "json", tmp)
+        need(proc.returncode in (0, 1), f"{name}: scanner crashed", proc)
+        return sorted(f["kind"] for f in json.loads(proc.stdout))
+
+
+@case("H-4", "apex_governor_smell carries a pending loop across lines to its body")
+def _h4() -> None:
+    both = ["dml-in-loop", "soql-in-loop"]
+    need(_apex_kinds("A.cls", _APEX_ALLMAN) == both, "Allman-style loop must flag SOQL+DML")
+    need(
+        _apex_kinds("B.cls", _APEX_MULTILINE_HEADER) == ["dml-in-loop"],
+        "multi-line header: body DML flagged, header-only SOQL not flagged",
+    )
+    need(_apex_kinds("C.cls", _APEX_BRACELESS) == ["dml-in-loop"], "brace-less loop body")
+    need(_apex_kinds("D.cls", _APEX_SAME_LINE) == ["dml-in-loop"], "same-line control changed")
+    need(_apex_kinds("E.cls", _APEX_CLEAN) == [], "clean controls must stay unflagged")
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
