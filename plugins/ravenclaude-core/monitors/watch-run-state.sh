@@ -112,19 +112,18 @@ newest_log() {
   # stock macOS/BSD find exits with "unknown primary -printf", the 2>/dev/null
   # swallows it, and the pipeline yields empty -> the monitor idle-polls forever
   # and never emits a notification (silent, every macOS session — the exact
-  # macOS-door failure class the repo has closed elsewhere). mtime is read with
-  # the portable `stat -c '%Y' || stat -f '%m'` fallback already used in
-  # worktree-guard.sh. bash-3.2-safe: no mapfile / assoc arrays / globstar.
-  local newest="" newest_mt=0 _f _mt
-  while IFS= read -r -d '' _f; do
-    _mt="$(stat -c '%Y' "$_f" 2>/dev/null || stat -f '%m' "$_f" 2>/dev/null)" || continue
-    [ -n "$_mt" ] || continue
-    if [ "$_mt" -gt "$newest_mt" ] 2>/dev/null; then
-      newest_mt="$_mt"
-      newest="$_f"
-    fi
-  done < <(find "$RUNS_DIR" -maxdepth 2 -name 'hook-events.jsonl' -type f -print0 2>/dev/null)
-  [ -n "$newest" ] && printf '%s\n' "$newest"
+  # macOS-door failure class the repo has closed elsewhere). mtime is read by ONE
+  # `stat` over every candidate (xargs batches the list), keeping the portable
+  # GNU `-c '%Y %n'` / BSD `-f '%m %N'` split: a fork per run dir cost ~6 s per
+  # call at 1,500 run dirs, and .ravenclaude/runs/ is never pruned. awk keeps the
+  # first strictly-newest line and reads all of its input (no early exit, so no
+  # SIGPIPE under pipefail). bash-3.2-safe: no mapfile / assoc arrays / globstar.
+  local _flag="-f" _fmt="%m %N"
+  if stat -c '%Y' "$RUNS_DIR" >/dev/null 2>&1; then _flag="-c" _fmt="%Y %n"; fi
+  find "$RUNS_DIR" -maxdepth 2 -name 'hook-events.jsonl' -type f -print0 2>/dev/null |
+    xargs -0 stat "$_flag" "$_fmt" 2>/dev/null |
+    awk '{ mt = $1 + 0; if (mt > best) { best = mt; line = $0 } }
+      END { if (line != "") { sub(/^[0-9]+ /, "", line); print line } }'
 }
 
 # Derive and print ONE notification line from ONE jsonl line.

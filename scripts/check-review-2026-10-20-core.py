@@ -835,6 +835,61 @@ def case_c18(root: Path) -> None:
     )
 
 
+# ─── C-19: newest_log forked one stat per run dir (~6 s at 1,500 run dirs) ────
+_NEWEST_PROBE = """set -u
+. "$1"
+start=$(python3 -c 'import time; print(time.time())')
+got="$($2 || true)"
+end=$(python3 -c 'import time; print(time.time())')
+printf '%s\\n%s\\n' "$got" "$(python3 -c "print($end - $start)")"
+"""
+
+
+def _newest(script: Path, fn: str, project: Path) -> tuple[str, float]:
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=str(project))
+    env.pop("CLAUDE_SESSION_ID", None)
+    cp = subprocess.run(
+        ["bash", "-c", _NEWEST_PROBE, "probe", str(script), fn],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    lines = cp.stdout.splitlines()
+    if len(lines) < 2:
+        raise _Fail(f"{fn} probe produced no result: {cp.stderr.strip()[-200:]}")
+    return lines[0], float(lines[1])
+
+
+def case_c19(root: Path) -> None:
+    project = Path(tempfile.mkdtemp(prefix="c19 with space-", dir=_TMP))
+    runs = project / ".ravenclaude/runs"
+    old = time.time() - 86400 * 30
+    for i in range(1500):
+        d = runs / f"run-{i}"
+        d.mkdir(parents=True)
+        for name in ("hook-events.jsonl", "spectate-events.jsonl"):
+            (d / name).write_text("")
+            os.utime(d / name, (old, old))
+    newer = old + 3600
+    os.utime(runs / "run-777/hook-events.jsonl", (newer, newer))
+    os.utime(runs / "run-421/spectate-events.jsonl", (newer, newer))
+    for script, fn, want in (
+        (RUNSTATE_REL, "newest_log", runs / "run-777/hook-events.jsonl"),
+        (SPECTATE_REL, "newest_spectate_log", runs / "run-421/spectate-events.jsonl"),
+    ):
+        got, secs = _newest(root / script, fn, project)
+        _check(
+            got == str(want),
+            f"{fn}: 1,500 run dirs -> the correct newest log ({Path(got).parent.name})",
+        )
+        _check(secs < 1.0, f"{fn}: ... returned in well under a second ({secs:.2f}s)")
+    empty = Path(tempfile.mkdtemp(prefix="c19-empty-", dir=_TMP))
+    (empty / ".ravenclaude/runs").mkdir(parents=True)
+    got, _ = _newest(root / RUNSTATE_REL, "newest_log", empty)
+    _check(got == "", "an empty runs/ dir resolves to no log")
+
+
 CASES = {
     "C-1": case_c1,
     "C-2": case_c2,
@@ -846,6 +901,7 @@ CASES = {
     "C-16": case_c16,
     "C-17": case_c17,
     "C-18": case_c18,
+    "C-19": case_c19,
 }
 
 

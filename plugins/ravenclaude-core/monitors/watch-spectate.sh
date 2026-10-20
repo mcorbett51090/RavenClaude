@@ -78,16 +78,14 @@ newest_spectate_log() {
     [ -f "$runs_dir/$_sess/spectate-events.jsonl" ] && printf '%s\n' "$runs_dir/$_sess/spectate-events.jsonl"
     return 0
   fi
-  local newest="" newest_mt=0 _f _mt
-  while IFS= read -r -d '' _f; do
-    _mt="$(stat -c '%Y' "$_f" 2>/dev/null || stat -f '%m' "$_f" 2>/dev/null)" || continue
-    [ -n "$_mt" ] || continue
-    if [ "$_mt" -gt "$newest_mt" ] 2>/dev/null; then
-      newest_mt="$_mt"
-      newest="$_f"
-    fi
-  done < <(find "$runs_dir" -maxdepth 2 -name 'spectate-events.jsonl' -type f -print0 2>/dev/null)
-  [ -n "$newest" ] && printf '%s\n' "$newest"
+  # ONE `stat` over every candidate (xargs batches the list), not a fork per run
+  # dir (~6 s per call at 1,500 run dirs); same GNU/BSD split as watch-run-state.sh.
+  local _flag="-f" _fmt="%m %N"
+  if stat -c '%Y' "$runs_dir" >/dev/null 2>&1; then _flag="-c" _fmt="%Y %n"; fi
+  find "$runs_dir" -maxdepth 2 -name 'spectate-events.jsonl' -type f -print0 2>/dev/null |
+    xargs -0 stat "$_flag" "$_fmt" 2>/dev/null |
+    awk '{ mt = $1 + 0; if (mt > best) { best = mt; line = $0 } }
+      END { if (line != "") { sub(/^[0-9]+ /, "", line); print line } }'
 }
 
 # Derive and print ONE notification line from ONE spectate JSONL line.
