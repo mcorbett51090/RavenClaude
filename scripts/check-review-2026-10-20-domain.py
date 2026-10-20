@@ -902,6 +902,78 @@ def _h20() -> None:
     need("below that it pays for itself" not in normal.stdout, "the backwards footer is gone", normal)
 
 
+# ---------------------------------------------------------------------------
+# H-21  claude-app-engineering/claude_cost_estimator.py: validation + closed-form break-even
+# ---------------------------------------------------------------------------
+
+COST_ESTIMATOR = "plugins/claude-app-engineering/scripts/claude_cost_estimator.py"
+
+
+def _loop_break_even(cached: int, uncached: int, n: int, write: float, read: float) -> int | None:
+    """The pre-fix O(requests) loop, kept here as the reference answer."""
+    price = 5.0 / 1_000_000.0
+    cum_no = cum_cache = 0.0
+    for i in range(1, n + 1):
+        cum_no += (cached + uncached) * price
+        mult = write if i == 1 else read
+        cum_cache += cached * price * mult + uncached * price
+        if cum_cache < cum_no:
+            return i
+    return None
+
+
+@case("H-21", "claude_cost_estimator: rejects negative inputs; closed-form break-even matches")
+def _h21() -> None:
+    bad = [
+        ["cache", "--cached-tokens", "-1", "--requests", "10", "--input-price", "5"],
+        ["cache", "--cached-tokens", "100", "--requests", "-3", "--input-price", "5"],
+        ["budget", "--prefix-tokens", "100", "--window", "-5"],
+        ["batch", "--input-tokens", "10", "--output-tokens", "-1", "--requests", "5",
+         "--input-price", "5", "--output-price", "25"],
+        ["batch", "--input-tokens", "10", "--output-tokens", "1", "--requests", "5",
+         "--input-price", "5", "--output-price", "25", "--batch-discount", "1.5"],
+    ]  # fmt: skip
+    for argv in bad:
+        proc = run(COST_ESTIMATOR, *argv)
+        need(proc.returncode == 2, f"{argv} must exit 2", proc)
+        need(proc.stderr.startswith("error:"), "a clear error message", proc)
+
+    mismatches = []
+    for cached, uncached, n, ttl, read in [
+        (40000, 500, 100, "5m", 0.1), (40000, 0, 2, "5m", 0.1), (40000, 500, 1, "5m", 0.1),
+        (40000, 500, 3, "1h", 0.1), (1000, 10, 50, "5m", 0.5), (1000, 10, 50, "1h", 0.6),
+        (1000, 10, 50, "1h", 1.0), (1000, 10, 50, "5m", 1.5), (0, 500, 10, "5m", 0.1),
+        (7, 3, 1000, "1h", 0.85), (123456, 789, 20, "5m", 0.25), (500, 0, 5, "1h", 0.4),
+    ]:  # fmt: skip
+        write = 2.0 if ttl == "1h" else 1.25
+        want = _loop_break_even(cached, uncached, n, write, read)
+        argv = ["cache", "--cached-tokens", str(cached), "--uncached-tokens", str(uncached),
+                "--requests", str(n), "--input-price", "5.0", "--ttl", ttl,
+                "--cache-read-mult", str(read)]  # fmt: skip
+        out = run(COST_ESTIMATOR, *argv).stdout
+        found = re.search(r"break-even at\s*: request #(\d+)", out)
+        got = int(found.group(1)) if found else None
+        if got != want:
+            mismatches.append(f"{argv[1:]}: closed form {got}, loop {want}")
+    need(not mismatches, "break-even differs from the loop: " + "; ".join(mismatches))
+
+    # An exact tie (cumulative costs equal) is not yet "cheaper": the old float loop picked
+    # either side of it by rounding noise, the closed form is strict (request 3 ties, 4 wins).
+    for cached, uncached, n, read, want in [(1000, 10, 50, 0.5, 4), (7, 3, 1000, 0.9, 12)]:
+        argv = ["cache", "--cached-tokens", str(cached), "--uncached-tokens", str(uncached),
+                "--requests", str(n), "--input-price", "5.0", "--ttl", "1h",
+                "--cache-read-mult", str(read)]  # fmt: skip
+        found = re.search(r"break-even at\s*: request #(\d+)", run(COST_ESTIMATOR, *argv).stdout)
+        need(found is not None and int(found.group(1)) == want, f"tie {argv[1:]}: want #{want}")
+
+    # O(1): a billion requests must not loop a billion times (the run() timeout is the backstop).
+    huge = run(
+        COST_ESTIMATOR, "cache", "--cached-tokens", "40000", "--requests", "1000000000",
+        "--input-price", "5.0",
+    )  # fmt: skip
+    need(huge.returncode == 0 and "break-even at" in huge.stdout, "huge N must finish", huge)
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
