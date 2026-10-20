@@ -217,6 +217,14 @@ def cmd_unit_economics(args: argparse.Namespace) -> int:
     if not 0.0 < args.churn <= 1.0:
         print("error: --churn must be in (0%, 100%]", file=sys.stderr)
         return 2
+    if not 0.0 < args.gross_margin <= 1.0:
+        # _parse_rate reads a bare "78" as 7800%, which silently inflates LTV 100x.
+        print(
+            f"error: --gross-margin must be in (0%, 100%] (got {args.gross_margin * 100:g}%) "
+            "- pass 0.78 for 78%",
+            file=sys.stderr,
+        )
+        return 2
     if args.cac <= 0:
         print("error: --cac must be > 0", file=sys.stderr)
         return 2

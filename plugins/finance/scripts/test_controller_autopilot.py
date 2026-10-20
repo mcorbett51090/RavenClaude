@@ -277,6 +277,22 @@ def main():
     check("no root in range -> 'no IRR root in [-99%, 1000%]' (rc 0)",
           r.returncode == 0 and "no IRR root in [-99%, 1000%]" in r.stdout)
 
+    print("A-8 — finance_calc unit-economics range-checks gross margin")
+    ue_args = ("unit-economics", "--arpa", "1200", "--churn", "14%", "--cac", "3000")
+    r = py("finance_calc.py", *ue_args, "--gross-margin", "78")
+    check("--gross-margin 78 (a bare percent) is REJECTED rc 2 with the 'pass 0.78' hint",
+          r.returncode == 2 and "pass 0.78 for 78%" in r.stderr and "-> LTV" not in r.stdout)
+    for bad in ("0", "-0.2", "1.5", "150%"):
+        check(f"--gross-margin {bad} is rejected (rc 2)",
+              py("finance_calc.py", *ue_args, "--gross-margin", bad).returncode == 2)
+    ok = py("finance_calc.py", *ue_args, "--gross-margin", "0.78")
+    # hand-derived: 1200 * 0.78 = 936 gross profit/yr; LTV = 936 / 0.14 = 6,685.71; LTV:CAC 2.23
+    check("--gross-margin 0.78 is accepted and unchanged (LTV 6,685.71, 2.23 : 1)",
+          ok.returncode == 0 and "6,685.71" in ok.stdout and "2.23 : 1" in ok.stdout)
+    check("--gross-margin 78% and 100% (the inclusive upper bound) are accepted",
+          py("finance_calc.py", *ue_args, "--gross-margin", "78%").returncode == 0
+          and py("finance_calc.py", *ue_args, "--gross-margin", "100%").returncode == 0)
+
     print("P4 — orchestrator submit-only invariant")
     src = open(os.path.join(HERE, "controller_cycle.py")).read()
     # strip comments/strings-ish: just assert no .approve(/.lock(/.reopen( call on a ledger
