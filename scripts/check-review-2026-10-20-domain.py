@@ -599,6 +599,29 @@ def _h9() -> None:
     need(junk.returncode == 2, "an undecodable file must exit 2", junk)
 
 
+# ---------------------------------------------------------------------------
+# H-10  data-streaming-engineering/stream_sizing.py: float ceiling adds a phantom partition
+# ---------------------------------------------------------------------------
+
+STREAM_SIZING = "plugins/data-streaming-engineering/scripts/stream_sizing.py"
+
+
+def _partitions(target: str, per_consumer: str, headroom: str) -> int:
+    args = ["--target-msgs-per-sec", target, "--per-consumer-msgs-per-sec", per_consumer]
+    proc = run(STREAM_SIZING, "partitions", *args, "--headroom", headroom)
+    need(proc.returncode == 0, "partitions must succeed", proc)
+    found = re.search(r"minimum partitions:\s*(\d+)", proc.stdout)
+    need(found is not None, "partitions must print a count", proc)
+    return int(found.group(1))
+
+
+@case("H-10", "stream_sizing partitions does not round 11.000000000000002 up to 12")
+def _h10() -> None:
+    need(_partitions("100", "10", "1.1") == 11, "100 msg/s x 1.1 / 10 must be 11 partitions")
+    need(_partitions("40000", "5000", "1.5") == 12, "exact 12.0 must stay 12")
+    need(_partitions("1000", "300", "1.0") == 4, "a real fraction (3.33) must still round up")
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
