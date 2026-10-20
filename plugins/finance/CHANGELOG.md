@@ -2,6 +2,27 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.18.9 — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- A-1 CTA self-check no longer falsely BLOCKS correct translations
+- A-10 prepaid/deferred-revenue schedules are sign-symmetric
+- A-11 SoD gate compares magnitude and fails closed on NaN
+- A-12 verify() replays the audit stream against state.json
+- A-14 suiteql.pull() really sleeps on Retry-After
+- A-15 remeasure --out-coa makes the translated TB consolidatable
+- A-16 tb_stage CLI overrides beat a mapped source column
+- A-17 reconcile _tb_net sums duplicate account rows
+- A-19 RLS denial test exits 3 (not 0) when docker is missing
+- A-7 npv-irr no longer crashes on streams of 81+ flows
+- A-8 unit-economics rejects a gross margin outside (0%, 100%]
+- A-9 draft cash flow reports the cash movement, not prior-period NI
+- A-26 tb_stage creates the output directory; drop dead _atomic_write
+- A-27 non-strict run skips and reports an invalid-section account
+- A-28 test_close_identity SKIPs (NOT A PASS) on a broken PyJWT install
+- A-6 variance-bridge drops the always-zero 'mix/interaction' line
+
 ## [0.18.8] — 2026-09-15
 
 ### Fixed

@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.1.5 — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-22 hospice_calc reads a bare '1' as ambiguous and rejects malformed rates cleanly
+
 ## [0.1.4] — 2026-08-14
 
 ### Changed

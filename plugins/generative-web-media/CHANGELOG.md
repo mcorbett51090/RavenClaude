@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.1.5 — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- A-20 gen-budget rejects non-finite prices/budget and poisoned ledger lines
+- A-3 optimize-image resolves sharp from the npx cache
+- A-4 provenance audit catches every spelling of FLUX dev
+- A-5 audit --dir skips a gen-budget spend ledger, content-based
+- A-33 provenance audit no longer counts null / non-string required fields as present
+
 ## [0.1.4] — 2026-09-10
 
 ### Fixed

@@ -19,6 +19,28 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
   Only the two changed diagrams (`hook-lifecycle`, `oauth-scope-cost`) were re-rendered, so every other SVG in the pack stays byte-identical. `concepts.json`, `dashboard.html`, `index.html` and `docs/concepts.md` were regenerated.
 
+### Fixed (2026-10-20 autonomous repo review)
+
+Each fix was reproduced on the unmodified code first and carries a regression test that fails with the fix reverted. Most tests live in `scripts/check-review-2026-10-20-core.py`. Full write-up: `docs/reviews/2026-10-20-repo-review.md`.
+
+- D-2 workflow-hygiene Rule 1 fails `permissions: write-all`; quoted `uses:` classified correctly
+- C-1 repo-sweep requires a unique runId and refuses a reused findings dir
+- C-2 repo-sweep refuses a run whose agent() demand exceeds the cap
+- C-11 per-repo dashboard launcher stops only this repo's server
+- C-3 survivors with no verify verdict stay open, no false CONVERGED
+- C-7 monitors read new logs from line 1 and scope to the session
+- C-8 rc probe dns reads a dead resolver as INCONCLUSIVE, not a negative
+- C-9 an unbound hard-gate signal fails closed instead of going to the judge
+- C-13 keep_best ranks gate-green iterations first; a red emit escalates
+- C-14 setup-terminal-indicators writes through a symlinked ~/.bashrc
+- C-15 nested ._* AppleDouble files are excluded by pack and flagged by ZP07
+- C-16 mermaid_label strips structure before escaping, so entities keep their `;`
+- C-17 dv and pbir linters exit 2 on deeply nested JSON instead of crashing
+- C-18 fix_summary records malformed applied entries and marks a failed git diff
+- C-19 monitors resolve the newest log with one stat pass, not one per run dir
+- C-4 rc-deep-research caps the kill threshold at the vote count; Synthesize never throws
+- Concept restamps (cosmetic; the claims are unchanged): eight inventory entries whose covered files these fixes edited. The `run-state-monitor` concept and knowledge file now describe C-7's log selection.
+
 ## 0.358.4 — 2026-10-18
 
 ### Changed

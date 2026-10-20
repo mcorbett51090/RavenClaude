@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.3.10 — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-3 sec_risk --auth-required fails safe toward higher urgency
+
 ## [0.3.9] — 2026-09-23
 
 Weekly Tier-A news sweep (2026-09-23) — 5 independently re-verified corrections:

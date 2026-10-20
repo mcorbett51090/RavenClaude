@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.2.4 — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-1 openapi_diff dereferences local $refs instead of reporting no change
+
 ## [0.2.2] — 2026-08-14
 
 ### Changed

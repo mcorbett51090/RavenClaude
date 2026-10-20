@@ -2,6 +2,19 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.33.6 — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- E-2 astro starter reads .env values under astro dev
+- E-3 denial harness sets RLS tenant with set_config()
+- E-6 CSV export no longer prefixes negative numbers
+- E-7 single-flight the Cube token fetch in both starters
+- E-8 Superset guest-token call logs in as a service account
+- E-11 jwt-issuer.ts no longer claims RS256 key support
+- E-12 env.example points CUBE_API_ORIGIN at middleware.ts
+- E-2 note that the dev-only DEV_DOTENV map is not the forbidden fallback
+
 ## [0.33.5] — 2026-09-23
 
 ### Fixed
