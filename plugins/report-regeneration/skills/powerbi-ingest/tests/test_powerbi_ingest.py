@@ -331,6 +331,19 @@ class TestIngestData(_MockServerTestCase):
         self.assertIsNone(receipt["fragment"])
         self.assertEqual(_MockHandler.request_log, [], "no network call should fire without creds")
 
+    def test_non_generated_dax_expression_is_refused_before_any_query(self):
+        # B-12: only the generated single-measure EVALUATE ROW(...) shape may run.
+        self._set_creds()
+        for expr in ('EVALUATE TOPN(100, Salaries)',
+                     'EVALUATE ROW("x"], "leak", COUNTROWS(Salaries), "z", ["y", [x])'):
+            bad = [_binding("kpi-evil", "surgical", "rest", "2025-Q1",
+                            {"kind": "dax", "expression": expr, "source_ref": "acme-pbi-model"})]
+            manifest_path = _write_manifest(self._tmpdir.name, bad)
+            exit_code, stdout = self._run_cli(["data", "--manifest", str(manifest_path), "--format", "json"])
+            self.assertEqual(exit_code, 2, expr)
+            self.assertIn("refusing to run a DAX expression", json.loads(stdout)["error"])
+        self.assertEqual(_MockHandler.request_log, [], "no query may run for a refused manifest")
+
     def test_no_dax_bindings_not_captured(self):
         self._set_creds()
         non_dax_only = [b for b in _full_bindings() if b["data_query"]["kind"] != "dax"]

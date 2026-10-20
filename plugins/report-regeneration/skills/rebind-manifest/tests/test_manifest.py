@@ -209,6 +209,21 @@ class TestRebindManifest(unittest.TestCase):
         self.assertTrue(cli_out.is_file())
 
 
+class TestDaxBindKey(unittest.TestCase):
+    """B-12: a template data-bind is interpolated into the DAX a Power BI binding runs."""
+
+    def test_crafted_data_bind_is_rejected(self):
+        evil = 'x"]), EVALUATE TOPN(100, Salaries)'
+        with self.assertRaises(bm.BuildManifestError):
+            bm.propose_query("surgical", "kpi-value", "xmla", evil, "pbi")
+
+    def test_normal_keys_still_build_the_generated_query(self):
+        q = bm.propose_query("surgical", "kpi-value", "rest", "Revenue Total", "pbi")
+        self.assertEqual(q["expression"], 'EVALUATE ROW("Revenue Total", [Revenue Total])')
+        q = bm.propose_query("surgical", "kpi-value", "xmla", "", "pbi")
+        self.assertEqual(q["expression"], 'EVALUATE ROW("value", [Measure])')
+
+
 class TestUnannotatedNeedsReviewIsBound(unittest.TestCase):
     """B-2: infer demotes an unannotated <p>$1,234</p> to needs-review; build_manifest must bind
     it (it used to drop every static-chrome node), so rebind badges and counts it."""

@@ -730,6 +730,22 @@ def _contains_domain_value(text_norm: str, domain_norm) -> str:
     return ""
 
 
+# B-12: the template's data-bind becomes a DAX column label + measure reference, and the template is
+# untrusted. Only a plain measure-like key may reach a query; quoting is escaped all the same.
+_DAX_BIND_KEY = re.compile(r"[A-Za-z_][A-Za-z0-9_ .-]{0,127}")
+
+
+def _dax_for(bind_key: str) -> str:
+    if not _DAX_BIND_KEY.fullmatch(bind_key):
+        raise BuildManifestError(
+            f"data-bind {bind_key!r} is not a valid Power BI measure key for a DAX query "
+            f"(expected {_DAX_BIND_KEY.pattern})"
+        )
+    label = bind_key.replace('"', '""')
+    measure = bind_key.replace("]", "]]")
+    return f'EVALUATE ROW("{label}", [{measure}])'
+
+
 def propose_query(final_class: str, role: str, pbi_route, bind_key: str, source_ref: str):
     """Propose a data_query. `frozen` -> None (carries no data). Every non-frozen class MUST
     carry a query object {kind, expression[, source_ref]}."""
@@ -741,8 +757,7 @@ def propose_query(final_class: str, role: str, pbi_route, bind_key: str, source_
             "expression": "pending human sign-off; no binding proposed until reviewed",
         }
     if pbi_route in ("xmla", "rest"):
-        expr = (f'EVALUATE ROW("{bind_key}", [{bind_key}])' if bind_key
-                else 'EVALUATE ROW("value", [Measure])')
+        expr = _dax_for(bind_key) if bind_key else 'EVALUATE ROW("value", [Measure])'
         query = {"kind": "dax", "expression": expr}
     elif pbi_route == "screenshot" or role in _RASTER_ROLES:
         query = {"kind": "screenshot-capture",
