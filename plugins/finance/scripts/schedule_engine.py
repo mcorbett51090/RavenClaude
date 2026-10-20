@@ -237,10 +237,26 @@ def depreciation(rows: list[dict], period: str) -> dict:
 
 
 # ---- ratable balance rollforward (shared by prepaid + deferred revenue) -----
+def _resign(sign: float, *vals: float) -> tuple:
+    """Re-apply a schedule's sign to magnitudes (never emits a negative zero)."""
+    return tuple(0.0 if v == 0 else round(sign * v, 2) for v in vals)
+
+
 def _ratable_item(total: float, term: int, start: str, period: str) -> tuple:
+    """Sign-symmetric wrapper: a credit memo (negative total) is the row-by-row negation
+    of the same positive schedule. The min()/catch-up arithmetic below only holds for a
+    positive magnitude, so compute on abs(total) and re-apply the sign (A-10)."""
+    if term <= 0:
+        raise SystemExit(f"term_months must be > 0 (got {term})")
+    sign = -1.0 if total < 0 else 1.0
+    return _resign(sign, *_ratable_item_abs(abs(total), term, start, period))
+
+
+def _ratable_item_abs(total: float, term: int, start: str, period: str) -> tuple:
     """One straight-line/ratable balance's (opening, addition, drawdown, ending, monthly)
     for a single reporting period. Addition lands in the start month; drawdown is the
-    ratable slice with a final-period catch-up so the balance drains exactly to zero."""
+    ratable slice with a final-period catch-up so the balance drains exactly to zero.
+    `total` is a non-negative magnitude here; _ratable_item owns the sign."""
     if term <= 0:
         raise SystemExit(f"term_months must be > 0 (got {term})")
     monthly = round(total / term, 2)
@@ -274,7 +290,18 @@ def _ratable_item(total: float, term: int, start: str, period: str) -> tuple:
 
 
 def _full_schedule(total: float, term: int, start: str) -> list[dict]:
-    """Whole-term month-by-month waterfall; final month drains the balance to exactly 0."""
+    """Sign-symmetric wrapper (see _ratable_item): negate the positive waterfall row by row."""
+    sign = -1.0 if total < 0 else 1.0
+    rows = _full_schedule_abs(abs(total), term, start)
+    for row in rows:
+        for k in ("opening", "addition", "drawdown", "closing"):
+            row[k] = _resign(sign, row[k])[0]
+    return rows
+
+
+def _full_schedule_abs(total: float, term: int, start: str) -> list[dict]:
+    """Whole-term month-by-month waterfall; final month drains the balance to exactly 0.
+    `total` is a non-negative magnitude here; _full_schedule owns the sign."""
     monthly = round(total / term, 2)
     rows, bal = [], 0.0
     for i in range(term):
