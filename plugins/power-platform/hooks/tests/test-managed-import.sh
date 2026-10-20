@@ -168,6 +168,59 @@ if SECTION == "b14":
     ck("b14 an unknown url stays unclassified (no new refusal)", call(base + ["--env-url", OTHER], cfg)[0] == mi.EXIT_OK)
     ck("b14 --env dev alone proceeds", call(base + ["--env", "dev"], cfg)[0] == mi.EXIT_OK)
 
+if SECTION == "b15":
+    # B-15: a re-run after a failed pac import must not forget the flows that import disabled.
+    pac = {"fail": True}
+    def fake_run(argv, check=False):  # the managed import turns every flow off
+        for f in state["flows"]:
+            f["statecode"], f["statuscode"] = 0, 1
+        return types.SimpleNamespace(returncode=1 if pac["fail"] else 0)
+    def fake_patch(opener, org, tok, wid, oid):
+        for f in state["flows"]:
+            if f["workflowid"] == wid:
+                f["statecode"], f["statuscode"] = 1, 2
+    mi.subprocess.run = fake_run
+    mi.patch_flow_active = fake_patch
+    bpath = os.path.join(TMP, "b15.json")
+    def flow(i, name, code):
+        return {"workflowid": str(i), "name": name, "uniquename": "mc_" + name.lower(),
+                "statecode": code, "statuscode": 2 if code else 1}
+    def names(path):
+        return sorted(f["name"] for f in json.load(open(path))["active_flows"])
+    imp = ["import", "--env-url", DEV, "--solution-path", "s.zip", "--skip-preflight",
+           "--baseline-file", bpath, "--retry-wait", "0"]
+    state["flows"] = [flow(1, "A", 1), flow(2, "B", 1)]
+    rc1, _ = call(imp)
+    ck("b15 run 1: pac failure surfaces as EXIT_PAC_FAILED", rc1 == mi.EXIT_PAC_FAILED)
+    ck("b15 run 1 left the flows Draft", all(f["statecode"] == 0 for f in state["flows"]))
+    ck("b15 run 1 baseline holds A,B and is pending",
+       names(bpath) == ["A", "B"] and json.load(open(bpath)).get("status") == "pending")
+    pac["fail"] = False
+    rc2, err2 = call(imp)
+    ck("b15 run 2: the pending baseline is carried forward (A,B reactivated)",
+       rc2 == mi.EXIT_OK and all(f["statecode"] == 1 for f in state["flows"]))
+    ck("b15 run 2 baseline still names A,B", names(bpath) == ["A", "B"])
+    ck("b15 run 2 says it carried the pending baseline forward", "pending" in err2)
+    ck("b15 run 2 marks the baseline complete", json.load(open(bpath)).get("status") == "complete")
+    # A completed prior run -> a fresh baseline (operator turned A off deliberately).
+    state["flows"] = [flow(1, "A", 0), flow(2, "B", 1)]
+    rc3, _ = call(imp)
+    ck("b15 run 3 (prior complete): fresh baseline holds only B", names(bpath) == ["B"])
+    ck("b15 run 3 does not reactivate the deliberately-off flow",
+       rc3 == mi.EXIT_OK and state["flows"][0]["statecode"] == 0 and state["flows"][1]["statecode"] == 1)
+    # A pending baseline for a DIFFERENT environment is not merged.
+    json.dump({"env_url": OTHER, "status": "pending",
+               "active_flows": [{"uniquename": "mc_z", "name": "Z", "workflowid": "9"}]}, open(bpath, "w"))
+    state["flows"] = [flow(1, "A", 1)]
+    call(imp)
+    ck("b15 a pending baseline for another env is overwritten, not merged", names(bpath) == ["A"])
+    # A legacy baseline (no status key) is re-captured as today.
+    json.dump({"env_url": DEV, "active_flows": [{"uniquename": "mc_old", "name": "Old", "workflowid": "8"}]},
+              open(bpath, "w"))
+    state["flows"] = [flow(1, "A", 1)]
+    call(imp)
+    ck("b15 a legacy status-less baseline is re-captured", names(bpath) == ["A"])
+
 bad = [n for n, ok in checks if not ok]
 print("MISSING:" + ",".join(bad) if bad else "ALLPASS")
 sys.exit(1 if bad else 0)
@@ -196,6 +249,10 @@ fi
 echo "C — orchestration (mocked network/pac): B-14 PROD guard also classifies by the resolved env url"
 out="$(assert_orch "$SK" b14)"
 if [ "$out" = "ALLPASS" ]; then pass "B-14 prod guard holds for --env-url / --env+--env-url, unknown urls unaffected"; else fail "B-14 orchestration failed -> $out"; fi
+
+echo "C — orchestration (mocked network/pac): B-15 a re-run after a failed pac import keeps the pending baseline"
+out="$(assert_orch "$SK" b15)"
+if [ "$out" = "ALLPASS" ]; then pass "B-15 pending baseline carried forward; completed/foreign/legacy baselines re-captured"; else fail "B-15 orchestration failed -> $out"; fi
 
 echo ""
 if [ "$fails" -eq 0 ]; then

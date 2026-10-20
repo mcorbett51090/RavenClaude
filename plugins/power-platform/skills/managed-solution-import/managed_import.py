@@ -533,16 +533,78 @@ def _classified_prod(env_name: str | None, cfg: dict, env_url: str | None = None
     return _prod_env_name(env_name, env_url, cfg) is not None
 
 
+def _write_baseline(path: str, data: dict) -> None:
+    """Write the baseline via a temp file + os.replace so a crash never leaves it truncated."""
+    tmp = f"{path}.tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2)
+    os.replace(tmp, path)
+
+
+def _pending_baseline_flows(path: str, env_url: str) -> list[dict]:
+    """Active flows recorded by a PRIOR run for this env whose baseline is still 'pending'
+    (that run never finished reactivating) — else []. A complete, legacy (no status), foreign-env
+    or unreadable baseline is not carried forward: it is re-captured as before (B-15)."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            old = json.load(fh)
+    except FileNotFoundError:
+        return []
+    except (OSError, ValueError) as e:
+        _eprint(
+            f"[managed-import] existing baseline {path} unreadable ({e}); capturing a fresh one"
+        )
+        return []
+    if not isinstance(old, dict) or old.get("status") != "pending":
+        return []
+    if _host_of(old.get("env_url")) != _host_of(env_url):
+        return []
+    flows = old.get("active_flows")
+    return [f for f in flows if isinstance(f, dict)] if isinstance(flows, list) else []
+
+
+def _mark_baseline_complete(args) -> None:
+    """Reactivation finished cleanly: the baseline is no longer needed by a retry (B-15)."""
+    path = args.baseline_file or "./pp-import-baseline.json"
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        data["status"] = "complete"
+        _write_baseline(path, data)
+    except (OSError, ValueError, TypeError) as e:
+        _eprint(f"[managed-import] could not mark baseline {path} complete: {e}")
+
+
 def cmd_baseline(args, cfg) -> int:
     env_url, _, oid = _resolve_env(args, cfg)
     token = acquire_token(env_url)
     opener = _build_opener(is_allowed_dataverse_host)
     flows = query_solution_flows(opener, env_url, token, oid)
     active = [f for f in flows if int(f.get("statecode", 0)) == STATE_ACTIVE]
-    out = {"env_url": env_url, "active_flows": active, "total_flows_queried": len(flows)}
     path = args.baseline_file or "./pp-import-baseline.json"
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(out, fh, indent=2)
+    # B-15: a prior run that disabled flows and then failed before reactivating leaves a
+    # 'pending' baseline. Re-baselining now would see those flows already Draft and forget
+    # them for good, so carry the pending baseline's active set forward (union by flow_key).
+    have = {k for f in active if (k := flow_key(f)) is not None}
+    carried = [
+        f
+        for f in _pending_baseline_flows(path, env_url)
+        if (k := flow_key(f)) is not None and k not in have
+    ]
+    if carried:
+        _eprint(
+            f"[managed-import] prior baseline {path} is still 'pending' (the previous run did "
+            f"not finish reactivating): carrying {len(carried)} flow(s) forward instead of "
+            f"overwriting it. Delete {path} to start fresh."
+        )
+        active = active + carried
+    out = {
+        "env_url": env_url,
+        "status": "pending",
+        "active_flows": active,
+        "total_flows_queried": len(flows),
+    }
+    _write_baseline(path, out)
     print(json.dumps({"baseline_file": path, "active": len(active), "total": len(flows)}, indent=2))
     return EXIT_OK
 
@@ -576,6 +638,8 @@ def cmd_reactivate(args, cfg) -> int:
     targets = reactivation_targets(baseline_active, current)
     if not targets:
         print(json.dumps({"targeted": 0, "activated": 0, "note": "no Draft baseline-Active flows"}))
+        if not args.dry_run:
+            _mark_baseline_complete(args)
         return EXIT_OK
     waits = retry_backoff_schedule(args.max_retries, args.retry_wait)
     activated = 0
@@ -617,6 +681,8 @@ def cmd_reactivate(args, cfg) -> int:
         activated += 1 if ok else 0
     rc = map_results_to_exit(len(targets), activated)
     print(json.dumps({"targeted": len(targets), "activated": activated, "exit": rc}, indent=2))
+    if rc == EXIT_OK and not args.dry_run:
+        _mark_baseline_complete(args)
     return rc
 
 
