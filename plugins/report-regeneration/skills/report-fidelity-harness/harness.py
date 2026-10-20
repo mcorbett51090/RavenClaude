@@ -1200,6 +1200,17 @@ class OfficeContainer:
         return self.parts.get("word/document.xml", b"")
 
 
+# B-28: zip-bomb guards that FAIL CLOSED. A container over a cap is refused, never scanned in part:
+# a silently truncated read let V4 pass on parts it never saw. Sizes are the declared uncompressed
+# sizes, checked before any read() (zipfile stops at the declared size and CRC-checks it).
+_OFFICE_MAX_PART_BYTES = 256 * 1024 * 1024
+_OFFICE_MAX_TOTAL_BYTES = 1024 * 1024 * 1024
+
+
+class _ContainerCapError(HarnessError):
+    """An OPC container over the part-count or size cap (B-28)."""
+
+
 def _office_parts_from_bytes(raw: bytes, source: str, require_document: bool,
                              max_parts: int = 8000) -> dict:
     if raw[:2] != b"PK":
@@ -1207,11 +1218,19 @@ def _office_parts_from_bytes(raw: bytes, source: str, require_document: bool,
     parts: dict = {}
     try:
         with zipfile.ZipFile(io.BytesIO(raw)) as zf:
-            for info in zf.infolist():
-                if info.is_dir():
-                    continue
-                if len(parts) >= max_parts:  # zip-bomb guard (part-count cap)
-                    break
+            infos = [info for info in zf.infolist() if not info.is_dir()]
+            if len(infos) > max_parts:
+                raise _ContainerCapError(
+                    f"{source}: {len(infos)} parts exceeds the {max_parts}-part cap — refusing a partial scan"
+                )
+            total = 0
+            for info in infos:
+                total += info.file_size
+                if info.file_size > _OFFICE_MAX_PART_BYTES or total > _OFFICE_MAX_TOTAL_BYTES:
+                    raise _ContainerCapError(
+                        f"{source}: part {info.filename!r} ({info.file_size} bytes uncompressed) breaks the "
+                        f"{_OFFICE_MAX_PART_BYTES}-byte part / {_OFFICE_MAX_TOTAL_BYTES}-byte container cap"
+                    )
                 parts[info.filename] = zf.read(info.filename)
     except zipfile.BadZipFile as exc:
         raise HarnessError(f"{source}: corrupt zip: {exc}")
@@ -1715,6 +1734,8 @@ def _decoded_container_office(container: OfficeContainer, _depth: int = 0) -> tu
                 st, sty = _decoded_container_office(nested, _depth + 1)
                 text_parts.append(st)
                 typed.update(sty)
+            except _ContainerCapError:  # B-28: an over-cap nested cache is never half-scanned
+                raise
             except Exception:  # a corrupt nested cache still gets a raw-literal scan
                 blob = data.decode("latin-1", "replace")
                 text_parts.append(blob)
@@ -1767,6 +1788,8 @@ def _office_embedded_cache_figures(container: OfficeContainer) -> set:
                     OfficeContainer(_office_parts_from_bytes(data, name, require_document=False)),
                     _depth=1,
                 )
+            except _ContainerCapError:  # B-28: never derive a partial taint from an over-cap cache
+                raise
             except Exception:
                 continue
             blob_numbers = _raw_numbers(data.decode("latin-1", "replace"))
