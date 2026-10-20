@@ -47,9 +47,9 @@ flowchart TD
 
 **See also:** Tool use (function calling) · The context window · Subagents & orchestration
 
-**Sources:** [Building agents with the Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk) · ["The Anatomy of an Agent Harness" (Akshay Pachaar)](https://x.com/_avichawla/status/2062082282878627946)
+**Sources:** [Building agents with the Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk) · ["The Anatomy of an Agent Harness" (Akshay Pachaar)](https://x.com/_avichawla/status/2062082282878627946) · [Agent SDK — How the agent loop works](https://code.claude.com/docs/en/agent-sdk/agent-loop) · [LangChain — The anatomy of an agent harness (source of the quoted saying)](https://langchain.com/blog/the-anatomy-of-an-agent-harness)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -60,7 +60,7 @@ _Last verified: 2026-08-24_
 
 A language model only produces **text**. It can't read a file, run a command, or call an API by itself. **Tool use** (also called *function calling*) is the bridge: you describe the available tools — each with a name, a description, and a JSON schema for its inputs — and the model, instead of answering in prose, emits a structured **tool-use request** naming one tool and the arguments to call it with.
 
-The model never runs anything. The **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.
+The model never runs anything. For client tools — the usual case — the **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. (Server tools such as web search run on Anthropic's infrastructure instead, with no handler code in your harness.) The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.
 
 Three details that bite:
 
@@ -88,9 +88,9 @@ flowchart TD
 
 **See also:** The agent loop: one turn · Permission layers & precedence
 
-**Sources:** [Tool use (function calling) — Claude API](https://docs.claude.com/en/docs/build-with-claude/tool-use) · [Agent SDK — tools & permissions](https://code.claude.com/docs/en/agent-sdk)
+**Sources:** [Tool use (function calling) — Claude API](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) · [Agent SDK — tools & permissions](https://code.claude.com/docs/en/agent-sdk)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -101,7 +101,7 @@ _Last verified: 2026-08-24_
 
 A model has **no memory between turns.** Everything it "knows" while answering is whatever text sits in its **context window** right now: the system prompt, the tool schemas, the project instructions (`CLAUDE.md` / `AGENTS.md`), the conversation so far, and the contents of any file or tool result that's been pulled in. Nothing outside that window exists to the model — if it isn't in context, the model can't see it, no matter how relevant.
 
-The window is **finite** (measured in tokens — roughly ¾ of a word each). Two consequences follow:
+The window is **finite** (measured in tokens — roughly ½ to ¾ of a word each, depending on the model's tokenizer). Two consequences follow:
 
 - **It fills up.** Long sessions, big files, and chatty tool output all consume the budget. As it fills, the *effective* room for reasoning shrinks, and far-back details get crowded out — the model can genuinely "forget" what happened early in a long session.
 - **When it's nearly full, the harness compacts.** Claude Code summarizes the older part of the conversation into a compact recap and continues with that plus the recent turns. The work isn't lost, but it's now a *summary* — which is why durable facts belong in `CLAUDE.md` or committed files, not just in chat.
@@ -129,9 +129,9 @@ flowchart TD
 
 **See also:** The agent loop: one turn · Tool use (function calling) · SessionStart context injection
 
-**Sources:** [Context windows — Claude API](https://docs.claude.com/en/docs/build-with-claude/context-windows) · [Manage context — Claude Code](https://code.claude.com/docs/en/costs)
+**Sources:** [Context windows — Claude API](https://platform.claude.com/docs/en/build-with-claude/context-windows) · [Manage context — Claude Code](https://code.claude.com/docs/en/costs)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -174,7 +174,7 @@ flowchart TD
 
 **Sources:** [Subagents — Claude Code](https://code.claude.com/docs/en/sub-agents) · [Building agents with the Agent SDK](https://code.claude.com/docs/en/agent-sdk)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -193,7 +193,7 @@ The shape is **client ↔ server.** Your agent host (Claude Code, an IDE, a desk
 
 Two things worth knowing:
 
-- **Servers run as separate processes** and connect over a transport (local stdio, or remote HTTP/SSE). A server may be on your machine or across the network — the client talks to both the same way.
+- **Servers run as separate processes** and connect over a transport (local stdio, or remote Streamable HTTP — the older SSE transport is deprecated). A server may be on your machine or across the network — the client talks to both the same way.
 - **MCP tools are still just tool use.** Once connected, an MCP tool appears to the model exactly like any built-in tool: same request/result loop, same permission gating. MCP standardizes *where tools come from*, not *how the model calls them*. (In Claude Code a server can show as "still connecting" at startup — its tools are name-only until the schema loads, which is a connection state, not an absent capability.)
 
 ```mermaid
@@ -213,7 +213,7 @@ flowchart TD
 
 **Sources:** [Model Context Protocol — specification](https://modelcontextprotocol.io) · [Connect to MCP servers — Claude Code](https://code.claude.com/docs/en/mcp)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -222,9 +222,9 @@ _Last verified: 2026-08-24_
 
 > Bigger isn't always better. Match the model to the job — a fast, cheap model for routine steps, a frontier model for hard reasoning — and use the strong one to supervise the cheap ones.
 
-An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the three tiers exist precisely so you can match the model to the work:
+An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the model tiers exist precisely so you can match the model to the work (this page teaches the three everyday tiers; Anthropic's line-up now also has a Fable tier above Opus for the most demanding long-horizon work):
 
-- **Frontier (e.g. Opus)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and most expensive per token. Reach for it when the task genuinely needs it.
+- **Frontier (e.g. Opus; Fable for the most demanding long-horizon work)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and pricier per token than the tiers below. Reach for it when the task genuinely needs it.
 - **Balanced (e.g. Sonnet)** — the everyday workhorse: strong reasoning at much lower cost and latency. The sensible default for most agent work.
 - **Fast (e.g. Haiku)** — quick, cheap, great for classification, routing, summarizing, and high-volume routine steps where frontier-grade reasoning is overkill.
 
@@ -249,9 +249,9 @@ flowchart TD
 
 **See also:** The agent loop: one turn · Subagents & orchestration
 
-**Sources:** [Models overview — Claude API](https://docs.claude.com/en/docs/about-claude/models) · [Choosing a model — Claude Code](https://code.claude.com/docs/en/model-config)
+**Sources:** [Models overview — Claude API](https://platform.claude.com/docs/en/models/overview) · [Choosing a model — Claude Code](https://code.claude.com/docs/en/model-config)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -285,8 +285,8 @@ _Last verified: 2026-08-24_
 
 **The safety nets** mean you can experiment without breaking things:
 
-- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push to main**, `git reset --hard`, `git clean -f`, and `git branch -D` on a protected branch. It denies them before they run.
-- The sanctioned way to retire a finished branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost.
+- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push**, `git reset --hard`, `git clean -f`, and `git branch -D` (on any branch). It denies them before they run.
+- The sanctioned way to retire an abandoned or unmerged branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost. (A cleanly merged branch needs no archive tag — its commits already live in `main`, so you just delete it on GitHub.)
 
 You will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _"I opened PR #238 on branch `feat/rc-hardener-followups`"_ or _"the guard denied a force-push"_, you know exactly what happened and what your next click is.
 
@@ -299,7 +299,7 @@ flowchart TD
   PR -->|merge| MAIN[(main branch · official timeline)]
   D[Docs change under docs/] -->|commit + push| MAIN
   X[git push --force to main<br/>git reset --hard<br/>rm -rf the repo] -.->|guard-destructive.sh| BLOCK[Blocked — safety net]
-  R[Retire a finished branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]
+  R[Retire an abandoned branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]
   class C,PR,MAIN,TAG fact
   class BLOCK,GH built
 ```
@@ -308,7 +308,7 @@ flowchart TD
 
 **Sources:** [AGENTS.md — PR conventions; House rules (branch-archive)](../AGENTS.md) · [branch-archive skill](../plugins/ravenclaude-core/skills/branch-archive/SKILL.md) · [Pro Git — About Version Control](https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -1812,7 +1812,7 @@ flowchart TD
 
 **See also:** Capability Grounding Protocol · Structured Output Protocol · Claim Grounding & Source Honesty · Command-review tribunal (the Thing) · The Sága audit log
 
-**Sources:** [ravenclaude-core constitution — Last-Mile Completion Protocol](../plugins/ravenclaude-core/CLAUDE.md) · [Capability Grounding Protocol (the floor it pairs with)](../plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [ravenclaude-core constitution — Last-Mile Completion Protocol; Capability Grounding Protocol (the floor it pairs with)](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-06-08_
 

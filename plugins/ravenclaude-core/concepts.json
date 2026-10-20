@@ -70,7 +70,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "The fundamental agent-loop shape changes, or Claude Code/the Agent SDK restructures how a turn is driven.",
       "sources": [
         {
@@ -80,6 +80,14 @@
         {
           "label": "\"The Anatomy of an Agent Harness\" (Akshay Pachaar)",
           "url": "https://x.com/_avichawla/status/2062082282878627946"
+        },
+        {
+          "label": "Agent SDK — How the agent loop works",
+          "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop"
+        },
+        {
+          "label": "LangChain — The anatomy of an agent harness (source of the quoted saying)",
+          "url": "https://langchain.com/blog/the-anatomy-of-an-agent-harness"
         }
       ],
       "body_md": "A language model on its own is **stateless**: it forgets what it did three steps ago, a failed tool call would otherwise vanish silently, and its context window fills with noise. An **agent** is a model plus the software that fixes all that — the **harness**. As the saying goes, *\"if you're not the model, you're the harness.\"*\n\nThe harness drives one **turn** as a loop, and every agentic tool — Claude Code, the Agent SDK, your own script — runs some version of it:\n\n1. **Assemble the prompt** — system prompt + tool schemas + project memory (`CLAUDE.md` / `AGENTS.md`) + the conversation so far + your message.\n2. **Call the model.**\n3. **Classify the output** — did it ask to use a tool, or just answer? Plain text with no tool call ends the turn.\n4. **Execute the requested tools** — and this is where permission gates, hooks, or a review panel can deny, edit, or wave the call through.\n5. **Package the results** as the next message — crucially, an *error* comes back as a result the model can read and self-correct from, not a crash.\n6. **Update context** (compacting when it fills) and loop back to step 1.\n\nThe same loop scales up: a lead agent can **dispatch a subagent** for a slice of work and fold its short summary back in at step 5. A guiding principle the better harnesses inherit: **treat memory as a hint and verify against real state before acting** — which is why a careful agent doesn't stop at \"looks done,\" it stops when a verification step says it's done.\n\nRavenClaude is one such harness layer: it rides on Claude Code's loop and adds orchestration, a review tribunal at step 4, and verification gates at the end — but the loop itself is how *any* agent works by default.",
@@ -139,19 +147,19 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Anthropic changes the tool-use request/result message shape, the tool_choice options, or the parallel-tool-call behavior.",
       "sources": [
         {
           "label": "Tool use (function calling) — Claude API",
-          "url": "https://docs.claude.com/en/docs/build-with-claude/tool-use"
+          "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"
         },
         {
           "label": "Agent SDK — tools & permissions",
           "url": "https://code.claude.com/docs/en/agent-sdk"
         }
       ],
-      "body_md": "A language model only produces **text**. It can't read a file, run a command, or call an API by itself. **Tool use** (also called *function calling*) is the bridge: you describe the available tools — each with a name, a description, and a JSON schema for its inputs — and the model, instead of answering in prose, emits a structured **tool-use request** naming one tool and the arguments to call it with.\n\nThe model never runs anything. The **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.\n\nThree details that bite:\n\n- **The model picks the tool, not the harness.** You can constrain it (`tool_choice` can force a specific tool, force *any* tool, or leave it `auto`), but in normal operation the model chooses. A vague tool description is the most common reason it picks the wrong one or fills arguments badly.\n- **Errors are data, not crashes.** A failed tool call should return its error *as a tool-result* so the model can read it and self-correct. Throwing away the loop on the first failure is the classic broken-agent bug.\n- **Results re-enter the context window.** Tool output isn't free — a command that dumps 10k lines lands all of it back in the prompt. This is why focused tools that return *conclusions* beat raw firehoses.\n\nA permission layer can sit between the request and the execution: the model may *ask* for a tool, but the harness (or a hook, or a tribunal) can still deny, edit, or gate the call before it runs.",
+      "body_md": "A language model only produces **text**. It can't read a file, run a command, or call an API by itself. **Tool use** (also called *function calling*) is the bridge: you describe the available tools — each with a name, a description, and a JSON schema for its inputs — and the model, instead of answering in prose, emits a structured **tool-use request** naming one tool and the arguments to call it with.\n\nThe model never runs anything. For client tools — the usual case — the **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. (Server tools such as web search run on Anthropic's infrastructure instead, with no handler code in your harness.) The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.\n\nThree details that bite:\n\n- **The model picks the tool, not the harness.** You can constrain it (`tool_choice` can force a specific tool, force *any* tool, or leave it `auto`), but in normal operation the model chooses. A vague tool description is the most common reason it picks the wrong one or fills arguments badly.\n- **Errors are data, not crashes.** A failed tool call should return its error *as a tool-result* so the model can read it and self-correct. Throwing away the loop on the first failure is the classic broken-agent bug.\n- **Results re-enter the context window.** Tool output isn't free — a command that dumps 10k lines lands all of it back in the prompt. This is why focused tools that return *conclusions* beat raw firehoses.\n\nA permission layer can sit between the request and the execution: the model may *ask* for a tool, but the harness (or a hook, or a tribunal) can still deny, edit, or gate the call before it runs.",
       "diagram": "flowchart TD\n  G[Your goal] --> M[Model reads prompt + tool schemas]\n  M --> D{Answer or act?}\n  D -- answer --> OUT[Plain-text reply · turn ends]\n  D -- act --> REQ[Tool-use request<br/>name + JSON arguments]\n  REQ --> GATE{Permission / hook}\n  GATE -- deny --> BACK[Denied result fed back]\n  GATE -- allow --> RUN[Harness executes the tool]\n  RUN --> RES[Tool-result message<br/>output or error]\n  RES --> M\n  BACK --> M\n  class M,REQ,RUN,RES fact\n  class GATE built",
       "diagram_mini": "flowchart LR\n  M[model] --> R[tool request] --> X[harness runs it] --> O[result] --> M\n  class M,R,X,O fact",
       "steps": [],
@@ -173,19 +181,19 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Frontier context-window sizes change materially, or Claude Code changes its compaction / auto-compact behavior.",
       "sources": [
         {
           "label": "Context windows — Claude API",
-          "url": "https://docs.claude.com/en/docs/build-with-claude/context-windows"
+          "url": "https://platform.claude.com/docs/en/build-with-claude/context-windows"
         },
         {
           "label": "Manage context — Claude Code",
           "url": "https://code.claude.com/docs/en/costs"
         }
       ],
-      "body_md": "A model has **no memory between turns.** Everything it \"knows\" while answering is whatever text sits in its **context window** right now: the system prompt, the tool schemas, the project instructions (`CLAUDE.md` / `AGENTS.md`), the conversation so far, and the contents of any file or tool result that's been pulled in. Nothing outside that window exists to the model — if it isn't in context, the model can't see it, no matter how relevant.\n\nThe window is **finite** (measured in tokens — roughly ¾ of a word each). Two consequences follow:\n\n- **It fills up.** Long sessions, big files, and chatty tool output all consume the budget. As it fills, the *effective* room for reasoning shrinks, and far-back details get crowded out — the model can genuinely \"forget\" what happened early in a long session.\n- **When it's nearly full, the harness compacts.** Claude Code summarizes the older part of the conversation into a compact recap and continues with that plus the recent turns. The work isn't lost, but it's now a *summary* — which is why durable facts belong in `CLAUDE.md` or committed files, not just in chat.\n\nThe practical model: treat context like a **desk, not a filing cabinet.** Things on the desk are usable now; everything else has to be fetched back on (a tool call, a file read) before the model can use it — and fetching it costs space. Good agent design keeps the desk clear: focused tool results, subagents that return short summaries instead of raw dumps, and important state written somewhere persistent.\n\nThis is also why a **SessionStart** context injection (the orientation banner) is deliberately kept small — it rides in *every* session's window, so it's a recurring tax on the budget.",
+      "body_md": "A model has **no memory between turns.** Everything it \"knows\" while answering is whatever text sits in its **context window** right now: the system prompt, the tool schemas, the project instructions (`CLAUDE.md` / `AGENTS.md`), the conversation so far, and the contents of any file or tool result that's been pulled in. Nothing outside that window exists to the model — if it isn't in context, the model can't see it, no matter how relevant.\n\nThe window is **finite** (measured in tokens — roughly ½ to ¾ of a word each, depending on the model's tokenizer). Two consequences follow:\n\n- **It fills up.** Long sessions, big files, and chatty tool output all consume the budget. As it fills, the *effective* room for reasoning shrinks, and far-back details get crowded out — the model can genuinely \"forget\" what happened early in a long session.\n- **When it's nearly full, the harness compacts.** Claude Code summarizes the older part of the conversation into a compact recap and continues with that plus the recent turns. The work isn't lost, but it's now a *summary* — which is why durable facts belong in `CLAUDE.md` or committed files, not just in chat.\n\nThe practical model: treat context like a **desk, not a filing cabinet.** Things on the desk are usable now; everything else has to be fetched back on (a tool call, a file read) before the model can use it — and fetching it costs space. Good agent design keeps the desk clear: focused tool results, subagents that return short summaries instead of raw dumps, and important state written somewhere persistent.\n\nThis is also why a **SessionStart** context injection (the orientation banner) is deliberately kept small — it rides in *every* session's window, so it's a recurring tax on the budget.",
       "diagram": "flowchart TD\n  subgraph W[Context window · finite token budget]\n    S[System prompt + tool schemas]\n    P[Project memory · CLAUDE.md / AGENTS.md]\n    H[Conversation history]\n    F[Pulled-in files + tool results]\n  end\n  W --> M[Model reasons over ONLY what's in the window]\n  H --> FULL{Near the limit?}\n  FULL -- yes --> C[Harness compacts older turns to a summary]\n  C --> W\n  FULL -- no --> M\n  class S,P,H,F,M fact\n  class C built",
       "diagram_mini": "flowchart LR\n  C[context window] --> L{full?}\n  L -- yes --> S[compact to summary]\n  L -- no --> R[model reasons]\n  class C,R fact",
       "steps": [],
@@ -207,7 +215,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Claude Code changes the subagent dispatch model, the Task/Agent tool shape, or how subagent results return to the parent.",
       "sources": [
         {
@@ -240,7 +248,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "The MCP spec changes its primitives (tools/resources/prompts), transport set, or Claude Code changes how MCP servers are configured.",
       "sources": [
         {
@@ -252,7 +260,7 @@
           "url": "https://code.claude.com/docs/en/mcp"
         }
       ],
-      "body_md": "Tool use lets a model call a tool — but who *supplies* the tools? If every integration (GitHub, a database, a ticketing system) had to be hand-wired into every agent, you'd rebuild the same connectors over and over. The **Model Context Protocol (MCP)** is the open standard that fixes this. It's often described as *\"a USB-C port for AI\"*: a single, uniform way for an agent to plug into outside tools and data.\n\nThe shape is **client ↔ server.** Your agent host (Claude Code, an IDE, a desktop app) is an **MCP client**. An **MCP server** is a small program that exposes capabilities over the protocol. Write the server once, and *any* MCP-aware client can use it — the glue is the protocol, not bespoke per-app code. Servers offer three kinds of primitive:\n\n- **Tools** — actions the model can call (the GitHub tools this very session uses are an MCP server).\n- **Resources** — data the agent can read (files, records, query results).\n- **Prompts** — reusable prompt templates the server provides.\n\nTwo things worth knowing:\n\n- **Servers run as separate processes** and connect over a transport (local stdio, or remote HTTP/SSE). A server may be on your machine or across the network — the client talks to both the same way.\n- **MCP tools are still just tool use.** Once connected, an MCP tool appears to the model exactly like any built-in tool: same request/result loop, same permission gating. MCP standardizes *where tools come from*, not *how the model calls them*. (In Claude Code a server can show as \"still connecting\" at startup — its tools are name-only until the schema loads, which is a connection state, not an absent capability.)",
+      "body_md": "Tool use lets a model call a tool — but who *supplies* the tools? If every integration (GitHub, a database, a ticketing system) had to be hand-wired into every agent, you'd rebuild the same connectors over and over. The **Model Context Protocol (MCP)** is the open standard that fixes this. It's often described as *\"a USB-C port for AI\"*: a single, uniform way for an agent to plug into outside tools and data.\n\nThe shape is **client ↔ server.** Your agent host (Claude Code, an IDE, a desktop app) is an **MCP client**. An **MCP server** is a small program that exposes capabilities over the protocol. Write the server once, and *any* MCP-aware client can use it — the glue is the protocol, not bespoke per-app code. Servers offer three kinds of primitive:\n\n- **Tools** — actions the model can call (the GitHub tools this very session uses are an MCP server).\n- **Resources** — data the agent can read (files, records, query results).\n- **Prompts** — reusable prompt templates the server provides.\n\nTwo things worth knowing:\n\n- **Servers run as separate processes** and connect over a transport (local stdio, or remote Streamable HTTP — the older SSE transport is deprecated). A server may be on your machine or across the network — the client talks to both the same way.\n- **MCP tools are still just tool use.** Once connected, an MCP tool appears to the model exactly like any built-in tool: same request/result loop, same permission gating. MCP standardizes *where tools come from*, not *how the model calls them*. (In Claude Code a server can show as \"still connecting\" at startup — its tools are name-only until the schema loads, which is a connection state, not an absent capability.)",
       "diagram": "flowchart TD\n  H[Agent host · MCP client<br/>Claude Code · IDE · app] -->|protocol| S1[MCP server: GitHub]\n  H -->|protocol| S2[MCP server: database]\n  H -->|protocol| S3[MCP server: your own]\n  S1 --> P[Tools · Resources · Prompts]\n  S2 --> P\n  S3 --> P\n  P --> M[Model calls them like any tool<br/>same request/result loop]\n  class H,M fact\n  class S1,S2,S3 built",
       "diagram_mini": "flowchart LR\n  C[agent · client] -->|MCP| S[servers] --> T[tools · data]\n  class C,T fact",
       "steps": [],
@@ -273,19 +281,19 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "The Claude model line-up (Opus / Sonnet / Haiku tiers) or the default-model guidance for agents changes.",
       "sources": [
         {
           "label": "Models overview — Claude API",
-          "url": "https://docs.claude.com/en/docs/about-claude/models"
+          "url": "https://platform.claude.com/docs/en/models/overview"
         },
         {
           "label": "Choosing a model — Claude Code",
           "url": "https://code.claude.com/docs/en/model-config"
         }
       ],
-      "body_md": "An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the three tiers exist precisely so you can match the model to the work:\n\n- **Frontier (e.g. Opus)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and most expensive per token. Reach for it when the task genuinely needs it.\n- **Balanced (e.g. Sonnet)** — the everyday workhorse: strong reasoning at much lower cost and latency. The sensible default for most agent work.\n- **Fast (e.g. Haiku)** — quick, cheap, great for classification, routing, summarizing, and high-volume routine steps where frontier-grade reasoning is overkill.\n\nTwo ideas make this practical:\n\n- **Mix models within one task.** A capable orchestrator can plan and supervise while dispatching the routine legwork to a faster, cheaper model — *strong model supervises, cheap models execute.* Subagents are the natural place to drop a tier: the lead reasons in Sonnet/Opus, the workers grind in Haiku.\n- **Diversity is a safety property, not just a cost one.** When multiple agents *review* the same thing, running them all on the **same** model means one model's blind spot can pass the whole panel — the \"anti-correlated hallucination\" failure. Deliberately running ≥2 *different* backbones on a review panel catches what a monoculture would miss. (RavenClaude's command-review tribunal enforces exactly this.)\n\nThe wrong instinct is \"always use the biggest model.\" The right instinct is \"use the smallest model that reliably clears this specific bar,\" and let a stronger model check the cheaper ones' work.",
+      "body_md": "An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the model tiers exist precisely so you can match the model to the work (this page teaches the three everyday tiers; Anthropic's line-up now also has a Fable tier above Opus for the most demanding long-horizon work):\n\n- **Frontier (e.g. Opus; Fable for the most demanding long-horizon work)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and pricier per token than the tiers below. Reach for it when the task genuinely needs it.\n- **Balanced (e.g. Sonnet)** — the everyday workhorse: strong reasoning at much lower cost and latency. The sensible default for most agent work.\n- **Fast (e.g. Haiku)** — quick, cheap, great for classification, routing, summarizing, and high-volume routine steps where frontier-grade reasoning is overkill.\n\nTwo ideas make this practical:\n\n- **Mix models within one task.** A capable orchestrator can plan and supervise while dispatching the routine legwork to a faster, cheaper model — *strong model supervises, cheap models execute.* Subagents are the natural place to drop a tier: the lead reasons in Sonnet/Opus, the workers grind in Haiku.\n- **Diversity is a safety property, not just a cost one.** When multiple agents *review* the same thing, running them all on the **same** model means one model's blind spot can pass the whole panel — the \"anti-correlated hallucination\" failure. Deliberately running ≥2 *different* backbones on a review panel catches what a monoculture would miss. (RavenClaude's command-review tribunal enforces exactly this.)\n\nThe wrong instinct is \"always use the biggest model.\" The right instinct is \"use the smallest model that reliably clears this specific bar,\" and let a stronger model check the cheaper ones' work.",
       "diagram": "flowchart TD\n  T[Task slice] --> Q{How hard?}\n  Q -- routine: classify / route / summarize --> FAST[Fast model · Haiku-class]\n  Q -- everyday reasoning + edits --> BAL[Balanced · Sonnet-class]\n  Q -- hardest reasoning + planning --> FRONT[Frontier · Opus-class]\n  FRONT --> SUP[Strong model supervises<br/>cheaper models execute]\n  REV[Review panel] --> DIV[Run ≥2 DIFFERENT models<br/>· avoid a blind-spot monoculture]\n  class FAST,BAL,FRONT,Q fact\n  class SUP,DIV built",
       "diagram_mini": "flowchart LR\n  J{job} -- routine --> F[fast]\n  J -- everyday --> B[balanced]\n  J -- hardest --> O[frontier]\n  class J,F,B,O fact",
       "steps": [],
@@ -306,7 +314,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Git or GitHub change a load-bearing default (branch name, PR flow), or the marketplace's PR conventions or branch-archive contract change.",
       "sources": [
         {
@@ -322,8 +330,8 @@
           "url": "https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control"
         }
       ],
-      "body_md": "**Source control** (the tool is called **git**, the website is **GitHub**) is a time-machine for every file in a project: every change is saved as a labeled snapshot, and many people can work on the same project in parallel without overwriting each other. The load-bearing fact for you: **RavenClaude does almost all of the git work for you** — this page is the vocabulary so you understand what Claude Code is doing on your behalf, and can step in when something goes sideways.\n\n**Four ideas cover almost everything you'll see:**\n\n- **Commit** — one saved snapshot of your work, with a short message explaining _why_ (not what — the diff already shows what).\n- **Branch** — a parallel timeline for a piece of work-in-progress, kept separate from the project's official timeline (the **main** branch).\n- **Pull request (PR)** — a proposal that the work on a branch be merged back into main; it gets reviewed (by a person, by CI checks, sometimes by Claude) before anything moves.\n- **Merge** — combining a branch's commits into main once the PR is approved.\n\n**The minimum vocabulary** you'll see in commands and logs:\n\n- `git status` — what's changed since the last snapshot\n- `git add <file>` — stage a file for the next snapshot\n- `git commit -m \"why\"` — take the snapshot\n- `git push` — upload local commits to GitHub\n- `git pull` — download new commits from GitHub\n- `git log` — read the history\n\n**Two patterns you'll actually encounter in this repo:**\n\n1. **Docs commit straight to main, no PR.** Pure documentation under `docs/` (plans, designs, research notes, the rolling session log) commits direct to main because it can't break a consumer's `/plugin marketplace update`. Faster planning loop.\n2. **Code, hooks, manifests, and CI go through a PR.** Claude Code creates the branch, makes the commits, opens the PR, and tells you the URL. You review in GitHub and click **Merge**.\n\n**The safety nets** mean you can experiment without breaking things:\n\n- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push to main**, `git reset --hard`, `git clean -f`, and `git branch -D` on a protected branch. It denies them before they run.\n- The sanctioned way to retire a finished branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost.\n\nYou will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _\"I opened PR #238 on branch `feat/rc-hardener-followups`\"_ or _\"the guard denied a force-push\"_, you know exactly what happened and what your next click is.",
-      "diagram": "flowchart TD\n  W[Your working files] -->|git add| S[Staging area]\n  S -->|git commit| C[Commit on a branch]\n  C -->|git push| GH[(GitHub: branch)]\n  GH -->|open PR| PR[Pull request · reviewed]\n  PR -->|merge| MAIN[(main branch · official timeline)]\n  D[Docs change under docs/] -->|commit + push| MAIN\n  X[git push --force to main<br/>git reset --hard<br/>rm -rf the repo] -.->|guard-destructive.sh| BLOCK[Blocked — safety net]\n  R[Retire a finished branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]\n  class C,PR,MAIN,TAG fact\n  class BLOCK,GH built",
+      "body_md": "**Source control** (the tool is called **git**, the website is **GitHub**) is a time-machine for every file in a project: every change is saved as a labeled snapshot, and many people can work on the same project in parallel without overwriting each other. The load-bearing fact for you: **RavenClaude does almost all of the git work for you** — this page is the vocabulary so you understand what Claude Code is doing on your behalf, and can step in when something goes sideways.\n\n**Four ideas cover almost everything you'll see:**\n\n- **Commit** — one saved snapshot of your work, with a short message explaining _why_ (not what — the diff already shows what).\n- **Branch** — a parallel timeline for a piece of work-in-progress, kept separate from the project's official timeline (the **main** branch).\n- **Pull request (PR)** — a proposal that the work on a branch be merged back into main; it gets reviewed (by a person, by CI checks, sometimes by Claude) before anything moves.\n- **Merge** — combining a branch's commits into main once the PR is approved.\n\n**The minimum vocabulary** you'll see in commands and logs:\n\n- `git status` — what's changed since the last snapshot\n- `git add <file>` — stage a file for the next snapshot\n- `git commit -m \"why\"` — take the snapshot\n- `git push` — upload local commits to GitHub\n- `git pull` — download new commits from GitHub\n- `git log` — read the history\n\n**Two patterns you'll actually encounter in this repo:**\n\n1. **Docs commit straight to main, no PR.** Pure documentation under `docs/` (plans, designs, research notes, the rolling session log) commits direct to main because it can't break a consumer's `/plugin marketplace update`. Faster planning loop.\n2. **Code, hooks, manifests, and CI go through a PR.** Claude Code creates the branch, makes the commits, opens the PR, and tells you the URL. You review in GitHub and click **Merge**.\n\n**The safety nets** mean you can experiment without breaking things:\n\n- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push**, `git reset --hard`, `git clean -f`, and `git branch -D` (on any branch). It denies them before they run.\n- The sanctioned way to retire an abandoned or unmerged branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost. (A cleanly merged branch needs no archive tag — its commits already live in `main`, so you just delete it on GitHub.)\n\nYou will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _\"I opened PR #238 on branch `feat/rc-hardener-followups`\"_ or _\"the guard denied a force-push\"_, you know exactly what happened and what your next click is.",
+      "diagram": "flowchart TD\n  W[Your working files] -->|git add| S[Staging area]\n  S -->|git commit| C[Commit on a branch]\n  C -->|git push| GH[(GitHub: branch)]\n  GH -->|open PR| PR[Pull request · reviewed]\n  PR -->|merge| MAIN[(main branch · official timeline)]\n  D[Docs change under docs/] -->|commit + push| MAIN\n  X[git push --force to main<br/>git reset --hard<br/>rm -rf the repo] -.->|guard-destructive.sh| BLOCK[Blocked — safety net]\n  R[Retire an abandoned branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]\n  class C,PR,MAIN,TAG fact\n  class BLOCK,GH built",
       "diagram_mini": "flowchart LR\n  E[edit] --> C[commit] --> B[branch] --> P[PR] --> M[main]\n  class C,P,M fact",
       "steps": [
         {
@@ -2199,11 +2207,7 @@
       "refresh_when": "The Last-Mile Completion Protocol section in ravenclaude-core/CLAUDE.md changes — the five rules, the done-vs-your-turn report shape, or the deep-link requirement.",
       "sources": [
         {
-          "label": "ravenclaude-core constitution — Last-Mile Completion Protocol",
-          "url": "plugins/ravenclaude-core/CLAUDE.md"
-        },
-        {
-          "label": "Capability Grounding Protocol (the floor it pairs with)",
+          "label": "ravenclaude-core constitution — Last-Mile Completion Protocol; Capability Grounding Protocol (the floor it pairs with)",
           "url": "plugins/ravenclaude-core/CLAUDE.md"
         }
       ],
@@ -3019,7 +3023,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:94df3df55db108602d9a3c1c21a2d2d246222536705f02877b02247e8964057f",
+      "covers_digest": "sha256:f2a92cb973de48c6218d6f384e92ea21835115babc93dd0737b376fbfdb88379",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",

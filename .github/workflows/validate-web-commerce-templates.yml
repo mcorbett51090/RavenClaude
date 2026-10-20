@@ -1,0 +1,61 @@
+name: Validate web-commerce templates
+
+# WHY THIS WORKFLOW EXISTS
+# -----------------------
+# The Stripe templates ship node:test suites (framework + static tiers), and
+# nothing ran them. The 2026-10-20 repo review (E-1) fixed the framework
+# checkout route charging whatever price the browser sent and added
+# tests/checkout.test.ts to pin it; this workflow is what makes that test, and
+# its siblings, actually run.
+#
+# Verified before this workflow was added (2026-10-20): all 15 tests pass
+# against stripe 23.0.0 and 22.6.2 with tsx 4.23.15, including with install
+# scripts disabled; and checkout.test.ts fails 2 of 5 against the pre-fix
+# checkout.ts (b9d66a36), so it detects the bug it was written for.
+#
+# NOT a required check. Per AGENTS.md "Required status checks", a new check
+# earns required status after a release cycle green, and only required checks
+# are barred from a paths: filter. A registry outage must not block every PR,
+# which is also why this lives here and not in audit-gates.sh.
+
+on:
+  pull_request:
+    paths:
+      - "plugins/web-commerce/templates/**"
+      - ".github/workflows/validate-web-commerce-templates.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "plugins/web-commerce/templates/**"
+      - ".github/workflows/validate-web-commerce-templates.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  stripe-templates:
+    runs-on: ubuntu-latest
+    # Bound the runner: this job installs packages and runs PR-supplied code.
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: plugins/web-commerce/templates/stripe
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      # The templates have no package.json (consumers copy them into their own
+      # app), so the two dev dependencies are installed by exact version and
+      # never saved. --ignore-scripts: no install-time code runs.
+      - name: Install stripe + tsx (exact versions, no install scripts)
+        run: npm install --no-save --no-audit --no-fund --ignore-scripts stripe@23.0.0 tsx@4.23.15
+
+      - name: Run the Stripe template tests (framework + static)
+        run: npx --no-install tsx --test framework/tests/*.test.ts static/tests/*.test.ts
