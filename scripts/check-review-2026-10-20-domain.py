@@ -854,6 +854,25 @@ def _h18() -> None:
     need("No terminal 'all'" in bare.stdout, "no all and no redirect must still warn", bare)
 
 
+# ---------------------------------------------------------------------------
+# H-19  observability-sre/slo_calc.py: burn-rate did not validate --window-days
+# ---------------------------------------------------------------------------
+
+SLO_CALC = "plugins/observability-sre/scripts/slo_calc.py"
+
+
+@case("H-19", "slo_calc burn-rate rejects --window-days <= 0 with exit 2, no ZeroDivisionError")
+def _h19() -> None:
+    base = ["burn-rate", "--slo", "99.9", "--bad", "10", "--total", "1000", "--elapsed-hours", "1"]
+    for days in ("0", "-5"):
+        proc = run(SLO_CALC, *base, "--window-days", days)
+        need(proc.returncode == 2, f"--window-days {days} must exit 2", proc)
+        need("--window-days must be positive" in proc.stderr, "the message must say why", proc)
+        need("Traceback" not in proc.stderr, "no ZeroDivisionError traceback", proc)
+    ok = run(SLO_CALC, *base, "--window-days", "30")
+    need(ok.returncode == 0 and "burn_rate" in ok.stdout, "a valid window still works", ok)
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
