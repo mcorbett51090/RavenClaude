@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -295,6 +296,32 @@ def _h5() -> None:
     # The scoped '.Selected' variants are not escalated by the prefix rule.
     sel = run(GRAPH_SCOPES, "--scopes", "User.Read", "--application", "Mail.Read.Selected")
     need(sel.returncode == 0, "an application '.Selected' scope must not escalate", sel)
+
+
+# ---------------------------------------------------------------------------
+# H-2  experimentation-growth-engineering/experiment_calc.py: mde capped at min(p, 1-p)
+# ---------------------------------------------------------------------------
+
+EXPERIMENT_CALC = "plugins/experimentation-growth-engineering/scripts/experiment_calc.py"
+
+
+@case("H-2", "experiment_calc mde searches up to 1 - p1 instead of wrongly saying underpowered")
+def _h2() -> None:
+    mde = run(EXPERIMENT_CALC, "mde", "--baseline", "3%", "--per-arm", "500")
+    need(mde.returncode == 0, "mde must succeed", mde)
+    need("underpowered for any realistic lift" not in mde.stdout, "false 'underpowered'", mde)
+    found = re.search(r"smallest MDE\s*:\s*\+([0-9.]+)% absolute", mde.stdout)
+    need(found is not None, "mde must print a numeric smallest MDE", mde)
+    delta = float(found.group(1))
+    # 4pp is detectable at 82.8% power with 500/arm, so the 80%-power MDE sits below 4pp;
+    # the old ceiling stopped at the 3pp baseline and never got there.
+    need(3.0 < delta < 4.0, f"MDE {delta}pp must lie between the old ceiling (3pp) and 4pp", mde)
+    power = run(
+        EXPERIMENT_CALC, "power", "--baseline", "3%", "--mde", f"{delta}pp", "--per-arm", "500"
+    )
+    got = re.search(r"achieved power\s*:\s*([0-9.]+)%", power.stdout)
+    need(got is not None, "power must print the achieved power", power)
+    need(abs(float(got.group(1)) - 80.0) < 0.5, f"power at the MDE must be ~80%: {got.group(1)}", power)
 
 
 # ===========================================================================
