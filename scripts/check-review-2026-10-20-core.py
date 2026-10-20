@@ -94,7 +94,7 @@ async function agent(prompt, opts = {}) {
     if (scen.mergeThrows) throw new Error("merge agent failed");
     return { artifact: "merged.json", survivors_count: survivors.length, over_cap_count: 0, by_priority: { P0: survivors.length, P1: 0, P2: 0, P3: 0 } };
   }
-  if (label === "verify:enumerate") return { findings: survivors };
+  if (label === "verify:enumerate") return scen.enumerate === undefined ? { findings: survivors } : scen.enumerate;
   if (label.startsWith("verify:")) {
     if (scen.verify === "null") return null;
     if (scen.verify === "throw") throw new Error("verify agent failed");
@@ -357,10 +357,78 @@ def case_c11(root: Path) -> None:
                 pass
 
 
+# ─── C-3: survivors with no verdict vanished from the open count ─────────────
+_THREE_P0 = [
+    {"id": "f-a", "file": "x.py", "severity": "blocking"},
+    {"id": "f-b", "file": "x.py", "severity": "blocking"},
+    {"id": "f-c", "file": "y.py", "severity": "blocking"},
+]
+
+
+def case_c3(root: Path) -> None:
+    res = _run_sweep(
+        root,
+        {"effort": "high", "runId": "c3-null", "converge": True},
+        {"batches": 3, "verify": "null", "survivors": _THREE_P0},
+    )
+    ret = res.get("ret") or {}
+    conv = ret.get("converge") or {}
+    report = res.get("reportBody") or ""
+    _check(
+        conv.get("converged") is False,
+        "3 P0 survivors, every verify agent returns null -> not converged",
+    )
+    _check(conv.get("open_after") == 3, f"open_after == 3 (got {conv.get('open_after')})")
+    _check(
+        not any("Converge: CONVERGED" in line for line in res["logs"])
+        and "CONVERGED — 0 open" not in report,
+        "no CONVERGED claim in the log or the report",
+    )
+    _check(
+        ret.get("unverified_by_error") == ["f-a", "f-b", "f-c"] and "f-a, f-b, f-c" in report,
+        "the ids with no verdict are returned and listed in the report",
+    )
+
+    short = _run_sweep(
+        root,
+        {"effort": "high", "runId": "c3-short", "converge": True},
+        {"batches": 3, "verify": "short", "survivors": _THREE_P0},
+    )
+    sret = short.get("ret") or {}
+    _check(
+        sret.get("unverified_by_error") == ["f-b"]
+        and (sret.get("converge") or {}).get("open_after") == 3,
+        "a verify agent that omits a verdict -> that id is unverified-by-error and still open",
+    )
+
+    thrown = _run_sweep(
+        root,
+        {"effort": "high", "runId": "c3-throw"},
+        {"batches": 3, "verify": "throw", "survivors": _THREE_P0},
+    )
+    counts = (thrown.get("ret") or {}).get("counts") or {}
+    _check(
+        counts.get("unverified") == 3,
+        f"single pass, verify agents throw -> counts.unverified == 3 (got {counts.get('unverified')})",
+    )
+
+    lost = _run_sweep(
+        root,
+        {"effort": "high", "runId": "c3-enum", "converge": True},
+        {"batches": 3, "enumerate": None, "survivors": _THREE_P0},
+    )
+    lconv = (lost.get("ret") or {}).get("converge") or {}
+    _check(
+        lconv.get("converged") is False and lconv.get("open_after") == 3,
+        "an enumerate step that returns nothing -> the 3 survivors stay open, no CONVERGED",
+    )
+
+
 CASES = {
     "C-1": case_c1,
     "C-2": case_c2,
     "C-11": case_c11,
+    "C-3": case_c3,
 }
 
 

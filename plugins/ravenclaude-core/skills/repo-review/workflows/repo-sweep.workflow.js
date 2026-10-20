@@ -1060,7 +1060,7 @@ async function runVerifyPhase(mergeReceipt) {
 
   if (!mergeReceipt || !mergeReceipt.survivors_count) {
     log("Verify: 0 survivors from Merge — nothing to verify.");
-    return { verifyResults, unverifiedBeyondCap };
+    return { verifyResults, unverifiedBeyondCap, unverifiedByError: [], unenumeratedCount: 0 };
   }
 
   const enumResult = await agent(
@@ -1134,7 +1134,36 @@ async function runVerifyPhase(mergeReceipt) {
     }),
   );
 
-  return { verifyResults, unverifiedBeyondCap };
+  // A verify agent that errored (null) or returned fewer verdicts than ids
+  // leaves survivors in none of confirmed/plausible/refuted. Uncounted, they
+  // would vanish from the open count and could let the loop claim CONVERGED
+  // with survivors nobody examined. They are open: unverified-by-error. The
+  // same holds for survivors the enumerate step never listed.
+  const verdictIds = new Set();
+  for (const vr of verifyResults) {
+    if (!vr) continue;
+    for (const v of vr.verdicts || []) {
+      if (v && ["CONFIRMED", "PLAUSIBLE", "REFUTED"].includes(v.verdict)) verdictIds.add(v.id);
+    }
+  }
+  const unverifiedByError = toVerify
+    .filter((f) => !verdictIds.has(f.id))
+    .map((f) => ({
+      id: f.id,
+      file: f.file,
+      severity: f.severity,
+      status: "unverified",
+      reason: "no verdict returned (the verify agent errored or omitted it) — counted open",
+    }));
+  const unenumeratedCount = Math.max(0, mergeReceipt.survivors_count - allSurvivorFindings.length);
+  if (unverifiedByError.length || unenumeratedCount) {
+    log(
+      `Verify: ${unverifiedByError.length} finding(s) got no verdict and ${unenumeratedCount} survivor(s) ` +
+        `were never enumerated — all counted open as unverified-by-error.`,
+    );
+  }
+
+  return { verifyResults, unverifiedBeyondCap, unverifiedByError, unenumeratedCount };
 }
 
 // ─── Phase 5: Fix (per-iteration) ──────────────────────────────────────────
@@ -1388,9 +1417,19 @@ while (iteration < MAX_ITERATIONS) {
     };
   }
 
-  const { verifyResults, unverifiedBeyondCap } = await runVerifyPhase(mergeReceipt);
+  const { verifyResults, unverifiedBeyondCap, unverifiedByError, unenumeratedCount } =
+    await runVerifyPhase(mergeReceipt);
 
-  const counts = { confirmed: 0, plausible: 0, refuted: 0, unverified: unverifiedBeyondCap.length };
+  // counts.unverified = beyond verifyCap + no verdict returned (an errored or
+  // short verify agent) + never enumerated. Every one of them is OPEN below.
+  const unverifiedByErrorCount = unverifiedByError.length + unenumeratedCount;
+  const counts = {
+    confirmed: 0,
+    plausible: 0,
+    refuted: 0,
+    unverified: unverifiedBeyondCap.length + unverifiedByErrorCount,
+    unverified_by_error: unverifiedByErrorCount,
+  };
   for (const vr of verifyResults) {
     if (!vr) continue;
     for (const v of vr.verdicts || []) {
@@ -1406,8 +1445,10 @@ while (iteration < MAX_ITERATIONS) {
   // "Open" P0-P3 findings after this pass: CONFIRMED findings that were NOT
   // successfully applied (not fixable_in_place, skipped_over_cap, or a fix
   // agent error) + PLAUSIBLE (a real risk that couldn't be fully confirmed)
-  // + unverified-beyond-verifyCap. REFUTED and successfully-applied CONFIRMED
-  // findings are resolved and do not count.
+  // + unverified (beyond verifyCap, or no verdict returned). REFUTED and
+  // successfully-applied CONFIRMED findings are resolved and do not count. A
+  // survivor with no verdict therefore keeps openAfterCount above 0, so the
+  // CONVERGED branch below can never fire while one exists.
   const openAfterCount =
     Math.max(0, counts.confirmed - appliedTotal) + counts.plausible + counts.unverified;
 
@@ -1416,6 +1457,8 @@ while (iteration < MAX_ITERATIONS) {
     findingsDir: FINDINGS_DIR,
     mergeReceipt,
     verifyResults,
+    unverifiedByErrorIds: unverifiedByError.map((f) => f.id),
+    unenumeratedCount,
     counts,
     fixResult,
     appliedTotal,
@@ -1514,6 +1557,11 @@ if (CONVERGE) {
       `P0-P3 finding(s) still open. Re-run with a higher convergeMaxIterations or resolve the ` +
       `remainder manually.`;
   }
+  if (!converged && finalCounts.unverified_by_error > 0) {
+    convergenceLine +=
+      ` ${finalCounts.unverified_by_error} of them got no verdict (a verify agent errored or omitted ` +
+      `it), so nobody has examined them yet.`;
+  }
 }
 
 const priorityLine = finalByPriority
@@ -1542,7 +1590,16 @@ const reportBody = [
   `- CONFIRMED: ${finalCounts.confirmed}`,
   `- PLAUSIBLE: ${finalCounts.plausible}`,
   `- REFUTED: ${finalCounts.refuted}`,
-  `- Unverified (beyond verifyCap=${VERIFY_CAP}): ${finalCounts.unverified}`,
+  `- Unverified: ${finalCounts.unverified} (beyond verifyCap=${VERIFY_CAP}: ` +
+    `${finalCounts.unverified - finalCounts.unverified_by_error}; no verdict returned: ` +
+    `${finalCounts.unverified_by_error})`,
+  finalCounts.unverified_by_error > 0
+    ? `- No verdict (verify agent errored or omitted it), counted open: ` +
+      `${lastResult.unverifiedByErrorIds.join(", ") || "(none with an id)"}` +
+      (lastResult.unenumeratedCount
+        ? `; plus ${lastResult.unenumeratedCount} survivor(s) the enumerate step never listed`
+        : "")
+    : null,
   priorityLine ? `- ${priorityLine}` : null,
   "",
   AUTOFIX
@@ -1585,6 +1642,7 @@ log(`Report written to ${reportMdPath}`);
 return {
   coverage,
   counts: finalCounts,
+  unverified_by_error: lastResult.unverifiedByErrorIds,
   by_priority: finalByPriority,
   findings_artifact: finalMergeReceipt.artifact,
   patch: AUTOFIX && finalFix && finalFix.fixPatchPath ? finalFix.fixPatchPath : null,
