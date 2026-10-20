@@ -17,6 +17,7 @@ frozen from a tb_stage.py run — so a staging bug cannot ship inside its own go
 """
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -101,6 +102,39 @@ def main():
                                "1000,502500,0,Cash,MRI,2026-06,USD\n")
         check("validate rejects a reordered/non-canonical header (rc1)",
               run("validate", "--staging", wrong).returncode == 1)
+
+    print("A-16 — CLI --period/--entity/--currency win over a column-map that MAPS those columns")
+    with tempfile.TemporaryDirectory() as d:
+        raw = os.path.join(d, "raw-mapped-dims.csv")
+        with open(raw, "w") as fh:
+            fh.write("Acct,Memo,Debit,Credit,Period,Ent,Ccy\n"
+                     "1000,Cash,100,,2026-06,MRI,USD\n"
+                     "2000,AP,,100,2026-06,MRI,USD\n")
+        cmap = os.path.join(d, "map-mapped-dims.json")
+        with open(cmap, "w") as fh:
+            json.dump({"map": {"account": "Acct", "description": "Memo", "debit": "Debit",
+                               "credit": "Credit", "period": "Period", "entity": "Ent",
+                               "currency": "Ccy"}}, fh)
+        plain = os.path.join(d, "plain.csv")
+        r = run("stage", "--raw", raw, "--column-map", cmap, "--out", plain)
+        check("no CLI override: the MAPPED period/entity/currency columns are used (unchanged)",
+              r.returncode == 0 and "1000,Cash,100,0,MRI,2026-06,USD" in open(plain).read())
+        ovr = os.path.join(d, "ovr.csv")
+        r = run("stage", "--raw", raw, "--column-map", cmap, "--out", ovr,
+                "--period", "2026-09", "--entity", "OVR", "--currency", "EUR")
+        rows = open(ovr).read().splitlines()[1:] if os.path.exists(ovr) else []
+        check("--period 2026-09 beats a mapped period column (every staged row carries 2026-09)",
+              r.returncode == 0 and rows and all(",2026-09," in x for x in rows)
+              and not any("2026-06" in x for x in rows))
+        check("--entity / --currency beat their mapped columns too",
+              bool(rows) and all(x.endswith(",OVR,2026-09,EUR") for x in rows))
+        check("the success line reports the period actually written (2026-09), not a stale one",
+              "period 2026-09" in r.stdout and "EUR" in r.stdout)
+        only_period = os.path.join(d, "only-period.csv")
+        run("stage", "--raw", raw, "--column-map", cmap, "--out", only_period, "--period", "2026-09")
+        body = open(only_period).read() if os.path.exists(only_period) else ""
+        check("an override of ONE dimension leaves the other mapped columns alone",
+              "1000,Cash,100,0,MRI,2026-09,USD" in body)
 
     n_pass = sum(1 for _, ok in results if ok)
     print(f"\n{n_pass}/{len(results)} acceptance tests passed.")

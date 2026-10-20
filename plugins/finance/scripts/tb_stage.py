@@ -134,15 +134,21 @@ def _resolve_statics(cm: dict, overrides: dict) -> dict:
     return statics
 
 
-def _plan(cm: dict, statics: dict) -> dict:
+def _plan(cm: dict, statics: dict, cli_keys=frozenset()) -> dict:
     """Decide, per canonical column, where its value comes from. Fails closed if any
-    canonical column is unresolved — a staging file must be COMPLETE by construction."""
+    canonical column is unresolved — a staging file must be COMPLETE by construction.
+
+    `cli_keys` are the dimensions the CALLER passed explicitly (--entity/--currency/--period).
+    They resolve to a static BEFORE a mapped source column, so "CLI wins" (as
+    _resolve_statics promises) holds even when the column-map also maps that column."""
     src_map = cm["map"]
     amount_col = cm.get("amount_column")
     plan: dict[str, tuple] = {}
     unresolved = []
     for col in CANONICAL:
-        if col in NUMERIC and amount_col:
+        if col in cli_keys and col in statics:
+            plan[col] = ("static", statics[col], None)
+        elif col in NUMERIC and amount_col:
             plan[col] = ("amount", amount_col, cm.get("amount_sign", "debit_positive"))
         elif col in src_map:
             plan[col] = ("column", src_map[col], None)
@@ -167,9 +173,9 @@ def _split_amount(amt: float, sign: str) -> tuple:
     return (amt, 0.0) if amt >= 0 else (0.0, -amt)
 
 
-def stage_rows(raw_path: str, cm: dict, statics: dict) -> list:
+def stage_rows(raw_path: str, cm: dict, statics: dict, cli_keys=frozenset()) -> list:
     """Read the raw export and emit canonical rows (list-of-lists in CANONICAL order)."""
-    plan = _plan(cm, statics)
+    plan = _plan(cm, statics, cli_keys)
     out_rows = []
     with open(raw_path, newline="", encoding="utf-8") as fh:
         reader = csv.DictReader(fh)
@@ -284,8 +290,10 @@ def _atomic_write(path: str, rows: list) -> None:
 
 def cmd_stage(a) -> int:
     cm = load_column_map(a.column_map)
-    statics = _resolve_statics(cm, {"entity": a.entity, "currency": a.currency, "period": a.period})
-    rows = stage_rows(a.raw, cm, statics)
+    overrides = {"entity": a.entity, "currency": a.currency, "period": a.period}
+    statics = _resolve_statics(cm, overrides)
+    cli_keys = frozenset(k for k, v in overrides.items() if v is not None)
+    rows = stage_rows(a.raw, cm, statics, cli_keys)
     # Validate BEFORE publishing: write to a scratch temp, validate it, and only then
     # promote. This is the block-on-bad-export discipline + the atomic write together.
     scratch = a.out + ".staging-tmp"
@@ -302,9 +310,12 @@ def cmd_stage(a) -> int:
         return 4
     os.replace(scratch, a.out)  # atomic promote
     tot_d = sum(_num(r[2]) for r in rows)
+    # Report what was actually WRITTEN (a mapped column can differ from the statics).
+    currencies = ",".join(sorted({r[CANONICAL.index("currency")] for r in rows})) or "?"
+    periods = ",".join(sorted({r[CANONICAL.index("period")] for r in rows})) or "?"
     print(
         f"wrote {a.out}  [{len(rows)} accounts, balanced at {tot_d:,.2f} "
-        f"{statics.get('currency', '?')}, period {statics.get('period', '?')}]"
+        f"{currencies}, period {periods}]"
     )
     return 0
 
