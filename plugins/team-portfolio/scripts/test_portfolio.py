@@ -12,9 +12,14 @@ behaviour with a must-still-work control beside it.
 
 from __future__ import annotations
 
+import contextlib
+import http.client
 import importlib.util
+import json
 import os
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -85,6 +90,33 @@ def collect(client, team, repo="o/r"):
     return pc.collect_repo(client, repo, SINCE, UNTIL, team)
 
 
+class FakeResp:
+    """What `urllib.request.urlopen` returns, as far as GitHubClient.get uses it."""
+
+    def __init__(self, body: bytes, headers: dict | None = None):
+        self._body = body
+        self.headers = dict(headers or {})
+
+    def read(self):
+        return self._body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+@contextlib.contextmanager
+def patched_urlopen(fn):
+    orig = urllib.request.urlopen
+    urllib.request.urlopen = fn
+    try:
+        yield
+    finally:
+        urllib.request.urlopen = orig
+
+
 def sec_a21_case_insensitive_roster():
     print("A-21 — roster login match is case-insensitive (GitHub logins are)")
     team = {"Alice"}
@@ -137,8 +169,67 @@ def sec_a21_case_insensitive_roster():
     )
 
 
+def sec_a22_transport_errors_fail_soft():
+    print("A-22 — a truncated/reset/timed-out/non-JSON response fails soft per repo")
+    boom = {
+        "o/trunc": http.client.IncompleteRead(b"par"),
+        "o/reset": ConnectionResetError("reset by peer"),
+        "o/slow": TimeoutError("timed out"),
+        "o/http404": urllib.error.HTTPError("u", 404, "Not Found", {}, None),
+    }
+    one_commit = [commit("alice")]
+
+    def fake(req, timeout=0):
+        url = req.full_url
+        for repo, exc in boom.items():
+            if f"/repos/{repo}/" in url:
+                raise exc
+        if "/repos/o/garbage/" in url:
+            return FakeResp(b"<html>not json</html>")
+        return FakeResp(
+            json.dumps(one_commit if url.split("?")[0].endswith("/commits") else []).encode()
+        )
+
+    config = {
+        "repos": [*boom, "o/garbage", "o/good"],
+        "team": [{"login": "alice"}],
+        "window_days": 7,
+    }
+    try:
+        with patched_urlopen(fake):
+            activity = pc.build_activity(config, None, "tok")
+        crashed = None
+    except Exception as exc:  # the pre-fix behaviour: the first bad repo sinks the run
+        activity, crashed = {"errors": [], "events": []}, exc
+    check("the run completes despite a bad repo (no exception)", crashed is None)
+    errs = activity["errors"]
+    check("every failing repo is listed in errors (5 of 5)", len(errs) == 5)
+    check(
+        "a truncated response (IncompleteRead) is reported for ITS repo",
+        any(e.startswith("o/trunc:") and "IncompleteRead" in e for e in errs),
+    )
+    check(
+        "a reset connection, a read timeout and a non-JSON 200 are each reported",
+        all(any(e.startswith(f"{r}:") for e in errs) for r in ("o/reset", "o/slow", "o/garbage")),
+    )
+    check(
+        "the pre-existing HTTPError path is unchanged ('o/http404: HTTP 404')",
+        any(e.startswith("o/http404: HTTP 404") for e in errs),
+    )
+    check(
+        "the OTHER repo is still collected (fail soft per repo)",
+        any(e["repo"] == "o/good" for e in activity["events"]),
+    )
+    events, err = collect(Stub([commit("alice")], boom=http.client.IncompleteRead(b"x")), {"alice"})
+    check(
+        "collect_repo itself returns (events, error) instead of raising",
+        events == [] and err is not None and "IncompleteRead" in err,
+    )
+
+
 def main():
     sec_a21_case_insensitive_roster()
+    sec_a22_transport_errors_fail_soft()
 
     n_pass = sum(1 for _, ok in results if ok)
     print(f"\n{n_pass}/{len(results)} acceptance tests passed.")

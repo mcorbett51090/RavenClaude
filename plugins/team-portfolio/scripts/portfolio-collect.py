@@ -27,6 +27,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import sys
@@ -246,6 +247,11 @@ def collect_repo(
         return events, f"{repo}: HTTP {exc.code} ({exc.reason})"
     except urllib.error.URLError as exc:
         return events, f"{repo}: network error ({exc.reason})"
+    except (OSError, http.client.HTTPException, json.JSONDecodeError, TimeoutError) as exc:
+        # A truncated body (IncompleteRead), a reset connection, a read timeout past the
+        # urlopen call, or a non-JSON 200 are not URLError/HTTPError, so they used to escape
+        # and abort the WHOLE run. Fail soft per repo (house opinion #5), like the above.
+        return events, f"{repo}: transport error ({type(exc).__name__}: {exc})"
     return events, None
 
 
