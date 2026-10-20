@@ -881,6 +881,62 @@ def case_d11() -> None:
         socket.getaddrinfo = real
 
 
+@case("D-12")
+def case_d12() -> None:
+    """Untrusted titles/excerpts must render as inert single-line text in the digest."""
+    import argparse
+
+    cs = _load_module(CONTENT_SCAN, "content_scan_under_test_d12")
+    evil_title = "[x](http://evil)\n# H"
+    result = {
+        "title": evil_title,
+        "url": "https://blog.example/post",
+        "host": "blog.example",
+        "age": "2 days ago\n## injected",
+        "query": "q",
+        "body_excerpt": "# Heading\n[guide](../../plugins/nope/README.md) `code` <b>x</b>"
+        + "y" * 5000,
+    }
+    args = argparse.Namespace(queries=["q"], freshness=None, site=None)
+    digest = cs._render_digest([result], args)
+
+    expect("](http://evil)" not in digest, "the title must not render as a live link")
+    expect("](../../plugins/nope/README.md)" not in digest, "the excerpt must not render a link")
+    expect(
+        not [ln for ln in digest.splitlines() if ln.startswith("# H") or ln.startswith("## inj")],
+        "no title/age/excerpt line may start a markdown heading",
+    )
+    expect("<b>" not in digest, "raw HTML from untrusted text must be escaped")
+    rows = [ln for ln in digest.splitlines() if ln.startswith("| blog.example")]
+    expect(len(rows) == 1 and "H" in rows[0], f"the title must stay on one table row: {rows!r}")
+    expect(len(digest) < 6000, f"the excerpt must be capped (digest is {len(digest)} chars)")
+    expect("\\[x\\]" in digest, "the title text should be shown literally (escaped)")
+
+    # A hostile URL cannot break out of the link destination, and non-http schemes are not linked.
+    hostile = dict(result, url="https://a.example/x) [pwn](javascript:alert(1)")
+    digest = cs._render_digest([hostile], args)
+    expect("[pwn](javascript" not in digest, "a hostile URL must not open a second link")
+    js = dict(result, url="javascript:alert(1)")
+    expect(
+        "](javascript:" not in cs._render_digest([js], args), "a javascript: url must not be linked"
+    )
+
+    # The md-links gate stays green on a digest built from a hostile title.
+    with tempfile.TemporaryDirectory() as td:
+        Path(td, "scripts").mkdir()
+        shutil.copy(
+            REPO / "scripts" / "check-md-links.py", Path(td, "scripts", "check-md-links.py")
+        )
+        out = Path(td, "docs", "research", "scan")
+        out.mkdir(parents=True)
+        link_title = dict(result, title="tip [guide](../../plugins/nope/README.md)")
+        (out / "digest.md").write_text(cs._render_digest([link_title], args))
+        r = run(["python3", str(Path(td, "scripts", "check-md-links.py"))])
+        expect(
+            r.returncode == 0, f"the md-links gate must not see a link in the digest: {describe(r)}"
+        )
+
+
 # --------------------------------------------------------------------------------------
 # generative-web-media: optimize-image.mjs
 # --------------------------------------------------------------------------------------
