@@ -154,22 +154,30 @@ _dir="$(cd "$(dirname "$0")" && pwd)"
 [ -f "$_dir/../hooks/_portable.sh" ] && . "$_dir/../hooks/_portable.sh" 2>/dev/null || true
 command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
 [ -f "$_dir/../hooks/_scrub.sh" ] && . "$_dir/../hooks/_scrub.sh" 2>/dev/null || true
+# ⛔ A missing scrub helper FAILS CLOSED (corescripts-11), unlike the timeout
+# helper above: a security control degrades toward refusing, never toward sending.
+command -v _scrub_reason >/dev/null 2>&1 || {
+  echo "$_self: scrub helper missing (hooks/_scrub.sh) - refusing egress" >&2; exit 8; }
 
 # ── EGRESS SECRET BACKSTOP — refuse BEFORE the task leaves this machine ────────
 # Same invariant as grok-delegate.sh: _scrub_reason takes ONE ARGUMENT, never stdin.
-if command -v _scrub_reason >/dev/null 2>&1; then
-  _scrubbed="$(_scrub_reason "$task" 2>/dev/null || printf '%s' "$task")"
-  if [ "$_scrubbed" != "$task" ]; then
-    echo "$_self: the task contains a secret-shaped literal — REFUSED before egress." >&2
-    echo "$_self: nothing was sent to copilot. Pass a path, not a value." >&2
-    exit 8
-  fi
+# Compared against the task minus its trailing newlines (corescripts-29), because
+# the command substitution strips them from the scrubbed side.
+_scrubbed="$(_scrub_reason "$task" 2>/dev/null || printf '%s' "$task")"
+_task_cmp="$(printf '%s' "$task")"
+if [ "$_scrubbed" != "$_task_cmp" ]; then
+  echo "$_self: the task contains a secret-shaped literal — REFUSED before egress." >&2
+  echo "$_self: nothing was sent to copilot. Pass a path, not a value." >&2
+  exit 8
 fi
 
 # ── the isolated working directory (the containment) ──────────────────────────
 scratch=""; workdir=""
 _cleanup() { [ -n "$scratch" ] && [ -d "$scratch" ] && rm -rf "$scratch" 2>/dev/null || true; }
-trap _cleanup EXIT INT TERM
+# INT/TERM exit; EXIT cleans up once (scripts-10, see grok-delegate.sh).
+trap _cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 if [ "$mode" = "advise" ]; then
   scratch="$(mktemp -d)" || { echo "$_self: mktemp failed" >&2; exit 2; }

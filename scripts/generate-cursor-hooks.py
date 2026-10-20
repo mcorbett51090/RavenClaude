@@ -42,13 +42,38 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shlex
 import sys
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parent.parent
 _MANIFEST = _REPO.joinpath("plugins", "ravenclaude-core", "hooks", "hooks.json")
+_ADAPTER_NAME = "cursor-hook-adapter.sh"
 _ARGV_TOKEN = '"$CLAUDE_TOOL_FILE_PATH"'
+
+# Claude file-edit tool names. Cursor's PostToolUse lane here is afterFileEdit,
+# which fires only on a file edit, so a PostToolUse hook whose matcher names
+# none of these (a WebFetch / MCP / Bash / Agent output hook) can never fire on
+# it and is skipped WITH A REASON rather than counted as coverage.
+_FILE_EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+_AFTERFILEEDIT_SKIP_REASON = (
+    "afterFileEdit never fires for tool output: this PostToolUse hook matches {m!r}, "
+    "not a file-edit tool, so registering it on Cursor's only PostToolUse lane here "
+    "would read as coverage it cannot give."
+)
+
+
+def _covers_file_edit(matcher: str) -> bool:
+    if not matcher or matcher.strip() in ("*", ".*"):
+        return True
+    return any(p.strip() in _FILE_EDIT_TOOLS for p in matcher.split("|"))
+
+
+def _is_missing_script(tok: str) -> bool:
+    return tok.startswith("/") and tok.endswith((".sh", ".py")) and not os.path.isfile(tok)
+
 
 # `SessionStart`'s matcher is never emitted for Cursor, and that is CORRECT, not a
 # gap: `[docs-verified 2026-09-02 — cursor.com/docs/agent/hooks]` Cursor's matcher
@@ -259,6 +284,30 @@ def _extra_args(command: str, script: str) -> str:
     return tail.replace(_ARGV_TOKEN, "").strip()
 
 
+def _script_path(command: str, script: str, hooks_dir: str) -> str:
+    """Where the hook body lives (hooks/ or scripts/), read off the manifest
+    command; scripts/ resolves relative to hooks_dir's parent. Mirrors
+    generate-copilot-hooks.py — see the rationale there."""
+    m = re.search(
+        r"\$\{CLAUDE_PLUGIN_ROOT\}/(hooks|scripts)/" + re.escape(script) + r"(?![A-Za-z0-9._-])",
+        command,
+    )
+    sub = m.group(1) if m else "hooks"
+    if sub == "hooks":
+        return f"{hooks_dir}/{script}"
+    p = Path(hooks_dir)
+    if p.parent == Path(".") and not hooks_dir.startswith("."):
+        return f"{hooks_dir}/../{sub}/{script}"
+    return str(p.parent / sub / script)
+
+
+def _command(adapter: str, mode: str, script_path: str, args: str) -> str:
+    """`bash <adapter> <mode> <hook> [args]`, each path shell-quoted (a `$`,
+    backtick or quote in the checkout path must not expand or break it)."""
+    out = f"bash {shlex.quote(adapter)} {mode} {shlex.quote(script_path)}"
+    return out + (f" {args}" if args else "")
+
+
 def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
     out: dict = {}
     wired: list = []
@@ -305,6 +354,13 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                         )
                         continue
                     cursor_event, mode = "beforeShellExecution", "shell-pretool"
+                elif event == "PostToolUse":
+                    if not _covers_file_edit(matcher):
+                        skipped.append(
+                            (script, event, _AFTERFILEEDIT_SKIP_REASON.format(m=matcher))
+                        )
+                        continue
+                    cursor_event, mode = _EVENT[event]
                 elif event in _EVENT:
                     cursor_event, mode = _EVENT[event]
                 else:
@@ -320,9 +376,7 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                 # `cp -r` fallback where symlinks are unavailable. On a host that
                 # FAILS OPEN, a hook that cannot execute is a guardrail that silently
                 # is not there, so this is worth the four extra characters.
-                cmd = f'bash "{adapter}" {mode} "{hooks_dir}/{script}"'
-                if args:
-                    cmd += f" {args}"
+                cmd = _command(adapter, mode, _script_path(command, script, hooks_dir), args)
                 entry: dict = {"command": cmd, "timeout": 90}
                 if cursor_event == "beforeShellExecution":
                     entry["failClosed"] = True
@@ -347,6 +401,130 @@ def build(adapter: str, hooks_dir: str) -> tuple:
         "hooks": hooks,
     }
     return cfg, wired, skipped
+
+
+# ── --check floors added by the 2026-10-19 repo review (1005-P1-5, scripts-14,
+# 1a-11). Each has an in-process must-fail mutant in _teeth(), run by --check
+# itself, so Gate 160 cannot pass while a floor has gone vacuous.
+
+
+def _emitted_commands(obj) -> list:
+    acc: list = []
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k in ("bash", "command") and isinstance(v, str):
+                acc.append(v)
+            else:
+                acc.extend(_emitted_commands(v))
+    elif isinstance(obj, (list, tuple)):
+        for v in obj:
+            acc.extend(_emitted_commands(v))
+    return acc
+
+
+def _real_paths() -> tuple:
+    hooks = _REPO / "plugins" / "ravenclaude-core" / "hooks"
+    return str(hooks / _ADAPTER_NAME), str(hooks)
+
+
+def _missing_script_tokens(cfg: dict) -> list:
+    """(command, problem) for a command that does not shlex-split, or whose
+    absolute .sh/.py token names no file. Run on a REAL-path projection."""
+    bad = []
+    for cmd in _emitted_commands(cfg.get("hooks", {})):
+        try:
+            toks = shlex.split(cmd)
+        except ValueError:
+            bad.append((cmd, "does not shlex-split"))
+            continue
+        bad.extend((cmd, t) for t in toks if _is_missing_script(t))
+    return bad
+
+
+_HOSTILE_ROOT = '/tmp/rc we$ird `x` "q" \'a/ravenclaude-core'
+
+
+def _quoting_failures() -> list:
+    adapter = f"{_HOSTILE_ROOT}/hooks/{_ADAPTER_NAME}"
+    cfg, _w, _s = build(adapter, f"{_HOSTILE_ROOT}/hooks")
+    bad = []
+    for cmd in _emitted_commands(cfg.get("hooks", {})):
+        try:
+            toks = shlex.split(cmd)
+        except ValueError:
+            bad.append(cmd)
+            continue
+        if len(toks) < 4 or toks[0] != "bash" or toks[1] != adapter:
+            bad.append(cmd)
+        elif not toks[3].startswith(_HOSTILE_ROOT + "/"):
+            bad.append(cmd)
+    return bad
+
+
+def _afterfileedit_failures(cfg: dict, manifest: dict) -> list:
+    """Scripts registered on afterFileEdit with no file-edit PostToolUse matcher."""
+    file_matched: set = set()
+    for grp in manifest.get("hooks", {}).get("PostToolUse", []):
+        if _covers_file_edit(grp.get("matcher") or ""):
+            for e in grp.get("hooks", []):
+                file_matched.add(_script_of(e.get("command", "")))
+    bad = []
+    for cmd in _emitted_commands(cfg.get("hooks", {}).get("afterFileEdit", [])):
+        try:
+            toks = shlex.split(cmd)
+        except ValueError:
+            bad.append(cmd)
+            continue
+        name = os.path.basename(toks[3]) if len(toks) > 3 else ""
+        if name not in file_matched:
+            bad.append(name or cmd)
+    return bad
+
+
+def _teeth(manifest: dict) -> list:
+    """Must-fail mutants for the floors above, in process. Each MUST be caught."""
+    errs: list = []
+    g = globals()
+    entries = [
+        (ev, grp, e)
+        for ev, groups in manifest.get("hooks", {}).items()
+        for grp in groups
+        for e in grp.get("hooks", [])
+    ]
+    if any("${CLAUDE_PLUGIN_ROOT}/scripts/" in e.get("command", "") for _ev, _g, e in entries):
+        orig = g["_script_path"]
+        g["_script_path"] = lambda command, script, hooks_dir: f"{hooks_dir}/{script}"
+        try:
+            mcfg, _w, _s = build(*_real_paths())
+        finally:
+            g["_script_path"] = orig
+        if not _missing_script_tokens(mcfg):
+            errs.append("teeth: a scripts/ hook pointed at hooks/ was NOT caught")
+    orig_cmd = g["_command"]
+    g["_command"] = lambda a, m, s, x: f'bash "{a}" {m} "{s}"' + (f" {x}" if x else "")
+    try:
+        if not _quoting_failures():
+            errs.append("teeth: double-quoted paths under a hostile checkout were NOT caught")
+    finally:
+        g["_command"] = orig_cmd
+    non_file_post = [
+        e
+        for ev, grp, e in entries
+        if ev == "PostToolUse"
+        and not _covers_file_edit(grp.get("matcher") or "")
+        and _script_of(e.get("command", "")) not in _SKIP
+        and _script_of(e.get("command", "")) != "spectate-emit.sh"
+    ]
+    if non_file_post:
+        orig_cov = g["_covers_file_edit"]
+        g["_covers_file_edit"] = lambda matcher: True
+        try:
+            mcfg, _w, _s = build("<ADAPTER>", "<HOOKS>")
+        finally:
+            g["_covers_file_edit"] = orig_cov
+        if not _afterfileedit_failures(mcfg, manifest):
+            errs.append("teeth: a tool-output PostToolUse hook on afterFileEdit was NOT caught")
+    return errs
 
 
 def main(argv: list) -> int:
@@ -477,9 +655,50 @@ def main(argv: list) -> int:
                 for _c in _bad[:5]:
                     print(f"  {_c!r}", file=sys.stderr)
                 return 1
+        # Every hook path must name a real file once real paths are substituted
+        # (1005-P1-5): a scripts/ hook projected under hooks/ is a silent no-op.
+        real_cfg, _rw, _rs = build(*_real_paths())
+        missing_tok = _missing_script_tokens(real_cfg)
+        if missing_tok:
+            print(
+                f"cursor-hooks: {len(missing_tok)} emitted command(s) name a hook "
+                "file that does not exist (or do not shlex-split); e.g.:",
+                file=sys.stderr,
+            )
+            for _c, _t in missing_tok[:5]:
+                print(f"  {_t}  <-  {_c[:120]!r}", file=sys.stderr)
+            return 1
+        # Paths survive a hostile checkout path (scripts-14).
+        quoting = _quoting_failures()
+        if quoting:
+            print(
+                f"cursor-hooks: {len(quoting)} command(s) do not round-trip a checkout "
+                "path containing $, a backtick or quotes; e.g.:",
+                file=sys.stderr,
+            )
+            for _c in quoting[:3]:
+                print(f"  {_c[:160]!r}", file=sys.stderr)
+            return 1
+        # afterFileEdit carries only hooks that can fire on a file edit (1a-11).
+        afe = _afterfileedit_failures(cfg, manifest)
+        if afe:
+            print(
+                "cursor-hooks: tool-output PostToolUse hooks registered on afterFileEdit, "
+                f"which never fires for tool output: {sorted(set(afe))}",
+                file=sys.stderr,
+            )
+            return 1
+        teeth = _teeth(manifest)
+        if teeth:
+            for _e in teeth:
+                print(f"cursor-hooks: {_e}", file=sys.stderr)
+            return 1
+        n_afe = sum(1 for _s, _e, r in skipped if r.startswith("afterFileEdit never fires"))
         print(
-            f"Cursor hooks OK — {len(wired)} wired, {len(skipped)} explicitly skipped, "
-            f"{len(canonical)} canonical hooks all accounted for."
+            f"Cursor hooks OK — {len(wired)} wired, {len(skipped)} explicitly skipped "
+            f"({n_afe} tool-output PostToolUse kept off afterFileEdit), "
+            f"{len(canonical)} canonical hooks all accounted for; every hook path "
+            "resolves, quoting round-trips."
         )
         return 0
 

@@ -23,6 +23,15 @@ if [ -f "$_emit_event_helper" ]; then
   . "$_emit_event_helper" 2>/dev/null || true
 fi
 command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
+# The ONE host parser shared with mark-web-domain-seen.sh (hooks-11). Without it
+# the reader and the writer of the first-use seen file cannot be guaranteed to
+# agree, so a missing helper is a no-op (ask as normal), like a missing jq.
+_web_helper="$(dirname "$0")/_web.sh"
+if [ -f "$_web_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_web_helper" 2>/dev/null || true
+fi
+command -v _rc_web_host >/dev/null 2>&1 || exit 0
 # Fallback if the sourced helper is unavailable: resolve the session the same way
 # _ee_resolve_session() does — $CLAUDE_SESSION_ID, else the stdin payload's
 # .session_id, else "unknown". Native Claude Code does NOT export
@@ -63,32 +72,10 @@ fi
 [ "$tool" = "WebFetch" ] || exit 0
 [ -n "$url" ] || exit 0
 
-# Host from the URL: strip scheme, then cut authority at the first path /
-# query / fragment / backslash delimiter BEFORE stripping userinfo. Order
-# matters — `${host##*@}` after leaving `#@spoof` or `?@spoof` in the string
-# rewrote the host to the spoof (deny-list bypass / allow-list spoof;
-# 2026-10-06 review SH-F2). Then strip userinfo + port; lowercase; drop a
-# trailing FQDN dot (`evil.com.` ≡ `evil.com`). Reject control chars.
-host="${url#*://}"
-case "$host" in
-  */*) host="${host%%/*}" ;;
-esac
-case "$host" in
-  *\?*) host="${host%%\?*}" ;;
-esac
-case "$host" in
-  *#*) host="${host%%#*}" ;;
-esac
-case "$host" in
-  *\\*) host="${host%%\\*}" ;;
-esac
-host="${host##*@}"
-host="${host%%:*}"
-host="$(printf '%s' "$host" | tr 'A-Z' 'a-z')"
-host="${host%.}"
-case "$host" in
-  "" | *[!a-z0-9._-]*) exit 0 ;;
-esac
+# Host from the URL — _web.sh's _rc_web_host (shared with the PostToolUse writer):
+# scheme stripped, authority cut at / ? # \ BEFORE userinfo is stripped (SH-F2),
+# port and one trailing dot dropped, lowercased, numeric IPv4 canonicalised.
+host="$(_rc_web_host "$url")"
 [ -n "$host" ] || exit 0
 
 proj="${CLAUDE_PROJECT_DIR:-$PWD}"
@@ -156,13 +143,47 @@ parse_section() {
 deny_list=()
 allow_list=()
 sess_list=()
-while IFS= read -r line; do deny_list+=("$line"); done < <(parse_section "$cfg" "deny")
-while IFS= read -r line; do allow_list+=("$line"); done < <(parse_section "$cfg" "allow")
+# hooks-12 (2026-10-19): rules are normalised the way the host is (_rc_web_rule:
+# lowercase, scheme and path stripped, leading `*.` / `.` and trailing `.`
+# stripped, numeric IPv4 canonicalised), so `*.x.example`, `.x.example` and
+# `x.example.` mean x.example instead of never matching. An entry that still
+# cannot match any host is dropped with ONE stderr warning naming it.
+_load_rules() { # <section>
+  local raw r
+  while IFS= read -r raw; do
+    r="$(_rc_web_rule "$raw")"
+    if _rc_web_matchable "$r"; then
+      printf '%s\n' "$r"
+    else
+      printf '%s\n' "[guard-web-access] web-access.yaml '$1' entry '$(printf '%s' "$raw" | tr -c 'A-Za-z0-9._*:/%-' '?')' can never match a host; ignored." >&2
+    fi
+  done < <(parse_section "$cfg" "$1")
+}
+while IFS= read -r line; do deny_list+=("$line"); done < <(_load_rules deny)
+while IFS= read -r line; do allow_list+=("$line"); done < <(_load_rules allow)
 if [ -f "$sess_allow" ]; then
   while IFS= read -r line; do
     line="$(printf '%s' "$line" | tr 'A-Z' 'a-z' | tr -d '[:space:]')"
     [ -n "$line" ] && sess_list+=("$line")
   done < "$sess_allow"
+fi
+
+# hooks-12: a host with characters outside [a-z0-9._-] (percent-encoding, a
+# fullwidth or other non-ASCII letter, IPv6 brackets) cannot be compared against
+# any rule — and the fetcher may still decode it to a denied name. With a deny
+# list configured that is not "unknown, ask as normal": it is an explicit ask.
+if ! _rc_web_matchable "$host"; then
+  if [ "${#deny_list[@]}" -gt 0 ]; then
+    safe_host="$(printf '%s' "$host" | tr -c 'A-Za-z0-9._%-' '?' | cut -c1-80)"
+    reason="The host '$safe_host' has characters no web-access rule can be checked against, and this project has a deny list (.ravenclaude/web-access.yaml). Confirm this fetch only if you know where it goes."
+    if command -v jq >/dev/null 2>&1; then
+      jq -cn --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}'
+    else
+      printf '%s' "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"${reason//\"/\\\"}\"}}"
+    fi
+    _emit_hook_event "guard-web-access.sh" "warn" "WebFetch" "$safe_host" "web-unmatchable-host" 0
+  fi
+  exit 0
 fi
 
 # Deny wins.

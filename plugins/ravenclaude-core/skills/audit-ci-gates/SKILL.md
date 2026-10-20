@@ -41,7 +41,9 @@ For each gate-fixture pair, mutate the relevant file temporarily, run the gate's
 ```bash
 backup=$(mktemp)
 cp .github/workflows/<target>.yml "$backup"
-trap 'cp "$backup" .github/workflows/<target>.yml; rm -f "$backup"' EXIT INT TERM
+trap 'cp "$backup" .github/workflows/<target>.yml; rm -f "$backup"' EXIT
+trap 'exit 130' INT   # a trapped signal whose handler does not exit RETURNS and the
+trap 'exit 143' TERM  # script resumes; exiting here lets the EXIT trap restore once
 
 # Inject the must_fail_on fixture
 sed -i '<line>a\<bad-content>' .github/workflows/<target>.yml

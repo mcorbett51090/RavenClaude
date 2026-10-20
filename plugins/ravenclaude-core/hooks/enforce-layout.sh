@@ -43,9 +43,25 @@ if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
     file="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
   fi
 fi
+# hooks-24 (2026-10-19): with no jq, the stdin path above is never read and the
+# empty-$file exit below fired BEFORE the jq-missing warning further down could —
+# so a Claude Code session with no jq lost the layout gate silently. Warn once
+# (only when a policy exists to skip) and keep allowing: failing closed here would
+# block every write for a consumer who simply lacks jq.
+if [[ -z "$file" ]] && ! command -v jq >/dev/null 2>&1; then
+  _pr="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+  if [[ -f "$_pr/.repo-layout.json" || -f "$_pr/.ravenclaude/task-scope.json" ]]; then
+    echo "[enforce-layout] jq not found; skipping layout/scope checks. Install jq to enable enforcement." >&2
+  fi
+  exit 0
+fi
 [[ -z "$file" ]] && exit 0
 
 project_root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+# hooks-10 (2026-10-19): a trailing `/` on the project dir made the in-project
+# prefix test below (`$project_root/*`) look for `//`, so EVERY absolute path read
+# as outside the project and was allowed. Strip it (never down to empty).
+while [[ "$project_root" == */ && "$project_root" != / ]]; do project_root="${project_root%/}"; done
 manifest="$project_root/.repo-layout.json"
 task_scope="$project_root/.ravenclaude/task-scope.json"
 
@@ -78,17 +94,55 @@ if [[ "$file" != /* ]]; then
   file="$project_root/$file"
 fi
 
+# hooks-10 (2026-10-19): lexical normalisation. `a//b` and `a/./b` name the same
+# file as `a/b`, but the globs below are plain string patterns, so
+# `.ravenclaude/runs//thing/x` slipped a `.ravenclaude/runs/thing/*` forbid.
+# Collapse both until stable. `..` is deliberately NOT resolved here — the
+# path-traversal refusal below needs to see it.
+_lexical() {
+  local p="$1" one='/' two='//' dot='/./'
+  while [[ "$p" == *//* ]]; do p="${p//$two/$one}"; done
+  while [[ "$p" == */./* ]]; do p="${p//$dot/$one}"; done
+  [[ "$p" == */. ]] && p="${p%/.}"
+  printf '%s' "$p"
+}
+file="$(_lexical "$file")"
+project_root="$(_lexical "$project_root")"
+
+# Resolve the deepest EXISTING ancestor of $1 with `pwd -P` and re-append the rest.
+_resolved_ancestor() {
+  local d="$1" rest="" r
+  while [[ -n "$d" && "$d" != / && ! -d "$d" ]]; do rest="/${d##*/}$rest"; d="${d%/*}"; done
+  [[ -n "$d" ]] || d=/
+  r="$(CDPATH='' cd -P -- "$d" 2>/dev/null && pwd -P)" || return 1
+  printf '%s%s' "${r%/}" "$rest"
+}
+
 # Convert to a path relative to project root.
 # Match on the "$project_root/" prefix (with the trailing slash) so a SIBLING
 # directory that merely shares the project-root name as a prefix
 # (e.g. /home/user/RavenClaude-backup vs /home/user/RavenClaude) is NOT
 # misclassified as in-project — which would leave rel_path unstripped (the `#`
 # strip below requires the slash) and produce a spurious deny.
+#
+# hooks-10: a SYMLINKED project root (CLAUDE_PROJECT_DIR=/link, path written as
+# /real/...) used to read as outside and be allowed. Resolution is used only to
+# bring a path IN — the lexical in-project test runs first and its rel_path is
+# kept, so an in-project symlink that points outside is still enforced as the
+# in-project path it was written as.
+root_real="$(CDPATH='' cd -P -- "$project_root" 2>/dev/null && pwd -P || true)"
 if [[ "$file" == "$project_root"/* ]]; then
   rel_path="${file#"$project_root"/}"
+elif [[ -n "$root_real" && "$root_real" != "$project_root" && "$file" == "$root_real"/* ]]; then
+  rel_path="${file#"$root_real"/}"
 else
-  # File is outside the project root — not our policy to enforce.
-  exit 0
+  file_real="$(_resolved_ancestor "$file" 2>/dev/null || true)"
+  if [[ -n "$root_real" && -n "$file_real" && "$file_real" == "$root_real"/* ]]; then
+    rel_path="${file_real#"$root_real"/}"
+  else
+    # File is outside the project root — not our policy to enforce.
+    exit 0
+  fi
 fi
 
 emit_deny() {

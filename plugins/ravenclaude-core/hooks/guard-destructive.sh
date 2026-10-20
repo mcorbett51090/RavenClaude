@@ -33,6 +33,28 @@
 # hook — see the plugin CLAUDE.md "Containment posture — the boundary the tribunal
 # structurally can't provide" section. Do not attempt to close it here.
 
+# hooks-4 (2026-10-19): drop every shell function this process inherited, FIRST —
+# before `set`, `dirname`, `cat`, `jq` or `python3` is run by name. Bash imports an
+# exported function (BASH_FUNC_<name>%% in the environment) at startup, and a
+# function shadows the binary or builtin of the same name. Measured with a bash
+# outer launcher (macOS /bin/sh is bash): a planted BASH_FUNC_jq%% or
+# BASH_FUNC_cat%% made the command read as empty, so `<recursive delete of />`
+# exited 0. Every name here goes through `builtin`, and nothing below runs before
+# the purge. Residual: a planted function named `builtin` itself; env-integrity-
+# guard.sh quarantines any BASH_FUNC_* key in project settings, which is the
+# primary control.
+builtin set -f
+_gd_fns="$(builtin compgen -A function 2>/dev/null)" || _gd_fns=""
+case "$_gd_fns" in
+  "") _gd_fns="$(builtin declare -F 2>/dev/null)" || _gd_fns="" ;;   # no compgen: "declare -f NAME" lines
+esac
+for _gd_fn in $_gd_fns; do
+  case "$_gd_fn" in declare|-f|-fx) continue ;; esac
+  builtin unset -f -- "$_gd_fn" 2>/dev/null || builtin true
+done
+builtin unset _gd_fn _gd_fns
+builtin set +f
+
 set -euo pipefail
 
 # Structured hook-event substrate (P0.2). Sourced fail-safe — a missing helper
@@ -320,6 +342,17 @@ norm="${norm//\$\{HOME\}/\$HOME}"   # ${HOME} -> $HOME  (one form to match)
 # whitespace collapse so the matchers see the same command the shell would run.
 norm="${norm//\$\{IFS\}/ }"         # ${IFS} -> space
 norm="${norm//\$IFS/ }"             # $IFS  -> space
+# hooks-1 (2026-10-19): a NEWLINE is a command separator, not whitespace. The
+# whitespace collapse below used to turn it into a space, gluing two commands
+# into one segment — `cd /abs` on one line made a relative delete on the next
+# look like a delete of /abs, and a short flag on a later line looked like the
+# previous line's push flag. ORDER MATTERS: join backslash-newline continuations
+# first (they are still ONE command, and must not be split from the flag they
+# carry), then turn every remaining newline into ` ; `, and only then drop the
+# backslashes.
+_GD_NL=$'\n'
+norm="${norm//\\${_GD_NL}/ }"       # line continuation -> one command
+norm="${norm//${_GD_NL}/ ; }"       # newline -> separator
 norm="${norm//\\/}"                 # drop backslashes:  \rm -rf /  -> rm -rf /
 norm="$(printf '%s' "$norm" | tr -s '[:space:]' ' ')"   # collapse whitespace runs
 
@@ -373,7 +406,8 @@ _CMD_BOUNDARY='(^|[;&|(`/[:space:]])'
 _CMD_END='([[:space:];&|<>)`]|$)'
 
 # A recursive flag in ANY spelling/order: -r, -R, -rf, -fr, -Rf, --recursive.
-_has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)([[:space:]]|$) ]]; }
+# (hooks-2/hooks-9: terminated by ${_CMD_END}, so `rm / -rf)` still counts.)
+_has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)${_CMD_END} ]]; }
 
 # Round 15 (2026-09-23, Bugbot): `_is_dangerous_merge`'s git+(merge|pull)
 # gates and `_is_dangerous_update_ref`'s git+update-ref gates required a
@@ -564,6 +598,11 @@ _scan_git_alias_names() {
   # name from the first).
   local fname fbody
   remain="$c"
+  # guards-new-4: both function-definition scans below need a literal `()`. On a
+  # long command with none, the unanchored `NAME[[:space:]]*\(\)` regex alone
+  # cost tens of seconds (a 32 KB single token took ~23 s), so skip the scan
+  # outright — exact, not a heuristic, because no match is possible.
+  [[ "$c" == *"()"* ]] || remain=""
   while [[ "$remain" =~ ([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*\(\)[[:space:]]*\{([^}]*)\} ]]; do
     whole="${BASH_REMATCH[0]}"
     [ -z "$whole" ] && break
@@ -575,6 +614,7 @@ _scan_git_alias_names() {
     remain="${remain#*"$whole"}"
   done
   remain="$c"
+  [[ "$c" == *"()"* ]] || remain=""   # guards-new-4 (see above)
   while [[ "$remain" =~ ([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*\(\)[[:space:]]*\(([^\)]*)\) ]]; do
     whole="${BASH_REMATCH[0]}"
     [ -z "$whole" ] && break
@@ -633,7 +673,7 @@ _is_dangerous_rm() {
   # A single-segment form (`.`, `..`, `./`, `../`, `.*`, `./*`, `../*`) is the `+`=1
   # case, so prior coverage is preserved. Scoped relative paths (`./tmp/build`,
   # `../build`) still fall through — a non-dot path segment breaks the trailing anchor.
-    [[ "$seg" =~ (^|[[:space:]])((\.{1,2}/?)+\*?|\*)([[:space:]]|$) ]] && return 0
+    [[ "$seg" =~ (^|[[:space:]])((\.{1,2}/?)+\*?|\*)${_CMD_END} ]] && return 0
   done <<EOF
 $(_cmd_segments "$c")
 EOF
@@ -643,16 +683,24 @@ EOF
 # chmod recursively to a world-writable / lockout octal mode (777/666/000), in
 # any flag order, octal prefix tolerated (0777). Symbolic modes are out of scope.
 _is_dangerous_chmod() {
-  local c="$1"
+  local c="$1" seg
   # _CMD_BOUNDARY also covers path-qualified `/usr/bin/chmod` (see _is_dangerous_rm).
   [[ "$c" =~ ${_CMD_BOUNDARY}chmod[[:space:]] ]] || return 1
-  _has_recursive "$c" || return 1
-  # A leading special-permission digit `[0-7]?` (not just `0?`) so setuid/setgid/
-  # sticky forms — `chmod -R 4777`/`2777`/`6777`/`1777` (world-writable PLUS an
-  # elevated-privilege bit, strictly WORSE than a plain 777) — are caught, not only
-  # the plain-octal `0777` prefix. Benign modes (644/755/…) still don't match.
-  [[ "$c" =~ (^|[[:space:]])[0-7]?(7{3}|6{3}|0{3})([[:space:]]|$) ]] || return 1
-  return 0
+  # hooks-9 (2026-10-19): the recursive flag and the mode are scored on the
+  # `chmod` segment only — a `-R` or a `777` belonging to another command in the
+  # same line is not this chmod's.
+  while IFS= read -r seg; do
+    [[ "$seg" =~ ${_CMD_BOUNDARY}chmod[[:space:]] ]] || continue
+    _has_recursive "$seg" || continue
+    # A leading special-permission digit `[0-7]?` (not just `0?`) so setuid/setgid/
+    # sticky forms — `chmod -R 4777`/`2777`/`6777`/`1777` (world-writable PLUS an
+    # elevated-privilege bit, strictly WORSE than a plain 777) — are caught, not only
+    # the plain-octal `0777` prefix. Benign modes (644/755/…) still don't match.
+    [[ "$seg" =~ (^|[[:space:]])[0-7]?(7{3}|6{3}|0{3})${_CMD_END} ]] && return 0
+  done <<EOF
+$(_cmd_segments "$c")
+EOF
+  return 1
 }
 
 # `find` with a destructive action (-delete, or -exec rm/unlink/shred/truncate)
@@ -716,14 +764,30 @@ EOF
 # short force-delete flag (contains an uppercase D) OR the co-occurrence of
 # `--delete` and `--force` anywhere. (git global options are already stripped above.)
 _is_dangerous_git_branch_delete() {
-  local c="$1"
+  local c="$1" seg
   # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) — the narrower
   # class let `$(git branch -D main)` slip past (2026-07 review boundary gap).
-  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+branch([[:space:]]|$) ]] || return 1
-  # short combined flag containing D:  -D / -fD / -Df
-  [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*D[a-zA-Z]*([[:space:]]|$) ]] && return 0
-  # long form: both --delete and --force present, in any order
-  { [[ "$c" =~ (^|[[:space:]])--delete([[:space:]]|$) ]] && [[ "$c" =~ (^|[[:space:]])--force([[:space:]]|$) ]]; } && return 0
+  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+branch${_CMD_END} ]] || return 1
+  # hooks-9 (2026-10-19): flags are scored on the `git branch` segment only.
+  # A `-D` belonging to another command (`npm i -D`, `ls -D`, `grep -D`) in the
+  # same line used to read as a force delete.
+  while IFS= read -r seg; do
+    [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+branch${_CMD_END} ]] || continue
+    # short combined flag containing D:  -D / -fD / -Df  (hooks-2: ${_CMD_END}
+    # terminator, so `-D;` / `-D)` count)
+    [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*D[a-zA-Z]*${_CMD_END} ]] && return 0
+    # delete + force in ANY spelling: --delete/-d with --force/-f, in any order
+    # (`-D` is git's own shortcut for exactly that pair, so `-d --force` and
+    # `-d -f` are the same force delete).
+    if { [[ "$seg" =~ (^|[[:space:]])--delete${_CMD_END} ]] \
+         || [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*d[a-zA-Z]*${_CMD_END} ]]; } \
+       && { [[ "$seg" =~ (^|[[:space:]])--force${_CMD_END} ]] \
+         || [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*f[a-zA-Z]*${_CMD_END} ]]; }; then
+      return 0
+    fi
+  done <<EOF
+$(_cmd_segments "$c")
+EOF
   return 1
 }
 
@@ -741,7 +805,12 @@ _is_dangerous_git_branch_delete() {
 # (their internal push runs as a subprocess, which this PreToolUse hook does not
 # intercept), or GitHub's own delete-branch UI.
 _is_dangerous_git_push_delete() {
-  local c="$1" seg found=1
+  local c="$1" seg found=1 _pd_end='([[:space:]]|$)'
+  # hooks-2: the flag terminators use ${_CMD_END}. Read through a local with the
+  # old whitespace class as the fallback, because Gate 231 extracts THIS function
+  # alone into a harness that defines only _CMD_BOUNDARY (set -u would abort on an
+  # unset _CMD_END there). In the hook itself _CMD_END is always set.
+  [ -n "${_CMD_END:-}" ] && _pd_end="$_CMD_END"
   [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+push([[:space:]]|$) ]] || return 1
 
   # ⛔ THE FLAG SEARCH IS SCOPED TO THE `git push` SEGMENT. It used to run over
@@ -767,14 +836,16 @@ _is_dangerous_git_push_delete() {
   while IFS= read -r seg; do
     case "$seg" in *"git push"*) ;; *) continue ;; esac
     # long delete flag
-    [[ "$seg" =~ (^|[[:space:]])--delete([[:space:]]|$) ]] && { found=0; break; }
+    [[ "$seg" =~ (^|[[:space:]])--delete${_pd_end} ]] && { found=0; break; }
     # short delete flag `-d`, standalone or bundled
-    [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*d[a-zA-Z]*([[:space:]]|$) ]] && { found=0; break; }
+    [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*d[a-zA-Z]*${_pd_end} ]] && { found=0; break; }
     # colon-refspec deletion: a refspec whose SOURCE side is empty (`:<ref>`). A
     # normal refspec `src:dst` has no space before the colon, so requiring a
     # space immediately before `:` matches only the deletion form and never
     # `main:main` / `HEAD:refs/heads/main`.
-    [[ "$seg" =~ [[:space:]]:[A-Za-z0-9_./@^~*-]+([[:space:]]|$) ]] && { found=0; break; }
+    # hooks-2: all three terminate on ${_CMD_END} (a `)` / backtick / redirect
+    # glued to the token is still the end of it).
+    [[ "$seg" =~ [[:space:]]:[A-Za-z0-9_./@^~*-]+${_pd_end} ]] && { found=0; break; }
   done <<EOF
 $(printf '%s' "$c" | tr ';&|' '\n\n\n')
 EOF
@@ -789,12 +860,62 @@ EOF
 # invocation for a force flag anywhere, mirroring _has_recursive. `git clean`
 # is a no-op without a force flag, so any force flag = a real untracked-file
 # wipe (deletes files git never tracked — no history recovery).
+# hooks-9 (2026-10-19): is the `git clean` invocation in $1 (the text AFTER the
+# `git clean` words of its own segment) a dry run? git honours -n / --dry-run
+# over -f, so `git clean -f -n` only lists. Token-aware on purpose:
+#  - a short cluster is read letter by letter; once `e` (exclude) is reached the
+#    REST of the cluster is the exclude pattern (`-fen` excludes "n" and is NOT a
+#    dry run), and a bare trailing `e` makes the NEXT token the pattern;
+#  - `--exclude PAT` consumes PAT; `--exclude=PAT` is one token;
+#  - `--` ends option parsing (a later `-n` is a pathspec);
+#  - last one wins, so `--no-dry-run` after `-n` re-arms the delete.
+# Anything it does not recognise leaves the verdict where it was.
+_git_clean_is_dry_run() {
+  local rest="$1" tok cl dry=1 want_val=0 _gf=0
+  case "$-" in *f*) _gf=1 ;; *) set -f ;; esac
+  for tok in $rest; do
+    tok="${tok%%[\`)<>]*}"
+    if [ "$want_val" = 1 ]; then want_val=0; continue; fi
+    case "$tok" in
+      --) break ;;
+      --dry-run) dry=0 ;;
+      --no-dry-run) dry=1 ;;
+      --exclude) want_val=1 ;;
+      --*) ;;
+      -?*)
+        cl="${tok#-}"
+        while [ -n "$cl" ]; do
+          case "$cl" in
+            n*) dry=0 ;;
+            e) want_val=1; break ;;
+            e*) break ;;
+          esac
+          cl="${cl#?}"
+        done
+        ;;
+    esac
+  done
+  [ "$_gf" = 1 ] || set +f
+  return $dry
+}
+
 _is_dangerous_git_clean() {
-  local c="$1"
-  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+clean([[:space:]]|$) ]] || return 1
-  # -f in ANY bundled short-flag cluster (-f / -fd / -df / -xf), any position
-  [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*f[a-zA-Z]*([[:space:]]|$) ]] && return 0
-  [[ "$c" =~ (^|[[:space:]])--force([[:space:]]|$) ]] && return 0
+  local c="$1" seg
+  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+clean${_CMD_END} ]] || return 1
+  # hooks-9: scored on the `git clean` segment only — a `-f` or `-n` that
+  # belongs to `make -f` / `make -n` in the same line is not git's.
+  while IFS= read -r seg; do
+    [[ "$seg" =~ ${_CMD_BOUNDARY}git[[:space:]]+clean${_CMD_END} ]] || continue
+    # -f in ANY bundled short-flag cluster (-f / -fd / -df / -xf), any position.
+    # hooks-2: terminated by ${_CMD_END} so `-fd;` / `-fd)` count.
+    { [[ "$seg" =~ (^|[[:space:]])-[a-zA-Z]*f[a-zA-Z]*${_CMD_END} ]] \
+      || [[ "$seg" =~ (^|[[:space:]])--force${_CMD_END} ]]; } || continue
+    # A forced clean that is ALSO a dry run only lists (git -n beats -f).
+    _git_clean_is_dry_run "${seg#*git clean}" && continue
+    return 0
+  done <<EOF
+$(_cmd_segments "$c")
+EOF
   return 1
 }
 
@@ -1803,9 +1924,49 @@ _looks_unresolvable_method_value() {
   return 1
 }
 
+# hooks-8 (2026-10-19): a few everyday tools use `-X` for something that is not an
+# HTTP method — `mvn -X` / `gradle -X` (debug), `ls -X` / `sort -X` (sort by
+# extension / version), `java -X` and `java -Xmx$HEAP` (non-standard options).
+# For a PIPE STAGE whose command word is one of those, the two AMBIGUOUS arms are
+# skipped: a bare trailing `-X`, and `-X` followed (spaced or glued) by a value we
+# cannot resolve. A literal DELETE is never suppressed, the `--method` /
+# `--request` / `-X=` forms are never suppressed, and the exemption is decided per
+# pipe stage, so `ls | xargs <client> -X` is still the xargs stage's `-X`. Command
+# runners (ssh, sudo, env, xargs, nohup, sh -c, python -c) are deliberately NOT in
+# the list: their `-X` may well belong to a client they launch.
+_DELETE_X_EXEMPT=" mvn mvnw gradle gradlew ls java sort "
+_delete_x_stage_exempt() { # $1 = the first word of a pipe stage -> 0 if exempt
+  local w="$1"
+  # `x=$(ls -X)`: the command is inside the assignment's substitution. A plain
+  # `FOO=1 ls -X` leaves `1` here, which is simply not exempt (conservative).
+  case "$w" in [A-Za-z_]*=*) w="${w#*=}" ;; esac
+  while :; do
+    case "$w" in
+      '$('*) w="${w#??}" ;;
+      '('*|'{'*|'`'*|'!'*) w="${w#?}" ;;
+      *) break ;;
+    esac
+  done
+  w="${w##*/}"
+  [ -n "$w" ] || return 1
+  case "$_DELETE_X_EXEMPT" in *" $w "*) return 0 ;; esac
+  return 1
+}
+
 _seg_has_delete_method() {
-  local seg="$1" word prev=""
+  local seg="$1" word w prev="" new_stage=1 exempt=1 _gf=0 after
+  # 1012-guard-glob: word-split without pathname expansion (a literal `*` token
+  # must scan as itself, not as the file names in the hook's cwd).
+  case "$-" in *f*) _gf=1 ;; *) set -f ;; esac
   for word in $seg; do
+    if [ "$new_stage" = 1 ]; then
+      exempt=1
+      _delete_x_stage_exempt "$word" && exempt=0
+      new_stage=0
+    fi
+    # The word with any glued closer / redirect / pipe tail removed, for flag
+    # NAME comparison only (`-X)`, `-X>/dev/null`, `-X|cat` are a bare `-X`).
+    w="${word%%[\`)<>|]*}"
     case "$prev" in
       -X|--method|--request)
         case "$word" in
@@ -1817,9 +1978,12 @@ _seg_has_delete_method() {
           # already-fixed glued `-XDELETE|cat` case (round 14), but this
           # is the SPACED flag form, which that fix didn't reach. Widened
           # to accept anything glued after the literal DELETE.
-          [Dd][Ee][Ll][Ee][Tt][Ee]*) return 0 ;;
+          [Dd][Ee][Ll][Ee][Tt][Ee]*) [ "$_gf" = 1 ] || set +f; return 0 ;;
         esac
-        _looks_unresolvable_method_value "$word" && return 0
+        # hooks-8: in an exempt stage a spaced `-X <unresolvable>` is ambiguous.
+        if [ "$prev" != "-X" ] || [ "$exempt" != 0 ]; then
+          _looks_unresolvable_method_value "$word" && { [ "$_gf" = 1 ] || set +f; return 0; }
+        fi
         ;;
     esac
     case "$word" in
@@ -1840,9 +2004,9 @@ _seg_has_delete_method() {
         # pre-fix. Widened to accept anything glued after DELETE, exactly
         # like the spaced-form fix.
         case "${word#*=}" in
-          [Dd][Ee][Ll][Ee][Tt][Ee]*) return 0 ;;
+          [Dd][Ee][Ll][Ee][Tt][Ee]*) [ "$_gf" = 1 ] || set +f; return 0 ;;
         esac
-        _looks_unresolvable_method_value "${word#*=}" && return 0
+        _looks_unresolvable_method_value "${word#*=}" && { [ "$_gf" = 1 ] || set +f; return 0; }
         ;;
       # Round 14 (2026-09-23, Bugbot): the old exact-match glued arm
       # (`-X[Dd][Ee][Ll][Ee][Tt][Ee]` with no trailing `*`) required the
@@ -1853,13 +2017,31 @@ _seg_has_delete_method() {
       # match. Widened to accept anything glued after DELETE. Also covers
       # the glued-but-unresolvable spellings (`-X$M`, `-X$(...)`, `-X{}`)
       # by checking the remainder after stripping the "-X" prefix.
-      -X[Dd][Ee][Ll][Ee][Tt][Ee]*) return 0 ;;  # curl's glued -XDELETE form, with or without a glued redirect/pipe suffix
+      -X[Dd][Ee][Ll][Ee][Tt][Ee]*) [ "$_gf" = 1 ] || set +f; return 0 ;;  # curl's glued -XDELETE form, with or without a glued redirect/pipe suffix
       -X?*)
-        _looks_unresolvable_method_value "${word#-X}" && return 0
+        # hooks-8: in an exempt stage a glued `-X<unresolvable>` is ambiguous
+        # (`java -Xmx$HEAP`).
+        if [ "$exempt" != 0 ]; then
+          _looks_unresolvable_method_value "${word#-X}" && { [ "$_gf" = 1 ] || set +f; return 0; }
+        fi
         ;;
     esac
-    prev="$word"
+    prev="$w"
+    # A `|` in this word starts a new pipe stage; text glued after the last `|`
+    # is that stage's first word.
+    case "$word" in
+      *'|'*)
+        after="${word##*|}"
+        if [ -n "$after" ]; then
+          exempt=1
+          _delete_x_stage_exempt "$after" && exempt=0
+        else
+          new_stage=1
+        fi
+        ;;
+    esac
   done
+  [ "$_gf" = 1 ] || set +f
   # Round 14 (2026-09-23, Bugbot): a BARE trailing -X/--method/--request
   # (no value at all in the visible text -- `printf DELETE | xargs curl
   # -X`) leaves $prev set to the flag with the loop simply ending, so the
@@ -1870,7 +2052,8 @@ _seg_has_delete_method() {
   # danger is expressed in content we can't inspect), treat a trailing
   # bare method flag as dangerous too.
   case "$prev" in
-    -X|--method|--request) return 0 ;;
+    -X) [ "$exempt" = 0 ] || return 0 ;;   # hooks-8: ambiguous in an exempt stage
+    --method|--request) return 0 ;;
   esac
   return 1
 }
@@ -1905,14 +2088,23 @@ _is_dangerous_git_reset_hard() {
   local cmd="$1" seg
   while IFS= read -r seg; do
     # Identify a `git … reset` segment (global flags like -C/-c may precede).
+    # Cheap prefilter only — the grep below is the precise test. It must not be
+    # narrower than that grep: `reset>/dev/null` (glued redirect) is a reset.
     case "$seg" in
-      *git[[:space:]]*reset[[:space:]]*|*git[[:space:]]*reset) ;;
+      *git*reset*) ;;
       *) continue ;;
     esac
     # Require the reset subcommand (not a path named reset).
-    printf '%s' "$seg" | grep -Eq '(^|[[:space:]])git([[:space:]]+-[[:alnum:]=._/-]+)*[[:space:]]+reset([[:space:]]|$)' || continue
-    # --hard anywhere in the segment (not --help).
-    printf '%s' "$seg" | grep -Eq '(^|[[:space:]])--hard([[:space:]]|$)' && return 0
+    # guards-new-1 (2026-10-19): the command anchor is ${_CMD_BOUNDARY}, not
+    # `(^|[[:space:]])`. PR 1369 anchored on whitespace only, so a subshell
+    # `(git reset <HARD> …)`, a `$( … )` / backtick substitution and a
+    # path-qualified `/usr/bin/git reset <HARD>` — all denied by the pattern it
+    # replaced — passed. _CMD_BOUNDARY is the same opener class every other git
+    # helper here already uses.
+    printf '%s' "$seg" | grep -Eq "${_CMD_BOUNDARY}git([[:space:]]+-[[:alnum:]=._/-]+)*[[:space:]]+reset${_CMD_END}" || continue
+    # --hard anywhere in the segment (not --help). hooks-2: terminated by
+    # ${_CMD_END} so `--hard)` / `--hard\`` / `--hard>/dev/null` still count.
+    printf '%s' "$seg" | grep -Eq "(^|[[:space:]])--hard${_CMD_END}" && return 0
   done <<EOFSEG
 $(printf '%s' "$cmd" | tr ';&|' '\n\n\n')
 EOFSEG
@@ -1922,12 +2114,33 @@ EOFSEG
 # --- Pattern array (matched against the normalized command) ----------------
 # The settings.json deny-list catches the top-level form; this catches them
 # when nested / wrapped / reordered.
+#
+# hooks-2 (2026-10-19): every dangerous-token TERMINATOR here is ${_CMD_END},
+# never `([[:space:]]|$)`. A dangerous flag or interpreter glued to a separator
+# or closer (`;` `&` `|` `<` `>` `)` or a backtick) used to fail OPEN, because
+# only whitespace / end-of-string counted as the end of the token. Entries are
+# written '<pattern>'"${_CMD_END}" so the variable expands. The lease forms stay
+# allowed: the character after the long force flag there is `-`, which is not in
+# _CMD_END.
+#
+# Fetch-to-interpreter building blocks (shared by both pipe entries below):
+#  - guards-new-2: the pipe may be the pipe-stderr operator `|&`.
+#  - hooks-5: any chain of command runners may sit between the pipe and the
+#    interpreter (sudo/doas/env/command/nohup/time/exec/busybox/su/xargs, each
+#    optionally path-qualified, each with flags that may carry one value token,
+#    or VAR=val assignments), and the interpreter set includes source, `.`,
+#    eval, php, pwsh and powershell. Each runner word is a fixed literal and is
+#    separated by required whitespace, so the nested repetition stays linear —
+#    benchmarked on adversarial ~60 KB inputs before shipping (SH-F3 class).
+_FETCH_PIPE='\|&?[[:space:]]*'
+_FETCH_RUNNER='([^[:space:]|]*/)?(sudo|doas|env|command|nohup|time|exec|busybox|su|xargs)([[:space:]]+(-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?|[A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*))*[[:space:]]+'
+_FETCH_INTERP='([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node|php|pwsh|powershell|source|eval|\.)'
 deny_patterns=(
   # git history / branch destruction
-  'git[[:space:]]+push[[:space:]]+[^;&|]*--force([[:space:]]|$)'        # --force (allows --force-with-lease)
-  'git[[:space:]]+push[[:space:]]+([^;&|]*[[:space:]])?-[A-Za-z]*f[A-Za-z]*([[:space:]]|$)'  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
+  'git[[:space:]]+push[[:space:]]+[^;&|]*--force'"${_CMD_END}"        # --force (allows --force-with-lease)
+  'git[[:space:]]+push[[:space:]]+([^;&|]*[[:space:]])?-[A-Za-z]*f[A-Za-z]*'"${_CMD_END}"  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
   'git[[:space:]]+push[[:space:]][^;&|]*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
-  'git[[:space:]]+push[[:space:]]+[^;&|]*--mirror([[:space:]]|$)'       # --mirror force-updates every ref + deletes remote refs absent locally
+  'git[[:space:]]+push[[:space:]]+[^;&|]*--mirror'"${_CMD_END}"       # --mirror force-updates every ref + deletes remote refs absent locally
   # git reset --hard: see _is_dangerous_git_reset_hard (order-independent)
   # NB: git force-branch-delete (_is_dangerous_git_branch_delete), remote-branch
   # deletion (_is_dangerous_git_push_delete), and `git clean` force
@@ -1935,13 +2148,13 @@ deny_patterns=(
   # helpers below, not a pattern — the old contiguous-anchor `git clean` pattern
   # missed the separated-token `git clean -d -f` form.
   # remote-code-exec via pipe / process- or command-substitution to an interpreter
-  '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
+  '(curl|wget)[^|]*'"${_FETCH_PIPE}(${_FETCH_RUNNER})*${_FETCH_INTERP}${_CMD_END}"
   # …and the multi-pipe / filter-then-execute evasion of the above: the single-pipe
   # form only inspects between curl/wget and the FIRST pipe, so `curl … | tee x | bash`
   # or `curl … | grep -v '#' | sh` slipped past. This catches an interpreter that is
   # the IMMEDIATE target of ANY pipe in a curl/wget chain (the interpreter right after
   # a `|`), so `… | grep python` is NOT matched (grep, not python, is the pipe target).
-  '(curl|wget).*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
+  '(curl|wget).*'"${_FETCH_PIPE}(${_FETCH_RUNNER})*${_FETCH_INTERP}${_CMD_END}"
   '<\([[:space:]]*(curl|wget)'                                    # bash <(curl …)
   '\$\([[:space:]]*(curl|wget)'                                   # sh -c "$(curl …)" (quotes stripped by norm)
   # whole-disk / filesystem destruction
@@ -1974,6 +2187,18 @@ _deny() {
   exit 2   # 2 blocks the tool call; 1 would NOT (non-blocking error)
 }
 
+# 1012-guard-glob (2026-10-19): the structural helpers word-split the command
+# with unquoted `for word in $seg` loops. Without noglob, a token holding `*`,
+# `?` or `[` was replaced by matching file names from the HOOK's cwd before the
+# scan, so the verdict depended on what happened to be on disk. Nothing in this
+# section globs on purpose, so pathname expansion is off for all of it.
+# (Residual, stated: a glob token that the REAL shell would expand to a planted
+# file named like a method or a ref — `-X DELET?`, `checkout mai?` — is now
+# scanned literally. That needs a file written by an EARLIER tool call, the
+# cross-call write-then-execute class the SCOPE note above puts out of scope;
+# before this the verdict depended on the hook's cwd, which need not be the
+# command's.)
+set -f
 # Order-independent structural checks first.
 if _is_dangerous_rm "$norm";       then _deny "recursive-rm-of-dangerous-target"; fi
 if _is_dangerous_chmod "$norm";    then _deny "recursive-chmod-world-or-lockout"; fi
@@ -1986,6 +2211,7 @@ if _is_dangerous_git_reset_hard "$norm";    then _deny "git-reset-hard"; fi
 if _is_dangerous_merge "$norm" "$_norm_before_gitstrip";      then _deny "bypass-shaped-merge"; fi
 if _is_dangerous_update_ref "$norm"; then _deny "git-update-ref-delete"; fi
 if _is_dangerous_gh_curl_delete "$norm"; then _deny "destructive-delete-api-call"; fi
+set +f
 
 # Then the pattern array.
 for pat in "${deny_patterns[@]}"; do

@@ -6,21 +6,21 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 903
 summary: "route-task.py picks a lane, not a vendor; cheap-lane-delegate.sh picks the agent — and the two CLIs' real capability shapes genuinely diverge."
-last_verified: 2026-10-09
+last_verified: 2026-10-19
 covers:
   - plugins/ravenclaude-core/scripts/cheap-lane-delegate.sh
   - plugins/ravenclaude-core/scripts/copilot-delegate.sh
   - plugins/ravenclaude-core/scripts/grok-delegate.sh
   - plugins/ravenclaude-core/scripts/route-task.py
   - plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md
-covers_digest: "sha256:c8999c98292a8e9d5d0ddf591d906e99fb3c9f7f725ac0627ade974f1a86185d"
+covers_digest: "sha256:a2c316a3d20804df9832fe8aeca41bf2196688d73184b1d23205a3eb5fdc0bd4"
 nuance: "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model."
 nuance_evidence:
   measured: 2026-08-26
   control: "a call with --model auto and NO --effort flag completed normally, isolating the rejection to the flag pairing rather than to the CLI itself"
   falsifier: "a future Copilot CLI release accepting --effort together with --model auto"
   probe: "plugins/ravenclaude-core/scripts/copilot-delegate.sh"
-nuance_source: "plugins/ravenclaude-core/scripts/copilot-delegate.sh:195-200"
+nuance_source: "plugins/ravenclaude-core/scripts/copilot-delegate.sh:209-214"
 verify:
   tier: "none"
   rationale: "The rejection is live Copilot CLI runtime behavior, not something offline-stageable in CI; re-verifying it means a real non-interactive Copilot CLI call — already recorded as nuance_evidence.control — not a separate staged check."

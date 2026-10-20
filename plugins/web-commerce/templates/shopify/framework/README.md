@@ -114,18 +114,34 @@ adopting the full Hydrogen framework.
 production (the in-memory reference in
 [`../../shared/idempotency-store.ts`](../../shared/idempotency-store.ts) is
 for tests only — see that file's doc comment). A minimal Vercel KV-backed
-example:
+example of all four methods the handler calls (`claim` → side effects →
+`remember`, or `release` when they throw):
 
 ```ts
 import { kv } from "@vercel/kv";
 import type { IdempotencyStore } from "@/shopify/../shared/idempotency-store";
 
+const key = (eventId: string) => `shopify:event:${eventId}`;
+
 export const myKvIdempotencyStore: IdempotencyStore = {
   async seen(eventId) {
-    return (await kv.get(`shopify:event:${eventId}`)) !== null;
+    return (await kv.get(key(eventId))) !== null;
+  },
+  async claim(eventId, leaseSeconds = 60 * 10) {
+    // Atomic set-if-absent lease: exactly one concurrent delivery gets "OK".
+    // [verify-at-use: @vercel/kv set() with { nx: true } resolves "OK" or null]
+    return (await kv.set(key(eventId), "processing", { nx: true, ex: leaseSeconds })) === "OK";
   },
   async remember(eventId, ttlSeconds = 60 * 60 * 24 * 7) {
-    await kv.set(`shopify:event:${eventId}`, 1, { ex: ttlSeconds });
+    await kv.set(key(eventId), "done", { ex: ttlSeconds });
+  },
+  async release(eventId) {
+    await kv.del(key(eventId));
   },
 };
 ```
+
+> **Superseded 2026-10-19 (web-commerce 0.1.3):** this sample used to define
+> only `seen()` and `remember()`. `IdempotencyStore` now also requires
+> `claim()` and `release()`, and `webhook.ts` uses them, so the old sample no
+> longer type-checks against the interface.

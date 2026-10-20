@@ -128,17 +128,21 @@ _scrub_helper="$(dirname "$0")/../hooks/_scrub.sh"
 if ! declare -p _secret_patterns >/dev/null 2>&1; then
   # Kept byte-for-byte in sync with hooks/_scrub.sh _secret_patterns (and the
   # thing-seat.sh fallback) — the backstop must not silently miss a secret type
-  # the canonical list covers. Last synced 2026-08 review.
+  # the canonical list covers. Last synced 2026-10-19 (secret_spec).
   _secret_patterns=(
     'AKIA[0-9A-Z]{12,}'
-    'sk-(ant-)?[A-Za-z0-9-]{20,}'
+    '(^|[^A-Za-z0-9])ASIA[0-9A-Z]{12,}'
+    '(^|[^A-Za-z0-9])sk-(ant-)?[A-Za-z0-9-]{20,}'
     'sk_live_[A-Za-z0-9]{24,}'
+    'sk_test_[A-Za-z0-9]{16,}'
     'rk_live_[A-Za-z0-9]{24,}'
-    'ghp_[A-Za-z0-9]{30,}'
+    'gh[pousr]_[A-Za-z0-9]{30,}'
     'github_pat_[A-Za-z0-9_]{20,}'
     'glpat-[A-Za-z0-9_-]{15,}'
     'xox[baprs]-[A-Za-z0-9-]{10,}'
+    'xapp-[0-9]+-[A-Za-z0-9-]{10,}'
     'AIza[0-9A-Za-z_-]{30,}'
+    'ya29\.[A-Za-z0-9_-]{20,}'
     'npm_[A-Za-z0-9]{30,}'
     'hf_[A-Za-z0-9]{30,}'
     'AccountKey=[A-Za-z0-9+/=]{20,}'

@@ -115,6 +115,20 @@ _TABLE = re.compile(r"^\s*\[([^\]]+)\]\s*$")
 # for the anchor only; keep _TABLE for name matching.
 _ANY_TABLE = re.compile(r"^\s*\[\[?[^\]]+\]\]?\s*$")
 _LEVEL = re.compile(r"^\s*(user|local|project)\s*:\s*([A-Za-z]+)\s*$")
+# Any line that STARTS by naming one of the keys this tool owns, in any spelling:
+# bare, quoted (`"sandbox_mode" = …`), dotted (`sandbox_workspace_write.x = …`),
+# or an inline table (`sandbox_workspace_write = { … }`). Every such line must be
+# explained by a simple match below, or the emitter refuses (repo-review
+# 2026-10-19, scripts-8). Without this, a non-simple spelling read as "key
+# absent", a duplicate was appended, and on a host with no TOML parser (stock
+# macOS python3) the invalid result was written, so Codex fell back to its
+# default sandbox while this tool reported success.
+_OWNED_KEY_MENTION = re.compile(
+    r"""^\s*["']?(sandbox_mode|approval_policy|sandbox_workspace_write)\b"""
+)
+# A table header naming sandbox_workspace_write in anything but the bare
+# `[sandbox_workspace_write]` form (quoted, array-of-tables, sub-table).
+_OWNED_TABLE_MENTION = re.compile(r"""^\s*\[\[?\s*["']?\s*sandbox_workspace_write\b""")
 
 
 class Refuse(Exception):
@@ -215,21 +229,33 @@ def scan_toml(text: str) -> dict:
 
     `table` is "" for the root. A key whose value we cannot confidently read is
     recorded with value None, which forces a refusal upstream rather than a guess.
+    A line that names an owned key in a form the simple scanner cannot read
+    raises Refuse outright (see _OWNED_KEY_MENTION).
     """
     found: dict = {}
     table = ""
+    explained: set = set()
+    mentions: list = []
     for i, raw in enumerate(text.splitlines()):
         line = raw.split("#", 1)[0].rstrip()
         if not line.strip():
             continue
+        if _OWNED_KEY_MENTION.match(line) or _OWNED_TABLE_MENTION.match(line):
+            mentions.append((i, raw))
         m = _TABLE.match(line)
         if m:
             table = m.group(1).strip()
+            if table == "sandbox_workspace_write":
+                explained.add(i)  # the bare header emit() knows how to extend
             continue
         m = _SIMPLE_KV.match(line)
         if not m:
             continue
         key, val = m.group(1), m.group(2).strip()
+        if key in ("sandbox_mode", "approval_policy"):
+            explained.add(i)  # decide() handles every value shape, incl. None
+        elif key == "sandbox_workspace_write" and table:
+            explained.add(i)  # a key of that name under ANOTHER table: not ours
         if val.startswith('"""') or val.startswith("'''") or val.endswith("\\"):
             found[(table, key)] = (None, i)  # multi-line / continuation: refuse
             continue
@@ -239,6 +265,19 @@ def scan_toml(text: str) -> dict:
             found[(table, key)] = (val, i)
         else:
             found[(table, key)] = (None, i)  # array/table/number: not ours to touch
+    # Second pass (scripts-8): every line that names an owned key must have been
+    # read by the simple scanner above. One that was not (a quoted key, a dotted
+    # key, an inline table, a non-bare table header) is REFUSED — with or without
+    # a TOML parser — because "I could not read it" must never become "absent".
+    for i, raw in mentions:
+        if i not in explained:
+            raise Refuse(
+                f"line {i + 1} of .codex/config.toml ({raw.strip()[:80]!r}) sets a "
+                "sandbox key in a form this tool does not parse (a quoted key, a "
+                "dotted key, an inline table or a non-bare table header). Nothing "
+                "was written; set sandbox_mode / approval_policy / "
+                "[sandbox_workspace_write] network_access on that line by hand."
+            )
     return found
 
 
@@ -301,7 +340,10 @@ def emit(project: Path, dry_run: bool = False) -> int:
                 file=sys.stderr,
             )
 
-    text = cfg_path.read_text(encoding="utf-8") if cfg_path.is_file() else ""
+    # Read BYTES so a CRLF file stays CRLF (read_text's universal-newline mode
+    # would silently convert it, and the rewrite below would then ship LF).
+    text = cfg_path.read_bytes().decode("utf-8") if cfg_path.is_file() else ""
+    nl = "\r\n" if "\r\n" in text else "\n"
     existing = scan_toml(text)
 
     plan = []
@@ -411,7 +453,7 @@ def emit(project: Path, dry_run: bool = False) -> int:
             # bare at EOF (where it would bind to whatever the last table is — the
             # same root-key-below-table hazard handled for root keys above).
             lines[swt_idx + 1 : swt_idx + 1] = new_nested
-    new_text = "\n".join(lines).rstrip("\n") + "\n"
+    new_text = nl.join(lines).rstrip("\r\n") + nl
     # Parse before writing: a file we cannot parse is a file we must not ship (mirrors
     # install-codex-mcp.py). Best-effort — skipped when no TOML parser is importable
     # (stock-macOS py3.9 without tomli), where the structural insertion above already
@@ -428,7 +470,7 @@ def emit(project: Path, dry_run: bool = False) -> int:
             )
             return 1
     cfg_path.parent.mkdir(parents=True, exist_ok=True)
-    cfg_path.write_text(new_text, encoding="utf-8")
+    cfg_path.write_bytes(new_text.encode("utf-8"))
     return 0
 
 
@@ -467,6 +509,7 @@ categories:
 
 def self_test() -> int:
     """Fixture-free self-test. Every case below is one that bit, or would have."""
+    global _toml  # case 9 simulates a host with no TOML parser
     import tempfile
 
     fails = []
@@ -596,6 +639,68 @@ def self_test() -> int:
     d = setup(_POSTURE_WRITES, "sandbox_mode = { granular = 1 }\n")
     emit(d)
     check("unparseable existing value is left alone", "granular" in cfg(d))
+
+    # 9. scripts-8: spellings the simple scanner cannot read are REFUSED, with the
+    #    file byte-identical — on a host WITH a TOML parser and on one WITHOUT
+    #    (stock macOS python3 3.9), where the parse-before-write guard is skipped
+    #    and the duplicate key would otherwise have been written.
+    saved_toml = _toml
+    unreadable = (
+        ("quoted key", '"sandbox_mode" = "read-only"\n'),
+        ("dotted key", "sandbox_workspace_write.network_access = true\n"),
+        ("inline table", "sandbox_workspace_write = { network_access = false }\n"),
+        ("quoted table header", '["sandbox_workspace_write"]\nnetwork_access = true\n'),
+    )
+    try:
+        for parser in ("with a TOML parser", "with NO TOML parser"):
+            _toml = saved_toml if parser.startswith("with a") else None
+            for label, body in unreadable:
+                d = setup(_POSTURE_WRITES, body)
+                before = (d / ".codex" / "config.toml").read_bytes()
+                refused = False
+                try:
+                    emit(d)
+                except Refuse:
+                    refused = True
+                check(f"{label} ({parser}): refused", refused)
+                check(
+                    f"{label} ({parser}): file byte-identical",
+                    (d / ".codex" / "config.toml").read_bytes() == before,
+                )
+        # ...and the SIMPLE spellings still emit with no parser at all.
+        _toml = None
+        d = setup(_POSTURE_READS_ONLY, 'sandbox_mode = "workspace-write"\n')
+        emit(d)
+        check("no parser: a simple key is still tightened", 'sandbox_mode = "read-only"' in cfg(d))
+        d = setup(_POSTURE_WRITES)
+        emit(d)
+        check(
+            "no parser: an absent file is still written",
+            'sandbox_mode = "workspace-write"' in cfg(d),
+        )
+        d = setup(_POSTURE_WRITES, '[profiles.dev]\nsandbox_mode = "read-only"\n')
+        refused = False
+        try:
+            emit(d)
+        except Refuse:
+            refused = True
+        check("no parser: a simple key under ANOTHER table is not refused", not refused)
+        lines = cfg(d).splitlines()
+        first_table = next((i for i, ln in enumerate(lines) if ln.startswith("[")), len(lines))
+        root_sm = next((i for i, ln in enumerate(lines) if ln.startswith("sandbox_mode")), -1)
+        check("no parser: root key still lands above [profiles.dev]", 0 <= root_sm < first_table)
+    finally:
+        _toml = saved_toml
+
+    # 10. scripts-8: a CRLF file stays CRLF through a tighten + a nested append.
+    d = setup(_POSTURE_READS_ONLY, "")
+    (d / ".codex" / "config.toml").write_bytes(
+        b'sandbox_mode = "workspace-write"\r\n[mcp_servers.x]\r\ncommand = "y"\r\n'
+    )
+    emit(d)
+    raw = (d / ".codex" / "config.toml").read_bytes()
+    check("CRLF preserved", b"\r\n" in raw and raw.count(b"\n") == raw.count(b"\r\n"))
+    check("CRLF file was still tightened", b'sandbox_mode = "read-only"' in raw)
 
     print(f"\n  {len(fails)} failure(s)")
     return 1 if fails else 0

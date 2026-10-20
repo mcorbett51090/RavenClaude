@@ -101,7 +101,9 @@ jobs:
       - name: Assert this sweep is NOT a required status check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash scripts/assert-not-required-check.sh 'Inventory sweep'
+        # Ruleset contexts are JOB names, not workflow names: 'Inventory sweep'
+        # could never match, so this step passed whatever the ruleset said (cicd-4).
+        run: bash scripts/assert-not-required-check.sh 'T0 + T1 efficacy sweep'
 
       - name: Job summary — derived labels only
         if: always()

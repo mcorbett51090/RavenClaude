@@ -40,13 +40,22 @@ fi
 [ ! -f "$scan_target" ] && exit 0
 
 findings=()
-if grep -nEi "(float|double|decimal\\s*\\(|Number)\\s*[\\s\\S]{0,30}(price|amount|total|cost|money|cents|balance)" "$scan_target" >/dev/null 2>&1; then
+# This check and the logging one below used `[\\s\\S]{0,N}` inside grep -E. In
+# POSIX ERE that is the set {backslash, s, S}, so the gap only matched when the
+# two tokens were adjacent (`float price` fired; `float(order.total)` and
+# `logger.info(card_number)` did not) (repo-review 2026-10-19). Both are
+# line-local POSIX ERE now. Float money: a float/double type or cast applied to
+# a money-named identifier, or a money-named field typed float/double. Decimal
+# (the correct money type) no longer counts, nor does a bare JS `Number`.
+if grep -nEi "(float|double|parseFloat)([[:space:]]+|[[:space:]]*\\([[:space:]]*)[A-Za-z_.]{0,20}(price|amount|total|cost|money|balance)|(price|amount|total|cost|money|balance)[A-Za-z_]*[[:space:]]*:[[:space:]]*(float|double)" "$scan_target" >/dev/null 2>&1; then
   findings+=("Possible floating-point money — store/compute money as integer minor units (cents) + currency; floats cause rounding disputes.")
 fi
 if grep -nEi "(card_number|pan|cvv|cvc|card\\.number|securityCode)\\s*[=:]" "$scan_target" >/dev/null 2>&1; then
   findings+=("Handling/logging raw card data (PAN/CVV) — never let it touch your servers/logs; use PSP tokenization (PCI scope).")
 fi
-if grep -nEi "log[\\s\\S]{0,40}(card_number|pan|cvv|cvc)" "$scan_target" >/dev/null 2>&1; then
+# Logging card data: a log/print call whose argument list names card data
+# before its first `)`. `pan` must be a whole word (not "expand", "company").
+if grep -nEi "(log|logger|logging|console|print)[A-Za-z_.]*\\([^)]*(card_?number|cvv|cvc|(^|[^[:alpha:]])pan([^[:alpha:]]|$))" "$scan_target" >/dev/null 2>&1; then
   findings+=("Logging card data — a PAN/CVV in logs is a serious PCI violation; never log it.")
 fi
 

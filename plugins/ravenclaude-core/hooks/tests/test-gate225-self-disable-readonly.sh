@@ -30,6 +30,9 @@ MUST_FAIL_META=0
 [ "${1:-}" = "--must-fail-meta" ] && MUST_FAIL_META=1
 
 fails=0
+# A config file named here can add --pre to every rg call, so the carve-out must
+# never trust it — and this test must not inherit one from the caller's shell.
+unset RIPGREP_CONFIG_PATH
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 
@@ -97,6 +100,24 @@ check ALLOW "git show a substrate blob"                 'git show origin/main:pl
 check ALLOW "git log over the scripts directory"        'git log --oneline plugins/ravenclaude-core/scripts/'
 check ALLOW "a search whose PATTERN names a verb"       "grep -n 'rm -rf' plugins/ravenclaude-core/hooks/hooks.json"
 check ALLOW "line-count a substrate file"               'wc -l plugins/ravenclaude-core/scripts/thing-concerns.py'
+
+echo
+echo "── rg / ugrep that can RUN a program are not read-only (1005-P2-9) ──"
+check DENY  "rg --pre runs a program per file"          "rg --pre /tmp/p.sh -n 'rm -rf' plugins/ravenclaude-core/hooks/hooks.json"
+check DENY  "a quoted --pre is still the flag"          "rg \"--pre\" /tmp/p.sh -n 'rm -rf' plugins/ravenclaude-core/hooks/hooks.json"
+check DENY  "rg --pre-glob"                             "rg --pre-glob '*.gz' -n 'rm -rf' plugins/ravenclaude-core/hooks/hooks.json"
+check DENY  "rg -z shells out to a decompressor"        "rg -z -n 'rm -rf' plugins/ravenclaude-core/hooks/hooks.json"
+check DENY  "ugrep --filter runs a program"             "ugrep --filter='*:cat' -n 'rm -rf' plugins/ravenclaude-core/hooks/hooks.json"
+check DENY  "rg --config-path can inject --pre"         "rg --config-path /tmp/c -n 'rm -rf' plugins/ravenclaude-core/hooks/hooks.json"
+check DENY  "a RIPGREP_CONFIG_PATH= prefix"             "RIPGREP_CONFIG_PATH=/tmp/c rg -n 'rm -rf' plugins/ravenclaude-core/hooks/hooks.json"
+check ALLOW "plain rg -n over the substrate"            "rg -n 'rm -rf' plugins/ravenclaude-core/hooks/hooks.json"
+got="$(RIPGREP_CONFIG_PATH=/tmp/c verdict "rg -n 'rm -rf' plugins/ravenclaude-core/hooks/hooks.json")"
+if [ "$got" = "DENY" ]; then
+  printf '  ✓ %-5s %s\n' "$got" "RIPGREP_CONFIG_PATH in the environment voids the rg carve-out"
+else
+  printf '  ✗ want=DENY got=%s  %s\n' "$got" "RIPGREP_CONFIG_PATH in the environment voids the rg carve-out"
+  fails=$((fails + 1))
+fi
 
 echo
 if [ "$fails" -eq 0 ]; then

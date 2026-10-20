@@ -13,9 +13,13 @@
 #   * MCP servers are written to ~/.copilot/mcp-config.json
 #
 # Subcommands:
-#   ravenclaude setup [--project DIR]     one-shot: install + seed & apply a balanced
-#                                         comfort-posture + add an `rc` launch alias
-#   ravenclaude install [--project DIR]   one-time wiring into a project (default: $PWD)
+#   ravenclaude setup [--project DIR] [--host H]
+#                                         one-shot: seed a balanced comfort-posture +
+#                                         install + apply it + add an `rc` launch alias
+#   ravenclaude install [--project DIR | DIR] [--host H] [--force]
+#                                         one-time wiring into a project (default: $PWD;
+#                                         refuses the marketplace checkout itself
+#                                         unless --force; an unknown flag exits 2)
 #   ravenclaude update                    git pull the marketplace + regenerate the Copilot package
 #   ravenclaude status [--project DIR]    show what is wired
 #   ravenclaude dashboard [--project DIR] [--port N]
@@ -46,6 +50,95 @@ CODEX_SHIM="$CORE/hooks/codex-hook-env.sh"
 note() { printf '  %s\n' "$*"; }
 ok()   { printf '\033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m!\033[0m %s\n' "$*" >&2; }
+
+# ── install-lane bookkeeping (repo-review 2026-10-19, scripts-5) ──────────────
+# Every step that wires a guardrail or projects a posture calls _rc_lane_failed
+# on its failure path. The closing "install complete" line is then replaced by
+# a loud "NOT fully installed" warning, so the last word of a half-wired install
+# is never a green tick. The exit status is deliberately unchanged: cmd_setup
+# calls cmd_install under `set -euo pipefail`, and a non-zero return there would
+# abort setup before the posture seed + launcher steps (the reviewed trap).
+RC_LANE_FAILED=0
+_rc_lane_failed() { RC_LANE_FAILED=$((RC_LANE_FAILED + 1)); }
+
+# _rc_install_done "<message>" — the closing line of a lane (or of setup).
+_rc_install_done() {
+  if [ "${RC_LANE_FAILED:-0}" -gt 0 ]; then
+    warn "NOT fully installed — ${RC_LANE_FAILED} wiring/projection step(s) failed above."
+    warn "  Guardrails may not be armed for this project. Fix the cause and re-run."
+  else
+    ok "$*"
+  fi
+}
+
+# _rc_backup_name <path> — a collision-free sibling backup name that does not
+# exist yet (neither as a file nor as a dangling symlink). The suffix carries a
+# timestamp; a counter breaks a same-second tie.
+_rc_backup_name() {
+  local base="$1.rc-bak.$(date +%s 2>/dev/null || echo 0)" cand n=0
+  cand="$base"
+  while [ -e "$cand" ] || [ -L "$cand" ]; do
+    n=$((n + 1))
+    cand="$base.$n"
+  done
+  printf '%s\n' "$cand"
+}
+
+# _rc_place_link <src> <dest> — point <dest> at <src> (a skill dir or command
+# file) WITHOUT destroying anything the user owns (scripts-2, scripts-3).
+#   * <dest> is a symlink (ours from an earlier run, or dangling) -> replaced.
+#   * <dest> is a real file/dir byte-identical to <src> (our own earlier cp
+#     fallback) -> refreshed, no backup (an idempotent re-run piles up nothing).
+#   * <dest> is a real file/dir that DIFFERS -> moved aside ONCE to a
+#     collision-free <dest>.rc-bak.<ts>, with a warning. Never `mv x y` onto a
+#     path that may be a symlink-to-dir (GNU and BSD mv would move INTO it).
+# Warnings go to stderr: every caller captures stdout as a count.
+_rc_place_link() {
+  local src="$1" dest="$2" bak
+  if [ -L "$dest" ]; then
+    rm -f "$dest"
+  elif [ -e "$dest" ]; then
+    if diff -rq "$src" "$dest" >/dev/null 2>&1; then
+      rm -rf "$dest"
+    else
+      bak="$(_rc_backup_name "$dest")"
+      if mv "$dest" "$bak" 2>/dev/null; then
+        warn "kept your own $(basename "$dest") as $(basename "$bak") (it differed from the RavenClaude copy)"
+      else
+        warn "could not move your own $dest aside — left it in place, not wired"
+        return 1
+      fi
+    fi
+  fi
+  ln -s "$src" "$dest" 2>/dev/null || cp -r "$src" "$dest"
+}
+
+# _rc_backup_if_differs <dest> <tmp> — install a freshly generated <tmp> as
+# <dest> (scripts-4). When <dest> already exists with DIFFERENT content it is
+# copied to <dest>.rc-bak.<ts> first, and the path is printed; an identical
+# re-run creates no backup. Returns non-zero (and leaves <dest> untouched) when
+# the backup cannot be taken or <dest> is a real directory.
+_rc_backup_if_differs() {
+  local dest="$1" tmp="$2" bak
+  if [ -d "$dest" ] && [ ! -L "$dest" ]; then
+    warn "$dest is a directory — not overwritten"
+    rm -f "$tmp"
+    return 1
+  fi
+  if [ -f "$dest" ] && ! cmp -s "$dest" "$tmp"; then
+    bak="$(_rc_backup_name "$dest")"
+    if ! cp -p "$dest" "$bak" 2>/dev/null; then
+      warn "could not back up $dest — left it unchanged"
+      rm -f "$tmp"
+      return 1
+    fi
+    note "backed up your previous $(basename "$dest") to $(basename "$bak") (its content differed)"
+  fi
+  # A symlinked dest is replaced by a regular file rather than written THROUGH
+  # (mv onto a symlink-to-dir would move the temp file INTO the target dir).
+  [ -L "$dest" ] && rm -f "$dest"
+  mv -f "$tmp" "$dest"
+}
 
 # Shared host-activation helpers (PR 10 / Gate 207). Sourced, not executed.
 # `_rc_rearm_notice` is the one abstraction for Codex hash-trust + Copilot
@@ -218,13 +311,19 @@ wire_cursor() {
   local adapter="$CORE/hooks/cursor-hook-adapter.sh"
   mkdir -p "$project/.cursor/rules"
   if [ -f "$gen" ]; then
-    python3 "$gen" --adapter "$adapter" --hooks-dir "$CORE/hooks" \
-      --out "$project/.cursor/hooks.json" \
-      && ok "wired guardrails into .cursor/hooks.json (projected from the manifest)" \
-      || warn "cursor hook projection FAILED — no guardrails wired for this project"
-    note "If .cursor/hooks.json already existed it was OVERWRITTEN — merge by hand if you had other hooks in it."
+    local cur_tmp="$project/.cursor/hooks.json.rc-tmp.$$"
+    if python3 "$gen" --adapter "$adapter" --hooks-dir "$CORE/hooks" --out "$cur_tmp" \
+      && _rc_backup_if_differs "$project/.cursor/hooks.json" "$cur_tmp"; then
+      ok "wired guardrails into .cursor/hooks.json (projected from the manifest)"
+      note "A pre-existing, different .cursor/hooks.json is backed up first (.rc-bak.<ts>) — merge your own hooks back from it."
+    else
+      rm -f "$cur_tmp"
+      warn "cursor hook projection FAILED — no guardrails wired for this project"
+      _rc_lane_failed
+    fi
   else
     warn "generate-cursor-hooks.py missing — Cursor guardrails NOT wired"
+    _rc_lane_failed
   fi
 
   # Rule 1 — the always-on discipline pointer.
@@ -292,8 +391,11 @@ PY2
   ok "wired 2 Cursor rules into .cursor/rules/*.mdc (incl. the glob-scoped layout rule)"
   note "NOT enforced under Cursor: the layout gate and web-access guard have no"
   note "  verified enforcement event there. CI is the backstop; the rules say so."
-  # ENH-026
-  python3 - "$project/.cursorignore" <<'PYIGN'
+  # ENH-026. Wrapped (scripts-13): a hand-trimmed managed block (BEGIN marker
+  # kept, END marker deleted) or an unreadable file is reported and left
+  # UNCHANGED, and the rest of the Cursor lane still runs. The write happens only
+  # at the very end of the program, so any refusal leaves the file as it was.
+  if python3 - "$project/.cursorignore" <<'PYIGN'
 import sys
 from pathlib import Path
 path = Path(sys.argv[1])
@@ -320,16 +422,28 @@ secrets.yaml
 **/*credentials*
 # END RAVENCLAUDE
 """
-text = path.read_text(encoding="utf-8") if path.is_file() else ""
+try:
+    text = path.read_text(encoding="utf-8") if path.is_file() else ""
+except (OSError, UnicodeDecodeError) as exc:
+    sys.stderr.write("cannot read " + str(path) + ": " + str(exc) + "\n")
+    sys.exit(1)
 if BEGIN in text:
     pre, rest = text.split(BEGIN, 1)
+    if END not in rest:
+        sys.stderr.write(str(path) + ": the BEGIN RAVENCLAUDE marker has no END marker\n")
+        sys.exit(1)
     _, post = rest.split(END, 1)
     merged = pre.rstrip() + "\n\n" + block + post.lstrip("\n")
 else:
     merged = (text.rstrip() + "\n\n" if text.strip() else "") + block
 path.write_text(merged, encoding="utf-8")
 PYIGN
-  ok "upserted RavenClaude secret globs into .cursorignore"
+  then
+    ok "upserted RavenClaude secret globs into .cursorignore"
+  else
+    warn ".cursorignore was NOT updated (see the reason above) — left unchanged; restore the END marker or remove the managed block, then re-run"
+    _rc_lane_failed
+  fi
   n_cursor_skills="$(wire_cursor_skills "$project" "ravenclaude-core")"
   ok "wired $n_cursor_skills skills into .cursor/skills/"
   cagents="$MARKET/scripts/generate-cursor-agents.py"
@@ -340,7 +454,7 @@ PYIGN
   if [ -f "$bugbot" ] && ! grep -q 'BEGIN RAVENCLAUDE' "$bugbot" 2>/dev/null; then
     note ".cursor/BUGBOT.md exists without a RavenClaude marker — left unchanged"
   else
-    python3 - "$bugbot" <<'PYBB'
+    if python3 - "$bugbot" <<'PYBB'
 import sys
 from pathlib import Path
 path = Path(sys.argv[1])
@@ -353,16 +467,28 @@ Before adding files, match a glob in `.repo-layout.json` `allowed_globs` (CI enf
 The layout rule also lives in `.cursor/rules/repo-layout.mdc`; CI is the backstop when Cursor has no path guard.
 <!-- END RAVENCLAUDE -->
 """
-text = path.read_text(encoding="utf-8") if path.is_file() else ""
+try:
+    text = path.read_text(encoding="utf-8") if path.is_file() else ""
+except (OSError, UnicodeDecodeError) as exc:
+    sys.stderr.write("cannot read " + str(path) + ": " + str(exc) + "\n")
+    sys.exit(1)
 if BEGIN in text:
     pre, rest = text.split(BEGIN, 1)
+    if END not in rest:
+        sys.stderr.write(str(path) + ": the BEGIN RAVENCLAUDE marker has no END marker\n")
+        sys.exit(1)
     _, post = rest.split(END, 1)
     merged = pre.rstrip() + "\n\n" + body.strip() + "\n\n" + post.lstrip("\n")
 else:
     merged = (text.rstrip() + "\n\n" if text.strip() else "") + body
 path.write_text(merged, encoding="utf-8")
 PYBB
-    ok "upserted RavenClaude block into .cursor/BUGBOT.md"
+    then
+      ok "upserted RavenClaude block into .cursor/BUGBOT.md"
+    else
+      warn ".cursor/BUGBOT.md was NOT updated (see the reason above) — left unchanged"
+      _rc_lane_failed
+    fi
   fi
 
 
@@ -379,13 +505,15 @@ wire_cursor_skills() {
   local n=0
   for d in "$skills_src"/*/; do
     [ -d "$d" ] || continue
-    local name dest old
+    local name dest
     name="$(basename "$d")"
     dest="$project/.cursor/skills/$name"
-    old="${dest}.rc-old"
-    [ -e "$dest" ] || [ -L "$dest" ] && mv "$dest" "$old" 2>/dev/null || true
-    ln -s "$d" "$dest" 2>/dev/null || cp -r "$d" "$dest"
-    [ -e "$old" ] && mv "$old" "${old}.trash" 2>/dev/null || true
+    # scripts-2: no .rc-old/.trash rotation. The old rotation moved a symlink
+    # onto a path that was itself a symlink-to-dir by the third run, so mv
+    # moved it INTO the marketplace skill dir (a cyclic <skill>.rc-old link in
+    # the SOURCE tree). _rc_place_link removes only links and backs up real
+    # user content once, under a fresh name.
+    _rc_place_link "$d" "$dest" || continue
     n=$((n + 1))
   done
   echo "$n"
@@ -422,8 +550,8 @@ wire_codex_skills() {
     [ -d "$d" ] || continue
     local name; name="$(basename "$d")"
     local dest="$project/.agents/skills/$name"
-    rm -rf "$dest"
-    ln -s "$d" "$dest" 2>/dev/null || cp -r "$d" "$dest"
+    # scripts-3: never rm -rf a same-named skill the user wrote themselves.
+    _rc_place_link "$d" "$dest" || continue
     n=$((n + 1))
   done
   echo "$n"
@@ -480,7 +608,16 @@ wire_codex_hooks() {
     warn "scripts/generate-codex-hooks.py is missing — run 'ravenclaude update' first"
     return 1
   fi
-  python3 "$generator" --shim "$CODEX_SHIM" --hooks-dir "$CORE/hooks" --out "$hooks_file"
+  # scripts-4: generate to a temp file and back up a differing existing
+  # .codex/hooks.json before replacing it. Every step returns explicitly: this
+  # function is called as an `if` condition, where `set -e` does not apply.
+  local cdx_tmp="$hooks_file.rc-tmp.$$"
+  if ! python3 "$generator" --shim "$CODEX_SHIM" --hooks-dir "$CORE/hooks" --out "$cdx_tmp"; then
+    rm -f "$cdx_tmp"
+    warn "codex hook projection FAILED — .codex/hooks.json NOT written"
+    return 1
+  fi
+  _rc_backup_if_differs "$hooks_file" "$cdx_tmp" || return 1
   local after_count
   after_count="$(codex_hook_count "$hooks_file")"
   note ".codex/hooks.json hook entries (all events): $before_count -> $after_count. SessionStart is now derived from hooks.json (matcher included, up to 9 hooks) instead of a fixed 2-hook hand-list; PreToolUse/PostToolUse/Stop are unchanged."
@@ -874,8 +1011,8 @@ wire_plugin_commands() {
     local name
     name="$(basename "$f")"
     local dest="$project/.claude/commands/$name"
-    rm -f "$dest"
-    ln -s "$f" "$dest" 2>/dev/null || cp "$f" "$dest"
+    # scripts-3: a project's own same-named command is moved aside, not deleted.
+    _rc_place_link "$f" "$dest" || continue
     n=$((n + 1))
   done
   echo "$n"
@@ -902,8 +1039,8 @@ wire_plugin_skills() {
     [ -d "$d" ] || continue
     local name; name="$(basename "$d")"
     local dest="$project/.claude/skills/$name"
-    rm -rf "$dest"
-    ln -s "$d" "$dest" 2>/dev/null || cp -r "$d" "$dest"
+    # scripts-3: a project's own same-named skill is moved aside, not deleted.
+    _rc_place_link "$d" "$dest" || continue
     n=$((n + 1))
   done
   echo "$n"
@@ -959,17 +1096,53 @@ cmd_install() {
   local project="$PWD"
   local extra_plugins=()
   local host=""
+  local force=0 positional=""
+  # scripts-6: the parser used to end in `*) shift ;;`, so a bare project path or
+  # a typo'd flag was silently ignored and the install landed in $PWD (often the
+  # marketplace checkout itself). Value flags now require a value, an unknown
+  # flag exits 2, and one bare word is the project, as in the sibling commands.
   while [ $# -gt 0 ]; do
+    case "$1" in
+      --project|--with-plugin|--host|--with-mcp)
+        if [ $# -lt 2 ] || [ -z "$2" ]; then
+          warn "$1 needs a value"
+          exit 2
+        fi
+        ;;
+    esac
     case "$1" in
       --project) project="$2"; shift 2 ;;
       --with-plugin) extra_plugins+=("$2"); shift 2 ;;
       --host) host="$2"; shift 2 ;;
       # MH-19 — opt in to third-party MCP servers BY NAME. Repeatable.
       --with-mcp) RC_WITH_MCP="${RC_WITH_MCP:+$RC_WITH_MCP,}$2"; export RC_WITH_MCP; shift 2 ;;
-      *) shift ;;
+      --force) force=1; shift ;;
+      # cmd_setup forwards "${install_args[@]:-}", the bash 3.2-safe idiom, and
+      # it expands to ONE EMPTY argument when the array is empty. Skip it.
+      "") shift ;;
+      -*)
+        warn "unknown flag for install: $1"
+        printf 'usage: ravenclaude install [--project DIR | DIR] [--host copilot|codex|cursor|aider|gemini] [--with-plugin NAME] [--with-mcp NAME] [--force]\n' >&2
+        exit 2
+        ;;
+      *)
+        if [ -n "$positional" ]; then
+          warn "install takes one project directory; got both '$positional' and '$1'"
+          exit 2
+        fi
+        positional="$1"; project="$1"; shift
+        ;;
     esac
   done
   project="$(cd "$project" && pwd)"
+  # Installing INTO the marketplace checkout wires .claude/skills, .github/hooks
+  # and copilot-instructions.md into the repo that builds them. Refuse unless the
+  # caller says so explicitly.
+  if [ "$force" -ne 1 ] && [ "$(cd "$project" && pwd -P)" = "$(cd "$MARKET" && pwd -P)" ]; then
+    warn "refusing to install into the RavenClaude marketplace checkout itself ($project)."
+    note "Pass --project <your-repo> (or run this from inside that repo), or --force if you really mean it."
+    exit 2
+  fi
   if [ -z "$host" ]; then
     host="$(detect_host)"
   fi
@@ -1008,12 +1181,21 @@ cmd_install() {
 import json, sys, pathlib
 
 dest, src = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-try:
-    cur = json.loads(dest.read_text()) if dest.is_file() else {}
+# An existing settings file that strict JSON cannot read (a comment, a trailing
+# comma, a half-saved edit) is REFUSED, never replaced by an object that holds
+# only the hooks: that silently dropped the model, theme and MCP keys. A UTF-8
+# BOM is accepted (utf-8-sig). Exit 3 happens before any write, so the file is
+# left byte-identical. Keep this here-doc free of the apostrophe character.
+cur = {}
+if dest.is_file():
+    try:
+        cur = json.loads(dest.read_text(encoding="utf-8-sig"))
+    except Exception as exc:
+        sys.stderr.write("unparseable " + str(dest) + ": " + str(exc) + chr(10))
+        sys.exit(3)
     if not isinstance(cur, dict):
-        cur = {}
-except Exception:
-    cur = {}
+        sys.stderr.write("unparseable " + str(dest) + ": the top level is not a JSON object" + chr(10))
+        sys.exit(3)
 add = json.loads(src.read_text())
 RC = "ravenclaude-"
 
@@ -1079,12 +1261,18 @@ PY2
           fi
         else
           warn "gemini hooks merge FAILED — .gemini/settings.json left unchanged; no guardrails wired"
+          gem_reason="$(printf '%s\n' "$gem_merge_err" | grep -v RC_GEMINI_FOREIGN_HOOKS | tail -n 1 || true)"
+          [ -n "$gem_reason" ] && note "  reason: $gem_reason"
+          note "  Fix the file (strict JSON: no comments, no trailing commas), then re-run install."
+          _rc_lane_failed
         fi
       else
         warn "gemini hook projection FAILED — no guardrails wired"
+        _rc_lane_failed
       fi
     else
       warn "generate-gemini-hooks.py missing — Gemini guardrails NOT wired"
+      _rc_lane_failed
     fi
 
     # The instruction lane: an IMPORT, not a copy.
@@ -1107,15 +1295,21 @@ PY2
     note "  in .gemini/settings.json (_ravenclaude_not_wired)."
     gem_emit="$MARKET/scripts/emit-gemini-config.py"
     if [ -f "$gem_emit" ] && [ -f "$project/.ravenclaude/comfort-posture.yaml" ]; then
-      python3 "$gem_emit" --project "$project" || true
-      ok "projected comfort posture onto .gemini/settings.json (tighten-only)"
+      # scripts-5: the emitter's exit status decides the line printed, never
+      # `|| true` followed by an unconditional success line.
+      if python3 "$gem_emit" --project "$project"; then
+        ok "projected comfort posture onto .gemini/settings.json (tighten-only)"
+      else
+        warn "comfort posture NOT projected onto .gemini/settings.json (see the reason above)"
+        _rc_lane_failed
+      fi
     fi
 
     wire_dashboard_launchers "$project"
     _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
-      ok "install complete. Launch: gemini (reads .gemini/settings.json from this dir)."
+      _rc_install_done "install complete. Launch: gemini (reads .gemini/settings.json from this dir)."
     fi
     return 0
   fi
@@ -1131,23 +1325,32 @@ PY2
   if [ "$host" = "aider" ]; then
     local agen="$MARKET/scripts/generate-aider-conventions.py"
     if [ -f "$agen" ]; then
-      if python3 "$agen" --out "$project/CONVENTIONS.md" --conf-out "$project/.aider.conf.yml"; then
+      # scripts-4: generate both files to temps; a differing pre-existing file
+      # is backed up (.rc-bak.<ts>) before it is replaced.
+      local aconv_tmp="$project/CONVENTIONS.md.rc-tmp.$$"
+      local aconf_tmp="$project/.aider.conf.yml.rc-tmp.$$"
+      if python3 "$agen" --out "$aconv_tmp" --conf-out "$aconf_tmp" \
+        && _rc_backup_if_differs "$project/CONVENTIONS.md" "$aconv_tmp" \
+        && _rc_backup_if_differs "$project/.aider.conf.yml" "$aconf_tmp"; then
         ok "projected AGENTS.md -> CONVENTIONS.md + wrote .aider.conf.yml (read: opt-in)"
       else
-        warn "aider projection FAILED — CONVENTIONS.md not written"
+        rm -f "$aconv_tmp" "$aconf_tmp"
+        warn "aider projection FAILED — CONVENTIONS.md / .aider.conf.yml not (fully) written"
+        _rc_lane_failed
       fi
     else
       warn "generate-aider-conventions.py missing — Aider files NOT written"
+      _rc_lane_failed
     fi
     note "⚠ NO guardrail runs under Aider — it has no hooks API. CI is the only"
     note "  backstop on this host, and CONVENTIONS.md states that plainly."
-    note "If .aider.conf.yml already existed it was OVERWRITTEN — merge by hand if"
-    note "  you had other keys in it."
+    note "A pre-existing, different .aider.conf.yml is backed up first (.rc-bak.<ts>) —"
+    note "  merge any other keys you had back from that copy."
     wire_dashboard_launchers "$project"
     _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
-      ok "install complete. Launch: aider (it reads .aider.conf.yml from this dir)."
+      _rc_install_done "install complete. Launch: aider (it reads .aider.conf.yml from this dir)."
     fi
     return 0
   fi
@@ -1159,7 +1362,7 @@ PY2
     _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
-      ok "install complete. Open this project in Cursor as usual."
+      _rc_install_done "install complete. Open this project in Cursor as usual."
       note "Updates: run 'ravenclaude update' — hooks load live from this checkout."
     fi
     return 0
@@ -1181,9 +1384,13 @@ PY2
       done
     fi
 
-    wire_codex_hooks "$project"
-    ok "wired hooks into .codex/hooks.json (native contract — no adapter)"
-    note "If .codex/hooks.json already existed it was OVERWRITTEN — merge by hand if you had other hooks in it."
+    if wire_codex_hooks "$project"; then
+      ok "wired hooks into .codex/hooks.json (native contract — no adapter)"
+      note "A pre-existing, different .codex/hooks.json is backed up first (.rc-bak.<ts>) — merge your own hooks back from it."
+    else
+      warn "guardrails NOT wired: .codex/hooks.json was not written (see above)"
+      _rc_lane_failed
+    fi
 
     # AGENTS.md is read natively from the repo root by Codex [docs-verified], so
     # unlike Copilot (MH-09) no instruction-pointer file is needed here.
@@ -1194,8 +1401,12 @@ PY2
     # danger-full-access / approval_policy = "never" at any posture.
     local emitter="$MARKET/scripts/emit-codex-config.py"
     if [ -f "$emitter" ] && [ -f "$project/.ravenclaude/comfort-posture.yaml" ]; then
-      python3 "$emitter" --project "$project" || true
-      ok "projected the comfort posture onto .codex/config.toml"
+      if python3 "$emitter" --project "$project"; then
+        ok "projected the comfort posture onto .codex/config.toml"
+      else
+        warn "comfort posture NOT projected onto .codex/config.toml (see the reason above)"
+        _rc_lane_failed
+      fi
       note "COARSE BY DESIGN: two enum keys cannot express 12 posture categories."
       note "  Codex's OS sandbox (default-on, workspace-write) is your real boundary."
       note "  A project .codex/config.toml loads ONLY IN TRUSTED PROJECTS — like the"
@@ -1262,7 +1473,7 @@ PY2
     _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
-      ok "install complete. Launch Codex from $project as usual."
+      _rc_install_done "install complete. Launch Codex from $project as usual."
       note "Updates: run 'ravenclaude update', then /hooks in Codex to re-trust."
     fi
     return 0
@@ -1313,16 +1524,25 @@ PY2
   mkdir -p "$project/.github/hooks"
   local adapter="$CORE/hooks/copilot-hook-adapter.sh"
   local hookgen="$MARKET/scripts/generate-copilot-hooks.py"
+  # scripts-5: the green "wired" line prints ONLY when the projection succeeded.
+  # It used to print unconditionally, right after the "NOT written" warning.
+  local hooks_ok=0
   if [ -f "$hookgen" ]; then
-    python3 "$hookgen" --adapter "$adapter" --hooks-dir "$CORE/hooks" \
-      --out "$project/.github/hooks/ravenclaude.json" || {
-        warn "hook projection failed — .github/hooks/ravenclaude.json NOT written"
-        warn "  Copilot guardrails are NOT wired for this project. Re-run after fixing."
-      }
+    if python3 "$hookgen" --adapter "$adapter" --hooks-dir "$CORE/hooks" \
+      --out "$project/.github/hooks/ravenclaude.json"; then
+      hooks_ok=1
+    else
+      warn "hook projection failed — .github/hooks/ravenclaude.json NOT written"
+    fi
   else
     warn "generate-copilot-hooks.py missing at $hookgen — hooks NOT wired"
   fi
-  ok "wired hooks into .github/hooks/ravenclaude.json (via the Copilot adapter)"
+  if [ "$hooks_ok" = 1 ]; then
+    ok "wired hooks into .github/hooks/ravenclaude.json (via the Copilot adapter)"
+  else
+    warn "guardrails NOT wired: Copilot hooks are NOT active for this project. Re-run after fixing."
+    _rc_lane_failed
+  fi
 
   # 3. MCP: OPT-IN ONLY (MH-19). Nothing is installed unless the user named it
   #    with --with-mcp. Why wholesale merging would be wrong: on Claude Code you
@@ -1358,7 +1578,7 @@ PY2
     # exit, and `&&` would turn "your posture file blocks the pull" into "Copilot
     # will not start".
     printf '  alias rc='\''"%s/scripts/ravenclaude" update ; copilot --plugin-dir "%s"'\''\n\n' "$MARKET" "$COPILOT_PKG"
-    ok "install complete. Launch with:  copilot --plugin-dir $COPILOT_PKG"
+    _rc_install_done "install complete. Launch with:  copilot --plugin-dir $COPILOT_PKG"
     note "Updates from now on: just run 'ravenclaude update' (or 'rc'). No re-install, ever."
     note "VS Code Copilot Chat is a separate product — CLI hooks are not Chat coverage."
     note "One window per worktree; never add a sibling folder. See knowledge/copilot-chat-customization.md."
@@ -1473,19 +1693,23 @@ cmd_setup() {
     case "$1" in
       --project) project="$2"; shift 2 ;;
       --with-plugin) install_args+=("--with-plugin" "$2"); shift 2 ;;
+      # Forwarded to cmd_install. Without it a Gemini user could not reach the
+      # Gemini lane from setup at all (detect_host never returns gemini), and
+      # `--host` was swallowed as the project path.
+      --host)
+        [ $# -ge 2 ] || { warn "--host needs a value"; exit 2; }
+        install_args+=("--host" "$2"); shift 2 ;;
       *) project="$1"; shift ;;
     esac
   done
   project="$(cd "$project" && pwd)"
   printf '== ravenclaude setup -> %s ==\n' "$project"
 
-  # 1. Wire skills + hooks + MCP (RC_FROM_SETUP suppresses install's alias hint).
-  #    Threads any --with-plugin entries through to cmd_install.
-  export RC_FROM_SETUP=1
-  cmd_install --project "$project" "${install_args[@]:-}"
-  unset RC_FROM_SETUP
-
-  # 2. Seed a balanced comfort-posture if the repo doesn't already have one.
+  # 1. Seed a balanced comfort-posture if the repo doesn't already have one.
+  #    BEFORE cmd_install (scripts-7): the Codex and Gemini lanes project the
+  #    sandbox posture only when this file exists, so seeding it afterwards left
+  #    a first-run setup with no projected posture (and a message telling the
+  #    user to run the very command they had just run).
   local posture="$project/.ravenclaude/comfort-posture.yaml"
   local seed="$CORE/templates/comfort-posture-balanced.yaml"
   if [ -f "$posture" ]; then
@@ -1497,6 +1721,12 @@ cmd_setup() {
   else
     warn "balanced posture template missing ($seed) — skipped posture seed"
   fi
+
+  # 2. Wire skills + hooks + MCP (RC_FROM_SETUP suppresses install's alias hint).
+  #    Threads any --with-plugin entries through to cmd_install.
+  export RC_FROM_SETUP=1
+  cmd_install --project "$project" "${install_args[@]:-}"
+  unset RC_FROM_SETUP
 
   # 3. Apply the posture to .claude/settings.json (best-effort).
   local apply="$CORE/scripts/apply-comfort-posture.py"
@@ -1512,7 +1742,7 @@ cmd_setup() {
   # 5. Repo-local comfort-posture dashboard launchers (scoped to this repo).
   wire_dashboard_launchers "$project"
 
-  ok "setup complete."
+  _rc_install_done "setup complete."
   note ""
   local rc_shell_label
   case "$(_rc_detect_shell)" in

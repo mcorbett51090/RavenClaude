@@ -100,6 +100,53 @@ python3 "$PATCHED2" --root "$R3" sync >/dev/null 2>&1 || true
 LEAKY2="$(python3 "$PATCHED2" --root "$R3" recall --json 2>/dev/null || true)"
 echo "$LEAKY2" | grep -q "eyJhbGci" && pass "must-fail half leaks the JWT (the scrub has teeth)" || fail "must-fail half did NOT leak the JWT — the scrub test can't detect a regression"
 
+# ── corescripts-15: a U+2028 in a stored field must not split its JSONL row ───
+# str.splitlines() also breaks on U+2028/U+2029/U+0085, so a resolution pasted
+# with one made its row two invalid fragments and the shape vanished from recall.
+echo "── corescripts-15: U+2028 round-trips through resolve and recall ──"
+u2028_case() {  # $1 = engine path -> prints "<rows-after> <round-trips>"
+  local eng="$1" r sig res
+  r="$(mktemp -d)"
+  mkdir -p "$r/.ravenclaude/runs/thing/decisions"
+  cat > "$r/.ravenclaude/runs/thing/decisions/d2.json" <<'J'
+{"id":"d2","timestamp":"2026-07-26T10:01:00Z","final_verdict":"defer","high_blast":true,
+ "reasoning":"high-blast - deferring","question":"Delete the prod database?"}
+J
+  python3 "$eng" --root "$r" sync >/dev/null 2>&1 || true
+  sig="$(python3 "$eng" --root "$r" recall --json 2>/dev/null \
+    | python3 -c 'import json,sys; r=json.load(sys.stdin); print(r[0]["signature"] if r else "")' || true)"
+  res="$(printf 'line1\xe2\x80\xa8line2')"
+  python3 "$eng" --root "$r" resolve --signature "$sig" --resolution "$res" >/dev/null 2>&1 || true
+  python3 "$eng" --root "$r" recall --json 2>/dev/null | python3 -c '
+import json, sys
+rows = json.load(sys.stdin)
+hit = any("line1\u2028line2" == (x.get("resolution") or x.get("learned_resolution") or "")
+          or "line1\u2028line2" in json.dumps(x, ensure_ascii=False) for x in rows)
+print(len(rows), "yes" if hit else "no")' || echo "0 no"
+  rm -rf "$r"
+}
+got="$(u2028_case "$KB")"
+[ "$got" = "1 yes" ] && pass "a U+2028 resolution round-trips: the row survives recall" \
+  || fail "a U+2028 resolution lost its row (rows/round-trip: $got)"
+# A KB written BEFORE the fix holds the raw character; the reader must still see it.
+R4="$(mktemp -d)"; mkdir -p "$R4/.ravenclaude/runs/thing"
+printf '{"signature":"legacy0001","kind":"decision","count":1,"resolution":"a\xe2\x80\xa8b","first_seen":"2026-07-26T10:00:00Z","last_seen":"2026-07-26T10:00:00Z"}\n' \
+  > "$R4/.ravenclaude/runs/thing/denial-kb.jsonl"
+n="$(python3 "$KB" --root "$R4" recall --json 2>/dev/null | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))' || echo 0)"
+[ "$n" = 1 ] && pass "a legacy row holding a raw U+2028 still reads" || fail "a legacy raw-U+2028 row was dropped ($n rows)"
+grep -q $'\xe2\x80\xa8' "$R4/.ravenclaude/runs/thing/denial-kb.jsonl" && pass "(fixture holds the raw character)" \
+  || fail "the legacy fixture did not hold a raw U+2028, so the check above proves nothing"
+rm -rf "$R4"
+# teeth: restoring splitlines() at the read sites loses the row again.
+PATCHED3="$(mktemp)"
+sed -e 's/read_text(encoding="utf-8").split("\\n")/read_text(encoding="utf-8").splitlines()/' \
+    -e 's/json.dumps(r, ensure_ascii=True)/json.dumps(r, ensure_ascii=False)/' "$KB" > "$PATCHED3"
+grep -q 'splitlines()' "$PATCHED3" || fail "teeth: could not rebuild the splitlines() mutant"
+got="$(u2028_case "$PATCHED3")"
+[ "$got" != "1 yes" ] && pass "must-fail half: splitlines() + raw write loses the row ($got) — the fix has teeth" \
+  || fail "must-fail half: the pre-fix reader still kept the row, so the check measures nothing"
+rm -f "$PATCHED3"
+
 echo
 if [ "$fails" -eq 0 ]; then
   echo "test-thing-denial-kb: ALL PASS"

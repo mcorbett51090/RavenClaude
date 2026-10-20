@@ -55,7 +55,9 @@ jobs:
       - name: Assert non-required (never a ruleset check)
         env:
           GH_TOKEN: ${{ github.token }}
-        run: bash scripts/assert-not-required-check.sh 'Golden-set inject'
+        # Ruleset contexts are JOB names, not workflow names: 'Golden-set inject'
+        # could never match, so this step passed whatever the ruleset said (cicd-4).
+        run: bash scripts/assert-not-required-check.sh 'Fixtures-only light subset'
 
       - name: Run light judge (fixtures-only, no network model)
         run: |

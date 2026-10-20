@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import os
 import re
 import subprocess
 import sys
@@ -232,11 +233,36 @@ def build_plan(
 
     ignore_patterns = load_ignore_patterns(repo_root)
 
-    excluded = {"binary": 0, "vendored": 0, "oversize": 0, "non_source": 0, "explicit": 0}
+    excluded = {
+        "binary": 0,
+        "vendored": 0,
+        "oversize": 0,
+        "non_source": 0,
+        "explicit": 0,
+        "symlink": 0,
+        "gitlink": 0,
+    }
     reviewable: list[dict] = []
+    root_real = os.path.realpath(repo_root)
 
     for rel in sorted(tracked):
         abspath = Path(repo_root) / rel
+        # ⛔ is_file() FOLLOWS symlinks, so a tracked `leak.py -> ~/.ssh/id_ed25519`
+        # (or `../../.aws/credentials`) used to enter the plan and its TARGET's
+        # bytes reached the reviewers. A symlink, or any path that resolves outside
+        # the repo, is excluded and counted — never read.
+        try:
+            real = os.path.realpath(abspath)
+            outside = os.path.commonpath([real, root_real]) != root_real
+        except (OSError, ValueError):
+            outside = True
+        if abspath.is_symlink() or outside:
+            excluded["symlink"] += 1
+            continue
+        if abspath.is_dir():
+            # A gitlink (submodule) entry: another repository, not a file.
+            excluded["gitlink"] += 1
+            continue
         if not abspath.is_file():
             continue
         if any(fnmatch.fnmatch(rel, pat) for pat in ignore_patterns):
@@ -338,6 +364,7 @@ def build_plan(
             "files_deferred": files_deferred,
             "deferred_reason": deferred_reason,
             "top_deferred_dirs": top_deferred_dirs[:10],
+            "symlinks_skipped": excluded["symlink"],
         },
     }
     return plan
@@ -538,6 +565,31 @@ def _self_test() -> int:
         )
         check("map-004: .mjs file is reviewable", "scripts/gate.mjs" in src_files)
         check("map-004: plain .txt stays non_source", "notes_plain.txt" not in src_files)
+
+        # --- map-006 teeth: a tracked symlink to a file OUTSIDE the repo -------
+        with tempfile.TemporaryDirectory() as outside_dir:
+            outside = Path(outside_dir) / "outside-secret.txt"
+            outside.write_text("OUTSIDE-FILE-CONTENT\n", encoding="utf-8")
+            os.symlink(str(outside), os.path.join(tmp, "src", "leak.py"))
+            _sh(tmp, "add", "-A")
+            _sh(tmp, "commit", "-q", "-m", "add tracked symlink to an outside file")
+            plan_link = build_plan(tmp, per_agent_tokens=60_000, budget_batches=0)
+            link_files = [f for b in plan_link["batches"] for f in b["files"]]
+            check(
+                "map-006: a tracked symlink to an outside file is NOT reviewable",
+                "src/leak.py" not in link_files,
+                str(link_files),
+            )
+            check(
+                "map-006: and it is counted under excluded.symlink and in coverage",
+                plan_link["excluded"]["symlink"] == 1
+                and plan_link["coverage"]["symlinks_skipped"] == 1,
+                str(plan_link["excluded"]),
+            )
+            check(
+                "map-006: real files beside it are still reviewable",
+                "src/auth/session.py" in link_files,
+            )
 
     # --- map-005 teeth: numeric batch-id tie-break orders b11 before b100 ------
     _ids = ["b100", "b11", "b02", "b99", "b01"]

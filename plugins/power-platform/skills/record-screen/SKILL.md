@@ -75,13 +75,13 @@ Caption rules:
 
 Caption command (use this exact format):
 ```
-curl -s -X POST http://localhost:9234/api/caption -H "Content-Type: application/json" -d "{\"text\":\"YOUR CAPTION HERE\"}"
+curl -s -X POST http://127.0.0.1:9234/api/caption -H "Content-Type: application/json" -d "{\"text\":\"YOUR CAPTION HERE\"}"
 ```
 
 Example — call BOTH tools in the same message:
 ```
 [Tool 1 - Browser action]:  scroll down on the page
-[Tool 2 - Bash]:            curl -s -X POST http://localhost:9234/api/caption -H "Content-Type: application/json" -d "{\"text\":\"Scrolling down the page\"}"
+[Tool 2 - Bash]:            curl -s -X POST http://127.0.0.1:9234/api/caption -H "Content-Type: application/json" -d "{\"text\":\"Scrolling down the page\"}"
 ```
 
 Both execute simultaneously, so the caption timestamp matches when the action happens in the video.
@@ -127,10 +127,12 @@ The captions file is saved as `<video-name>.captions.json` in the same directory
 
 The tool has three parts:
 1. **Chrome extension** — uses `chrome.tabs.captureVisibleTab()` to take screenshots at 5 FPS and streams them to the bridge server
-2. **Bridge server** — Node.js HTTP+WebSocket server on port 9234 that connects CLI to extension, saves frames to disk, and encodes video with FFmpeg
+2. **Bridge server** — Node.js HTTP+WebSocket server on `127.0.0.1:9234` that connects CLI to extension, saves frames to disk, and encodes video with FFmpeg
 3. **CLI** — sends HTTP commands to the bridge server
 
 The bridge server auto-starts in the background when you run `list`, `start`, `stop`, or `status`. The Chrome extension auto-connects to it.
+
+Network limits (since power-platform 0.45.2, extension 1.2.1): the bridge listens on loopback only; it refuses any HTTP request that carries an `Origin` header or a `Host` other than `127.0.0.1:9234` / `localhost:9234` (so a web page cannot drive it); only a `chrome-extension://` origin may connect as the extension; and `--out` must be a `.mp4` or `.webm` file in an existing directory under the directory the bridge was started from. Reload the unpacked extension after updating the plugin. A per-run token between CLI, bridge and extension is not implemented yet. `scripts/test-bridge-security.js` checks these limits (`node test-bridge-security.js` after `bash setup.sh`).
 
 ## Output labels
 

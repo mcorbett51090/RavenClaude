@@ -55,8 +55,14 @@ Contract:
       Report-only dry run. Writes nothing.
   install_launch_guard.py --uninstall [--shell zsh|bash|fish]
       Removes the fence. Restores the file to its exact pre-install byte
-      content when a pristine snapshot exists (the normal case); otherwise
-      best-effort strips just the marker span.
+      content ONLY when nothing else changed since install (the live file is
+      exactly snapshot + managed block); otherwise backs up the current file
+      and strips just the marker span, keeping every later edit. A file that
+      did not exist before install is deleted only when nothing but the block
+      is left in it.
+  install_launch_guard.py -h | --help
+      Print usage and exit 0. Any unrecognised argument exits 2 (it used to
+      fall through to the default action, install).
   install_launch_guard.py status
       installed (yes/no) / which shell(s) / helper staged / allowlist entry
       count. Scans every supported shell target, not just the detected one.
@@ -78,6 +84,7 @@ bash syntax; shipping bash into a .fish file would be silently broken there).
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -86,7 +93,9 @@ import time
 
 # --- constants ---------------------------------------------------------------
 
-MARKER_BEGIN = "# >>> ravenclaude launch-guard >>>   (managed block — edit via install_launch_guard.py)"
+MARKER_BEGIN = (
+    "# >>> ravenclaude launch-guard >>>   (managed block — edit via install_launch_guard.py)"
+)
 MARKER_END = "# <<< ravenclaude launch-guard <<<"
 
 PRISTINE_SUFFIX = ".ravenclaude-original"
@@ -101,7 +110,7 @@ HELPER_NAME = "claude-launch-guard"
 
 # bash + zsh share this body verbatim: no bashisms, no zsh-only syntax. `local`
 # and `read -r` and `case` all work identically in both.
-POSIX_FUNCTION_BODY = r'''claude() {
+POSIX_FUNCTION_BODY = r"""claude() {
   if [ "${RAVENCLAUDE_LAUNCH_GUARD:-}" = "off" ]; then
     command claude "$@"
     return
@@ -122,18 +131,11 @@ POSIX_FUNCTION_BODY = r'''claude() {
     command claude "$@"
     return
   fi
-  local _rc_recs="" _rc_line="" _rc_i=0 _rc_oldifs=""
+  local _rc_recs=""
   _rc_recs="$("$_rc_g" recommend 2>/dev/null)"
   printf '\nChoose:\n  1) Just once\n  2) This session (disable the guard for this shell)\n  3) Always allow (this path, or * for everywhere)\n  4) Deny — do not launch\n' >&2
   if [ -n "$_rc_recs" ]; then
-    _rc_oldifs="$IFS"
-    IFS='
-'
-    for _rc_line in $_rc_recs; do
-      _rc_i=$((_rc_i + 1))
-      printf '  %d) switch to %s and launch\n' "$((4 + _rc_i))" "$_rc_line" >&2
-    done
-    IFS="$_rc_oldifs"
+    printf '%s\n' "$_rc_recs" | awk '{ printf "  %d) switch to %s and launch\n", NR + 4, $0 }' >&2
   fi
   printf 'Choice [1]: ' >&2
   local _rc_choice=""
@@ -161,17 +163,13 @@ POSIX_FUNCTION_BODY = r'''claude() {
       ;;
     *)
       if [ -n "$_rc_recs" ] && [ -n "$_rc_choice" ]; then
-        local _rc_j=0 _rc_target=""
-        _rc_oldifs="$IFS"
-        IFS='
-'
-        for _rc_line in $_rc_recs; do
-          _rc_j=$((_rc_j + 1))
-          if [ "$_rc_choice" = "$((4 + _rc_j))" ]; then
-            _rc_target="$_rc_line"
-          fi
-        done
-        IFS="$_rc_oldifs"
+        local _rc_target=""
+        case "$_rc_choice" in
+          *[!0-9]*) ;;
+          *)
+            _rc_target="$(printf '%s\n' "$_rc_recs" | awk -v n="$_rc_choice" 'NR == n - 4 { print; exit }')"
+            ;;
+        esac
         if [ -n "$_rc_target" ] && [ -d "$_rc_target" ]; then
           if cd "$_rc_target" 2>/dev/null; then
             printf 'claude-launch-guard: switched to %s\n' "$_rc_target" >&2
@@ -186,11 +184,11 @@ POSIX_FUNCTION_BODY = r'''claude() {
       command claude "$@"
       ;;
   esac
-}'''
+}"""
 
 # Native fish — deliberately NOT the body above. fish has no `local`/`case`; it
 # uses `set -l`/`switch`, and command substitution is `(...)`, not `$(...)`.
-FISH_FUNCTION_BODY = r'''function claude
+FISH_FUNCTION_BODY = r"""function claude
     if test "$RAVENCLAUDE_LAUNCH_GUARD" = "off"
         command claude $argv
         return
@@ -261,7 +259,7 @@ FISH_FUNCTION_BODY = r'''function claude
             end
             command claude $argv
     end
-end'''
+end"""
 
 # Sourced into ~/.bash_profile only when it exists and does not already source
 # ~/.bashrc (macOS convention: login shells read .bash_profile, not .bashrc).
@@ -269,6 +267,7 @@ SOURCE_BASHRC_BODY = r'''[ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"'''
 
 
 # --- tiny helpers --------------------------------------------------------------
+
 
 def home_dir() -> str:
     h = os.environ.get("HOME")
@@ -327,6 +326,7 @@ def _sources_bashrc(text: str) -> bool:
 
 # --- marker splice / remove ---------------------------------------------------
 
+
 def splice_block(existing_text: str, block_text: str):
     """Return (new_text, replaced_bool). Replaces an existing MARKER_BEGIN..
     MARKER_END span in place; if no span is found, appends block_text (with
@@ -341,7 +341,7 @@ def splice_block(existing_text: str, block_text: str):
             break
     if start_idx is not None and end_idx is not None:
         before = "".join(lines[:start_idx])
-        after = "".join(lines[end_idx + 1:])
+        after = "".join(lines[end_idx + 1 :])
         return before + block_text + after, True
 
     if not existing_text:
@@ -364,7 +364,7 @@ def remove_block(text: str) -> str:
     if start is None or end is None:
         return text
     before = lines[:start]
-    after = lines[end + 1:]
+    after = lines[end + 1 :]
     if before and before[-1] == "\n":
         before = before[:-1]
     return "".join(before) + "".join(after)
@@ -372,11 +372,14 @@ def remove_block(text: str) -> str:
 
 # --- backup / pristine snapshot -----------------------------------------------
 
-def _timestamped_backup(path: str):
+
+def _timestamped_backup(path: str, label: str = "backup"):
     if not os.path.isfile(path):
         return None
     ts = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
-    backup_path = "%s.ravenclaude-backup-%s" % (path, ts)
+    # A distinct label for the uninstall-time backup, so an install and an
+    # uninstall in the same second cannot overwrite each other's copy.
+    backup_path = "%s.ravenclaude-%s-%s" % (path, label, ts)
     shutil.copy2(path, backup_path)
     return backup_path
 
@@ -440,6 +443,7 @@ def detect_shell(override=None):
 
 # --- staging the P1 helper ------------------------------------------------------
 
+
 def stage_helper():
     home = home_dir()
     state_dir = os.path.join(home, ".claude", "launch-guard")
@@ -462,6 +466,7 @@ def stage_helper():
 
 
 # --- per-shell target resolution -----------------------------------------------
+
 
 def _install_targets(shell: str):
     """[(path, validator_kind, block_text), ...] for what INSTALL should write."""
@@ -499,6 +504,7 @@ def _candidate_paths(shell: str):
 
 
 # --- install / check -----------------------------------------------------------
+
 
 def _install_or_check_one(path, validator_kind, block_text, check_only, results):
     exists_before = os.path.isfile(path)
@@ -549,7 +555,9 @@ def _install_or_check_one(path, validator_kind, block_text, check_only, results)
         results.append((path, "FAILED: %s" % reason))
         return False
 
-    results.append((path, "replaced in place" if replaced else ("appended" if exists_before else "created")))
+    results.append(
+        (path, "replaced in place" if replaced else ("appended" if exists_before else "created"))
+    )
     return True
 
 
@@ -586,52 +594,93 @@ def cmd_install(shell_override, check_only=False):
 
 # --- uninstall -------------------------------------------------------------------
 
+
+def _live_block(text: str):
+    """The live MARKER_BEGIN..MARKER_END span (inclusive), or None."""
+    lines = text.splitlines(keepends=True)
+    start = None
+    for i, line in enumerate(lines):
+        if line.rstrip("\n") == MARKER_BEGIN:
+            start = i
+        elif start is not None and line.rstrip("\n") == MARKER_END:
+            return "".join(lines[start : i + 1])
+    return None
+
+
+def _unchanged_since_install(current: str, pristine: str) -> bool:
+    """True only when the live file is EXACTLY what install produced from the
+    pristine snapshot: splice_block(snapshot, live block) == live file, byte for
+    byte. Any edit made after install — an alias, a PATH line, a tool's own init
+    block — makes this False, and the snapshot must then NOT be restored."""
+    block = _live_block(current)
+    if block is None:
+        return False
+    expected, _ = splice_block(pristine, block)
+    return expected == current
+
+
+def _drop(*paths: str) -> None:
+    for p in paths:
+        try:
+            os.remove(p)
+        except OSError:
+            pass
+
+
 def _uninstall_one(path: str) -> bool:
+    # corescripts-5: the pristine snapshot used to be copied over the live file
+    # UNCONDITIONALLY, so every edit made after install was silently destroyed
+    # (and, when the file had not existed before install, the whole file was
+    # deleted). The snapshot is now restored only when nothing else changed;
+    # otherwise only the marker block is stripped, after a backup of the CURRENT
+    # file, and the stale snapshot is dropped.
     pristine_path = path + PRISTINE_SUFFIX
     missing_path = path + PRISTINE_MISSING_SUFFIX
 
-    if os.path.isfile(pristine_path):
-        shutil.copy2(pristine_path, path)
-        try:
-            os.remove(pristine_path)
-        except OSError:
-            pass
-        try:
-            os.remove(missing_path)
-        except OSError:
-            pass
-        print("install_launch_guard: restored %s to its pre-install state." % path)
-        return True
+    current = None
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            current = fh.read()
 
-    if os.path.isfile(missing_path):
-        try:
-            os.remove(path)
-        except OSError:
-            pass
-        try:
-            os.remove(missing_path)
-        except OSError:
-            pass
-        print("install_launch_guard: removed %s (it did not exist before install)." % path)
-        return True
+    if os.path.isfile(pristine_path) and current is not None:
+        with open(pristine_path, encoding="utf-8", errors="replace") as fh:
+            pristine = fh.read()
+        if _unchanged_since_install(current, pristine):
+            shutil.copy2(pristine_path, path)
+            _drop(pristine_path, missing_path)
+            print("install_launch_guard: restored %s to its pre-install state." % path)
+            return True
 
-    if not os.path.isfile(path):
+    if os.path.isfile(missing_path) and current is not None:
+        if not remove_block(current).strip():
+            _drop(path, missing_path)
+            print("install_launch_guard: removed %s (it did not exist before install)." % path)
+            return True
+
+    if current is None:
         print("install_launch_guard: %s does not exist — nothing to uninstall." % path)
         return True
 
-    with open(path, encoding="utf-8", errors="replace") as fh:
-        text = fh.read()
-    if not _has_marker(text):
+    if not _has_marker(current):
         print("install_launch_guard: %s has no managed block — nothing to uninstall." % path)
         return True
 
-    _timestamped_backup(path)
-    new_text = remove_block(text)
+    backup_path = _timestamped_backup(path, label="pre-uninstall")
+    new_text = remove_block(current)
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(new_text)
+    stale = os.path.isfile(pristine_path) or os.path.isfile(missing_path)
+    _drop(pristine_path, missing_path)
     print(
-        "install_launch_guard: removed the managed block from %s "
-        "(no pristine snapshot found — best-effort strip)." % path
+        "install_launch_guard: removed the managed block from %s; everything else in "
+        "the file was kept%s (backup of the file as it was: %s)."
+        % (
+            path,
+            " — it changed after install, so the pre-install snapshot was NOT restored"
+            if stale
+            else "",
+            backup_path,
+        )
     )
     return True
 
@@ -649,6 +698,7 @@ def cmd_uninstall(shell_override):
 
 
 # --- status ----------------------------------------------------------------------
+
 
 def cmd_status_report():
     all_shells = {
@@ -687,13 +737,17 @@ def cmd_status_report():
 
     print("claude-launch-guard status:")
     print("  installed:         %s" % ("yes" if installed_shells else "no"))
-    print("  shells:            %s" % (", ".join(sorted(set(installed_shells))) if installed_shells else "(none)"))
+    print(
+        "  shells:            %s"
+        % (", ".join(sorted(set(installed_shells))) if installed_shells else "(none)")
+    )
     print("  helper staged:     %s (%s)" % ("yes" if helper_staged else "no", helper_path))
     print("  allowlist entries: %d (%s)" % (allow_count, allow_path))
     return 0
 
 
 # --- self-test ----------------------------------------------------------------
+
 
 def _st_fail(msgs, msg):
     msgs.append(msg)
@@ -776,7 +830,7 @@ def cmd_self_test():
                     break
             if s is None or e is None:
                 return text, ""
-            return "".join(lines[:s]), "".join(lines[e + 1:])
+            return "".join(lines[:s]), "".join(lines[e + 1 :])
 
         before1, after1 = _outside_markers(after_first)
 
@@ -797,15 +851,25 @@ def cmd_self_test():
             t0 = time.time()
             proc = _run_shell(
                 ["zsh", "-i", "-c", "type claude; command claude --version; claude --version"],
-                env, nonrepo,
+                env,
+                nonrepo,
             )
             elapsed = time.time() - t0
             if "stub-claude 9.9.9" not in proc.stdout:
-                _st_fail(failures, "real zsh: claude --version did not reach the stub (stdout=%r stderr=%r)" % (proc.stdout, proc.stderr))
+                _st_fail(
+                    failures,
+                    "real zsh: claude --version did not reach the stub (stdout=%r stderr=%r)"
+                    % (proc.stdout, proc.stderr),
+                )
             if elapsed >= 5:
-                _st_fail(failures, "real zsh: claude --version took %.1fs (>=5s, possible recursion)" % elapsed)
+                _st_fail(
+                    failures,
+                    "real zsh: claude --version took %.1fs (>=5s, possible recursion)" % elapsed,
+                )
         else:
-            print("install_launch_guard self-test: zsh not on PATH — skipping real-shell zsh checks")
+            print(
+                "install_launch_guard self-test: zsh not on PATH — skipping real-shell zsh checks"
+            )
 
         # --- 4. RAVENCLAUDE_LAUNCH_GUARD=off passthrough -------------------
         if shutil.which("zsh"):
@@ -813,7 +877,11 @@ def cmd_self_test():
             env_off["RAVENCLAUDE_LAUNCH_GUARD"] = "off"
             proc = _run_shell(["zsh", "-i", "-c", "claude --version"], env_off, nonrepo)
             if "stub-claude 9.9.9" not in proc.stdout:
-                _st_fail(failures, "RAVENCLAUDE_LAUNCH_GUARD=off did not pass through cleanly: %r/%r" % (proc.stdout, proc.stderr))
+                _st_fail(
+                    failures,
+                    "RAVENCLAUDE_LAUNCH_GUARD=off did not pass through cleanly: %r/%r"
+                    % (proc.stdout, proc.stderr),
+                )
 
         # --- 5. Helper deleted -> still fail-open --------------------------
         if shutil.which("zsh"):
@@ -822,7 +890,11 @@ def cmd_self_test():
                 os.remove(helper_path)
             proc = _run_shell(["zsh", "-i", "-c", "claude --version"], env, nonrepo)
             if "stub-claude 9.9.9" not in proc.stdout:
-                _st_fail(failures, "helper-deleted fail-open did not launch stub: %r/%r" % (proc.stdout, proc.stderr))
+                _st_fail(
+                    failures,
+                    "helper-deleted fail-open did not launch stub: %r/%r"
+                    % (proc.stdout, proc.stderr),
+                )
             # Restage for the remaining tests.
             proc = _run_self(["install", "--shell", "zsh"], env)
             if proc.returncode != 0:
@@ -831,14 +903,24 @@ def cmd_self_test():
         # --- 10. Non-interactive, NOT-safe path never hangs, auto-allows ---
         if shutil.which("zsh"):
             t0 = time.time()
-            proc = _run_shell(["zsh", "-i", "-c", "claude somecmd --unrelated"], env, nonrepo, timeout=8)
+            proc = _run_shell(
+                ["zsh", "-i", "-c", "claude somecmd --unrelated"], env, nonrepo, timeout=8
+            )
             elapsed = time.time() - t0
             if "stub-claude 9.9.9" not in proc.stdout:
-                _st_fail(failures, "non-interactive not-safe path did not auto-allow: %r/%r" % (proc.stdout, proc.stderr))
+                _st_fail(
+                    failures,
+                    "non-interactive not-safe path did not auto-allow: %r/%r"
+                    % (proc.stdout, proc.stderr),
+                )
             if "WARNING" not in proc.stderr:
-                _st_fail(failures, "non-interactive not-safe path printed no warning: %r" % proc.stderr)
+                _st_fail(
+                    failures, "non-interactive not-safe path printed no warning: %r" % proc.stderr
+                )
             if elapsed >= 5:
-                _st_fail(failures, "non-interactive not-safe path took %.1fs (possible hang)" % elapsed)
+                _st_fail(
+                    failures, "non-interactive not-safe path took %.1fs (possible hang)" % elapsed
+                )
 
         # --- 11. Safe launch records last-dir (the directory-recommendation
         #     feature's write side; the read side — `recommend`/`preferred` —
@@ -850,21 +932,40 @@ def cmd_self_test():
             git_fixture = os.path.join(scratch, "gitrepo")
             os.makedirs(git_fixture, exist_ok=True)
             subprocess.run(["git", "init", "-q", "."], cwd=git_fixture, check=False)
-            subprocess.run(["git", "-C", git_fixture, "config", "user.email", "st@example.com"], check=False)
-            subprocess.run(["git", "-C", git_fixture, "config", "user.name", "selftest"], check=False)
+            subprocess.run(
+                ["git", "-C", git_fixture, "config", "user.email", "st@example.com"], check=False
+            )
+            subprocess.run(
+                ["git", "-C", git_fixture, "config", "user.name", "selftest"], check=False
+            )
             last_dir_file = os.path.join(scratch_home, ".claude", "launch-guard", "last-dir")
             if os.path.isfile(last_dir_file):
                 os.remove(last_dir_file)
             proc = _run_shell(["zsh", "-i", "-c", "claude --version"], env, git_fixture)
             if "stub-claude 9.9.9" not in proc.stdout:
-                _st_fail(failures, "last-dir fixture: safe launch did not reach the stub: %r/%r" % (proc.stdout, proc.stderr))
+                _st_fail(
+                    failures,
+                    "last-dir fixture: safe launch did not reach the stub: %r/%r"
+                    % (proc.stdout, proc.stderr),
+                )
             if not os.path.isfile(last_dir_file):
                 _st_fail(failures, "safe launch did not write last-dir")
             else:
                 with open(last_dir_file, encoding="utf-8") as fh:
                     recorded = fh.read().strip()
                 if os.path.realpath(recorded) != os.path.realpath(git_fixture):
-                    _st_fail(failures, "last-dir recorded %r, expected %r" % (recorded, git_fixture))
+                    _st_fail(
+                        failures, "last-dir recorded %r, expected %r" % (recorded, git_fixture)
+                    )
+
+        # --- 12. corescripts-4: the interactive switch menu, driven through a
+        #     REAL zsh on a pty. zsh does not word-split an unquoted $var, so the
+        #     old `for _rc_line in $_rc_recs` loop ran ONCE over the whole list:
+        #     two recommendations printed as one entry and choice 5/6 launched
+        #     from the original, unsafe directory. Skipped only when zsh (or the
+        #     pty module) is unavailable. ----------------------------------------
+        for msg in _st_zsh_menu(scratch, scratch_home, env, nonrepo):
+            _st_fail(failures, msg)
 
         # --- 6. --uninstall -> byte-identical to pre-install state ---------
         proc = _run_self(["--uninstall", "--shell", "zsh"], env)
@@ -874,6 +975,16 @@ def cmd_self_test():
             restored = fh.read()
         if restored != original_zshrc:
             _st_fail(failures, "uninstall did not restore byte-identical .zshrc content")
+
+        # --- 13. corescripts-5: edits made AFTER install survive --uninstall,
+        #     for an rc that existed before install and for one that did not. ---
+        for msg in _st_uninstall_keeps_edits(scratch, env):
+            _st_fail(failures, msg)
+
+        # --- 14. orch-2: --help prints usage and touches nothing; an unknown
+        #     argument exits 2 (both used to fall through to install). ----------
+        for msg in _st_help_and_bogus(scratch, env):
+            _st_fail(failures, msg)
 
         # --- 7. fish target: valid native syntax or clean refusal ----------
         proc = _run_self(["install", "--shell", "fish"], env)
@@ -888,13 +999,17 @@ def cmd_self_test():
             if "function claude" not in fish_text:
                 _st_fail(failures, "fish function file missing 'function claude'")
             if "\nlocal " in fish_text or fish_text.startswith("local "):
-                _st_fail(failures, "fish function file contains bash-only 'local' — not native fish")
+                _st_fail(
+                    failures, "fish function file contains bash-only 'local' — not native fish"
+                )
             if shutil.which("fish"):
                 ok, reason = _validate(fish_file, "fish")
                 if not ok:
                     _st_fail(failures, "fish -n on generated function failed: %s" % reason)
             else:
-                print("install_launch_guard self-test: fish not on PATH — skipping fish -n syntax check")
+                print(
+                    "install_launch_guard self-test: fish not on PATH — skipping fish -n syntax check"
+                )
         proc = _run_self(["--uninstall", "--shell", "fish"], env)
         if proc.returncode != 0:
             _st_fail(failures, "fish uninstall exited %d" % proc.returncode)
@@ -932,6 +1047,178 @@ def cmd_self_test():
     return 0
 
 
+def _st_pty_run(argv, env, cwd, answer, timeout=12.0):
+    """Run argv on a pseudo-terminal, answer the first `Choice [1]:` prompt with
+    `answer`, and return everything the session printed."""
+    import pty
+    import select
+
+    master, slave = pty.openpty()
+    proc = subprocess.Popen(
+        argv, env=env, cwd=cwd, stdin=slave, stdout=slave, stderr=slave, close_fds=True
+    )
+    os.close(slave)
+    buf = b""
+    sent = False
+    deadline = time.time() + timeout
+    try:
+        while time.time() < deadline:
+            ready, _, _ = select.select([master], [], [], 0.2)
+            if ready:
+                try:
+                    chunk = os.read(master, 4096)
+                except OSError:
+                    break
+                if not chunk:
+                    break
+                buf += chunk
+                if not sent and b"Choice [1]:" in buf:
+                    os.write(master, (answer + "\n").encode())
+                    sent = True
+            elif proc.poll() is not None:
+                break
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+        proc.wait()
+        os.close(master)
+    return buf.decode("utf-8", "replace")
+
+
+def _st_zsh_menu(scratch, scratch_home, env, unsafe_cwd):
+    """corescripts-4: with two recommendations, zsh lists them as 5) and 6) and
+    each choice launches from ITS directory, never from the unsafe cwd."""
+    if not shutil.which("zsh"):
+        print("install_launch_guard self-test: zsh not on PATH — skipping the pty menu check")
+        return []
+    try:
+        import pty  # noqa: F401
+    except ImportError:
+        print("install_launch_guard self-test: no pty module — skipping the pty menu check")
+        return []
+    msgs = []
+    one = os.path.join(scratch, "dirOne")
+    two = os.path.join(scratch, "dirTwo")
+    os.makedirs(one, exist_ok=True)
+    os.makedirs(two, exist_ok=True)
+    pref = os.path.join(scratch_home, ".claude", "launch-guard", "preferred")
+    os.makedirs(os.path.dirname(pref), exist_ok=True)
+    with open(pref, "w", encoding="utf-8") as fh:
+        fh.write(one + "\n" + two + "\n")
+    cwd_bin = os.path.join(scratch, "cwdbin")
+    os.makedirs(cwd_bin, exist_ok=True)
+    stub = os.path.join(cwd_bin, "claude")
+    with open(stub, "w", encoding="utf-8") as fh:
+        fh.write('#!/bin/sh\necho "FAKE-CLAUDE cwd=$(pwd -P)"\n')
+    os.chmod(stub, 0o755)
+    penv = dict(env)
+    penv["PATH"] = cwd_bin + os.pathsep + env.get("PATH", "")
+    penv["TERM"] = "dumb"
+    for choice, want in (("5", one), ("6", two)):
+        out = _st_pty_run(["zsh", "-i", "-c", "claude"], penv, unsafe_cwd, choice)
+        entries = re.findall(r"^\s*(\d+)\) switch to (.+?) and launch\s*$", out, re.M)
+        if [n for n, _ in entries][:2] != ["5", "6"]:
+            msgs.append(
+                "zsh menu: expected two separate entries 5) and 6), got %r (output %r)"
+                % (entries, out[-400:])
+            )
+        m = re.search(r"FAKE-CLAUDE cwd=(\S+)", out)
+        got = m.group(1) if m else None
+        if not got or os.path.realpath(got) != os.path.realpath(want):
+            msgs.append("zsh menu: choice %s launched from %r, expected %r" % (choice, got, want))
+    return msgs
+
+
+def _st_tree(root):
+    out = []
+    for dirpath, _dirs, files in os.walk(root):
+        for f in files:
+            p = os.path.join(dirpath, f)
+            with open(p, "rb") as fh:
+                out.append((os.path.relpath(p, root), fh.read()))
+    return sorted(out)
+
+
+def _st_uninstall_keeps_edits(scratch, env):
+    """corescripts-5: lines added after install survive --uninstall."""
+    msgs = []
+    added = "alias gs='git status'\nexport PATH=\"/opt/tool/bin:$PATH\"\n"
+    for label, pre_existing in (("pre-existing rc", True), ("rc absent before install", False)):
+        home = os.path.join(scratch, "home-edits-" + ("pre" if pre_existing else "new"))
+        os.makedirs(home, exist_ok=True)
+        e = dict(env)
+        e["HOME"] = home
+        rc = os.path.join(home, ".zshrc")
+        if pre_existing:
+            with open(rc, "w", encoding="utf-8") as fh:
+                fh.write("# mine\nexport FOO=bar\n")
+        proc = _run_self(["install", "--shell", "zsh"], e)
+        if proc.returncode != 0:
+            msgs.append("%s: install exited %d" % (label, proc.returncode))
+            continue
+        with open(rc, "a", encoding="utf-8") as fh:
+            fh.write(added)
+        proc = _run_self(["--uninstall", "--shell", "zsh"], e)
+        if proc.returncode != 0:
+            msgs.append("%s: uninstall exited %d" % (label, proc.returncode))
+        if not os.path.isfile(rc):
+            msgs.append("%s: uninstall DELETED an rc file that carried later edits" % label)
+            continue
+        with open(rc, encoding="utf-8") as fh:
+            text = fh.read()
+        if MARKER_BEGIN in text or MARKER_END in text:
+            msgs.append("%s: the managed block is still present after uninstall" % label)
+        for line in added.splitlines():
+            if line not in text:
+                msgs.append("%s: uninstall lost a line added after install: %r" % (label, line))
+        if pre_existing and "export FOO=bar" not in text:
+            msgs.append("%s: uninstall lost the pre-install content" % label)
+        if not [f for f in os.listdir(home) if f.startswith(".zshrc.ravenclaude-pre-uninstall-")]:
+            msgs.append("%s: no backup of the current file was taken before the strip" % label)
+        if os.path.exists(rc + PRISTINE_SUFFIX) or os.path.exists(rc + PRISTINE_MISSING_SUFFIX):
+            msgs.append("%s: the stale pre-install snapshot was left behind" % label)
+    # Unchanged behaviour: an rc that did not exist and was NOT edited is removed.
+    home = os.path.join(scratch, "home-untouched-new")
+    os.makedirs(home, exist_ok=True)
+    e = dict(env)
+    e["HOME"] = home
+    _run_self(["install", "--shell", "zsh"], e)
+    _run_self(["--uninstall", "--shell", "zsh"], e)
+    if os.path.exists(os.path.join(home, ".zshrc")):
+        msgs.append("an untouched rc created by install was not removed by uninstall")
+    return msgs
+
+
+def _st_help_and_bogus(scratch, env):
+    """orch-2: --help / -h print usage and exit 0; unknown arguments exit 2;
+    none of them writes anything under HOME."""
+    msgs = []
+    home = os.path.join(scratch, "home-help")
+    os.makedirs(home, exist_ok=True)
+    with open(os.path.join(home, ".bashrc"), "w", encoding="utf-8") as fh:
+        fh.write("# untouched\n")
+    e = dict(env)
+    e["HOME"] = home
+    e["SHELL"] = "/bin/bash"
+    before = _st_tree(home)
+    for argv, want in (
+        (["--help"], 0),
+        (["-h"], 0),
+        (["--bogus"], 2),
+        (["install", "--bogus"], 2),
+        (["--shell"], 2),
+    ):
+        proc = _run_self(argv, e)
+        if proc.returncode != want:
+            msgs.append("%r exited %d, expected %d" % (argv, proc.returncode, want))
+        if argv == ["--help"] and "usage:" not in proc.stdout:
+            msgs.append("--help printed no usage text")
+        if _st_tree(home) != before:
+            msgs.append("%r changed HOME (an rc file or a backup was written)" % (argv,))
+            before = _st_tree(home)
+    return msgs
+
+
 def _st_broken_splice(existing_text: str):
     """Simulate a corrupted marker-replace: markers that never match. This is
     the must-fail-half proof that `splice_block`'s marker matching is what
@@ -949,7 +1236,7 @@ def _st_broken_splice(existing_text: str):
             break
     if start_idx is not None and end_idx is not None:
         before = "".join(lines[:start_idx])
-        after = "".join(lines[end_idx + 1:])
+        after = "".join(lines[end_idx + 1 :])
         return before + render_block(POSIX_FUNCTION_BODY) + after, True
     if not existing_text:
         return render_block(POSIX_FUNCTION_BODY), False
@@ -959,21 +1246,46 @@ def _st_broken_splice(existing_text: str):
 
 # --- dispatch -------------------------------------------------------------------
 
+USAGE = """usage: install_launch_guard.py [install | --check | --uninstall | status | --self-test]
+                               [--shell zsh|bash|fish]
+
+  install       write the managed claude() function into your shell rc file(s)
+                (the default when no action is given)
+  --check       report what install would touch; writes nothing
+  --uninstall   remove the managed block (restores the pre-install file only
+                when nothing else changed since install)
+  status        installed? which shells? helper staged? allowlist entries?
+  --self-test   exercise install/uninstall against a SCRATCH $HOME
+  -h, --help    print this message and exit"""
+
+
 def main(argv):
     action = None
     shell_override = None
     i = 0
     while i < len(argv):
         a = argv[i]
+        # orch-2: --help used to be ignored and fall through to the DEFAULT action,
+        # install — i.e. asking for usage edited the caller's real ~/.bashrc.
+        if a in ("-h", "--help"):
+            print(USAGE)
+            return 0
         if a in ("install", "status", "--check", "--uninstall", "--self-test"):
             action = a
             i += 1
             continue
         if a == "--shell":
-            shell_override = argv[i + 1] if i + 1 < len(argv) else None
+            if i + 1 >= len(argv):
+                print("install_launch_guard: --shell needs a value", file=sys.stderr)
+                print(USAGE, file=sys.stderr)
+                return 2
+            shell_override = argv[i + 1]
             i += 2
             continue
-        i += 1
+        # Any other argument is an error, never a silent fall-through to install.
+        print("install_launch_guard: unknown argument %r" % a, file=sys.stderr)
+        print(USAGE, file=sys.stderr)
+        return 2
 
     if action is None:
         action = "install"

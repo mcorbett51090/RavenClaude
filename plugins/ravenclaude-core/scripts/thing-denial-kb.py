@@ -133,24 +133,33 @@ def _read_json(path: Path, default):
 _SECRET_RES = [
     re.compile(p)
     for p in (
+        # PEM block FIRST and whole (BEGIN..END, or to end of input when
+        # unterminated): a header-only pattern left the key body behind.
+        r"(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|\Z)",
         r"AKIA[0-9A-Z]{12,}",
-        r"sk-(?:ant-)?[A-Za-z0-9-]{20,}",
+        r"(?<![A-Za-z0-9])ASIA[0-9A-Z]{12,}",
+        r"(?<![A-Za-z0-9])sk-(?:ant-)?[A-Za-z0-9-]{20,}",
         r"sk_live_[A-Za-z0-9]{24,}",
+        r"sk_test_[A-Za-z0-9]{16,}",
         r"rk_live_[A-Za-z0-9]{24,}",
-        r"ghp_[A-Za-z0-9]{30,}",
+        r"gh[pousr]_[A-Za-z0-9]{30,}",
         r"github_pat_[A-Za-z0-9_]{20,}",
         r"glpat-[A-Za-z0-9_-]{15,}",
         r"xox[baprs]-[A-Za-z0-9-]{10,}",
+        r"xapp-[0-9]+-[A-Za-z0-9-]{10,}",
         r"AIza[0-9A-Za-z_-]{30,}",
+        r"ya29\.[A-Za-z0-9_-]{20,}",
         r"npm_[A-Za-z0-9]{30,}",
         r"hf_[A-Za-z0-9]{30,}",
         r"AccountKey=[A-Za-z0-9+/=]{20,}",
         r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}",
-        r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
         r"--password[=\s]\S+",
         r"--token[=\s]\S+",
         r"(?:https?|postgres(?:ql)?|mysql|mongodb|redis|amqp|smtp)s?://"
         r"[A-Za-z0-9._-]{2,}:[A-Za-z0-9._%+-]{4,}@",
+        r"(?:Bearer|bearer|[Aa]uthorization:\s*token)\s+[A-Za-z0-9._~+/-]{20,}",
+        r'-u\s+"?[A-Za-z0-9_][^\s:$"]*:[^\s$"]*[^\s$"0-9][^\s$"]*',
+        r'(?:PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*="?[0-9]*[A-Za-z_][^\s"]*',
     )
 ]
 # The short `-p<value>` flag keeps its leading boundary; only the value redacts.
@@ -302,7 +311,7 @@ def cmd_sync(root: Path) -> int:
         kb: dict[str, dict] = {}
         kb_file = _kb_path(root)
         if kb_file.is_file():
-            for line in kb_file.read_text(encoding="utf-8").splitlines():
+            for line in kb_file.read_text(encoding="utf-8").split("\n"):
                 row = _read_json_line(line)
                 if row and row.get("signature"):
                     kb[row["signature"]] = row
@@ -372,7 +381,12 @@ def _read_json_line(line: str):
 
 def _write_kb(root: Path, kb: dict) -> None:
     rows = sorted(kb.values(), key=lambda e: e.get("last_seen", ""), reverse=True)
-    body = "\n".join(json.dumps(r, ensure_ascii=False) for r in rows)
+    # ensure_ascii=True (corescripts-15): a raw U+2028/U+2029 inside a stored
+    # value is a line break to str.splitlines(), so one pasted resolution split
+    # its row in two and the whole denial shape vanished from recall. Escaped,
+    # every row is one physical line whatever its content; the readers also
+    # split on "\n" only, so rows written before this change still read.
+    body = "\n".join(json.dumps(r, ensure_ascii=True) for r in rows)
     _atomic_write(_kb_path(root), body + ("\n" if body else ""))
 
 
@@ -398,7 +412,7 @@ def cmd_recall(root: Path, limit: int, unresolved_only: bool, as_json: bool) -> 
     kb_file = _kb_path(root)
     rows = []
     if kb_file.is_file():
-        for line in kb_file.read_text(encoding="utf-8").splitlines():
+        for line in kb_file.read_text(encoding="utf-8").split("\n"):
             row = _read_json_line(line)
             if row:
                 rows.append(row)
@@ -448,7 +462,7 @@ def cmd_resolve(root: Path, signature: str, resolution: str, doc: str | None) ->
         kb_file = _kb_path(root)
         if kb_file.is_file():
             kb: dict[str, dict] = {}
-            for line in kb_file.read_text(encoding="utf-8").splitlines():
+            for line in kb_file.read_text(encoding="utf-8").split("\n"):
                 row = _read_json_line(line)
                 if row and row.get("signature"):
                     kb[row["signature"]] = row
@@ -484,7 +498,7 @@ def cmd_record(root: Path) -> int:
         kb: dict[str, dict] = {}
         kb_file = _kb_path(root)
         if kb_file.is_file():
-            for line in kb_file.read_text(encoding="utf-8").splitlines():
+            for line in kb_file.read_text(encoding="utf-8").split("\n"):
                 row = _read_json_line(line)
                 if row and row.get("signature"):
                     kb[row["signature"]] = row

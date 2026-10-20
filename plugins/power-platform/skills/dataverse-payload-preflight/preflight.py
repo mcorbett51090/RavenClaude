@@ -157,6 +157,61 @@ def validate(payload: dict, metadata: dict) -> list[dict]:
     return v
 
 
+# ── SSRF guard before any token is attached (repo-review 2026-10-19) ─────────────
+# Copied from managed-solution-import/managed_import.py (validate_env_url + its guarded
+# redirect opener) rather than imported, so the two skills stay independent; keep the copies in
+# step. Before this, fetch_metadata sent the DATAVERSE_TOKEN bearer to whatever --org it was
+# given, plain http included, and urllib forwarded it across redirects.
+_DATAVERSE_HOST_RE = re.compile(
+    r"^[a-z0-9][a-z0-9-]*\.(?:api\.)?crm[0-9]*\."
+    r"(?:dynamics\.com|microsoftdynamics\.us|appsplatform\.us|dynamics\.cn)$"
+)
+
+
+def is_allowed_dataverse_host(host: str | None) -> bool:
+    return bool(host) and bool(_DATAVERSE_HOST_RE.match(host.lower()))
+
+
+def validate_env_url(url: str) -> str:
+    """Return the URL if it is an https Dataverse host; raise ValueError otherwise."""
+    from urllib.parse import urlparse
+
+    parts = urlparse(url)
+    if parts.scheme != "https":
+        raise ValueError(f"org URL must be https, got scheme {parts.scheme!r}")
+    if parts.username or parts.password or "@" in (parts.netloc or ""):
+        raise ValueError("org URL must not contain userinfo")
+    if parts.port not in (None, 443):
+        raise ValueError(f"org URL must use the default https port, got {parts.port}")
+    if not is_allowed_dataverse_host(parts.hostname):
+        raise ValueError(
+            f"host {parts.hostname!r} is not a recognized Dataverse host "
+            "(*.crm[N].dynamics.com / .microsoftdynamics.us / .appsplatform.us / .dynamics.cn)"
+        )
+    return url
+
+
+def _build_opener():
+    """An opener that refuses a redirect to a different or non-allow-listed host, so a 3xx can
+    never re-attach the bearer token to a foreign host."""
+    import urllib.error
+    import urllib.request
+    from urllib.parse import urlparse
+
+    class _GuardedRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001
+            old = (urlparse(req.full_url).hostname or "").lower()
+            new = (urlparse(newurl).hostname or "").lower()
+            if new != old or not is_allowed_dataverse_host(new):
+                raise urllib.error.HTTPError(
+                    req.full_url, code,
+                    f"refused redirect to {new!r} (cross-host or not allow-listed)", headers, fp,
+                )
+            return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+    return urllib.request.build_opener(_GuardedRedirect())
+
+
 # ── Best-effort live metadata fetch (version-sensitive — verify at use) ───────────
 def fetch_metadata(org: str, entity: str, token: str) -> dict:
     """Assemble the metadata dict from the Dataverse Web API. Best-effort + fail-safe: a failed
@@ -169,13 +224,15 @@ def fetch_metadata(org: str, entity: str, token: str) -> dict:
     """
     import urllib.request
 
+    org = validate_env_url(org)  # raises before any request, so the token never leaves
+    opener = _build_opener()
     base = org.rstrip("/") + "/api/data/v9.2"
     hdr = {"Authorization": f"Bearer {token}", "Accept": "application/json",
            "OData-MaxVersion": "4.0", "OData-Version": "4.0"}
 
     def get(url):
         req = urllib.request.Request(url, headers=hdr)
-        with urllib.request.urlopen(req, timeout=30) as r:  # noqa: S310 (trusted org URL + bearer)
+        with opener.open(req, timeout=30) as r:  # noqa: S310 (allow-listed https host + bearer)
             return json.loads(r.read().decode("utf-8"))
 
     md: dict = {"logical_name": entity, "attributes": {}}
@@ -230,7 +287,11 @@ def main() -> int:
         if not tok:
             print("[preflight] --org given but DATAVERSE_TOKEN env is unset", file=sys.stderr)
             return 2
-        metadata = fetch_metadata(a.org, a.entity, tok)
+        try:
+            metadata = fetch_metadata(a.org, a.entity, tok)
+        except ValueError as e:
+            print(f"[preflight] refusing --org: {e}", file=sys.stderr)
+            return 2
     else:
         print("[preflight] provide --metadata <file> or --org <url>", file=sys.stderr)
         return 2

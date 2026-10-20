@@ -2,6 +2,22 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.6] — 2026-10-19
+
+### Fixed
+
+- **The bundled AWS Documentation MCP server is pinned** (repo-review 2026-10-19, domainplugins-13).
+  `plugin.json` launched `uvx awslabs.aws-documentation-mcp-server@latest`, so every consumer ran
+  whatever release PyPI served at each MCP start, outside the tribunal, contrary to
+  `docs/best-practices/bundled-mcp-servers.md` ("a pinned published artifact"). It is now
+  `awslabs.aws-documentation-mcp-server==1.2.3`, the current PyPI release on 2026-10-19, which
+  completed an MCP `initialize` + `tools/list` handshake under `uvx` that day. `NOTICE.md` carries the
+  same pin and how to move it. `scripts/check-mcp-attribution.py` (Gate 98) now fails an `@latest` or
+  unversioned `uvx`/`npx`/`bunx`/`pipx` server.
+
+**Migration:** none. The server no longer upgrades itself; a newer release arrives with a plugin
+version bump.
+
 ## [0.3.5] — 2026-09-23
 
 Weekly Tier-A news sweep (2026-09-23) — **correction** across `knowledge/aws-cloud-decision-trees.md`, `skills/aws-compute-selection/SKILL.md`, `agents/aws-compute-platform-engineer.md`, `CLAUDE.md`, `README.md`, `.claude-plugin/plugin.json`: AWS App Runner has been **closed to new customers since 2026-04-30** and is in maintenance mode (no new features); AWS recommends **Amazon ECS Express Mode** (GA re:Invent 2025) as the replacement, noting it has no scale-to-zero. Independently re-verified this session against the AWS App Runner availability-change notice and HashiCorp `terraform-provider-aws` issue #47161 (deprecating `aws_apprunner_*` resources). **Migration:** none — knowledge-file content only.

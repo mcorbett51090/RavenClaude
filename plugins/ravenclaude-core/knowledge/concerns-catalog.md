@@ -92,11 +92,30 @@ cross_cutting:
       # `-p<value>` also false-positived as a pre_llm_deny on long combined flags
       # (`tar -pcvf…`, `-pdflatex`), so it is SCOPED to DB clients where
       # `-p<secret>` is unambiguous (`mysql -psecret`); the `--password` /
-      # `--token` long flags stay global.
+      # `--token` long flags stay global. psql and redis-cli are NOT in the
+      # list: their attached `-p` is the PORT (`psql -p5432`). `-p` is matched
+      # case-sensitively because MySQL's capital `-P` is its port flag. Any
+      # attached value is kept, digits included: an all-digit password is still
+      # a password.
+      #
+      # Vendor-prefix forms (2026-10-19, the D set in
+      # scripts/check-secret-pattern-parity.py, which fails on drift). The
+      # matcher compiles every trigger with re.IGNORECASE, so each prefix is
+      # pinned case-sensitive with (?-i:...). `sk-` carries a LEFT boundary:
+      # unanchored, it matched the tail of any word ending in "sk" followed by
+      # a 20+ char kebab run (task-/risk-/disk- paths and branch names) and
+      # hard-denied them. GitHub covers every token class (gh[pousr]_). The
+      # Bearer / `-u user:pass` / env-assignment shapes in hooks/_scrub.sh are
+      # REDACTION-ONLY and deliberately absent: as a case-insensitive hard deny
+      # they refuse `max_tokens=4096` and `docker run -u 1000:1000`.
       regex:
         - 'AKIA[0-9A-Z]{12,}'
-        - 'sk-(ant-)?[A-Za-z0-9-]{20,}'
-        - 'ghp_[A-Za-z0-9]{30,}'
+        - '(?<![A-Za-z0-9])(?-i:sk-)(?:ant-|proj-)?[A-Za-z0-9_-]{20,}'
+        - '(?-i:gh[pousr]_)[A-Za-z0-9]{30,}'
+        - '(?-i:npm_)[A-Za-z0-9]{30,}'
+        - '(?-i:[sr]k_live_)[A-Za-z0-9]{24,}'
+        - '(?-i:hf_)[A-Za-z0-9]{30,}'
+        - '(https?|postgres(ql)?|mysql|mongodb|redis|amqp|smtp)s?://[A-Za-z0-9._-]{2,}:[A-Za-z0-9._%+-]{4,}@'
         - 'github_pat_[A-Za-z0-9_]{20,}'
         - 'glpat-[A-Za-z0-9_-]{15,}'
         - 'xox[baprs]-[A-Za-z0-9-]{10,}'
@@ -105,7 +124,7 @@ cross_cutting:
         - '-----BEGIN [A-Z ]*PRIVATE KEY-----'
         - '--password[=\s]\S+'
         - '--token[=\s]\S+'
-        - '\b(mysql|mariadb|mysqldump|psql|redis-cli|mongo|mongosh)\b[^|&;]*\s-p\S+'
+        - '\b(mysql|mariadb|mysqldump|mongo|mongosh)\b[^|&;]*\s(?-i:-p)\S+'
   - id: xc.injection-attempt
     name: Prompt-injection payload in command content
     severity: critical
@@ -177,13 +196,25 @@ cross_cutting:
       # literal-filename match misses; the bare filenames cover a `cd <dir>` then
       # bare-name mutation. Regex can't canonicalize a path, so this is the
       # shell-level scope (in-process `python -c` writes route to the panel).
+      # The optional digit-led segment after `ravenclaude-core/` is the version
+      # directory of an installed copy (~/.claude/plugins/cache/<mkt>/
+      # ravenclaude-core/<version>/hooks). It must start with a digit, so
+      # ravenclaude-core/skills/scripts and .../templates/scripts are NOT substrate.
+      # Other hosts install their hooks elsewhere (.github/hooks, .codex) and are
+      # not covered here. `.ravenclaude/runs/thing/cache` is the verdict cache: an
+      # entry there is served as the panel's verdict, so writing one is a self-approve.
       # (1) redirection / tee INTO a substrate path
       regex:
-        - '(>>?|\btee\b)\s*\S*(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        - '(>>?|\btee\b)\s*\S*(ravenclaude-core/(?:\d[\w.+-]*/)?(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml|\.ravenclaude/runs/thing/cache)'
         # (2a) an INHERENTLY-mutating verb (incl. tee, tolerant of intervening
         #      flags) on a substrate path. These verbs have no read mode — naming
         #      one alongside a substrate path is already the mutation.
-        - '(?s)\b(rm|unlink|shred|mv|cp|install|ln|tee|truncate|dd|chmod|chown|patch|sponge)\b.{0,200}(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        #      The verb boundary excludes `-` on both sides, so a flag cluster
+        #      (`grep -ln`, `docker run --rm`) is not read as the verb. `/` stays
+        #      ALLOWED on the left on purpose: a mid-chain `/bin/rm` must match.
+        #      The window is deliberately NOT separator-bounded: a quoted or
+        #      substituted separator (`rm -f ";" <path>`) would otherwise hide it.
+        - '(?s)(?<![\w-])(?:rm|unlink|shred|mv|cp|install|ln|tee|truncate|dd|chmod|chown|patch|sponge)(?![\w-]).{0,200}(ravenclaude-core/(?:\d[\w.+-]*/)?(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml|\.ravenclaude/runs/thing/cache)'
         # (2b) a STREAM EDITOR on a substrate path — but only in IN-PLACE mode.
         #      sed/perl/awk are read-by-default: without an in-place flag they
         #      write to stdout, so a pattern-print or line-range print of a hook
@@ -198,7 +229,7 @@ cross_cutting:
         #      LATER chained command cannot arm a read in an earlier one.
         #      Fail-closed is preserved: the in-place flag still denies here, and
         #      a redirect or a tee-pipe onto a substrate path is trigger (1)/(2a).
-        - '(?s)\b(sed|perl|awk)\b[^;|&\n]{0,120}?(?:--in-place|-[A-Za-z0-9.]*i[A-Za-z0-9.]*\b|\binplace\b)[^;|&\n]{0,120}?(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        - '(?s)\b(sed|perl|awk)\b[^;|&\n]{0,120}?(?:--in-place|-[A-Za-z0-9.]*i[A-Za-z0-9.]*\b|\binplace\b)[^;|&\n]{0,120}?(ravenclaude-core/(?:\d[\w.+-]*/)?(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml|\.ravenclaude/runs/thing/cache)'
         # (3) turning the per-category toggle OFF in comfort-posture.yaml (bounded
         #     lookaheads so a large heredoc body is not scanned twice unbounded)
         - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}thing:\s*(off|false|no)\b)'
@@ -316,8 +347,9 @@ cross_cutting:
     triggers:
       regex:
         # --force-with-lease is reversible-ish (it refuses to clobber unseen work),
-        # so exclude it — matching srm.force-push, which the two concerns must agree on.
-        - 'git push\b[^|&;\n]*(--force(?!-with-lease)\b|(?-i:\s-[A-Za-z]*f[A-Za-z]*(\s|$)))'
+        # so exclude it, and its companion --force-if-includes — matching
+        # srm.force-push, which the two concerns must agree on (the line is identical).
+        - 'git\s+push\b[^|&;\n]*(--force(?!-with-lease|-if-includes)(?![\w-])|(?-i:\s-[A-Za-z]*f[A-Za-z]*(?![\w=./:-])))'
         - 'rm\s+-[a-z]*r[a-z]*f[a-z]*|rm\s+-[a-z]*f[a-z]*r[a-z]*'
         - '(npm|pnpm|yarn)\s+publish'
         - 'cargo\s+publish'
@@ -812,13 +844,16 @@ categories:
         force-updates the named ref exactly like `--force`, and `git push --mirror`, which force-updates every ref under refs/ and deletes remote refs absent locally.
       resolution: DENY. (Reaffirms the baseline.)
       triggers:
-        # `--force` (but not `--force-with-lease`) or short `-f`. The second regex
+        # `--force` (but not `--force-with-lease` / `--force-if-includes`) or short
+        # `-f`. The short flag is bounded by a lookahead, not `(\s|$)`, so `-f;`,
+        # `-f)`, `-f&` and a closing quote (`bash -c "... -f"`, `$( )`, backticks)
+        # still match. xc.no-undo carries an identical copy. The second regex
         # catches a `+`-prefixed refspec (`git push origin +main`,
         # `git push origin +HEAD:main`) — the leading `+` force-updates that ref.
         # It is scoped to the push segment ([^|&;]) so a ` +token` in a LATER
         # chained command (`git push origin main && echo "+1"`) does not match.
         regex:
-          - 'git\s+push\b[^|&;\n]*(--force(?!-with-lease)\b|(?-i:\s-[A-Za-z]*f[A-Za-z]*(\s|$)))'
+          - 'git\s+push\b[^|&;\n]*(--force(?!-with-lease|-if-includes)(?![\w-])|(?-i:\s-[A-Za-z]*f[A-Za-z]*(?![\w=./:-])))'
           - 'git\s+push\b[^|&;\n]*\s\+\S'
           - 'git\s+push\b[^|&;\n]*--mirror\b'
     - id: srm.pr-merge-without-checks
@@ -880,9 +915,17 @@ categories:
       description: Caught by security_deny. The tribunal must reaffirm; never EDIT to allow.
       resolution: DENY.
       triggers:
+        # A pipe (or `|&`) into an interpreter, through any chain of wrappers
+        # (`sudo -E`, `env`, `xargs`, ...), by bare name or path. The interpreter
+        # list is EXPLICIT: `[a-z]*sh` would match `ssh`, and the `(?![\w-])`
+        # boundary keeps `sh-lint` / `shellcheck` out. Process substitution and
+        # `$(...)` arms only in an EXECUTING position (a shell reading `<(...)`,
+        # eval, `sh -c`): a bare `$(curl ...)` is the ubiquitous assignment form.
         regex:
-          - 'curl\b[^&;\n]*\|\s*(sudo\s+)?(sh|bash)\b'
-          - 'wget\b[^&;\n]*\|\s*(sudo\s+)?(sh|bash)\b'
+          - 'curl\b[^&;\n]*\|&?\s*(?:(?:sudo|doas|env|command|nohup|time|exec|xargs)(?:\s+-\S+)*(?:\s+[A-Za-z_][A-Za-z0-9_]*=\S*)*\s+)*(?:\S*/)?(?:sh|bash|zsh|dash|ksh|mksh|yash|ash|fish|csh|tcsh|python[\d.]*|perl|ruby|node|php|pwsh|powershell)(?![\w-])'
+          - 'wget\b[^&;\n]*\|&?\s*(?:(?:sudo|doas|env|command|nohup|time|exec|xargs)(?:\s+-\S+)*(?:\s+[A-Za-z_][A-Za-z0-9_]*=\S*)*\s+)*(?:\S*/)?(?:sh|bash|zsh|dash|ksh|mksh|yash|ash|fish|csh|tcsh|python[\d.]*|perl|ruby|node|php|pwsh|powershell)(?![\w-])'
+          - '(?:bash|sh|zsh|source|\.)\s+<\(\s*(?:curl|wget)'
+          - '(?:eval|(?:ba)?sh\s+-c)\s+["\x27]?\$\(\s*(?:curl|wget)'
     - id: sce.embedded-base64-payload
       name: Code body contains a base64 string > 100 chars decoding to a shell command
       severity: critical

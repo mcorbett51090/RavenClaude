@@ -41,6 +41,17 @@
 # A command in NO enabled category falls through (exit 0, no output) to the
 # normal comfort-posture flow — that flow is the safety floor.
 
+# ── Function purge (hooks-4), the first thing that runs. bash imports exported
+#    functions from the environment (BASH_FUNC_<name>%%), so a planted `jq` or
+#    `python3` function would otherwise run in place of the real binary and could
+#    hand back an allow. A clean --noprofile --norc bash has no functions, so this is
+#    a no-op normally; it never quarantines on the mere presence of exported
+#    functions. It sits ABOVE `set -euo pipefail` on purpose: nothing here can abort
+#    the script before the fail-closed EXIT trap below is armed (Gate 199 checks that
+#    ordering), and it must run before this file defines its own functions. ────────
+for _f in $(builtin compgen -A function 2>/dev/null); do builtin unset -f "$_f"; done
+unset _f
+
 set -euo pipefail
 
 # ── Fail-closed EXIT trap (FM2), armed FIRST (P3, security-review backlog) so an
@@ -90,6 +101,14 @@ _rc_runtime_helper="$(dirname "${BASH_SOURCE[0]}")/_rc-runtime.sh"
 command -v _rc_seat_child_ok >/dev/null 2>&1 || _rc_seat_child_ok() { return 1; }
 command -v _rc_runtime_subdir >/dev/null 2>&1 || _rc_runtime_subdir() { return 1; }
 command -v _rc_safe_id >/dev/null 2>&1 || _rc_safe_id() { printf '%s' "$1" | tr -cd 'A-Za-z0-9_-' | cut -c1-128; }
+
+# ── Portable timeout (tribunal-1). GNU `timeout` is absent on stock macOS, so the
+#    engine calls go through _rc_timeout from _portable.sh. Fail-safe: without the
+#    helper the stub runs the command unbounded (the hooks.json timeout still applies).
+_rc_portable_helper="$(dirname "${BASH_SOURCE[0]}")/_portable.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_portable_helper" ] && . "$_rc_portable_helper" 2>/dev/null || true
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
 
 # ── Recursion guard: a seat runs `claude -p` (which we mark THING_SEAT_ACTIVE);
 #    belt-and-suspenders so a tribunal call can never reconvene the tribunal.
@@ -204,7 +223,12 @@ posture_file="${cwd}/.ravenclaude/comfort-posture.yaml"
 # category is toggled on, regardless of command_review.enabled. Suppressing the
 # short-circuit here to avoid a python call would silently remove those floors for
 # consumers who have categories toggled on but set enabled: false.
-if [ ! -f "$posture_file" ] || ! grep -Eq '^[[:space:]]*thing:[[:space:]]*(on|true|yes)\b' "$posture_file"; then
+# The grep must be a SUPERSET of what the engine treats as enabled (tribunal-20):
+# case-insensitive, block or flow style (`{thing: on}`), quoted, or `1`. A grep
+# narrower than the engine's truthiness silently skipped the whole tribunal,
+# always_screen floors included, for a posture the engine reads as on. A false
+# match here only costs one python call; a false miss turns review off.
+if [ ! -f "$posture_file" ] || ! grep -Eiq "(^|[{,[:space:]])thing:[[:space:]]*['\"]?(on|true|yes|1)['\"]?" "$posture_file"; then
   exit 0
 fi
 
@@ -222,10 +246,13 @@ if [ "$tool_name" = "Bash" ]; then
   cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')"
   [ -z "$cmd" ] && exit 0
   payload_shape="command"
-  decision="$(THING_SEAT_ACTIVE= python3 "$DECISION" --root "$cwd" classify "$cmd" 2>/dev/null || true)"
+  # Bounded (tribunal-1): the hook's own timeout (hooks.json, 90 s) FAILS OPEN when
+  # it fires; 60 s here keeps the verdict ours. A killed engine prints nothing, and
+  # an empty decision takes the classification-failed DENY below.
+  decision="$(THING_SEAT_ACTIVE= _rc_timeout 60 python3 "$DECISION" --root "$cwd" classify "$cmd" 2>/dev/null || true)"
 else
   cmd=""
-  decision="$(printf '%s' "$payload" | THING_SEAT_ACTIVE= python3 "$DECISION" --root "$cwd" classify-payload 2>/dev/null || true)"
+  decision="$(printf '%s' "$payload" | THING_SEAT_ACTIVE= _rc_timeout 60 python3 "$DECISION" --root "$cwd" classify-payload 2>/dev/null || true)"
   payload_shape="$(printf '%s' "$decision" | jq -r '.payload_shape // "command"')"
 fi
 if [ -z "$decision" ]; then
@@ -342,6 +369,15 @@ if [ "$hard_rule" = "true" ]; then
     _hr_hint=" Tip: --force-with-lease is the safer form, but force-push remains refused here."
   fi
   emit deny "Command review (the Thing): DENIED — this command matches an unarguable hard rule (${hr_concern}) and is refused pre-LLM, regardless of which category routed it (§B.9.3).${_hr_hint} Sága log: .ravenclaude/runs/thing/${hr_run_id}.json"
+fi
+
+# tribunal-7: a posture that does not parse leaves thing_enabled false, which would
+# exit 0 below and silently stop all review while the grep above still sees
+# `thing: on`. Surface it instead. ASK, not deny: a deny would also block the
+# Write that repairs the file. The always_screen floors above already ran.
+posture_error="$(printf '%s' "$decision" | jq -r '.posture_error // empty')"
+if [ -n "$posture_error" ]; then
+  emit ask "Command review: comfort-posture.yaml does not parse (${posture_error}); review is not running. Fix the file."
 fi
 
 [ "$enabled" != "true" ] && exit 0   # category not toggled on -> normal flow
@@ -582,8 +618,11 @@ phase="T3-panel"
 #    always ran, so only the EXPENSIVE panel result is ever served from cache. ──
 cache_dir="${cwd}/${audit_dir_rel}/cache"
 cache_hit="false"; cache_verdict=""; cache_revised=""
+# tribunal-16: the same command means different things in different directories
+# (`rm -rf build`), so the key carries the resolved working directory too.
+cache_cwd_rp="$(cd "$_payload_cwd" 2>/dev/null && pwd -P || printf '%s' "$_payload_cwd")"
 if [ "${cache_ttl:-0}" -gt 0 ] && [ -n "$config_hash" ] && command -v sha256sum >/dev/null 2>&1; then
-  cache_key="$(printf '%s' "${cache_id}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
+  cache_key="$(printf '%s' "${cache_id}|${category}|${config_hash}|${cache_cwd_rp}" | sha256sum | cut -d' ' -f1)"
   cache_file="${cache_dir}/${cache_key}.json"
   if [ -f "$cache_file" ]; then
     c_ts="$(jq -r '.ts // 0' "$cache_file" 2>/dev/null || echo 0)"
@@ -910,6 +949,20 @@ else
   fi
 fi
 
+# ── tribunal-6: an EDIT (from the panel OR a cache hit) is emitted as an allow with
+#    the revised command, so the revision gets the same category-independent hard
+#    screen the original got. Any hit, an engine error, or no output -> DENY.
+if [ "$verdict" = "edit" ] && [ -n "$revised" ] && [ "$revised" != "null" ]; then
+  rscreen="$(THING_SEAT_ACTIVE= _rc_timeout 60 python3 "$CONCERNS" screen-always "$revised" 2>/dev/null || true)"
+  rs_hit="$(printf '%s' "$rscreen" | jq -r 'if (type == "object") and (.error == null) then ((.self_disable_concern // .hard_rule_concern) // "") else "unscreenable" end' 2>/dev/null || echo unscreenable)"
+  [ -z "$rscreen" ] && rs_hit="unscreenable"
+  if [ -n "$rs_hit" ]; then
+    verdict="deny"; revised=""
+    reason="Command review: DENIED — the proposed EDIT matches an always-screen rule (${rs_hit}); a rewrite may not introduce one."
+    phase="T3-edit-rescreen"
+  fi
+fi
+
 # ── gate_floor (T5): surface a confident panel-ALLOW to you (ask) when the
 #    command's tier is at/above the configured floor, OR when it is high-blast
 #    (irreversible) regardless of floor. Reads are never surfaced. A DENY blocks
@@ -999,7 +1052,7 @@ esac
 if [ "${cache_ttl:-0}" -gt 0 ] && [ -n "$config_hash" ] && [ "$cacheable" = "true" ] \
    && [ "$audit_written" = "true" ] && command -v sha256sum >/dev/null 2>&1 \
    && { [ "$verdict" = "allow" ] || [ "$verdict" = "edit" ] || [ "$verdict" = "deny" ]; }; then
-  ckey="$(printf '%s' "${cache_id}|${category}|${config_hash}" | sha256sum | cut -d' ' -f1)"
+  ckey="$(printf '%s' "${cache_id}|${category}|${config_hash}|${cache_cwd_rp}" | sha256sum | cut -d' ' -f1)"
   if mkdir -p "$cache_dir" 2>/dev/null; then
     jq -cn --arg v "$verdict" --arg r "$revised" --argjson ts "$(date +%s 2>/dev/null || echo 0)" \
       '{verdict:$v,revised:$r,ts:$ts}' > "${cache_dir}/${ckey}.json" 2>/dev/null || true

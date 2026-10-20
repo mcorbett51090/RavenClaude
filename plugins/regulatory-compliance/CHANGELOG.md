@@ -2,6 +2,24 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.8] — 2026-10-19
+
+### Fixed
+
+- **`scrub-confidential-pre-write.sh` never saw the content being written** (repo-review 2026-10-19,
+  domainplugins-8a). As a PreToolUse hook it exited on a not-yet-existing file and otherwise grepped the
+  pre-edit bytes on disk, so a new-file Write, or an Edit that adds an SSN, was never flagged. It now scans
+  the payload's `.tool_input.content` / `.new_string` / `.edits[].new_string`, keeps the path filters on the
+  target path, and reads the on-disk file only for a manual no-stdin run. The header, which said the
+  about-to-write content was not visible, is corrected.
+- **SSN and EIN placeholder filter dropped whole lines** (domainplugins-9). The line-level
+  `grep -Ev '(...|<.*>)'` discarded any line holding a `<br>`, a `<td>` or a `<KYC-12>`-style id, so a real
+  SSN or EIN on that line was never reported. The filter now applies to each matched token.
+- **IBAN check was case-insensitive** (domainplugins-19). `grep -Eni` let `[A-Z]` match lowercase, flagging
+  commit hashes and similar ids. Now `grep -En`, as the finance hook was fixed in 2026-07.
+
+**Migration:** none. Expect findings on new-file Writes and on Edits that previously passed silently.
+
 ## [0.12.7] — 2026-10-18
 
 ### Fixed

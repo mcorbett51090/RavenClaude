@@ -140,21 +140,154 @@ RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload ru
   && ok "an allow emits no stderr (the fix adds no per-call noise)" \
   || bad "allow leaked $(wc -c <"$TMP/err0.txt" | tr -d ' ') bytes of stderr"
 
+# ── a JSON deny carries its REASON to stderr (repo-review item 1a-7) ────────
+# exit 2 alone is half of Gemini's block contract; the reason channel is stderr,
+# and a permissionDecisionReason left on stdout reached nobody.
+RC_OUT="$TMP" _run_ad bash "$AD" pretool "$TMP/json-deny.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/errj.txt"
+_rc=$?
+[ "$_rc" -eq 2 ] && grep -q 'tribunal stub' "$TMP/errj.txt" \
+  && ok "a JSON deny exits 2 WITH its permissionDecisionReason on stderr" \
+  || bad "JSON deny reason lost: exit=$_rc stderr=$(head -c 120 "$TMP/errj.txt")"
+
+# ── a tribunal EDIT is blocked, never silently dropped (item 1a-5) ──────────
+# EDIT = allow + updatedInput.command (a safer rewrite). The shim has no rewrite
+# translation for Gemini, so dropping the EDIT ran the ORIGINAL command.
+cat >"$TMP/edit.sh" <<'EDS'
+#!/usr/bin/env bash
+cat >/dev/null
+printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"panel EDIT","updatedInput":{"command":"echo the-revised-one"}}}'
+exit 0
+EDS
+chmod +x "$TMP/edit.sh"
+RC_OUT="$TMP" _run_ad bash "$AD" pretool "$TMP/edit.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/erre.txt"
+_rc=$?
+[ "$_rc" -eq 2 ] && grep -qi 'revised' "$TMP/erre.txt" && grep -q 'the-revised-one' "$TMP/erre.txt" \
+  && ok "an EDIT verdict exits 2 with the revised command on stderr" \
+  || bad "EDIT verdict not blocked: exit=$_rc stderr=$(head -c 160 "$TMP/erre.txt")"
+# updatedInput WITHOUT a command (the explore-tier-pin model-pin shape) is not an
+# EDIT of a shell command and must pass through unchanged.
+cat >"$TMP/pin.sh" <<'PNS'
+#!/usr/bin/env bash
+cat >/dev/null
+printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","updatedInput":{"subagent_type":"Explore","model":"haiku"}}}'
+exit 0
+PNS
+chmod +x "$TMP/pin.sh"
+RC_OUT="$TMP" _run_ad bash "$AD" pretool "$TMP/pin.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/errp.txt"
+_rc=$?
+[ "$_rc" -eq 0 ] && [ ! -s "$TMP/errp.txt" ] \
+  && ok "updatedInput without a command (model-pin shape) passes through unchanged" \
+  || bad "model-pin shape changed: exit=$_rc stderr=$(head -c 120 "$TMP/errp.txt")"
+
+# ── a payload over 128 KiB is still normalised (item 1a-3) ──────────────────
+# The payload used to ride argv too; one argv element over MAX_ARG_STRLEN makes
+# the exec fail (E2BIG) and the guard received snake_case, i.e. no decision.
+python3 -c '
+import json, sys
+print(json.dumps({"session_id": "sess-big", "cwd": "/ws/p", "hook_event_name": "BeforeTool",
+                  "tool_name": "run_shell_command",
+                  "tool_input": {"command": "echo " + "A" * 140000}}))
+' >"$TMP/big.json"
+RC_OUT="$TMP" RC_RC=0 _run_ad bash "$AD" pretool "$TMP/stub.sh" <"$TMP/big.json" >/dev/null 2>&1
+[ "$(seen_tool)" = "Bash" ] \
+  && ok "a $(wc -c <"$TMP/big.json" | tr -d ' ')-byte payload is normalised (guard sees Bash)" \
+  || bad "large payload reached the guard as '$(seen_tool)', expected Bash"
+cat >"$TMP/bash-deny.sh" <<'BDS'
+#!/usr/bin/env bash
+t="$(jq -r '.tool_name // empty' 2>/dev/null)"
+[ "$t" = "Bash" ] && { printf 'denied a Bash call\n' >&2; exit 2; }
+exit 0
+BDS
+chmod +x "$TMP/bash-deny.sh"
+RC_OUT="$TMP" _run_ad bash "$AD" pretool "$TMP/bash-deny.sh" <"$TMP/big.json" >/dev/null 2>&1
+_rc=$?
+[ "$_rc" -eq 2 ] && ok "a large payload a Bash guard denies still returns exit 2" \
+  || bad "large-payload deny lost: exit=$_rc"
+
+# ── a normalisation FAILURE fails closed in pretool (item 1a-3) ─────────────
+# Forced with a python3 that exits 1 ahead of the real one on PATH (jq stays real,
+# so field reads still work and only the normaliser breaks).
+mkdir -p "$TMP/badpy"
+printf '#!/bin/sh\ncat >/dev/null\nexit 1\n' >"$TMP/badpy/python3"
+chmod +x "$TMP/badpy/python3"
+RC_OUT="$TMP" RC_RC=0 PATH="$TMP/badpy:$PATH" _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/errn.txt"
+_rc=$?
+[ "$_rc" -eq 2 ] && grep -q 'normalised' "$TMP/errn.txt" \
+  && ok "a normalisation failure in pretool exits 2 with a reason (fail-closed)" \
+  || bad "normalisation failure did not fail closed: exit=$_rc stderr=$(head -c 120 "$TMP/errn.txt")"
+
+# ── MCP server boundary comes from .gemini/settings.json (item 1a-6) ────────
+# mcp_github_create_issue used to become mcp__github_create_issue, so the
+# tribunal read the SERVER as github_create_issue and an allow-listed github
+# write was pre-denied as an unverified server.
+MCPP="$TMP/mcpproj"; MCPH="$TMP/mcphome"
+mkdir -p "$MCPP/.gemini" "$MCPP/.ravenclaude" "$MCPH"
+printf '{"mcpServers":{"github":{"command":"x"},"my":{"command":"x"},"my_server":{"command":"x"}}}\n' >"$MCPP/.gemini/settings.json"
+mcp_payload() {
+  python3 -c '
+import json, sys
+print(json.dumps({"session_id": "s-mcp", "cwd": sys.argv[2], "hook_event_name": "BeforeTool",
+                  "tool_name": sys.argv[1], "tool_input": {}}))
+' "$1" "$2"
+}
+mcp_run() { # <raw-name> <project> -> the tool_name the guard saw
+  RC_OUT="$TMP" RC_RC=0 HOME="$MCPH" _run_ad bash "$AD" pretool "$TMP/stub.sh" <<<"$(mcp_payload "$1" "$2")" >/dev/null 2>&1
+  seen_tool
+}
+[ "$(mcp_run mcp_github_create_issue "$MCPP")" = "mcp__github__create_issue" ] \
+  && ok "mcp_github_create_issue -> mcp__github__create_issue (server from settings)" \
+  || bad "MCP name became '$(seen_tool)', expected mcp__github__create_issue"
+[ "$(mcp_run mcp_my_server_do_thing "$MCPP")" = "mcp__my_server__do_thing" ] \
+  && ok "longest matching server wins (my_server over my)" \
+  || bad "longest-prefix MCP split wrong: '$(seen_tool)'"
+mkdir -p "$TMP/nosettings"
+[ "$(mcp_run mcp_github_create_issue "$TMP/nosettings")" = "mcp__github__create_issue" ] \
+  && ok "no readable server list -> first-underscore split" \
+  || bad "fallback MCP split wrong: '$(seen_tool)'"
+# The consequence end to end: with mcp.allowed_servers: [github] the tribunal's
+# deterministic screen must NOT pre-deny the normalised github write.
+DECP="$HERE/../../scripts/thing-decision.py"
+printf 'schema_version: 5\ncategories:\n  mcp_tools:\n    thing: on\n' >"$MCPP/.ravenclaude/comfort-posture.yaml"
+printf 'mcp:\n  allowed_servers: [github]\n' >"$MCPP/.ravenclaude/thing.yaml"
+cat >"$TMP/classify.sh" <<'CLS'
+#!/usr/bin/env bash
+python3 "$RC_DECP" --root "$CLAUDE_PROJECT_DIR" classify-payload 2>/dev/null \
+  | jq -r '.pre_llm_deny' >"$RC_OUT/pld.txt" 2>/dev/null
+exit 0
+CLS
+chmod +x "$TMP/classify.sh"
+rm -f "$TMP/pld.txt"
+RC_OUT="$TMP" RC_DECP="$DECP" HOME="$MCPH" _run_ad bash "$AD" pretool "$TMP/classify.sh" \
+  <<<"$(mcp_payload mcp_github_create_issue "$MCPP")" >/dev/null 2>&1
+if [ -f "$DECP" ] && [ -s "$TMP/pld.txt" ]; then
+  [ "$(cat "$TMP/pld.txt")" != "true" ] \
+    && ok "an allow-listed server write is NOT pre-denied after normalisation" \
+    || bad "allow-listed github write was pre-denied (pre_llm_deny=true)"
+  # positive control on the same screen: a NON-listed write IS pre-denied.
+  RC_OUT="$TMP" RC_DECP="$DECP" HOME="$MCPH" _run_ad bash "$AD" pretool "$TMP/classify.sh" \
+    <<<"$(mcp_payload mcp_slackbot_post_message "$MCPP")" >/dev/null 2>&1
+  [ "$(cat "$TMP/pld.txt")" = "true" ] \
+    && ok "control: a non-listed server write IS pre-denied on the same screen" \
+    || bad "control failed: non-listed write not pre-denied ($(cat "$TMP/pld.txt"))"
+else
+  bad "could not run the tribunal classify-payload screen ($DECP)"
+fi
+
 # ── TEETH ───────────────────────────────────────────────────────────────────
 MUT="$TMP/mutant.sh"
 # Strip the normalisation: the guard then sees snake_case and MH-01 returns.
 # ⛔ Anchored to the adapter's exact pretool capture line
-# (`out="$(_normalise | bash …)"`, SH-F1). If you change that line, update this
+# (`out="$(printf '%s' "$norm" | bash …)"`). If you change that line, update this
 # pattern IN THE SAME COMMIT — when it stops matching, the gate FAILS LOUD
 # ("adapter shape changed?") rather than silently skipping its teeth.
-sed 's/^    out="$(_normalise | bash "$real" "$@")"$/    out="$(printf %s "$payload" | bash "$real" "$@")"/' "$AD" >"$MUT"
+sed 's/^    out="$(printf .%s. "$norm" | bash "$real" "$@")"$/    out="$(printf %s "$payload" | bash "$real" "$@")"/' "$AD" >"$MUT"
 
 # Teeth for the reason-preservation assertion: fold stderr into the capture
 # (`2>&1`) so the sentinel vanishes from the adapter's stderr. Without this,
 # "bytes arrived" proves nothing about whether the adapter is what let them through.
 MUT2="$TMP/mutant-quiet.sh"
-sed 's/^    out="$(_normalise | bash "$real" "$@")"$/    out="$(_normalise | bash "$real" "$@" 2>\&1)"/' "$AD" >"$MUT2"
-if grep -q '_normalise | bash "$real" "$@" 2>&1' "$MUT2"; then
+sed 's/^    out="$(printf \(.%s.\) "$norm" | bash "$real" "$@")"$/    out="$(printf \1 "$norm" | bash "$real" "$@" 2>\&1)"/' "$AD" >"$MUT2"
+if grep -q '"$norm" | bash "$real" "$@" 2>&1' "$MUT2"; then
   RC_OUT="$TMP" bash "$MUT2" pretool "$TMP/loud.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/err2.txt"
   grep -q 'DENY_REASON_SENTINEL' "$TMP/err2.txt" \
     && bad "teeth: the 2>&1 mutant STILL carried the reason — the assertion is vacuous" \
@@ -173,13 +306,37 @@ fi
 
 # Teeth for SH-F1 JSON-deny: strip the permissionDecision==deny → exit 2 branch.
 MUT3="$TMP/mutant-json.sh"
-sed 's/^      \[ "$dec" = "deny" \] && exit 2$/      :/' "$AD" >"$MUT3"
-if grep -q '^      :$' "$MUT3"; then
+sed 's/^      if \[ "$dec" = "deny" \]; then$/      if false; then/' "$AD" >"$MUT3"
+if grep -q '^      if false; then$' "$MUT3"; then
   RC_OUT="$TMP" bash "$MUT3" pretool "$TMP/json-deny.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
   [ "$?" -ne 2 ] && ok "teeth: removing JSON-deny branch stops the exit-2 translation" \
     || bad "teeth: JSON-deny mutant still blocked — assertion may be vacuous"
 else
   bad "teeth: could not build the no-JSON-deny mutant (adapter shape changed?)"
+fi
+
+# Teeth for the EDIT block (1a-5): with the updatedInput.command branch disabled
+# the EDIT stub must be allowed again (the original defect, on demand).
+MUT4="$TMP/mutant-edit.sh"
+sed 's/^      if \[ -n "$rev" \]; then$/      if false; then/' "$AD" >"$MUT4"
+if grep -q '^      if false; then$' "$MUT4"; then
+  RC_OUT="$TMP" bash "$MUT4" pretool "$TMP/edit.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
+  [ "$?" -eq 0 ] && ok "teeth: without the EDIT branch the rewrite is dropped again (rc 0)" \
+    || bad "teeth: EDIT mutant still blocked — assertion may be vacuous"
+else
+  bad "teeth: could not build the no-EDIT mutant (adapter shape changed?)"
+fi
+
+# Teeth for fail-closed normalisation (1a-3): disable the guard and the forced
+# python3 failure must proceed instead of blocking.
+MUT5="$TMP/mutant-failopen.sh"
+sed 's/^    if \[ "$nrc" -ne 0 \] || .*; then$/    if false; then/' "$AD" >"$MUT5"
+if grep -q '^    if false; then$' "$MUT5"; then
+  RC_OUT="$TMP" RC_RC=0 PATH="$TMP/badpy:$PATH" bash "$MUT5" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
+  [ "$?" -ne 2 ] && ok "teeth: without the fail-closed guard a normalisation failure proceeds" \
+    || bad "teeth: fail-open mutant still blocked — assertion may be vacuous"
+else
+  bad "teeth: could not build the fail-open mutant (adapter shape changed?)"
 fi
 
 # ── v0.7 observe-lane forwarding (spectate-emit needs stdin + CLAUDE_HOOK_EVENT) ─

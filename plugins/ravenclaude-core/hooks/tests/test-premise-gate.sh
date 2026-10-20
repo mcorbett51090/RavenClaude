@@ -139,6 +139,69 @@ chk "out-of-project /tmp write is still exempt" \
     0 "$(pre '{"session_id":"linuxshape","tool_name":"Write","tool_input":{"file_path":"/tmp/pg-elsewhere-'"$$"'/x.astro"}}')"
 rm -rf "$L"
 
+echo "-- 8. hooks-3: DISPLAYED content is not a probe --"
+# A reader/search tool prints FILE CONTENT. A file that merely says "does not
+# exist" or "not found" is not a failed probe, and an ordinary read must not
+# make the gate deny a new module. Real negatives must still record, including
+# when the command merges stderr into stdout (the dangerous false-CLEAR side).
+D=$(mktemp -d)
+mkdir -p "$D/src" "$D/plugins/ravenclaude-core/hooks"
+cp "$H/log-probe.sh" "$D/plugins/ravenclaude-core/hooks/"
+export CLAUDE_PROJECT_DIR="$D"
+# last ledger verdict for session $1 (the recorder writes one row per call)
+verdict(){ cat "$D"/.ravenclaude/runs/premise/"$1"/scopes/*/probe-ledger.jsonl 2>/dev/null \
+  | tail -1 | python3 -c 'import json,sys; print(json.loads(sys.stdin.read() or "{}").get("verdict","none"))'; }
+vchk(){ if [ "$2" = "$3" ]; then echo "  OK   $1"; pass=$((pass+1));
+        else echo "  FAIL $1 (expected verdict $2, got $3)"; fail=$((fail+1)); fi; }
+bash_call(){ printf '{"session_id":"%s","tool_name":"Bash","tool_input":{"command":"%s"},"tool_response":{"stdout":"%s","stderr":"%s"}}' "$1" "$2" "$3" "$4"; }
+new_mod(){ printf '{"session_id":"%s","tool_name":"Write","tool_input":{"file_path":"%s/src/New%s.py"}}' "$1" "$D" "$1"; }
+CONTENT='def load(p):\n    # raise if the file does not exist\n    raise FileNotFoundError(\"not found\")'
+
+post "$(bash_call d1 'cat src/loader.py' "$CONTENT" '')"
+vchk "cat of a file whose CONTENT says does-not-exist records positive" positive "$(verdict d1)"
+chk  "a new module after that benign cat is ALLOWED" 0 "$(pre "$(new_mod d1)")"
+
+post "$(bash_call d2 'sed -n 1,40p src/loader.py' "$CONTENT" '')"
+vchk "sed -n of the same content records positive" positive "$(verdict d2)"
+
+post "$(bash_call d3 'grep -rn not\\ found docs/' 'docs/a.md:3: the key was not found' '')"
+vchk "a grep FOR the phrase, with matches, records positive" positive "$(verdict d3)"
+
+post "$(bash_call d4 'cd /repo && sed -n 1,20p x.py' "$CONTENT" '')"
+vchk "cd <dir> && sed -n (wrapped display) records positive" positive "$(verdict d4)"
+
+post "$(bash_call d5 'ls /nonexistent' '' 'ls: cannot access /nonexistent: No such file or directory')"
+vchk "ls /nonexistent (stderr) still records negative" negative "$(verdict d5)"
+chk  "and still DENIES a new module" 2 "$(pre "$(new_mod d5)")"
+
+post "$(bash_call d6 'cat /missing.txt 2>&1' 'cat: /missing.txt: No such file or directory' '')"
+vchk "cat of a missing file with 2>&1 (merged, stderr empty) records negative" negative "$(verdict d6)"
+chk  "and still DENIES a new module" 2 "$(pre "$(new_mod d6)")"
+
+post "$(bash_call d7 'cat a.py missing.py' "$CONTENT" 'cat: missing.py: No such file or directory')"
+vchk "display with a real error on stderr records negative" negative "$(verdict d7)"
+
+post "$(bash_call d8 'curl -s https://x.test/missing' '404 Not Found' '')"
+vchk "a fetch-tool 404 body still records negative" negative "$(verdict d8)"
+
+post "$(bash_call d9 'grep -rn https://api.x.test docs/' 'docs/a.md:9: returns 404 when absent' '')"
+vchk "a grep whose PATTERN is a URL is not an HTTP probe (no 404 negative)" positive "$(verdict d9)"
+
+post "$(bash_call d10 'grep -rn zzz docs/' '' '')"
+vchk "an EMPTY grep is still a negative (empty-search arm kept)" negative "$(verdict d10)"
+
+# Teeth: with the display classification neutered, the benign cat goes negative.
+MUT="$D/mut-log-probe.sh"
+sed 's/^display = first_word(cmd) in _DISPLAY_TOOLS and bool(stdout_s.strip())$/display = False/' \
+  "$H/log-probe.sh" > "$MUT"
+if grep -q '^display = False$' "$MUT"; then
+  bash "$MUT" <<<"$(bash_call d11 'cat src/loader.py' "$CONTENT" '')"
+  vchk "[teeth] display neutered -> the benign cat records negative" negative "$(verdict d11)"
+else
+  echo "  FAIL [teeth] could not build the display-neutered mutant"; fail=$((fail+1))
+fi
+rm -rf "$D"
+
 echo
 echo "  $pass passed, $fail failed"
 [ "$fail" -eq 0 ] || exit 1

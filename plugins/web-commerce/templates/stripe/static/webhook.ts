@@ -18,6 +18,7 @@
  *   4. Only THEN process + return 2xx.
  */
 
+import type { CommerceEvent } from "../../shared/commerce-types";
 import type { IdempotencyStore } from "../../shared/idempotency-store";
 import { StripeStaticProvider } from "./provider";
 import { createKvIdempotencyStoreFromEnv } from "./kv-idempotency-store";
@@ -25,6 +26,12 @@ import { createKvIdempotencyStoreFromEnv } from "./kv-idempotency-store";
 export interface WebhookHandlerDeps {
   provider: StripeStaticProvider;
   store: IdempotencyStore;
+  /**
+   * Your side effects for a verified, first-seen event (order fulfillment,
+   * inventory, email receipt). If it throws, the claim is released and the
+   * handler answers 500, so Stripe retries the delivery.
+   */
+  onEvent?: (event: CommerceEvent) => Promise<void>;
 }
 
 /**
@@ -47,16 +54,26 @@ export function createWebhookHandler(deps: WebhookHandlerDeps) {
       return new Response("Webhook signature verification failed.", { status: 400 });
     }
 
-    if (await deps.store.seen(event.id)) {
-      // Stripe retries deliveries; a replayed event id is a no-op, not an error.
+    // Atomic claim, not seen()-then-remember(): marking the event seen before
+    // the side effects made a retry of a failed delivery look done, and two
+    // concurrent deliveries could both pass seen() and both run them.
+    if (!(await deps.store.claim(event.id))) {
+      // Stripe retries deliveries; a replayed (or in-flight) event id is a no-op, not an error.
       return new Response(null, { status: 200 });
     }
-    await deps.store.remember(event.id);
 
-    // --- Side effects go here (order fulfillment, inventory, email receipt) ---
-    // Kept out of scope for this template: this is the seam where the
-    // consumer's order-management code plugs in, keyed off `event.type` /
-    // `event.reference`.
+    try {
+      // --- Side effects go here (order fulfillment, inventory, email receipt) ---
+      // Kept out of scope for this template: this is the seam where the
+      // consumer's order-management code plugs in, keyed off `event.type` /
+      // `event.reference`.
+      if (deps.onEvent) await deps.onEvent(event);
+      await deps.store.remember(event.id);
+    } catch {
+      // Drop the claim so Stripe's retry runs the side effects again.
+      await deps.store.release(event.id);
+      return new Response(null, { status: 500 });
+    }
 
     return new Response(null, { status: 200 });
   };

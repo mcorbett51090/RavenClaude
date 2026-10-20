@@ -61,6 +61,17 @@ export class PosReconciler {
     return `pos-reconciliation:inventory:${eventId}`;
   }
 
+  /**
+   * Namespaced idempotency key for the catalog-event dedup path, for the same
+   * reason as `inventoryEventKey`. Without it, `applyCatalogVersionEvent` read
+   * the raw `event_id` that `verifyAndParseSquareWebhook` had already claimed
+   * in a shared store and returned before the catalog pull, every time
+   * (repo-review 2026-10-19).
+   */
+  private catalogEventKey(eventId: string): string {
+    return `pos-reconciliation:catalog:${eventId}`;
+  }
+
   /** Current known quantity for a catalog object at a location/state, or `undefined` if never reconciled. */
   getQuantity(catalogObjectId: string, locationId: string, state = "IN_STOCK"): number | undefined {
     return this.stock.get(this.key(catalogObjectId, locationId, state))?.quantity;
@@ -131,7 +142,8 @@ export class PosReconciler {
     fetchChangedObjects: (sinceVersion: string | undefined) => Promise<unknown[]>,
     applyChangedObjects: (objects: unknown[]) => void,
   ): Promise<void> {
-    if (await this.idempotency.seen(envelope.event_id)) {
+    const key = this.catalogEventKey(envelope.event_id);
+    if (await this.idempotency.seen(key)) {
       return;
     }
 
@@ -143,6 +155,6 @@ export class PosReconciler {
     // skip it forever.
     const changed = await fetchChangedObjects(lastKnownVersion);
     applyChangedObjects(changed);
-    await this.idempotency.remember(envelope.event_id);
+    await this.idempotency.remember(key);
   }
 }

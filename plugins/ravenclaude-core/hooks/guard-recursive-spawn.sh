@@ -92,7 +92,8 @@ case "$file" in
   *) exit 0 ;;
 esac
 
-# Patterns suggesting recursive spawn — matched case-insensitively.
+# Patterns suggesting recursive spawn — matched case-insensitively. Each has a
+# fixed rule id; the id, never the matched text, is what the report prints.
 patterns=(
   'Agent\('
   'Task\('
@@ -102,19 +103,38 @@ patterns=(
   'invoke[[:space:]]+(an?|another)[[:space:]]+(sub-?)?agent'
   'delegate[[:space:]]+to[[:space:]]+(an?|another)[[:space:]]+(sub-?)?agent'
 )
+rule_ids=(agent-call task-call subagent-type spawn-agent dispatch-agent invoke-agent delegate-agent)
+
+# hooks-16 (2026-10-19): this report reaches the model as additionalContext under
+# a "RavenClaude guard notice" banner, i.e. as TRUSTED text. It used to echo the
+# matched line, so a line in the file holding instruction-shaped text was handed
+# to the model with the guard's authority. Only `file:line [rule-id]` is printed
+# now, and the path is reduced to [A-Za-z0-9._/:@-].
+_rc_safe_path() { printf '%s' "$1" | tr -c 'A-Za-z0-9._/:@-' '_' | cut -c1-160; }
+safe_file="$(_rc_safe_path "$file")"
 
 violations=()
 
+_pi=0
 for pat in "${patterns[@]}"; do
+  rid="${rule_ids[$_pi]}"
+  _pi=$((_pi + 1))
   # grep -EnI: extended regex, line numbers, skip binary; -i: case-insensitive
   while IFS= read -r match; do
     # match looks like "42:  Agent(role=foo) — spawn"
+    lineno="${match%%:*}"
+    # hooks-28 (2026-10-19): strip the `NN:` that grep -n adds BEFORE testing the
+    # blockquote exemption — anchored on the raw match, `^…>` saw "42:" and never
+    # exempted a quoted line.
+    text="${match#*:}"
     # Skip lines that read as escalation recommendations to the Team Lead, which
-    # are allowed (the agent suggests a handoff; the Team Lead decides).
-    if echo "$match" | grep -qiE '(escalat|hand[- ]?off|team[- ]?lead|recommend.*specialist|suggested[[:space:]]+specialist|^\s*>\s*)'; then
+    # are allowed (the agent suggests a handoff; the Team Lead decides), and
+    # blockquoted lines (a quoted example, not an instruction).
+    if printf '%s\n' "$text" | grep -qiE '(escalat|hand[- ]?off|team[- ]?lead|recommend.*specialist|suggested[[:space:]]+specialist|^[[:space:]]*>)'; then
       continue
     fi
-    violations+=("  [$pat] $file:$match")
+    case "$lineno" in "" | *[!0-9]*) lineno="?" ;; esac
+    violations+=("  $safe_file:$lineno [$rid]")
   done < <(grep -EnIi "$pat" "$file" 2>/dev/null || true)
 done
 
@@ -130,7 +150,7 @@ if [[ ${#violations[@]} -gt 0 ]]; then
 
 ────────────────────────────────────────────────────────────────────
   ⚠  Recursive-spawn check flagged ${#violations[@]} potential issue(s) in:
-       $file
+       $safe_file
 
 EOF
   # Show at most the first 10 violations to keep output readable.

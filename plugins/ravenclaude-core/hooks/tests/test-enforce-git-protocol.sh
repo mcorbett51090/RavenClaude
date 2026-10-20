@@ -111,6 +111,85 @@ _assert_silent "git-generated Merge subject @block not flagged"
 _run "$HOOK" "$PROJ" 'git push origin main'
 _assert_exit "push-to-main @block NEVER blocks"    0
 
+# ── hooks-14 (2026-10-19): branch QUERIES are not creations ──────────────────
+# A whitelist of creation flags replaced the old exclusion list, which missed
+# --merged / --no-merged / --contains / --points-at and DENIED them at block.
+for q in 'git branch --merged main' 'git branch --no-merged main' \
+         'git branch --contains abc1234' 'git branch --points-at HEAD' \
+         'git branch --track' 'git branch -vv' 'git branch --sort=-committerdate' \
+         'git branch --merged main --contains abc1234'; do
+  _run "$HOOK" "$PROJ" "$q"
+  _assert_silent "query @block not a creation: $q"
+done
+for c in 'git branch random-name' 'git branch --track topic origin/topic' \
+         'git branch -t topic origin/topic' 'git branch -q topic main'; do
+  _run "$HOOK" "$PROJ" "$c"
+  _assert_exit "real creation @block still flags: $c" 2
+done
+_run "$HOOK" "$PROJ" 'git branch --track fix/thing origin/fix/thing'
+_assert_silent "on-convention creation with --track @block"
+MUT14="$T/mutant14.sh"
+python3 - "$HOOK" "$MUT14" <<'MUTPY'
+import sys
+src = open(sys.argv[1]).read()
+old = "        if any(f not in create_flags for f in flags):\n            return None\n"
+if old not in src:
+    sys.exit(2)
+open(sys.argv[2], "w").write(src.replace(old, "", 1))
+MUTPY
+_run "$MUT14" "$PROJ" 'git branch --merged main'
+if [ "$last_exit" = "2" ]; then
+  printf '  ok   %-48s mutant denies the query again\n' "hooks-14 teeth"
+else
+  printf '  FAIL %-48s mutant exited %s — the query assertions are not measuring the whitelist\n' \
+    "hooks-14 teeth" "$last_exit"
+  fails=$((fails+1))
+fi
+
+# ── hooks-15 (2026-10-19): the warn nudge reaches the MODEL, not just the tty ─
+# stderr at exit 0 is not delivered to the model (measured, _advise.sh); the warn
+# lane now also emits additionalContext on stdout. Block stays a bare exit 2.
+_run_out() { # like _run, but keeps stdout in $T/out
+  printf '%s' "$(_mkpayload "$3")" | CLAUDE_PROJECT_DIR="$2" bash "$1" >"$T/out" 2>"$T/err"
+  last_exit=$?
+}
+_ctx() { python3 -c 'import json,sys
+try: print(json.load(open(sys.argv[1]))["hookSpecificOutput"]["additionalContext"])
+except Exception: pass' "$T/out"; }
+_set_mode warn
+_run_out "$HOOK" "$PROJ" 'git commit -m "fixed stuff"'
+if [ "$last_exit" = "0" ] && _ctx | grep -q "Conventional Commits" && grep -q "Conventional Commits" "$T/err"; then
+  printf '  ok   %-48s additionalContext + terminal notice\n' "hooks-15 warn reaches the model"
+else
+  printf '  FAIL %-48s exit=%s out=[%s]\n' "hooks-15 warn reaches the model" "$last_exit" "$(cat "$T/out")"
+  fails=$((fails+1))
+fi
+_set_mode block
+_run_out "$HOOK" "$PROJ" 'git commit -m "fixed stuff"'
+if [ "$last_exit" = "2" ] && [ ! -s "$T/out" ]; then
+  printf '  ok   %-48s exit 2, no helper JSON\n' "hooks-15 block path unchanged"
+else
+  printf '  FAIL %-48s exit=%s out=[%s]\n' "hooks-15 block path unchanged" "$last_exit" "$(cat "$T/out")"
+  fails=$((fails+1))
+fi
+MUT15="$T/mutant15.sh"
+python3 - "$HOOK" "$MUT15" <<'MUTPY'
+import sys
+src = open(sys.argv[1]).read()
+old = 'rc_advise_init PreToolUse 0; fi'
+if old not in src:
+    sys.exit(2)
+open(sys.argv[2], "w").write(src.replace(old, ':; fi', 1))
+MUTPY
+_set_mode warn
+_run_out "$MUT15" "$PROJ" 'git commit -m "fixed stuff"'
+if [ ! -s "$T/out" ]; then
+  printf '  ok   %-48s mutant emits nothing to the model\n' "hooks-15 teeth"
+else
+  printf '  FAIL %-48s mutant still emitted [%s]\n' "hooks-15 teeth" "$(cat "$T/out")"
+  fails=$((fails+1))
+fi
+
 # ── off => no-op even on a violation ─────────────────────────────────────────
 _set_mode off
 _run "$HOOK" "$PROJ" 'git commit -m "fixed stuff"'

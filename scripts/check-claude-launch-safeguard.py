@@ -11,10 +11,17 @@ TCC-denied paths). This repo ships a local, fail-open safeguard:
   - P3 an additive evaluate_launch_hangs() in plugins/ravenclaude-core/scripts/stall_watch.py
   - P4 an additive debug-log enrichment on top of P3's finding
 
-Three checks, all must-pass:
+Four checks, all must-pass:
 
   A) P1's own --self-test passes (14 fixtures, incl. the fail-open matrix).
-  B) P2's own --self-test passes (10 fixtures, incl. the real-shell-sourcing test).
+  B) P2's own --self-test passes (incl. the real-shell-sourcing test, the zsh
+     menu driven on a pty, uninstall keeping later edits, and --help/unknown
+     arguments never installing).
+  D) Each repo-review 2026-10-19 fix in P2 has teeth: a mutant reverting it
+     (snapshot restored unconditionally; an edited install-created rc deleted;
+     --help falling through to install; the zsh-broken selection loop) makes
+     P2's own --self-test FAIL. The zsh mutant is reported SKIPPED, never
+     passed, when zsh is absent.
   C) The full test-stall-watch.py suite passes against the real source (must_pass),
      AND fails against a MUTANT that removes conjunct 3 (statusUpdatedAt <= startedAt
      + epsilon) from evaluate_launch_hangs() (must_fail) -- proving the healthy-idle
@@ -101,6 +108,98 @@ def check_teeth() -> tuple:
     )
 
 
+# Each mutant reverts ONE repo-review 2026-10-19 fix in install_launch_guard.py;
+# P2's own --self-test must then FAIL, or that fix has no regression test.
+# (label, [(anchor, replacement), ...], needs_zsh)
+P2_MUTANTS = (
+    (
+        "corescripts-5: uninstall restores the snapshot unconditionally",
+        [("        if _unchanged_since_install(current, pristine):\n", "        if True:\n")],
+        False,
+    ),
+    (
+        "corescripts-5: an rc created by install is deleted even after edits",
+        [("        if not remove_block(current).strip():\n", "        if True:\n")],
+        False,
+    ),
+    (
+        "orch-2: --help and unknown arguments fall through to install",
+        [
+            (
+                '        if a in ("-h", "--help"):\n            print(USAGE)\n            return 0\n',
+                "",
+            ),
+            (
+                '        print("install_launch_guard: unknown argument %r" % a, file=sys.stderr)\n'
+                "        print(USAGE, file=sys.stderr)\n"
+                "        return 2\n",
+                "        i += 1\n",
+            ),
+        ],
+        False,
+    ),
+    (
+        "corescripts-4: the zsh-broken word-split selection loop is restored",
+        [
+            (
+                '            _rc_target="$(printf \'%s\\n\' "$_rc_recs" | awk -v n="$_rc_choice" '
+                "'NR == n - 4 { print; exit }')\"\n",
+                "            _rc_j=0\n"
+                "            for _rc_line in $_rc_recs; do\n"
+                "              _rc_j=$((_rc_j + 1))\n"
+                '              if [ "$_rc_choice" = "$((4 + _rc_j))" ]; then _rc_target="$_rc_line"; fi\n'
+                "            done\n",
+            )
+        ],
+        True,
+    ),
+)
+
+
+def check_p2_mutants() -> tuple:
+    """D) every P2 fix has teeth: a mutant reverting it fails P2's self-test."""
+    import shutil as _sh
+
+    src = INSTALLER.read_text(encoding="utf-8")
+    notes = []
+    ok = True
+    for label, edits, needs_zsh in P2_MUTANTS:
+        if needs_zsh and _sh.which("zsh") is None:
+            notes.append("SKIPPED (zsh absent — not a pass): %s" % label)
+            continue
+        mut = src
+        built = True
+        for anchor, repl in edits:
+            if mut.count(anchor) != 1:
+                notes.append("ANCHOR MISSING (%dx): %s" % (mut.count(anchor), label))
+                built = False
+                ok = False
+                break
+            mut = mut.replace(anchor, repl, 1)
+        if not built:
+            continue
+        with tempfile.TemporaryDirectory() as tmp:
+            mirror = Path(tmp)
+            (mirror / "scripts").mkdir()
+            (mirror / "bin").mkdir()
+            (mirror / "scripts" / "install_launch_guard.py").write_text(mut, encoding="utf-8")
+            _sh.copy2(LAUNCH_GUARD, mirror / "bin" / "claude-launch-guard")
+            rc, _out = _run(
+                [
+                    sys.executable,
+                    str(mirror / "scripts" / "install_launch_guard.py"),
+                    "--self-test",
+                ],
+                timeout=300,
+            )
+        if rc == 0:
+            ok = False
+            notes.append("NOT CAUGHT: %s" % label)
+        else:
+            notes.append("caught: %s" % label)
+    return ok, "\n".join(notes)
+
+
 def gate(desc: str, ok: bool, detail: str) -> bool:
     mark = "OK " if ok else "FAIL"
     print("  [%s] %s" % (mark, desc))
@@ -118,7 +217,15 @@ def self_test() -> int:
     ok, detail = check_p2_self_test()
     results.append(gate("B) install_launch_guard.py --self-test", ok, detail))
     ok, detail = check_teeth()
-    results.append(gate("C) stall_watch.py suite passes + conjunct-3-removed mutant is caught", ok, detail))
+    results.append(
+        gate("C) stall_watch.py suite passes + conjunct-3-removed mutant is caught", ok, detail)
+    )
+    ok, detail = check_p2_mutants()
+    results.append(
+        gate(
+            "D) each install_launch_guard.py fix has teeth (mutants fail P2 self-test)", ok, detail
+        )
+    )
     passed = all(results)
     print("\nGate 282: %s" % ("PASS" if passed else "FAIL"))
     return 0 if passed else 1

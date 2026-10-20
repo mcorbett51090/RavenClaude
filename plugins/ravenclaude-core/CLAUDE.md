@@ -1435,7 +1435,7 @@ The `rc dashboard` "one-verb front door" referenced by [`commands/dashboard.md`]
 
 **Three parts:**
 
-1. **Real launcher — [`bin/rc`](bin/rc).** A thin bash dispatcher; one verb today (`rc dashboard [--port N] [--no-open]`). It **never `cd`s** — `serve-dashboards.py` resolves the project root from `Path.cwd()`, so the launcher `exec`s the server with the caller's cwd preserved (`.ravenclaude/` lands in the consumer's repo, not the clone) and works identically under Claude Code, Copilot CLI, or a bare terminal. Resolves the server path relative to itself (one symlink level) so a PATH install works.
+1. **Real launcher — [`bin/rc`](bin/rc).** A thin bash dispatcher; one verb today (`rc dashboard [--port N] [--no-open]`). It **never `cd`s** — `serve-dashboards.py` resolves the project root from `Path.cwd()`, so the launcher `exec`s the server with the caller's cwd preserved (`.ravenclaude/` lands in the consumer's repo, not the clone) and works identically under Claude Code, Copilot CLI, or a bare terminal. Resolves the server path relative to itself so a PATH install works. *(Superseded 2026-10-19, v0.359.0: it originally followed one symlink level, resolved against the caller's cwd; it now follows a relative chain up to 40 hops, each resolved against the link's own directory — corescripts-17.)*
 2. **Copilot discoverability — generated `DASHBOARD_BLOCK` in `copilot/AGENTS.md`.** [`scripts/generate-copilot-plugin.py`](../../scripts/generate-copilot-plugin.py) now appends an always-applicable "Launch the comfort-posture dashboard" block (parallel to the opt-in Relay-mode block) telling the host the exact `bin/rc dashboard` command + a `find`-based fallback, the background-run + real-browser-tab + Private-port notes, and that `/dashboard` is Claude-only. So "open the dashboard" in a Copilot session Just Works. Regenerated, freshness-gated.
 3. **Phantom refs made real.** `commands/dashboard.md` now documents where `rc` lives + the PATH one-liner + the Copilot "just ask" path; the N-A `bin/` disposition in the Value-add table above is updated.
 
@@ -2235,7 +2235,9 @@ back to `catalog`, and moving the link out of the Control branch.
 only auto-launch that ever existed is the Codespace devcontainer (`postStartCommand` +
 `portsAttributes.onAutoForward: openBrowser`); no `SessionStart` hook ever started it. Closed with the
 opt-in `dashboard_autostart: off | serve | open` knob + `hooks/dashboard-autostart.sh` (**Gate 151**) —
-see the CHANGELOG entry for the contract, the anti-duplicate probe, and its honest limit. The knob is
+see the CHANGELOG entry for the contract, the anti-duplicate probe, and its honest limit (*superseded
+2026-10-19, v0.359.0: the probe now reads the live server's `project_id` from `/__csrf`, so a server for
+another project or worktree is skipped and ours starts on the next free port — dashboard-9*). The knob is
 wired into `emitYaml`/`applyGuardrailConfig` **because it has to be**: `emitYaml` rebuilds the whole
 posture from `state`, so a key with no state slot is silently deleted on the next Save & apply (the
 v0.61.0 data-loss class).

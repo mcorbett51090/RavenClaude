@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.5] — 2026-10-19
+
+### Fixed
+
+- **`useEffect([])` stale-closure check never fired** (repo-review 2026-10-19, domainplugins-1). It was `grep -E` with `[\s\S]{0,200}` and looked for props AFTER the deps array. It is perl now: an arrow-function effect whose body reads `props.` and whose deps array is `[]`. Bare `state` was dropped (it matched every `setState`). The hook now sources the shared `_rc_pcre_match` helper.
+
+Fixtures that drive the hook exactly as `hooks.json` registers it (fires on the anti-pattern, silent on clean code) are in `scripts/check-domain-hook-teeth.py` (control: the same fixtures run against the pre-fix hook fail, the anti-pattern case printing nothing).
+
+**Migration:** none. The hook is advisory; expect these checks to fire where they never did.
+
 ## [0.4.3] — 2026-08-14
 
 ### Changed

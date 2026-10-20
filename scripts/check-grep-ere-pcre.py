@@ -48,7 +48,11 @@ _GREP_PCRE = re.compile(rf"grep{_FLAGS}\s+(?:-[A-Za-z]*P|--perl-regexp)")
 # not just the `[:!=<]` members (2026-07-13 review: `(?P<`, `(?>`, `(?#`, `(?i)` were
 # missed, so a `grep -E '(?P<v>…)'` misparsed by GNU grep slipped the gate). Any `(?X`
 # is invalid POSIX ERE, so widening the class introduces no false positives.
-_PCRE_CONSTRUCT = re.compile(r"\(\?[A-Za-z:!=<>#]|\[\\s\\S\]|\[\\S\\s\]")
+# `[\s\S]` is matched with ONE or TWO backslashes per escape (2026-10-19 review):
+# inside a bash double-quoted string the hooks spell it `[\\s\\S]` (bash turns
+# `\\` into `\`, so grep still receives the dead `[\s\S]`), and the
+# single-backslash-only regex let 11 such `grep -E` checks through.
+_PCRE_CONSTRUCT = re.compile(r"\(\?[A-Za-z:!=<>#]|\[\\{1,2}s\\{1,2}S\]|\[\\{1,2}S\\{1,2}s\]")
 # Split a shell line into command segments so a benign sibling `grep -P` on the
 # SAME line can't exonerate a broken `grep -E` earlier on it (2026-07 review):
 # the per-line `not _GREP_PCRE.search(raw)` was evaluated over the whole line.

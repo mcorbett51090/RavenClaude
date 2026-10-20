@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.6] — 2026-10-19
+
+### Fixed
+
+- **N+1 and dual-write checks never fired** (repo-review 2026-10-19, domainplugins-1). Both were `grep -E "...[\\s\\S]{0,N}..."`: POSIX ERE reads `[\s\S]` as the set {backslash, s, S} and grep is line-oriented, so neither could match. Both are perl (multi-line) now, tightened first: N+1 is a loop line followed, on the same line or one of the next four body lines, by `.query(` / `.execute(` / a filter-object `.find({` / an ORM finder (`findOne`, `findById`, ...) / upper-case `SELECT`; a bare `.get(` or a string `.find(` no longer counts. Dual-write is a commit/save call followed within four lines by a publish/emit call.
+
+Fixtures that drive the hook exactly as `hooks.json` registers it (fires on the anti-pattern, silent on clean code) are in `scripts/check-domain-hook-teeth.py` (control: the same fixtures run against the pre-fix hook fail, the anti-pattern case printing nothing).
+
+**Migration:** none. The hook is advisory; expect these checks to fire where they never did.
+
 ## [0.3.5] — 2026-08-14
 
 ### Changed
