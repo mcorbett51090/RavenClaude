@@ -35,7 +35,7 @@ Each fix was reproduced on the unmodified code first and carries a regression te
 - C-14 setup-terminal-indicators writes through a symlinked ~/.bashrc
 - C-15 nested ._* AppleDouble files are excluded by pack and flagged by ZP07
 - C-16 mermaid_label strips structure before escaping, so entities keep their `;`
-- C-17 dv and pbir linters exit 2 on deeply nested JSON instead of crashing
+- C-17 dv and pbir linters exit 2 on deeply nested JSON instead of crashing: an explicit, iterative 200-level depth cap, so the verdict is the same on Python 3.11, 3.12 and 3.13 (3.12+ parses far deeper JSON than 3.11, which made the first version of this fix pass locally and fail in CI)
 - C-18 fix_summary records malformed applied entries and marks a failed git diff
 - C-19 monitors resolve the newest log with one stat pass, not one per run dir
 - C-4 rc-deep-research caps the kill threshold at the vote count; Synthesize never throws

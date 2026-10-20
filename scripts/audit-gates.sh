@@ -11724,7 +11724,12 @@ if command -v python3 >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
     plugins/team-portfolio/scripts/test_portfolio.py \
     plugins/web-design/scripts/test_web_design_checks.py; do
     rc=0; RV_OUT="$(python3 "$_rv" 2>&1)" || rc=$?
-    if [[ "$rc" -ne 0 ]]; then echo "$RV_OUT" | tail -n 20; fi
+    # On failure, print every FAIL / NOT RUN line before the tail: the tail alone
+    # can cut off the failing case, as it did when C-17 failed only on CI's Python.
+    if [[ "$rc" -ne 0 ]]; then
+      echo "$RV_OUT" | grep -E '^ +(FAIL|NOT RUN) ' || true
+      echo "$RV_OUT" | tail -n 20
+    fi
     gate "2026-10-20 review regressions (${_rv##*/})" must_pass "$rc"
   done
 else
