@@ -81,12 +81,21 @@ def _npv(rate: float, initial: float, flows: list[float]) -> float:
 
 
 def _irr(initial: float, flows: list[float]) -> float | None:
-    """Bisection IRR on -initial + sum(flows). Returns None if no sign change."""
-    lo, hi = -0.9999, 10.0
-    f_lo = _npv(lo, initial, flows)
-    f_hi = _npv(hi, initial, flows)
+    """Bisection IRR on -initial + sum(flows). Returns None if there is no root in
+    [-99%, 1000%] (no sign change, or the NPV is not computable at a bracket end).
+
+    The lower bracket is -99%, not -99.99%: (1 + rate) ** t underflows to 0.0 for a long
+    stream (0.0001 ** 81 is 1e-324), and the NPV then divides by zero. Underflow/overflow at
+    a bracket end is reported as 'no bracket' instead of a traceback. Every rate the
+    bisection then visits lies inside the bracket, so no later NPV can fail either."""
+    lo, hi = -0.99, 10.0
+    try:
+        f_lo = _npv(lo, initial, flows)
+        f_hi = _npv(hi, initial, flows)
+    except (ZeroDivisionError, OverflowError):
+        return None
     if f_lo * f_hi > 0:
-        return None  # no bracketed root in [-99.99%, 1000%]
+        return None  # no bracketed root in [-99%, 1000%]
     for _ in range(200):
         mid = (lo + hi) / 2.0
         f_mid = _npv(mid, initial, flows)
@@ -114,7 +123,7 @@ def cmd_npv_irr(args: argparse.Namespace) -> int:
           + ", ".join(f"{cf:,.0f}" for cf in args.flows))
     print(f"  -> NPV            : {npv:,.0f}")
     if irr is None:
-        print("  -> IRR            : undefined (no sign change in the flows)")
+        print("  -> IRR            : no IRR root in [-99%, 1000%]")
     else:
         print(f"  -> IRR            : {irr * 100:.2f}%")
     verdict = "ACCEPT (NPV > 0)" if npv > 0 else "REJECT (NPV <= 0)"

@@ -248,6 +248,35 @@ def main():
               rls(RLS_TEST_ALLOW_SKIP="0").returncode == 3)
     check("run_rls_denial_test.sh is still executable", os.access(rls_sh, os.X_OK))
 
+    print("A-7 — finance_calc npv-irr survives a long flow stream (no ZeroDivisionError)")
+
+    def _npv_at(rate, initial, flows):
+        return -initial + sum(cf / (1 + rate) ** t for t, cf in enumerate(flows, start=1))
+
+    def _is_root(pct, initial, flows):
+        """The printed 2dp IRR is the root iff NPV changes sign within +-0.005 pp of it."""
+        lo, hi = (pct - 0.005) / 100, (pct + 0.005) / 100
+        return _npv_at(lo, initial, flows) * _npv_at(hi, initial, flows) <= 0
+
+    for n in (80, 84, 400):
+        r = py("finance_calc.py", "npv-irr", "--rate", "10%", "--initial", "1000",
+               "--flows", *(["20"] * n))
+        check(f"{n} flows: rc 0, no traceback, NPV printed",
+              r.returncode == 0 and "Traceback" not in r.stderr and "-> NPV" in r.stdout)
+    r80 = py("finance_calc.py", "npv-irr", "--rate", "10%", "--initial", "1000",
+             "--flows", *(["20"] * 80))
+    m = re.search(r"-> IRR\s+:\s+(-?[\d.]+)%", r80.stdout)
+    check("the 80-flow control still solves the IRR (NPV changes sign at it; re-derived here)",
+          m is not None and _is_root(float(m.group(1)), 1000.0, [20.0] * 80))
+    r84 = py("finance_calc.py", "npv-irr", "--rate", "10%", "--initial", "1000",
+             "--flows", *(["20"] * 84))
+    m = re.search(r"-> IRR\s+:\s+(-?[\d.]+)%", r84.stdout)
+    check("84 flows now solves a real IRR (NPV changes sign at it), not a crash",
+          m is not None and _is_root(float(m.group(1)), 1000.0, [20.0] * 84))
+    r = py("finance_calc.py", "npv-irr", "--rate", "10%", "--initial", "0", "--flows", "10", "10")
+    check("no root in range -> 'no IRR root in [-99%, 1000%]' (rc 0)",
+          r.returncode == 0 and "no IRR root in [-99%, 1000%]" in r.stdout)
+
     print("P4 — orchestrator submit-only invariant")
     src = open(os.path.join(HERE, "controller_cycle.py")).read()
     # strip comments/strings-ish: just assert no .approve(/.lock(/.reopen( call on a ledger
