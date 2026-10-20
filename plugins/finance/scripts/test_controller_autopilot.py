@@ -293,6 +293,42 @@ def main():
           py("finance_calc.py", *ue_args, "--gross-margin", "78%").returncode == 0
           and py("finance_calc.py", *ue_args, "--gross-margin", "100%").returncode == 0)
 
+    print("A-27 — non-strict run reports (not KeyErrors on) an account whose section is invalid")
+    import csv as _csv
+
+    def _coa_with(d, acct, section):
+        rows = list(_csv.DictReader(open(COA)))
+        out = os.path.join(d, f"coa-{acct}-{section}.csv")
+        with open(out, "w", newline="") as fh:
+            w = _csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
+            w.writeheader()
+            for r in rows:
+                if r["account"] == acct:
+                    r["section"] = section
+                w.writerow(r)
+        return out
+
+    with tempfile.TemporaryDirectory() as d:
+        for acct, section, label in (("4000", "CurrentAssets", "an IS account mapped to a BS section"),
+                                     ("1000", "Revenue", "a BS account mapped to an IS section"),
+                                     ("4000", "Bogus", "an IS account mapped to an unknown section")):
+            bad_coa = _coa_with(d, acct, section)
+            r = py("statement_engine.py", "--entity", ENT, "--coa", bad_coa, "--tb", TB)
+            try:
+                warns = json.loads(r.stdout).get("warnings", [])
+            except ValueError:
+                warns = []
+            check(f"non-strict, {label}: rc 0 and no traceback",
+                  r.returncode == 0 and "Traceback" not in r.stderr)
+            check(f"non-strict, {label}: the account is REPORTED in warnings",
+                  any(w.startswith(f"{acct}:") for w in warns))
+            check(f"--strict, {label}: still BLOCKS (rc 3, unchanged)",
+                  py("statement_engine.py", "--entity", ENT, "--coa", bad_coa, "--tb", TB,
+                     "--strict").returncode == 3)
+        ctrl = py("statement_engine.py", "--entity", ENT, "--coa", COA, "--tb", TB)
+        check("control: the valid COA is unchanged (rc 0, no warnings)",
+              ctrl.returncode == 0 and json.loads(ctrl.stdout).get("warnings") == [])
+
     print("P4 — orchestrator submit-only invariant")
     src = open(os.path.join(HERE, "controller_cycle.py")).read()
     # strip comments/strings-ish: just assert no .approve(/.lock(/.reopen( call on a ledger

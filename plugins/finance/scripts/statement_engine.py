@@ -168,6 +168,10 @@ def build_income_statement(tb: list[dict], mapping: dict):
             continue
         if mp["statement"] != "IS":
             continue
+        if mp["section"] not in IS_SECTIONS:
+            # Section invalid for its statement: lint_mapping reports it (a non-strict run
+            # surfaces it in "warnings"; --strict blocks first). Skip rather than KeyError.
+            continue
         amt = _present(r, mp["section"])
         lines[mp["line"]] = round(lines.get(mp["line"], 0.0) + amt, 2)
         section_totals[mp["section"]] += amt
@@ -229,6 +233,8 @@ def build_balance_sheet(tb: list[dict], mapping: dict, net_income: float):
             continue
         if mp["statement"] != "BS":
             continue
+        if mp["section"] not in BS_SECTIONS:
+            continue  # reported by lint_mapping; skip rather than KeyError (see the IS builder)
         amt = _present(r, mp["section"])
         lines[mp["line"]] = round(lines.get(mp["line"], 0.0) + amt, 2)
         section_totals[mp["section"]] += amt
