@@ -793,6 +793,46 @@ def _h16() -> None:
     need("Multiple data sources" not in single.stderr, "one datasource is not a blend", single)
 
 
+# ---------------------------------------------------------------------------
+# H-17  qa-test-automation/qa_suite_metrics.py: pyramid_ratio --dir read ancestor names
+# ---------------------------------------------------------------------------
+
+QA_METRICS = "plugins/qa-test-automation/scripts/qa_suite_metrics.py"
+
+
+def _pyramid(root: Path) -> dict[str, int]:
+    proc = run(QA_METRICS, "pyramid_ratio", "--dir", str(root))
+    need(proc.returncode == 0, "pyramid_ratio --dir must succeed", proc)
+    counts = {}
+    for level in ("unit", "integration", "e2e"):
+        found = re.search(rf"^\s*{level}:\s+(\d+)", proc.stdout, re.MULTILINE)
+        need(found is not None, f"no '{level}' line in the report", proc)
+        counts[level] = int(found.group(1))
+    return counts
+
+
+@case("H-17", "pyramid_ratio --dir classifies on the path relative to --dir, by whole tokens")
+def _h17() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        # The scanned root sits under an ancestor whose name contains '_it'.
+        proj = Path(tmp, "x_it", "proj")
+        files = {
+            "tests/unit/test_a.py": "unit",
+            "tests/integration/test_b.py": "integration",
+            "tests/e2e/checkout.spec.ts": "e2e",
+            "src/Calc.it.java": "integration",
+            "web/login.cy.ts": "e2e",
+            "tests/test_plain.py": "unit",
+        }
+        for rel in files:
+            target = proj / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("", encoding="utf-8")
+        counts = _pyramid(proj)
+    want = {"unit": 2, "integration": 2, "e2e": 2}
+    need(counts == want, f"expected {want}, got {counts} (ancestor '_it' must not count)")
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
