@@ -854,7 +854,8 @@ def decide_binding(node: dict, template_index: dict, taint_norm, new_data: dict,
 
 def build_manifest(rsg: dict, template_index: dict, taint: dict, new_data: dict,
                    manifest_version: str, threshold: float) -> tuple:
-    """Walk the RSG in document order (pre-order DFS), emit one binding per NON-static node."""
+    """Walk the RSG in document order (pre-order DFS), emit one binding per NON-static node, and
+    per static-chrome node that infer demoted or that bears a data-shaped literal (B-2)."""
     taint_norm = [_norm(v) for v in taint["all"] if len(_norm(v)) >= 2]
     new_data = dict(new_data)
     new_data["_domain_norm"] = [_norm(v) for v in new_data["value_domain"]]
@@ -863,14 +864,20 @@ def build_manifest(rsg: dict, template_index: dict, taint: dict, new_data: dict,
     bindings = []
     decisions = []
 
-    def walk(node: dict) -> None:
-        if node.get("role") != "static-chrome":
+    def walk(node: dict, under_rewrite: bool = False) -> None:
+        # B-2: a static-chrome node that is not frozen (infer demoted it) or that bears a
+        # data-shaped literal is bound too, so a needs-review node is never dropped. One exception:
+        # under a surgical/regenerate binding, whose strip-then-write already removes its bytes.
+        static = node.get("role") == "static-chrome"
+        demoted = node.get("class") != "frozen" or bool(node.get("data_shaped_literal"))
+        if not static or (demoted and not under_rewrite):
             binding, decision = decide_binding(
                 node, template_index, taint_norm, new_data, template_id, threshold)
             bindings.append(binding)
             decisions.append(decision)
+            under_rewrite = under_rewrite or binding["class"] in ("surgical", "regenerate")
         for child in node.get("children", []):
-            walk(child)
+            walk(child, under_rewrite)
 
     walk(rsg["root"])
 

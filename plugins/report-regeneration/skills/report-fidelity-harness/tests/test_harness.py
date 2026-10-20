@@ -272,6 +272,31 @@ def test_schema_validator_rejects_a_bad_receipt():
     assert harness.validate_receipt(bad) != []
 
 
+def test_v2_checks_a_needs_review_node_apart_from_its_rebind_badge():
+    # B-2 binds more nodes as needs-review; V2 must still see an edit inside one (the D4 class),
+    # while rebind's own badge + data-rebind-* flag attributes stay licensed.
+    rh = _load("rebind_html_under_test", _SKILL_DIR.parent / "rebind-html" / "rebind_html.py")
+
+    def nr(anchor_id):
+        return {"node_id": anchor_id, "anchor": {"kind": "element_id", "value": anchor_id},
+                "class": "needs-review", "confidence": 0.6,
+                "provenance": {"source": "t", "source_period": None},
+                "data_query": {"kind": "none", "expression": "pending"}}
+
+    template = ('<html><body><p id="tag">100% Committed since 1998</p>'
+                '<img id="pic" src="a.png" alt="x"><p>chrome</p></body></html>')
+    manifest = {"manifest_version": "1", "rsg_schema_version": "1", "template_id": "t",
+                "format": "html", "bindings": [nr("tag"), nr("pic")]}
+    output, _changes, _n = rh.rebind(template, manifest, {})
+    t_root = harness.parse_html(template)
+    leg = harness.leg_v2(t_root, harness.parse_html(output), manifest, template)
+    assert leg["verdict"] == "pass", leg["evidence"]
+    for bad in (output.replace('id="tag"', 'id="tag" style="color: rgb(250,250,250);"'),
+                output.replace("100% Committed", "100% Totally Committed")):
+        leg = harness.leg_v2(t_root, harness.parse_html(bad), manifest, template)
+        assert leg["verdict"] == "fail", "V2 missed an edit inside a needs-review node"
+
+
 # ── standalone runner (no pytest required) ─────────────────────────────────────
 
 def _main() -> int:

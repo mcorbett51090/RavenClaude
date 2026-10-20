@@ -209,5 +209,38 @@ class TestRebindManifest(unittest.TestCase):
         self.assertTrue(cli_out.is_file())
 
 
+class TestUnannotatedNeedsReviewIsBound(unittest.TestCase):
+    """B-2: infer demotes an unannotated <p>$1,234</p> to needs-review; build_manifest must bind
+    it (it used to drop every static-chrome node), so rebind badges and counts it."""
+
+    def test_unannotated_data_shaped_paragraph_is_bound_badged_and_counted(self):
+        plugin = _SKILL_DIR.parent.parent
+        for sub_dir in (plugin / "skills" / "infer-report-structure", plugin / "skills" / "rebind-html"):
+            if str(sub_dir) not in sys.path:
+                sys.path.insert(0, str(sub_dir))
+        import infer
+        import rebind_html
+
+        template = ("<!DOCTYPE html><html><head><title>Report</title></head><body>"
+                    "<h1>Quarterly report</h1><p>Revenue for the quarter was $1,234</p></body></html>")
+        rsg, _ = infer.build_rsg(template, "unannotated")
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "t.html"
+            path.write_text(template, encoding="utf-8")
+            index = bm.parse_template(path)["elements"]
+            taint = bm.build_taint_dictionary(path)
+        manifest, _ = bm.build_manifest(
+            rsg, index, taint, {"source_ref": "new", "value_domain": [], "source_period": None},
+            "0.1.0", 0.7)
+        self.assertEqual(bm.validate_manifest(manifest), [])
+        review = [b for b in manifest["bindings"] if b["class"] == "needs-review"]
+        self.assertEqual([b["anchor"]["value"] for b in review],
+                         ["html > body:nth-of-type(1) > p:nth-of-type(1)"],
+                         "B-2: the demoted data-shaped <p> must get a needs-review binding")
+        output, _changes, needs_review_count = rebind_html.rebind(template, manifest, {})
+        self.assertGreaterEqual(needs_review_count, 1)
+        self.assertIn("NEEDS REVIEW", output)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

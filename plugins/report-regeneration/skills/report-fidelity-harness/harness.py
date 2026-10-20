@@ -371,9 +371,26 @@ _SIMPLE_ID_SELECTOR = re.compile(r"^#([A-Za-z][\w-]*)$")
 # licensed annotation, not a frozen-complement violation). All three are "bound anchors" the
 # manifest addresses; V2 asks "did anything change OUTSIDE the bound anchors?".
 _MUTABLE_CLASSES = ("surgical", "regenerate", "needs-review")
+# HTML V2 (B-2): only rewritten anchors are masked wholesale. A needs-review node's content must
+# stay untouched, so V2 checks it with just rebind's licensed annotation (the two attributes below
+# and the visible badge span) removed: binding more needs-review nodes never shrinks V2's coverage.
+_REWRITE_CLASSES = ("surgical", "regenerate")
+_REVIEW_FLAG_ATTRS = ("data-rebind-flag", "data-rebind-confidence")
+# Raw-text elements: newer html.parser builds read a badge inside <title>/<textarea> as TEXT, so
+# such a needs-review anchor stays masked wholesale (its previous treatment).
+_RAW_TEXT_TAGS = frozenset({"title", "textarea"})
 
 
-def excluded_regions(manifest: dict, template_text: str) -> tuple:
+def _is_review_badge(n: object) -> bool:
+    """True for the visible badge rebind_html inserts on a needs-review node."""
+    return (
+        isinstance(n, Element) and n.tag == "span"
+        and n.attr.get("data-rebind-flag") == "needs-review"
+        and "rebind-needs-review-badge" in n.attr.get("class", "").split()
+    )
+
+
+def excluded_regions(manifest: dict, template_text: str, classes: tuple = _MUTABLE_CLASSES) -> tuple:
     """The bound regions V2/V3 mask, resolved across BOTH anchor shapes infer emits:
       - element_id / simple '#id'  -> an element-id string (matched by Element.id)
       - compound css_selector      -> a stable structural PATH (tag, nth-of-type) tuple, resolved
@@ -382,7 +399,7 @@ def excluded_regions(manifest: dict, template_text: str) -> tuple:
     ids: set[str] = set()
     paths: set = set()
     for b in manifest.get("bindings", []):
-        if b.get("class") not in _MUTABLE_CLASSES:
+        if b.get("class") not in classes:
             continue
         anchor = b.get("anchor", {})
         kind = anchor.get("kind")
@@ -542,7 +559,7 @@ def leg_v1(template_root: Element, output_root: Element, manifest: dict, new_dat
 # Leg V2 — frozen-complement diff (canonical node-diff outside surgical/regen anchors)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def canonical_tokens(node: object, excluded_objs: set) -> list[str]:
+def canonical_tokens(node: object, excluded_objs: set, review_objs: set = frozenset()) -> list[str]:
     toks: list[str] = []
 
     def rec(n: object) -> None:
@@ -559,19 +576,27 @@ def canonical_tokens(node: object, excluded_objs: set) -> list[str]:
         elif isinstance(n, Decl):
             toks.append("#decl:" + normalize_ws(n.data))
         elif isinstance(n, Element):
-            if id(n) in excluded_objs:
+            if id(n) in excluded_objs or (id(n) in review_objs and n.tag in _RAW_TEXT_TAGS):
                 # a bound (surgical/regenerate/needs-review) anchor: value + attrs + inner are all
                 # legitimately mutable, so mask the whole subtree to a single identity placeholder
                 # (position preserved; the same placeholder in template + output => they match).
                 toks.append(f"[ANCHOR:{n.tag}#{n.id or ''}]")
                 return
+            review = id(n) in review_objs  # a needs-review anchor: drop only rebind's flag attrs
             attrs = " ".join(
                 "{}={!r}".format(k, v if v is not None else "")
                 for k, v in sorted(n.attrs, key=lambda kv: kv[0])
+                if not (review and k in _REVIEW_FLAG_ATTRS)
             )
             toks.append(f"<{n.tag} {attrs}>")
+            prev_el = None
             for c in n.children:
+                # rebind's badge: first child of a flagged paired node, or right after a flagged void one
+                if _is_review_badge(c) and (review or id(prev_el) in review_objs):
+                    continue
                 rec(c)
+                if isinstance(c, Element):
+                    prev_el = c
             toks.append(f"</{n.tag}>")
 
     rec(node)
@@ -579,9 +604,12 @@ def canonical_tokens(node: object, excluded_objs: set) -> list[str]:
 
 
 def leg_v2(template_root: Element, output_root: Element, manifest: dict, template_text: str) -> dict:
-    ids, paths = excluded_regions(manifest, template_text)
-    tmpl = canonical_tokens(template_root, excluded_objects(template_root, ids, paths))
-    out = canonical_tokens(output_root, excluded_objects(output_root, ids, paths))
+    ids, paths = excluded_regions(manifest, template_text, _REWRITE_CLASSES)
+    rids, rpaths = excluded_regions(manifest, template_text, ("needs-review",))
+    tmpl = canonical_tokens(template_root, excluded_objects(template_root, ids, paths),
+                            excluded_objects(template_root, rids, rpaths))
+    out = canonical_tokens(output_root, excluded_objects(output_root, ids, paths),
+                           excluded_objects(output_root, rids, rpaths))
     if tmpl == out:
         return {
             "leg": "V2", "verdict": "pass", "label": "proven",

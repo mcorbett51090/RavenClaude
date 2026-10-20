@@ -460,6 +460,8 @@ def _walk(
 
     role = _infer_role(el, shaped)
     cls, confidence, method = _classify(el, shaped, threshold)
+    if role == _ROLE_STATIC and cls == "needs-review":
+        role = "unknown"  # B-2: a demoted node is no longer static chrome (build_manifest binds it)
     provenance = _provenance(el, cls, method, template_id)
 
     # stats / accounting

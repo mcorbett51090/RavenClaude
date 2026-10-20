@@ -291,9 +291,12 @@ class TestMeasureOnRealCorpus(unittest.TestCase):
 
     def test_run1_touches_match_the_known_corpus_gaps(self):
         # the title (period token baked into otherwise-static text) and the unbound tfoot
-        # percentage cell — see sample-report.html's own header comment, tricky cases 3/4.
-        self.assertEqual(self.report["dividend"]["run1_human_touches"], 2)
-        self.assertEqual(self.report["run1"]["total_bindings"], 31)
+        # percentage cell — see sample-report.html's own header comment, tricky cases 3/4 — plus
+        # the four data-shaped static nodes B-2 now binds instead of dropping: the table caption
+        # ("Q1 2025"), the tagline ("100%", "1998"), the appendix note ("100%") and the footer
+        # fine print ("April 4, 2025").
+        self.assertEqual(self.report["dividend"]["run1_human_touches"], 6)
+        self.assertEqual(self.report["run1"]["total_bindings"], 35)
 
     def test_run2_touches_are_far_fewer_than_run1(self):
         d = self.report["dividend"]
