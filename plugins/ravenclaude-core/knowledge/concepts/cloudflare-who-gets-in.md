@@ -6,13 +6,15 @@ kind: platform-fact
 order: 17
 summary: "Three products, three different questions: Access asks who you are, Turnstile asks whether a visitor is a human, the WAF asks whether a request is malicious. They stack; none substitutes."
 see_also: [cloudflare-what-runs-your-site, cloudflare-where-data-lives]
-last_verified: 2026-07-21
+last_verified: 2026-10-20
 refresh_when: "Turnstile changes the 300-second token lifetime, single-use replay rule, or starts supporting wildcards in the hostname field; Access changes its deny-by-default posture or policy building blocks; or Cloudflare moves WAF Managed Rules onto or off the Free plan."
 sources:
   - label: "Cloudflare Docs — Access policies"
     url: "https://developers.cloudflare.com/cloudflare-one/policies/access/"
   - label: "Cloudflare Docs — Cloudflare One / Zero Trust"
     url: "https://developers.cloudflare.com/cloudflare-one/"
+  - label: "Cloudflare Docs — Turnstile overview"
+    url: "https://developers.cloudflare.com/turnstile/"
   - label: "Cloudflare Docs — Turnstile: get started"
     url: "https://developers.cloudflare.com/turnstile/get-started/"
   - label: "Cloudflare Docs — Turnstile server-side validation"
@@ -56,7 +58,7 @@ Two keys, and mixing them up is the classic failure:
 
 The WAF _"checks incoming web and API requests and filters undesired traffic based on sets of rules called rulesets,"_ matching on request properties such as _"IP address, URL path, headers, and body content."_ Three rule families do the work: **Custom rules** you write, **Managed Rules** Cloudflare maintains and updates for zero-days, and **Rate limiting rules** that cap requests matching an expression.
 
-Plan matters here, so check before you design around it: Free gets custom rules, **one** rate limiting rule, IP access rules and sampled security events. **Managed Rules require Pro or above**; advanced rate limiting and account-level configuration are Enterprise.
+Plan matters here, so check before you design around it: Free gets custom rules, **one** rate limiting rule, IP access rules, sampled security events and the **Free Managed Ruleset only**. **The full Managed Rules need Pro or above**; advanced rate limiting (a paid add-on) and account-level configuration are Enterprise.
 
 ### They stack — and the order is the point
 

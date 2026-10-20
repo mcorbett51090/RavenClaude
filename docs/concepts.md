@@ -356,7 +356,7 @@ _Last verified: 2026-05-26_
 
 > Four settings files merge — a deny in ANY layer wins, and you can't override it down from a later layer.
 
-Permission rules live under `permissions.allow`, `permissions.ask`, and `permissions.deny` in any of the settings files. Each rule is either a bare tool name (`Bash`, `WebSearch`) or a tool plus a specifier (`Bash(git status:*)`, `Read(/etc/**)`).
+Permission rules live under `permissions.allow`, `permissions.ask`, and `permissions.deny` in any of the settings files. Each rule is either a bare tool name (`Bash`, `WebSearch`) or a tool plus a specifier (`Bash(git status:*)`, `Read(//etc/**)`). In a path specifier a single leading `/` anchors at the settings file's source, not the filesystem root — an absolute path takes `//`.
 
 **Within one file**, rules evaluate `deny → ask → allow` — the first match wins, so deny always beats ask and ask always beats allow.
 
@@ -382,7 +382,7 @@ flowchart TD
 
 **Sources:** [Configure permissions](https://code.claude.com/docs/en/permissions) · [Claude Code settings](https://code.claude.com/docs/en/settings)
 
-_Last verified: 2026-07-28_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -391,9 +391,9 @@ _Last verified: 2026-07-28_
 
 > Six modes from default to bypassPermissions — but bypass still prompts on rm -rf /, and auto silently drops broad allow rules.
 
-The permission **mode** sets the baseline posture on top of your allow/ask/deny rules. There are six: `default` (prompt when uncertain), `acceptEdits` (auto-approve common filesystem Bash inside the cwd), `plan` (read/think only — no writes), `auto` (research-preview classifier-driven autonomy), `dontAsk` (auto-deny anything not explicitly allowed — handy for CI), and `bypassPermissions` (skips most checks).
+The permission **mode** sets the baseline posture on top of your allow/ask/deny rules. There are six: `default` (shown as **Manual** — asks before most edits, shell commands, and network access), `acceptEdits` (auto-approve file edits and common filesystem Bash inside the working directory), `plan` (research and propose — Claude doesn't edit your source until you approve the plan), `auto` (a classifier model reviews actions instead of you; the built-in starting mode for interactive terminal and VS Code sessions since v2.1.283), `dontAsk` (auto-deny every call that would otherwise prompt — handy for CI), and `bypassPermissions` (skips most checks).
 
-Two surprises bite. **`bypassPermissions` is not a total kill-switch:** `rm -rf /` and `rm -rf ~` *still* prompt as a circuit breaker, and a `PreToolUse` hook `deny` still blocks. **`auto` mode silently drops broad allow rules** — `Bash(*)`, wildcarded interpreters, `npm run *`, and all `Agent` allows are dropped while it's active (they restore when you leave), and `defaultMode: "auto"` is *ignored* in project settings — it must live in user-level `~/.claude/settings.json`.
+Two surprises bite. **`bypassPermissions` is not a total kill-switch:** `rm -rf /` and `rm -rf ~` *still* prompt as a circuit breaker (in a terminal, on a two-minute countdown after which the removal is denied), and a `PreToolUse` hook `deny` still blocks. **`auto` mode silently drops broad allow rules** — `Bash(*)`, wildcarded interpreters, package-manager run commands (e.g. `npm run *`), and all `Agent` and `Monitor` allows are dropped while it's active (they restore when you leave), and `defaultMode: "auto"` is *ignored* when set in `.claude/settings.json` or `.claude/settings.local.json` (the built-in default applies instead) — put it in user-level `~/.claude/settings.json`.
 
 ```mermaid
 flowchart TD
@@ -412,20 +412,20 @@ flowchart TD
 
 **Sources:** [Choose a permission mode](https://code.claude.com/docs/en/permission-modes) · [Configure permissions](https://code.claude.com/docs/en/permissions)
 
-_Last verified: 2026-07-28_
+_Last verified: 2026-10-20_
 
 
 ---
 
 ### Hooks: verdicts & exit codes · _platform fact_
 
-> Only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny.
+> By default only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny.
 
-A `PreToolUse` hook reads the pending tool call as JSON on stdin and decides its fate. **Exit codes are the load-bearing, easy-to-get-wrong detail:** only **exit 2** blocks (and the hook's stderr is fed back to the model); **exit 0** allows; and **exit 1 or any other code is a *non-blocking* error — the tool still runs.** The trap is that `exit 1` is the conventional Unix "failure", so a policy hook that fails with `exit 1` *looks* like it blocked but doesn't.
+A `PreToolUse` hook reads the pending tool call as JSON on stdin and decides its fate. **Exit codes are the load-bearing, easy-to-get-wrong detail:** by default only **exit 2** blocks (and the hook's stderr is fed back to the model); **exit 0** takes no decision of its own — the call goes on to the normal permission flow ("staying silent doesn't approve it"); and **exit 1 or any other code is a *non-blocking* error — the tool still runs.** The trap is that `exit 1` is the conventional Unix "failure", so a policy hook that fails with `exit 1` *looks* like it blocked but doesn't. The one opt-in exception (Claude Code v2.1.295+): a `command` or `http` hook with `"onFailure": "block"` blocks when it fails — it can't start, exits with a code other than 0 or 2, times out, or prints invalid output.
 
 For richer control, a hook can instead print a `hookSpecificOutput.permissionDecision` JSON on **exit 0**: `allow`, `deny`, `ask`, or `defer` (headless-only). When several hooks and rules apply, priority is **`deny` > `defer` > `ask` > `allow`**.
 
-Two asymmetries make this safe: a hook **`deny` beats permission-mode bypass** (it blocks even under `bypassPermissions`), but a hook **`allow` does NOT override a settings `deny`** — hooks can *tighten* but never *loosen*. Note hooks **fail open**: on timeout or crash the tool proceeds, so a hook that must fail closed has to emit its own `deny` before its deadline.
+Two asymmetries make this safe: a hook **`deny` beats permission-mode bypass** (it blocks even under `bypassPermissions`), but a hook **`allow` does NOT override a settings `deny`** — hooks can *tighten* but never *loosen*. Note hooks **fail open by default**: on timeout or crash the tool proceeds, so a hook that must fail closed should set `"onFailure": "block"` (v2.1.295+) or emit its own `deny` before its deadline.
 
 ```mermaid
 flowchart TD
@@ -435,8 +435,9 @@ flowchart TD
   EX -- "exit 0" --> J{JSON permissionDecision?}
   J -- deny --> DEN[Denied · beats bypass mode]
   J -- ask --> ASK[User prompted]
-  J -- "allow / none" --> ALL[Prompt skipped · settings deny still wins]
-  class H,EX,J,NB,ASK,ALL fact
+  J -- allow --> ALL[Prompt skipped · settings deny still wins]
+  J -- none --> NORM[Normal permission flow]
+  class H,EX,J,NB,ASK,ALL,NORM fact
   class BLOCK,DEN built
 ```
 
@@ -444,18 +445,18 @@ flowchart TD
 
 **Sources:** [Hooks reference](https://code.claude.com/docs/en/hooks) · [Hooks guide](https://code.claude.com/docs/en/hooks-guide)
 
-_Last verified: 2026-07-28_
+_Last verified: 2026-10-20_
 
 
 ---
 
 ### SessionStart context injection · _platform fact_
 
-> SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup, and hook output is capped at 10,000 characters (overflow becomes a file preview).
+> SessionStart hooks inject additionalContext every session — additive only; can't block startup (first response still waits), output capped at 10,000 chars (overflow becomes a file preview).
 
-`PreToolUse` hooks gate tool calls; **`SessionStart` hooks can't gate anything.** Their job is to add text to the session via a different field — `hookSpecificOutput.additionalContext` — and nothing more. The output is read **only on exit 0**; a non-zero exit is a non-blocking error and the session still starts. A SessionStart hook can never block or delay a session; its output is purely additive.
+`PreToolUse` hooks gate tool calls; **`SessionStart` hooks can't gate anything.** Their job is to add text to the session via a different field — `hookSpecificOutput.additionalContext` — and nothing more. Plain-text stdout becomes context on **exit 0**; any other exit is a non-blocking error (exit 2 shows its stderr to the user only — Claude never sees it) and the session still starts. A SessionStart hook can never block a session, but it can delay the first response: the hooks run in the background so you can type at once, yet "Claude's first response still waits for the hooks to finish" and a prompt sent meanwhile doesn't reach Claude until they do — so keep them fast. Its output is purely additive.
 
-Rules that bite: hook output strings — `additionalContext`, `systemMessage`, and plain stdout — are **capped at 10,000 characters**; output past the cap isn't silently cut, it's **saved to a file and replaced with a preview plus the file path** (the same way an oversized tool result is handled). It's injected every session either way, so it's a recurring token cost — keep it tight. **multiple SessionStart hooks run in parallel and their outputs are concatenated**; the optional `matcher` is `startup` / `resume` / `clear` / `compact` / `fork`; and like other hooks it **fails open** on timeout. This is the mechanism RavenClaude's capability banner rides on.
+Rules that bite: hook output strings — `additionalContext`, `systemMessage`, `initialUserMessage`, and plain stdout — are **capped at 10,000 characters**; output past the cap isn't silently cut, it's **saved to a file and replaced with a preview plus the file path** (a preview of up to the first 2,000 characters; a large valid Bash result is handled the same way). It's injected every session either way, so it's a recurring token cost — keep it tight. **multiple SessionStart hooks run in parallel and their outputs are concatenated**; the optional `matcher` is `startup` / `resume` / `clear` / `compact` / `fork`; and like other hooks it **fails open** on timeout. This is the mechanism RavenClaude's capability banner rides on.
 
 ```mermaid
 flowchart TD
@@ -474,7 +475,7 @@ flowchart TD
 
 **Sources:** [Hooks reference](https://code.claude.com/docs/en/hooks)
 
-_Last verified: 2026-07-28_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -488,7 +489,7 @@ _Last verified: 2026-07-28_
 
 **The question to answer first: does anything have to _run_ when a visitor asks for this URL?**
 
-- **No** — the HTML, CSS, JS and images were built ahead of time. They are **static assets**. Cloudflare serves them straight off its network, and per the docs: _"If a requested URL matches a file in the static assets directory, that file will be served — without invoking Worker code."_ Those requests cost nothing: _"Requests to static assets are free and unlimited."_
+- **No** — the HTML, CSS, JS and images were built ahead of time. They are **static assets**. Cloudflare serves them straight off its network, and per the docs: _"By default, if a requested URL matches a file in the static assets directory, that file will be served — without invoking Worker code."_ Those requests cost nothing: _"Requests to static assets are free and unlimited."_
 - **Yes** — a session must be checked, a database read, an API called, a page rendered from live data. That is a **Worker**: your code, executed once per request, before a response exists.
 
 **Pages and Workers are not two different runtimes.** A **Pages Function _is_ a Worker** — the docs define Functions as "executing code on the Cloudflare network with Cloudflare Workers." And Workers serve static assets natively: `wrangler` uploads your build output and "deploys both your Worker code and your static assets in a single operation." So one Workers project can be the entire site — the static files _and_ the handful of routes that need code.
@@ -500,7 +501,7 @@ _Last verified: 2026-07-28_
 | Durable Objects, Cron Triggers, Queue consumers, Email Workers | File-based routing with no framework adapter |
 | Workers Logs, Logpush, Tail Workers, source maps | Early Hints (a workaround exists on Workers) |
 | Gradual deployments, remote development, the Vite plugin | Custom domains outside your Cloudflare zones |
-| Non-root routes, rate limiting, image resizing | Serving assets on a path without a workaround |
+| Serving assets on a path, non-root routes, rate limiting, image resizing | Pages Plugins and Branch Deploy Controls (workarounds exist on Workers) |
 
 Practical read: **start on Workers unless you specifically want Pages' file-based routing or need a custom domain on a zone you don't run.** Everything a growing app reaches for later — a durable coordination object, a cron job, a queue consumer, real logs — is on the Workers side of that table.
 
@@ -508,13 +509,13 @@ Practical read: **start on Workers unless you specifically want Pages' file-base
 
 **Cold starts.** Workers don't run a container per tenant; they run V8 **isolates**, and paying the runtime's startup cost once per machine _"eliminates the cold starts of the virtual machine model."_ An isolate _"can start around a hundred times faster than a Node process on a container or virtual machine."_ Stop designing around warm-up — there is nothing to keep warm.
 
-**Workers is not Node, and this is what breaks your libraries.** There is no Node runtime underneath. You opt into Node APIs with the `nodejs_compat` compatibility flag and a compatibility date of **2024-09-23 or later**; with it, much of the standard library really works — `node:crypto`, `Buffer`, streams, `path`, `http`/`https`, `net`, `AsyncLocalStorage`, `zlib`. What still breaks:
+**Workers is not Node, and this is what breaks your libraries.** There is no Node runtime underneath. On a compatibility date of **2026-08-04 or later** the docs say _"Workers enables both `nodejs_compat` and `nodejs_compat_v2` by default"_; for dates from **2024-09-23 through 2026-08-03** you opt in with the `nodejs_compat` compatibility flag. Either way, much of the standard library really works — `node:crypto`, `Buffer`, streams, `path`, `http`/`https`, `net`, `AsyncLocalStorage`, `zlib`. What still breaks:
 
-- **Non-functional stubs** — `node:worker_threads`, `node:cluster`, `node:vm`, `node:http2` import fine and then do nothing. A library that reaches for them fails at runtime, not at build time.
+- **Non-functional stubs** — `node:worker_threads`, `node:cluster`, `node:vm`, `node:http2` (among others) import fine and then do nothing. A library that reaches for them fails at runtime, not at build time.
 - **Anything assuming a long-lived process** — a background thread, an in-process job queue, a connection pool that outlives the request, a native addon.
-- **No flag, no Node.** Without `nodejs_compat` set, `node:` imports don't resolve at all.
+- **On an older compatibility date, no flag, no Node.** Before 2026-08-04 you must add `nodejs_compat` yourself; the Node APIs are not on by default.
 
-**The limits that actually bite.** **CPU time**, not wall-clock, is the ceiling: 10 ms per request on Free, 30 s by default on Paid (raisable to 5 min). Waiting on a database or an API isn't CPU time, and an HTTP request has "no limit" on duration while the client stays connected. Memory is **128 MB** per isolate. A script is capped at **3 MB** compressed on Free, **10 MB** on Paid — which is what a bundled headless-CMS SDK runs into.
+**The limits that actually bite.** **CPU time**, not wall-clock, is the ceiling: 10 ms per request on Free, 30 s by default on Paid (raisable to 5 min). Waiting on a database or an API isn't CPU time, and an HTTP request has "no limit" on duration while the client stays connected. Memory is **128 MB** per isolate. A Worker bundle is capped at **64 MiB** uncompressed on both Free and Paid (_"There is no compressed size limit. Only the uncompressed bundle size counts."_), and _"Larger Worker bundles can impact startup time"_ against a 1-second startup limit — worth checking if you bundle a large headless-CMS SDK.
 
 ```mermaid
 flowchart TD
@@ -533,7 +534,7 @@ flowchart TD
 
 **Sources:** [Cloudflare Docs — Static assets on Workers](https://developers.cloudflare.com/workers/static-assets/) · [Cloudflare Docs — Static assets: billing and limitations](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/) · [Cloudflare Docs — Pages Functions](https://developers.cloudflare.com/pages/functions/) · [Cloudflare Docs — Migrate from Pages to Workers](https://developers.cloudflare.com/workers/static-assets/migration-guides/migrate-from-pages/) · [Cloudflare Docs — How Workers works](https://developers.cloudflare.com/workers/reference/how-workers-works/) · [Cloudflare Docs — Node.js compatibility](https://developers.cloudflare.com/workers/runtime-apis/nodejs/) · [Cloudflare Docs — Workers limits](https://developers.cloudflare.com/workers/platform/limits/)
 
-_Last verified: 2026-07-21_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -562,7 +563,7 @@ The load-bearing one is not a size: _"Each individual D1 database is inherently 
 
 Object storage, S3-API-compatible, and the differentiator is one line: **"Egress (data transfer to Internet)" is "Free."** No per-GB bandwidth bill for serving what you stored. That single fact is what makes user-uploaded media, public downloads, dataset hosting and video segments viable at a price S3 can't match, and it is the reason to migrate even when nothing else about R2 is better for you.
 
-You pay for storage and operations instead: **$0.015/GB-month** standard ($0.01 for Infrequent Access), **Class A $4.50/million** (writes and lists — `PutObject`, `ListObjects`, `CopyObject`, multipart), **Class B $0.36/million** (reads — `GetObject`, `HeadObject`). Deletes are free. The free tier is 10 GB-month plus 1M Class A and 10M Class B operations per month. The practical shape: **writes cost 12× what reads cost**, so batch uploads and stop listing a bucket on every page load.
+You pay for storage and operations instead: **$0.015/GB-month** standard ($0.01 for Infrequent Access), **Class A $4.50/million** (writes and lists — `PutObject`, `ListObjects`, `CopyObject`, multipart), **Class B $0.36/million** (reads — `GetObject`, `HeadObject`). Deletes are free. The free tier is 10 GB-month plus 1M Class A and 10M Class B operations per month. The practical shape: **writes cost 12.5× what reads cost**, so batch uploads and stop listing a bucket on every page load.
 
 ### KV — fast reads, and the trap
 
@@ -594,9 +595,9 @@ flowchart TD
 
 **See also:** What actually runs your site on Cloudflare · Who Cloudflare lets in
 
-**Sources:** [Cloudflare Docs — D1 overview](https://developers.cloudflare.com/d1/) · [Cloudflare Docs — D1 limits](https://developers.cloudflare.com/d1/platform/limits/) · [Cloudflare Docs — R2 pricing](https://developers.cloudflare.com/r2/pricing/) · [Cloudflare Docs — How KV works](https://developers.cloudflare.com/kv/concepts/how-kv-works/) · [Cloudflare Docs — Durable Objects overview](https://developers.cloudflare.com/durable-objects/) · [Cloudflare Docs — Durable Objects in-memory state](https://developers.cloudflare.com/durable-objects/reference/in-memory-state/) · [Cloudflare Docs — Queues pricing](https://developers.cloudflare.com/queues/platform/pricing/)
+**Sources:** [Cloudflare Docs — D1 overview](https://developers.cloudflare.com/d1/) · [Cloudflare Docs — D1 limits](https://developers.cloudflare.com/d1/platform/limits/) · [Cloudflare Docs — R2 pricing](https://developers.cloudflare.com/r2/pricing/) · [Cloudflare Docs — How KV works](https://developers.cloudflare.com/kv/concepts/how-kv-works/) · [Cloudflare Docs — Durable Objects overview](https://developers.cloudflare.com/durable-objects/) · [Cloudflare Docs — Durable Objects in-memory state](https://developers.cloudflare.com/durable-objects/reference/in-memory-state/) · [Cloudflare Docs — What are Durable Objects?](https://developers.cloudflare.com/durable-objects/what-are-durable-objects/) · [Cloudflare Docs — Queues overview](https://developers.cloudflare.com/queues/) · [Cloudflare Docs — Queues pricing](https://developers.cloudflare.com/queues/platform/pricing/)
 
-_Last verified: 2026-07-21_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -638,7 +639,7 @@ Two keys, and mixing them up is the classic failure:
 
 The WAF _"checks incoming web and API requests and filters undesired traffic based on sets of rules called rulesets,"_ matching on request properties such as _"IP address, URL path, headers, and body content."_ Three rule families do the work: **Custom rules** you write, **Managed Rules** Cloudflare maintains and updates for zero-days, and **Rate limiting rules** that cap requests matching an expression.
 
-Plan matters here, so check before you design around it: Free gets custom rules, **one** rate limiting rule, IP access rules and sampled security events. **Managed Rules require Pro or above**; advanced rate limiting and account-level configuration are Enterprise.
+Plan matters here, so check before you design around it: Free gets custom rules, **one** rate limiting rule, IP access rules, sampled security events and the **Free Managed Ruleset only**. **The full Managed Rules need Pro or above**; advanced rate limiting (a paid add-on) and account-level configuration are Enterprise.
 
 ### They stack — and the order is the point
 
@@ -659,9 +660,9 @@ flowchart TD
 
 **See also:** What actually runs your site on Cloudflare · Where Cloudflare keeps your data
 
-**Sources:** [Cloudflare Docs — Access policies](https://developers.cloudflare.com/cloudflare-one/policies/access/) · [Cloudflare Docs — Cloudflare One / Zero Trust](https://developers.cloudflare.com/cloudflare-one/) · [Cloudflare Docs — Turnstile: get started](https://developers.cloudflare.com/turnstile/get-started/) · [Cloudflare Docs — Turnstile server-side validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/) · [Cloudflare Docs — Turnstile hostname management](https://developers.cloudflare.com/turnstile/concepts/hostname-management/) · [Cloudflare Docs — Cloudflare WAF](https://developers.cloudflare.com/waf/)
+**Sources:** [Cloudflare Docs — Access policies](https://developers.cloudflare.com/cloudflare-one/policies/access/) · [Cloudflare Docs — Cloudflare One / Zero Trust](https://developers.cloudflare.com/cloudflare-one/) · [Cloudflare Docs — Turnstile overview](https://developers.cloudflare.com/turnstile/) · [Cloudflare Docs — Turnstile: get started](https://developers.cloudflare.com/turnstile/get-started/) · [Cloudflare Docs — Turnstile server-side validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/) · [Cloudflare Docs — Turnstile hostname management](https://developers.cloudflare.com/turnstile/concepts/hostname-management/) · [Cloudflare Docs — Cloudflare WAF](https://developers.cloudflare.com/waf/)
 
-_Last verified: 2026-07-21_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -675,7 +676,7 @@ You own a domain and you want it to point somewhere new — a new host, a new si
 **Three roles. Learn to say which one you mean.**
 
 - **Registrar** — who you rent the *name* from (GoDaddy, Namecheap, Cloudflare Registrar). It holds exactly one thing that matters day to day: the list of **nameservers**. Nothing about your site's content lives here.
-- **DNS host** — the service that *answers the questions*: "what IP is example.com?", "where does its mail go?". Your records live here. Cloudflare's own setup guide draws the line: the registrar is where you "registered and own your domain"; the DNS provider is "the service managing your DNS records."
+- **DNS host** — the service that *answers the questions*: "what IP is example.com?", "where does its mail go?". Your records live here. Cloudflare's own docs draw the line: you obtain a domain "through a registrar, a service that handles the reservation of domain names"; authoritative DNS is "the service whose nameservers provide the final answer mapping a hostname (such as example.com or blog.example.com) to the IP address that hosts the corresponding content or resources."
 - **CDN / proxy** — a network that sits *in front of* your server: terminates TLS, caches, filters. Entirely optional. Cloudflare can be all three at once, which is exactly why the three get merged.
 
 **Nameservers are the switch at the top.** An `NS` record "indicate[s] which server should be used for authoritative DNS." You set it **at the registrar**, and it decides which company gets asked everything else. Change it and every record moves at once. Cloudflare tells you to "wait up to 24 hours while your registrar updates your nameservers" — that lag is why the nameserver change is the one you plan, and the record change is the one you do casually.
@@ -721,9 +722,9 @@ flowchart TD
 
 **See also:** Cloudflare deployment traps that cost a day · Build-time config vs runtime config · Source control basics
 
-**Sources:** [Cloudflare DNS — proxy status (proxied vs DNS-only)](https://developers.cloudflare.com/dns/proxy-status/) · [Cloudflare DNS — DNS record types](https://developers.cloudflare.com/dns/manage-dns-records/reference/dns-record-types/) · [Cloudflare DNS — full setup, change your nameservers](https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/) · [Cloudflare SSL — Universal SSL](https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/) · [Cloudflare Cache — default cache behavior](https://developers.cloudflare.com/cache/concepts/default-cache-behavior/)
+**Sources:** [Cloudflare DNS — proxy status (proxied vs DNS-only)](https://developers.cloudflare.com/dns/proxy-status/) · [Cloudflare DNS — DNS record types](https://developers.cloudflare.com/dns/manage-dns-records/reference/dns-record-types/) · [Cloudflare DNS — concepts (registrar, authoritative DNS)](https://developers.cloudflare.com/dns/concepts/) · [Cloudflare DNS — full setup, change your nameservers](https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/) · [Cloudflare SSL — Universal SSL](https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/) · [Cloudflare Cache — default cache behavior](https://developers.cloudflare.com/cache/concepts/default-cache-behavior/)
 
-_Last verified: 2026-07-21_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -820,7 +821,7 @@ flowchart TD
 
 **Sources:** [Stripe — Receive Stripe events in your webhook endpoint (duplicates, ordering)](https://docs.stripe.com/webhooks) · [Stripe — How subscriptions work (lifecycle and statuses)](https://docs.stripe.com/billing/subscriptions/overview) · [Stripe — Subscription webhook events](https://docs.stripe.com/billing/subscriptions/webhooks) · [Stripe — Use free trial periods on subscriptions](https://docs.stripe.com/billing/subscriptions/trials/free-trials) · [Stripe — Fulfill orders (webhooks are required)](https://docs.stripe.com/checkout/fulfillment)
 
-_Last verified: 2026-07-21_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -837,8 +838,8 @@ You sketch a feature: *"we'll make a folder in the customer's Google Drive, they
 
 Google sorts OAuth scopes into three buckets, and the bucket sets the price:
 
-- **Recommended / non-sensitive** — narrow, per-item access. No Google review. Ship today.
-- **Sensitive** — broader access to user data. *"Sensitive scopes require review by Google before any Google Account can grant access."* Weeks of back-and-forth, but no outside auditor.
+- **Recommended / non-sensitive** — narrow, per-item access. Google says these scopes *"only require basic OAuth App Verification"* — no scope-specific review. Ship today.
+- **Sensitive** — broader access to user data. *"Sensitive scopes require review by Google before any Google Account can grant access."* Google says the process *"typically takes 3-5 business days to complete"*, and its sensitive-scope page names no outside auditor.
 - **Restricted** — the highest-risk data. Verification **plus** an independent security assessment.
 
 The restricted tier is where the surprise lives. Google's own words: *"Every app that requests access to Google users' restricted data and has the ability to access data from or through a third-party server must go through a security assessment"* — standardised on the App Defense Alliance's **CASA** framework. And it does not end: *"apps must be reverified for compliance and complete a security assessment at least every 12 months after your assessor's Letter of Assessment (LOA) approval date."* Google warns that restricted-scope verification alone *"can potentially take several weeks to complete."*
@@ -867,8 +868,8 @@ The cheap redesign is usually right there: keep `drive.file` and put a Google Pi
 flowchart TD
   F[Feature idea] --> Q[Ask FIRST: which scope does this need?]
   Q --> C{Google's scope tier}
-  C -- recommended / non-sensitive --> R[Ship it · no Google review]
-  C -- sensitive --> S[Google review · weeks · no outside auditor]
+  C -- recommended / non-sensitive --> R[Ship it · basic app verification]
+  C -- sensitive --> S[Google review · ~3-5 business days · no outside auditor]
   C -- restricted --> T{Server touches<br/>the data?}
   T -- no --> V[Verification only]
   T -- yes --> A[Verification + CASA security assessment<br/>+ re-audit every 12 months]
@@ -882,7 +883,7 @@ flowchart TD
 
 **Sources:** [Google — Restricted scope verification (CASA security assessment)](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification) · [Google — Choose Google Drive API scopes](https://developers.google.com/workspace/drive/api/guides/api-specific-auth) · [Google — Sensitive scope verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/sensitive-scope-verification)
 
-_Last verified: 2026-07-21_
+_Last verified: 2026-10-20_
 
 
 ---

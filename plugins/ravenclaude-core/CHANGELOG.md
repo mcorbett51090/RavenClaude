@@ -2,6 +2,23 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.358.5 — 2026-10-20
+
+### Fixed
+- **Ten platform-fact concepts re-verified against their live sources (CI time bomb).** On 2026-10-20 six concepts stamped `last_verified: 2026-07-21` crossed the 90-day platform-fact window, so `concepts.py --check` failed, and with it the real-corpus rows of Gates 237 and 239, which run on every PR. Four more (stamped 2026-07-28) would have done the same on 2026-10-27. Every `sources:` URL was fetched again and each claim checked; corrections where the vendor docs have moved:
+  - `cloudflare-what-runs-your-site`: the Worker size limit is now 64 MiB uncompressed on both plans ("There is no compressed size limit"), plus a 1 s startup limit. Compatibility dates on or after 2026-08-04 enable `nodejs_compat` by default. "Serving assets on a path" is a Workers capability, not a Pages-only one.
+  - `cloudflare-who-gets-in`: the Free plan gets the Free Managed Ruleset. It does not lack managed rules altogether.
+  - `cloudflare-where-data-lives`: the R2 Class A to Class B price ratio is 12.5×, and two quotes are re-sourced to the pages that carry them.
+  - `cloudflare-how-users-find-you`: two quotes that appear on no current DNS page are replaced with verbatim text from the DNS concepts page.
+  - `oauth-scope-cost`: sensitive-scope review is now "typically … 3-5 business days". Non-sensitive scopes "only require basic OAuth App Verification". Two diagram labels were updated to match.
+  - `hook-lifecycle`: `onFailure: "block"` (v2.1.295+) lets a `command` or `http` hook fail closed. Exit 0 takes no decision of its own.
+  - `permission-layers`: an absolute path in a rule is `//path`. A single `/` anchors at the settings source.
+  - `permission-modes`: `auto` is no longer a research preview. A project-level `defaultMode: "auto"` is ignored. The `plan` and `dontAsk` wording now matches the docs.
+  - `session-start-context`: the first response waits for SessionStart hooks to finish. The overflow rule is a 2,000-character preview.
+  - `subscription-billing-model`: no body change.
+
+  Only the two changed diagrams (`hook-lifecycle`, `oauth-scope-cost`) were re-rendered, so every other SVG in the pack stays byte-identical. `concepts.json`, `dashboard.html`, `index.html` and `docs/concepts.md` were regenerated.
+
 ## 0.358.4 — 2026-10-18
 
 ### Changed

@@ -6,7 +6,7 @@ kind: platform-fact
 order: 16
 summary: "Five stores, one question each: rows you query = D1, files = R2 (egress is free), read-mostly config = KV (up to 60s stale), coordination = Durable Objects, work to hand off = Queues."
 see_also: [cloudflare-what-runs-your-site, cloudflare-who-gets-in]
-last_verified: 2026-07-21
+last_verified: 2026-10-20
 refresh_when: "R2 starts charging egress or changes the $0.015/GB-month or Class A/B prices, D1 raises the 10 GB per-database cap or stops processing queries one at a time, KV's stated 60-second propagation window changes, or Queues changes its free allocation."
 sources:
   - label: "Cloudflare Docs — D1 overview"
@@ -21,6 +21,10 @@ sources:
     url: "https://developers.cloudflare.com/durable-objects/"
   - label: "Cloudflare Docs — Durable Objects in-memory state"
     url: "https://developers.cloudflare.com/durable-objects/reference/in-memory-state/"
+  - label: "Cloudflare Docs — What are Durable Objects?"
+    url: "https://developers.cloudflare.com/durable-objects/what-are-durable-objects/"
+  - label: "Cloudflare Docs — Queues overview"
+    url: "https://developers.cloudflare.com/queues/"
   - label: "Cloudflare Docs — Queues pricing"
     url: "https://developers.cloudflare.com/queues/platform/pricing/"
 ---
@@ -45,7 +49,7 @@ The load-bearing one is not a size: _"Each individual D1 database is inherently 
 
 Object storage, S3-API-compatible, and the differentiator is one line: **"Egress (data transfer to Internet)" is "Free."** No per-GB bandwidth bill for serving what you stored. That single fact is what makes user-uploaded media, public downloads, dataset hosting and video segments viable at a price S3 can't match, and it is the reason to migrate even when nothing else about R2 is better for you.
 
-You pay for storage and operations instead: **$0.015/GB-month** standard ($0.01 for Infrequent Access), **Class A $4.50/million** (writes and lists — `PutObject`, `ListObjects`, `CopyObject`, multipart), **Class B $0.36/million** (reads — `GetObject`, `HeadObject`). Deletes are free. The free tier is 10 GB-month plus 1M Class A and 10M Class B operations per month. The practical shape: **writes cost 12× what reads cost**, so batch uploads and stop listing a bucket on every page load.
+You pay for storage and operations instead: **$0.015/GB-month** standard ($0.01 for Infrequent Access), **Class A $4.50/million** (writes and lists — `PutObject`, `ListObjects`, `CopyObject`, multipart), **Class B $0.36/million** (reads — `GetObject`, `HeadObject`). Deletes are free. The free tier is 10 GB-month plus 1M Class A and 10M Class B operations per month. The practical shape: **writes cost 12.5× what reads cost**, so batch uploads and stop listing a bucket on every page load.
 
 ### KV — fast reads, and the trap
 

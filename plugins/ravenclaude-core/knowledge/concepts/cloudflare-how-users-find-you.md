@@ -6,13 +6,15 @@ kind: platform-fact
 order: 18
 summary: "A registrar holds the name, a DNS host answers the lookups, a CDN sits in front of the server. Knowing which is which is what tells you who to change, and where, to move a domain."
 see_also: [cloudflare-deployment-traps, build-time-vs-runtime-config, source-control-basics]
-last_verified: 2026-07-21
+last_verified: 2026-10-20
 refresh_when: "Cloudflare changes which record types can be proxied, what Universal SSL covers, or the default no-cache-for-HTML behaviour — or the registrar/DNS-host split stops being how domains work."
 sources:
   - label: "Cloudflare DNS — proxy status (proxied vs DNS-only)"
     url: "https://developers.cloudflare.com/dns/proxy-status/"
   - label: "Cloudflare DNS — DNS record types"
     url: "https://developers.cloudflare.com/dns/manage-dns-records/reference/dns-record-types/"
+  - label: "Cloudflare DNS — concepts (registrar, authoritative DNS)"
+    url: "https://developers.cloudflare.com/dns/concepts/"
   - label: "Cloudflare DNS — full setup, change your nameservers"
     url: "https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/"
   - label: "Cloudflare SSL — Universal SSL"
@@ -26,7 +28,7 @@ You own a domain and you want it to point somewhere new — a new host, a new si
 **Three roles. Learn to say which one you mean.**
 
 - **Registrar** — who you rent the *name* from (GoDaddy, Namecheap, Cloudflare Registrar). It holds exactly one thing that matters day to day: the list of **nameservers**. Nothing about your site's content lives here.
-- **DNS host** — the service that *answers the questions*: "what IP is example.com?", "where does its mail go?". Your records live here. Cloudflare's own setup guide draws the line: the registrar is where you "registered and own your domain"; the DNS provider is "the service managing your DNS records."
+- **DNS host** — the service that *answers the questions*: "what IP is example.com?", "where does its mail go?". Your records live here. Cloudflare's own docs draw the line: you obtain a domain "through a registrar, a service that handles the reservation of domain names"; authoritative DNS is "the service whose nameservers provide the final answer mapping a hostname (such as example.com or blog.example.com) to the IP address that hosts the corresponding content or resources."
 - **CDN / proxy** — a network that sits *in front of* your server: terminates TLS, caches, filters. Entirely optional. Cloudflare can be all three at once, which is exactly why the three get merged.
 
 **Nameservers are the switch at the top.** An `NS` record "indicate[s] which server should be used for authoritative DNS." You set it **at the registrar**, and it decides which company gets asked everything else. Change it and every record moves at once. Cloudflare tells you to "wait up to 24 hours while your registrar updates your nameservers" — that lag is why the nameserver change is the one you plan, and the record change is the one you do casually.
