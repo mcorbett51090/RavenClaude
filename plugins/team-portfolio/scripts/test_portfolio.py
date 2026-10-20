@@ -393,6 +393,57 @@ def sec_a30_merged_counts_are_windowed():
     )
 
 
+def sec_a31_config_check_logins():
+    print("A-31 — config check WARNs on malformed team logins and case-only duplicates")
+
+    def team_findings(*logins):
+        found = cc.Findings()
+        cc.check_team({"team": [{"login": login} for login in logins]}, found)
+        return found
+
+    f = team_findings("@alice")
+    check(
+        "'@alice' -> a malformed-login WARNING (not an error)",
+        len(f.warnings) == 1 and "@alice" in f.warnings[0] and f.errors == [],
+    )
+    check("'a b' (a space) -> a malformed-login warning", len(team_findings("a b").warnings) == 1)
+    check(
+        "an e-mail address as a login -> a malformed-login warning",
+        len(team_findings("alice@example.com").warnings) == 1,
+    )
+    check(
+        "a 40-character login (over GitHub's 39 limit) -> a warning",
+        len(team_findings("a" * 40).warnings) == 1 and team_findings("a" * 39).warnings == [],
+    )
+    check("a leading hyphen -> a warning", len(team_findings("-alice").warnings) == 1)
+    f = team_findings("alice")
+    check("'alice' -> clean", f.warnings == [] and f.errors == [])
+    check(
+        "hyphenated and digit logins ('al-ice9', '9lives') are clean",
+        team_findings("al-ice9", "9lives").warnings == [],
+    )
+    f = team_findings("Alice", "alice")
+    check(
+        "'Alice' + 'alice' -> a case-only duplicate warning naming both",
+        len(f.warnings) == 1 and "only by case" in f.warnings[0] and '"Alice"' in f.warnings[0],
+    )
+    f = team_findings("alice", "alice")
+    check(
+        "an exact duplicate still gets the original duplicate warning",
+        len(f.warnings) == 1 and "is a duplicate." in f.warnings[0],
+    )
+    check(
+        "two different people ('alice', 'bob') -> clean",
+        team_findings("alice", "bob").warnings == [],
+    )
+    cfg = {"repos": ["o/r"], "team": [{"login": "@alice"}, {"login": "Bob"}, {"login": "bob"}]}
+    out = cc.validate(cfg)
+    check(
+        "through validate(): the warnings are warnings, so the exit stays 0 without --strict",
+        out.errors == [] and len(out.warnings) == 2,
+    )
+
+
 def build_quiet(config):
     return pc.build_activity(config, None, "tok")
 
@@ -402,6 +453,7 @@ def main():
     sec_a22_transport_errors_fail_soft()
     sec_a29_truncation_is_reported()
     sec_a30_merged_counts_are_windowed()
+    sec_a31_config_check_logins()
 
     n_pass = sum(1 for _, ok in results if ok)
     print(f"\n{n_pass}/{len(results)} acceptance tests passed.")
