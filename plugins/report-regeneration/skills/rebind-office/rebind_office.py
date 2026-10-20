@@ -414,10 +414,33 @@ def _needs_review_marker(local_name: str, confidence: Any, note: str) -> bytes:
     return run
 
 
+# B-10: the unwalked OOXML wrappers infer-office surfaces as needs-review nodes (mirrors
+# infer_office._WRAPPER_LOCALS).
+_WRAPPER_LOCALS = frozenset(["hyperlink", "sdt", "sdtContent", "ins", "smartTag", "fldSimple", "customXml"])
+
+
+def _wrapper_marker_offset(doc: bytes, node: Any) -> int:
+    """B-10: a wrapper's marker run goes INSIDE the wrapper, so no sibling index outside it shifts
+    and the harness masks it with the wrapper's subtree: at the end of the wrapper's last paragraph
+    when it holds block content (a block-level sdt/customXml), else at the end of its run content
+    (w:sdtContent for an inline content control)."""
+    prefix = (node.tag.split(":", 1)[0] + ":").encode("utf-8") if ":" in node.tag else b""
+    p_close = doc.rfind(b"</" + prefix + b"p>", node.inner_start, node.inner_end)
+    if p_close != -1:
+        return p_close
+    if node.local_name == "sdt":
+        content_close = doc.rfind(b"</" + prefix + b"sdtContent>", node.inner_start, node.inner_end)
+        if content_close == -1:
+            raise RebindOfficeError("needs-review marker: <sdt> has no sdtContent to mark")
+        return content_close
+    return node.inner_end
+
+
 def flag_needs_review(doc: bytes, anchor: Any, confidence: Any, note: str) -> bytes:
     """Insert a visible needs-review marker adjacent to the anchored node, leaving the node's
     own content byte-for-byte untouched. A run gets a sibling marker run immediately after it;
-    a paragraph/cell gets the marker appended as its last child."""
+    a paragraph/cell gets the marker appended as its last child; an unwalked wrapper (B-10) gets
+    a marker run inside it."""
     node = _resolve_node(doc, anchor)
     local = node.local_name
     marker = _needs_review_marker(local, confidence, note)
@@ -425,6 +448,8 @@ def flag_needs_review(doc: bytes, anchor: Any, confidence: Any, note: str) -> by
         insert_at = node.outer_end
     elif local in ("p", "tc"):
         insert_at = node.inner_end  # append inside the paragraph/cell
+    elif local in _WRAPPER_LOCALS:
+        insert_at = _wrapper_marker_offset(doc, node)
     else:
         raise RebindOfficeError(
             f"needs-review marker is not supported for a <{local}> node "
