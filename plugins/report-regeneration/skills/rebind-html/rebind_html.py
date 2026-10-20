@@ -131,8 +131,8 @@ def _guard_path(raw: str, *, must_exist: bool) -> Path:
     return resolved
 
 
-# ── generic id-anchored mutation helpers (regex/string based, deliberately not a full ──
-# ── DOM rebuild — this is a surgical byte-editor over the real artifact, per §1) ──
+# ── generic id-anchored mutation helpers (rr_anchor-located spans + string splices, ──
+# ── deliberately not a full DOM rebuild — a surgical byte-editor over the real artifact, per §1) ──
 
 
 def _id_anchor(elem_id: str) -> dict:
@@ -147,21 +147,14 @@ def _escape_inner(value: str) -> str:
     return html.escape(str(value), quote=False)
 
 
-def _open_tag_pattern(elem_id: str) -> re.Pattern:
-    """Matches ONLY the opening tag carrying id=elem_id — works for void elements
-    (<img>, <br>) and for the opening tag of a paired element alike."""
-    return re.compile(r'<[a-zA-Z][\w-]*\b[^>]*\bid="' + re.escape(elem_id) + r'"[^>]*>')
-
-
-def _open_tag_search(html_text: str, elem_id: str):
-    return _open_tag_pattern(elem_id).search(html_text)
-
-
 def _open_tag_by_id(html_text: str, elem_id: str):
-    m = _open_tag_search(html_text, elem_id)
-    if not m:
+    """The rr_anchor-resolved element carrying id=elem_id (B-7). Its open_start/open_end span is
+    the real element's opening tag, so a data-id="x" look-alike, markup inside an HTML comment or a
+    <script> body can never be the one edited (the old id regex matched all three)."""
+    node = rr_anchor.try_resolve(html_text, _id_anchor(elem_id))
+    if node is None:
         raise RebindError(f"anchor id={elem_id!r} not found in template")
-    return m
+    return node
 
 
 def node_exists(html_text: str, elem_id: str) -> bool:
@@ -216,12 +209,11 @@ def write_inner_by_id(html_text: str, elem_id: str, new_value: str) -> str:
         raise RebindError(f"anchor id={elem_id!r} not writable: {exc}") from exc
 
 
-def _read_attr(tag_text: str, name: str) -> str:
-    m = re.search(r'\b' + re.escape(name) + r'="([^"]*)"', tag_text)
-    return m.group(1) if m else ""
-
-
 _ATTR_NAME = re.compile(r"[A-Za-z_:][-A-Za-z0-9_:.]*")
+# B-7: one attribute token inside an open tag, as html.parser reads it (a name, then an optional
+# double-, single- or un-quoted value). A look-alike name (data-src for src) is its own token.
+_ATTR_TOKEN = re.compile(r"""(?<=['"\s/])([^\s/>][^\s/=>]*)(?:\s*=+\s*('[^']*'|"[^"]*"|(?!['"])[^>\s]*))?""")
+_TAG_NAME = re.compile(r"<[^\s/>]+")
 
 
 def _inject_attr_into_open_tag(open_tag_text: str, name: str, value: str) -> str:
@@ -237,9 +229,12 @@ def _inject_attr_into_open_tag(open_tag_text: str, name: str, value: str) -> str
     self_closing = body.rstrip().endswith("/")
     if self_closing:
         body = body.rstrip()[:-1].rstrip()
-    pattern = re.compile(r'\b' + re.escape(name) + r'="[^"]*"')
-    if pattern.search(body):
-        body = pattern.sub(lambda _m: attr, body, count=1)
+    head = _TAG_NAME.match(body)
+    spans = [tok.span() for tok in _ATTR_TOKEN.finditer(body, head.end() if head else 0)
+             if tok.group(1).lower() == name.lower()]
+    if spans:  # every occurrence, so no duplicate keeps an old value
+        for start, end in reversed(spans):
+            body = body[:start] + attr + body[end:]
     else:
         body = body + " " + attr
     return body + (" />" if self_closing else ">")
@@ -248,18 +243,18 @@ def _inject_attr_into_open_tag(open_tag_text: str, name: str, value: str) -> str
 def strip_attr_by_id(html_text: str, elem_id: str, attr: str) -> tuple[str, str]:
     """STEP 1 of zero-literal construction for an attribute (e.g. a raster's `src`):
     empty attribute `attr` on the opening tag carrying id=elem_id."""
-    m = _open_tag_by_id(html_text, elem_id)
-    old_value = _read_attr(m.group(0), attr)
-    new_tag = _inject_attr_into_open_tag(m.group(0), attr, "")
-    return html_text[: m.start()] + new_tag + html_text[m.end():], old_value
+    node = _open_tag_by_id(html_text, elem_id)
+    old_value = node.attrs.get(attr, "")
+    new_tag = _inject_attr_into_open_tag(node.open_tag_text(html_text), attr, "")
+    return html_text[: node.open_start] + new_tag + html_text[node.open_end:], old_value
 
 
 def write_attr_by_id(html_text: str, elem_id: str, attr: str, value: str) -> str:
     """STEP 2: write `value` into attribute `attr` on the opening tag carrying
     id=elem_id."""
-    m = _open_tag_by_id(html_text, elem_id)
-    new_tag = _inject_attr_into_open_tag(m.group(0), attr, value)
-    return html_text[: m.start()] + new_tag + html_text[m.end():]
+    node = _open_tag_by_id(html_text, elem_id)
+    new_tag = _inject_attr_into_open_tag(node.open_tag_text(html_text), attr, value)
+    return html_text[: node.open_start] + new_tag + html_text[node.open_end:]
 
 
 def _needs_review_badge(confidence, note: str) -> str:
@@ -278,10 +273,10 @@ def flag_needs_review(html_text: str, elem_id: str, confidence, note: str) -> st
     Never ships silently: this is guarantee #2 (every low-confidence / data-shaped-literal
     classification is surfaced for human review) made mechanical for HTML output."""
     badge = _needs_review_badge(confidence, note)
-    m = _open_tag_by_id(html_text, elem_id)
-    new_tag = _inject_attr_into_open_tag(m.group(0), "data-rebind-flag", "needs-review")
+    node = _open_tag_by_id(html_text, elem_id)
+    new_tag = _inject_attr_into_open_tag(node.open_tag_text(html_text), "data-rebind-flag", "needs-review")
     new_tag = _inject_attr_into_open_tag(new_tag, "data-rebind-confidence", str(confidence))
-    html_text = html_text[: m.start()] + new_tag + html_text[m.end():]
+    html_text = html_text[: node.open_start] + new_tag + html_text[node.open_end:]
 
     # Insert the badge as the first child of a PAIRED node — the open-tag end resolved via the
     # rr_anchor tree (P3 #10) so a nested same-tag element inside the node can't mis-place it.
@@ -290,8 +285,8 @@ def flag_needs_review(html_text: str, elem_id: str, confidence, note: str) -> st
         insert_at = node.inner_start  # immediately after the (now-flagged) opening tag
         return html_text[:insert_at] + badge + html_text[insert_at:]
 
-    m2 = _open_tag_by_id(html_text, elem_id)  # re-locate after the attribute edit above
-    return html_text[: m2.end()] + badge + html_text[m2.end():]
+    node = _open_tag_by_id(html_text, elem_id)  # re-locate after the attribute edit above
+    return html_text[: node.open_end] + badge + html_text[node.open_end:]
 
 
 # ── rr_anchor-backed helpers for the COMPOUND css_selector anchors infer emits for id-less ──

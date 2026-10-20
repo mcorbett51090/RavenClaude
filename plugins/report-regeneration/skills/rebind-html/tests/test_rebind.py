@@ -310,6 +310,21 @@ class TestAttributeWrites(unittest.TestCase):
         with self.assertRaises(rh.RebindError):
             rh._inject_attr_into_open_tag('<img id="chart">', 'src onload="alert(1)" x', "y")
 
+    def test_only_the_real_element_and_attribute_are_rewritten(self):
+        # B-7: the id regex also matched data-id="chart", commented-out markup and data-src.
+        template = ('<html><body><!-- <img id="chart" src="old-comment.png"> -->'
+                    '<div data-id="chart" class="w"></div>'
+                    '<img id="chart" data-src="lazy.png" src=\'OLD.png\' alt="Old chart"></body></html>')
+        manifest = copy.deepcopy(MANIFEST)
+        manifest["bindings"] = [REGENERATE_IMAGE_BINDING]
+        output, _changes, _n = rh.rebind(template, manifest, NEW_DATA)
+        self.assertIn('<!-- <img id="chart" src="old-comment.png"> -->', output)
+        self.assertIn('<div data-id="chart" class="w"></div>', output)
+        real = [a for a in self._img_attrs(output) if ("id", "chart") in a][0]
+        self.assertEqual(dict(real)["src"], NEW_DATA["assets"]["chart"]["src"])
+        self.assertEqual(dict(real)["data-src"], "lazy.png")
+        self.assertNotIn("OLD.png", output, "the old src must be absent from the real tag")
+
 
 class TestSampleReportCorpus(unittest.TestCase):
     """End-to-end against the real Phase-0 corpus fixture (tests/fixtures/
