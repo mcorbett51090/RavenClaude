@@ -6,7 +6,7 @@ kind: platform-fact
 order: 22
 summary: "Google grades OAuth scopes recommended, sensitive, or restricted. Restricted adds verification plus a 12-monthly third-party security assessment — check the scope before you design the feature."
 see_also: [permission-layers, web-access-guardrail, containment-posture]
-last_verified: 2026-07-21
+last_verified: 2026-10-20
 refresh_when: "Google changes its scope categories, moves a Drive scope between categories, changes the drive.file grant wording, or drops/replaces the CASA third-party security assessment or its 12-month recertification."
 sources:
   - label: "Google — Restricted scope verification (CASA security assessment)"
