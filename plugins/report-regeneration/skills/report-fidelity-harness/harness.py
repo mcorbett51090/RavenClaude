@@ -476,16 +476,20 @@ def value_domain(new_data: dict) -> set[tuple[str, str]]:
 # Leg V1 — value accuracy (recompute 2nd path + anchor + set-membership + cross-slot)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def leg_v1(template_root: Element, output_root: Element, manifest: dict, new_data: dict) -> dict:
+def leg_v1(template_root: Element, output_root: Element, manifest: dict, new_data: dict,
+           output_text: str | None = None) -> dict:
     values = new_data.get("values", {})
     output_typed = typed_values_in(output_root)
 
-    # expression -> bindings that carry it (surgical value slots addressed by element_id)
+    # expression -> bindings that carry it. B-29: css_selector slots (simple '#id' or the compound
+    # form infer emits for id-less nodes) are located too, via _resolve_binding_element; a slot
+    # that cannot be located is named in the evidence, never silently skipped.
     expr_bindings: dict[str, list[dict]] = {}
     for b in manifest.get("bindings", []):
         dq = b.get("data_query")
-        if dq and dq.get("expression") and b.get("anchor", {}).get("kind") == "element_id":
+        if dq and dq.get("expression"):
             expr_bindings.setdefault(dq["expression"], []).append(b)
+    skipped: list[str] = []
 
     anchor_failures: list[str] = []
     membership_failures: list[str] = []
@@ -519,18 +523,24 @@ def leg_v1(template_root: Element, output_root: Element, manifest: dict, new_dat
 
         slot_values: list[str] = []
         for b in bindings_for_expr:
-            node = find_by_id(output_root, b["anchor"]["value"])
+            anchor = b.get("anchor", {})
+            kind = anchor.get("kind")
+            label = "#" + anchor.get("value", "") if kind == "element_id" else anchor.get("value", "")
+            if kind not in ("element_id", "css_selector"):
+                skipped.append(f"{label} ({kind})")
+                continue
+            node = _resolve_binding_element(output_root, output_text, anchor)
             if node is None:
                 anchor_failures.append(
-                    "anchor #{} for {} missing from output".format(b["anchor"]["value"], expr)
+                    f"anchor {label} for {expr} missing from output"
                 )
                 continue
             node_typed = typed_values_in(node)
             typed_of_kind = sorted(v for (t, v) in node_typed if t == vtype)
             if expected_token not in node_typed:
                 anchor_failures.append(
-                    "#{} carries {} not {!r} (expected {})".format(
-                        b["anchor"]["value"], typed_of_kind or "no value", spec["value"], expected
+                    "{} carries {} not {!r} (expected {})".format(
+                        label, typed_of_kind or "no value", spec["value"], expected
                     )
                 )
             if typed_of_kind:
@@ -557,6 +567,8 @@ def leg_v1(template_root: Element, output_root: Element, manifest: dict, new_dat
             f"all {len(values)} recomputed values landed at their anchors and appear in-document; "
             "no cross-slot disagreement"
         )
+    if skipped:
+        evidence_parts.append("not located (anchor kind V1 cannot resolve): " + "; ".join(skipped))
     return {
         "leg": "V1",
         "verdict": verdict,
@@ -2149,7 +2161,7 @@ def run_legs(template_root: Element, output_root: Element, manifest: dict, new_d
                 "evidence": f"harness crash while running {name}: {type(exc).__name__}: {exc}",
             }
 
-    guarded("V1", lambda: leg_v1(template_root, output_root, manifest, new_data))
+    guarded("V1", lambda: leg_v1(template_root, output_root, manifest, new_data, output_text))
     guarded("V2", lambda: leg_v2(template_root, output_root, manifest, template_text))
     guarded("V3", lambda: leg_v3(template_root, output_root, manifest, template_text))
     guarded("V4", lambda: leg_v4(output_root, taint, output_text))

@@ -399,6 +399,21 @@ def test_render_referee_leaves_no_scratch_screenshot_behind():
     assert kept.exists() and run["screenshot_path"] == str(kept), "an asked-for screenshot is kept"
 
 
+def test_v1_locates_css_selector_bound_slots():
+    # B-29: V1 checked only element_id slots; a compound-selector slot left at its old value passed
+    # whenever the new value appeared anywhere else (the set-membership half).
+    manifest = {"bindings": [{
+        "node_id": "n", "anchor": {"kind": "css_selector", "value": "#k > span:nth-of-type(1)"},
+        "class": "surgical", "data_query": {"kind": "file-cell", "expression": "rev"}}]}
+    new_data = {"values": {"rev": {"value": "$2,000", "type": "currency"}}}
+    stale = '<html><body><div id="k"><span>$1,000</span></div><p>Total $2,000</p></body></html>'
+    leg = harness.leg_v1(harness.parse_html(stale), harness.parse_html(stale), manifest, new_data, stale)
+    assert leg["verdict"] == "fail", leg["evidence"]
+    fresh = '<html><body><div id="k"><span>$2,000</span></div><p>Total $2,000</p></body></html>'
+    leg = harness.leg_v1(harness.parse_html(fresh), harness.parse_html(fresh), manifest, new_data, fresh)
+    assert leg["verdict"] == "pass", leg["evidence"]
+
+
 # ── standalone runner (no pytest required) ─────────────────────────────────────
 
 def _main() -> int:
