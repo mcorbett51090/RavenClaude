@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import sys
 from datetime import datetime, timezone
@@ -166,6 +167,9 @@ class CloseLedger:
         # NetSuite re-pull whose hash differs can be flagged as "source changed after sign-off"
         # (verify_source). Additive + backward-compatible: when None it is omitted entirely, so
         # existing callers/events/audit hashes are byte-identical (no chain shift).
+        if not math.isfinite(amount):
+            # NaN compares False against every threshold, so it would slip the SoD gate.
+            raise SystemExit(f"REFUSED: package amount must be a finite number (got {amount}).")
         detail = {"amount": amount}
         if source_tb_sha256 is not None:
             detail["source_tb_sha256"] = source_tb_sha256
@@ -207,7 +211,9 @@ class CloseLedger:
         preparer = st.get("preparer")
         amount = st.get("package_amount") or 0.0
         # SoD: the same declared actor cannot approve their own package above threshold.
-        if actor == preparer and amount >= threshold:
+        # The test is on the MAGNITUDE (a credit memo / negative package is as material as a
+        # positive one) and a non-finite amount fails CLOSED (NaN >= x is always False).
+        if actor == preparer and (not math.isfinite(amount) or abs(amount) >= threshold):
             self._append_event(
                 "DENIED:approve",
                 actor,

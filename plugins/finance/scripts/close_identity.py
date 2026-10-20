@@ -65,6 +65,7 @@ import base64
 import hashlib
 import hmac
 import json
+import math
 import os
 import sys
 from dataclasses import dataclass
@@ -482,7 +483,11 @@ def assert_sod(
       sod_missing_role  the approver's role claims (from the configured claim
         path) do not include `approver_role`.
     """
-    if preparer.subject == approver.subject and amount >= threshold:
+    # Magnitude test, fail-closed on NaN/inf (NaN >= x is always False; a negative package
+    # is as material as a positive one).
+    if preparer.subject == approver.subject and (
+        not math.isfinite(amount) or abs(amount) >= threshold
+    ):
         raise IdentityError(
             "sod_same_subject",
             f"SoD: approver subject {approver.subject!r} is the preparer and amount "

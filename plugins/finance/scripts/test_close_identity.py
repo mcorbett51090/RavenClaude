@@ -182,6 +182,18 @@ def main():
           refused_with(lambda: ci.assert_sod(prep, appr_norole, amount=250000, threshold=100000),
                        "sod_missing_role"))
 
+    print("A-11 — assert_sod compares MAGNITUDE and fails closed on non-finite amounts")
+    for label, amt in (("negative", -250000), ("NaN", float("nan")), ("+inf", float("inf"))):
+        check(f"same sub@iss with a {label} package amount -> 'sod_same_subject'",
+              refused_with(lambda a=amt: ci.assert_sod(prep, appr_same_subject, amount=a, threshold=100000),
+                           "sod_same_subject"))
+    ok = True
+    try:
+        ci.assert_sod(prep, appr_same_subject, amount=-5, threshold=100000)
+    except ci.IdentityError as exc:
+        ok = exc.reason == "sod_missing_role"
+    check("a small negative amount (|amount| < threshold) is NOT refused on the SoD subject gate", ok)
+
     print("LOCK step-up — VERIFIED + SUBJECT-BOUND + fresh auth_time (raw dict refused)")
     # The locking approver is the distinct approver principal resolved above (sub@iss).
     # A LOCK step-up must be a real token that (a) verifies, (b) belongs to THAT principal,

@@ -92,6 +92,40 @@ def main():
         open(ap, "w").write("\n".join(lines) + "\n")
         check("verify: tampered audit line detected (rc!=0)", cs("verify").returncode != 0)
 
+    print("A-11 — SoD compares MAGNITUDE and fails closed on non-finite amounts")
+    for label, amt in (("negative -5,000,000", "-5000000"), ("positive +5,000,000 (control)", "5000000")):
+        with tempfile.TemporaryDirectory() as d:
+            def cs(*a):
+                return py("close_state.py", "--run-dir", d, "--now", "2026-07-06T00:00:00+00:00", *a)
+            cs("submit", "--actor", "alice", "--amount", amt)
+            cs("review", "--actor", "bob")
+            r = cs("approve", "--actor", "alice", "--threshold", "1000")
+            check(f"SoD: preparer self-approve of a {label} package REFUSED",
+                  r.returncode != 0 and "SoD" in r.stderr)
+            check(f"{label}: a different approver still succeeds",
+                  cs("approve", "--actor", "carol", "--threshold", "1000").returncode == 0)
+    for bad_amt in ("nan", "inf"):
+        with tempfile.TemporaryDirectory() as d:
+            r = py("close_state.py", "--run-dir", d, "submit", "--actor", "alice", "--amount", bad_amt)
+            check(f"submit with a non-finite amount ({bad_amt}) is rejected at submit",
+                  r.returncode != 0 and "finite" in r.stderr
+                  and not os.path.exists(os.path.join(d, "state.json")))
+    sys.path.insert(0, HERE)
+    import close_state as cst
+    with tempfile.TemporaryDirectory() as d:
+        led = cst.CloseLedger(d)
+        led.submit("alice", 10.0)
+        led.review("bob")
+        st = led.load_state()
+        st["package_amount"] = float("nan")  # hand-edited / legacy state.json
+        led._write_state(st)
+        try:
+            led.approve("alice", 1000.0)
+            refused = False
+        except SystemExit as e:
+            refused = "SoD" in str(e.code)
+        check("a NaN package_amount already in state.json fails CLOSED (self-approve REFUSED)", refused)
+
     print("P4 — orchestrator submit-only invariant")
     src = open(os.path.join(HERE, "controller_cycle.py")).read()
     # strip comments/strings-ish: just assert no .approve(/.lock(/.reopen( call on a ledger
