@@ -59,9 +59,24 @@ def sanitize_events(activity: dict) -> dict:
     return activity
 
 
+def canonical_login(login: str | None, team: list[dict]) -> str | None:
+    """The roster's spelling of `login` (GitHub logins are case-insensitive), else `login`.
+
+    The collector now stores the configured spelling; this also reconciles an older artifact
+    whose actor differs from the roster only by case."""
+    if not login:
+        return login
+    for member in team:
+        configured = member.get("login")
+        if configured and configured.casefold() == login.casefold():
+            return configured
+    return login
+
+
 def display_name(login: str | None, team: list[dict]) -> str:
     if not login:
         return "(unattributed)"
+    login = canonical_login(login, team)
     for member in team:
         if member.get("login") == login:
             return member.get("name") or login
@@ -92,7 +107,7 @@ def render_weekly_tracker(activity: dict) -> str:
 
     by_person: dict[str | None, list[dict]] = defaultdict(list)
     for event in events:
-        by_person[event.get("actor")].append(event)
+        by_person[canonical_login(event.get("actor"), team)].append(event)
 
     lines = [
         "# Weekly tracker",

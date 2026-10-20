@@ -169,8 +169,13 @@ def classify_project(event: dict, projects: list[dict]) -> str | None:
 def collect_repo(
     client: GitHubClient, repo: str, since: datetime, until: datetime, team: set[str]
 ) -> tuple[list[dict], str | None]:
-    """Collect commits + issues + PRs for one `owner/name` repo. Returns (events, error)."""
+    """Collect commits + issues + PRs for one `owner/name` repo. Returns (events, error).
+
+    GitHub logins are case-insensitive, so the roster match is too: an event whose actor
+    differs from the configured login only by case is kept, and its `actor` is rewritten to
+    the CONFIGURED spelling so every downstream renderer sees one identity per person."""
     events: list[dict] = []
+    team_ix = {login.casefold(): login for login in team}
     try:
         commits = client.paginate(
             f"/repos/{repo}/commits",
@@ -180,8 +185,10 @@ def collect_repo(
             actor = (c.get("author") or {}).get("login") or (
                 (c.get("commit", {}).get("author") or {}).get("name")
             )
-            if team and actor not in team:
-                continue
+            if team:
+                actor = team_ix.get((actor or "").casefold())
+                if actor is None:
+                    continue
             commit_info = c.get("commit", {})
             events.append(
                 {
@@ -210,8 +217,10 @@ def collect_repo(
             if updated and updated < since:
                 continue
             actor = (it.get("user") or {}).get("login")
-            if team and actor not in team:
-                continue
+            if team:
+                actor = team_ix.get((actor or "").casefold())
+                if actor is None:
+                    continue
             is_pr = "pull_request" in it
             events.append(
                 {
