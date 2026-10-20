@@ -6,11 +6,14 @@ Exits 0 iff every case passes.
 
   - flesch_kincaid.py `check` must not PASS text it cannot score (review A-24):
     empty, markup-only and non-Latin-script input exit 2 [UNASSESSABLE].
+  - check-web-anti-patterns.sh is PostToolUse: no doc may claim that
+    WEB_DESIGN_STRICT=1 blocks the edit (review A-23).
 """
 
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -68,9 +71,45 @@ class FleschKincaidCheck(unittest.TestCase):
     def test_plain_paragraph_is_scored_unchanged(self):
         self.assertEqual(len(PARAGRAPH.split()), 100)
         g = run(FK, "grade", "-", stdin=PARAGRAPH)
-        self.assertEqual(g.stdout.strip(), "FK grade: 4.51  (words=100, sentences=8, syllables=129)")
+        self.assertEqual(
+            g.stdout.strip(), "FK grade: 4.51  (words=100, sentences=8, syllables=129)"
+        )
         self.assertEqual(self.check(PARAGRAPH, "8").returncode, 0)
         self.assertEqual(self.check(PARAGRAPH, "4").returncode, 1)
+
+
+PLUGIN = os.path.dirname(HERE)
+HOOK = os.path.join(PLUGIN, "hooks", "check-web-anti-patterns.sh")
+BLOCK_CLAIM = re.compile(
+    r"exit 2\s*=\s*block|BLOCK on violation|make it blocking|treats? as blocking", re.IGNORECASE
+)
+
+
+def run_hook(path: str, strict: bool) -> subprocess.CompletedProcess:
+    env = dict(os.environ, WEB_DESIGN_STRICT="1" if strict else "0")
+    return subprocess.run(
+        ["bash", HOOK, path], capture_output=True, text=True, env=env, check=False
+    )
+
+
+class StrictModeIsNotABlock(unittest.TestCase):
+    """Review A-23: the hook is PostToolUse, so strict mode cannot undo an edit."""
+
+    def test_docs_do_not_claim_strict_mode_blocks_the_edit(self):
+        for rel in ("hooks/check-web-anti-patterns.sh", "README.md", "CLAUDE.md"):
+            with open(os.path.join(PLUGIN, rel), encoding="utf-8") as fh:
+                text = fh.read()
+            self.assertIsNone(BLOCK_CLAIM.search(text), f"{rel} still claims strict mode blocks")
+            self.assertRegex(text, r"(?i)not(\*\*)? undo", f"{rel} must say strict does not undo")
+
+    def test_strict_mode_still_exits_2_on_a_finding(self):
+        with tempfile.TemporaryDirectory() as d:
+            css = os.path.join(d, "src", "a.css")
+            os.makedirs(os.path.dirname(css))
+            with open(css, "w", encoding="utf-8") as fh:
+                fh.write(".a { color: #123456; }\n")
+            self.assertEqual(run_hook(css, strict=False).returncode, 0)
+            self.assertEqual(run_hook(css, strict=True).returncode, 2)
 
 
 if __name__ == "__main__":

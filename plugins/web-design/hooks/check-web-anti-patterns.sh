@@ -14,11 +14,11 @@
 #   5. <meta name="robots" content="noindex"> in shipped page. §4 — noindex
 #      accidentally in production.
 #
-# Advisory by default: prints warnings to stderr so Claude and the user
-# both see them, but exits 0 so the edit is not blocked. To make this hook
-# BLOCK on violation, set WEB_DESIGN_STRICT=1 in the env (exit 2 = block in
-# Claude Code; exit 1 is a non-blocking error Claude Code silently swallows,
-# so it would NOT block).
+# Advisory by default: prints warnings to stderr and exits 0. With
+# WEB_DESIGN_STRICT=1 it exits 2 instead, which for a PostToolUse hook feeds
+# the findings back to Claude so it can fix them. It does NOT undo the edit:
+# PostToolUse runs after the tool, so the file is already written either way.
+# (exit 1 is a non-blocking error: Claude is not shown the findings.)
 
 set -euo pipefail
 
@@ -137,10 +137,10 @@ EOF
   cat >&2 <<'EOF'
 
   See plugins/web-design/CLAUDE.md §3 (house opinions) and §4
-  (anti-patterns) for the full rules. This hook is advisory — the
-  edit was not blocked. To enforce, set WEB_DESIGN_STRICT=1 in your
-  env (exit 2 = BLOCK; exit 1 is non-blocking and would silently
-  allow the edit).
+  (anti-patterns) for the full rules. The edit has already been
+  written — this PostToolUse hook cannot undo it. WEB_DESIGN_STRICT=1
+  makes the hook exit 2, which feeds these findings back to Claude to
+  fix; it still does not revert the file.
 ────────────────────────────────────────────────────────────────────
 
 EOF
