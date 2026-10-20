@@ -299,6 +299,74 @@ def case_a5() -> None:
 
 
 # --------------------------------------------------------------------------------------
+# workflow hygiene gate + its scaffold template (D-2)
+# --------------------------------------------------------------------------------------
+HYGIENE = ".github/scripts/check-workflow-hygiene.py"
+HYGIENE_TEMPLATE = (
+    "plugins/ravenclaude-core/templates/agent-ready-repo/check-workflow-hygiene.py.template"
+)
+_WF_HEAD = "name: x\non:\n  push:\n"
+_WF_JOB = "jobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n"
+_SHA = "a" * 40
+
+
+@case("D-2")
+def case_d2() -> None:
+    """Rule 1 must fail `permissions: write-all`; quoted `uses:` values must classify correctly."""
+    expect(
+        Path(target(HYGIENE)).read_bytes() == Path(target(HYGIENE_TEMPLATE)).read_bytes(),
+        "the gate script and its scaffold template must stay byte-identical",
+    )
+    fixtures = {
+        "write-all": (_WF_HEAD + "permissions: write-all\n" + _WF_JOB + "      - run: echo\n", 1),
+        "write-all-quoted": (
+            _WF_HEAD + "permissions: 'write-all' # why\n" + _WF_JOB + "      - run: echo\n",
+            1,
+        ),
+        "quoted-unpinned": (
+            _WF_HEAD + "permissions: {}\n" + _WF_JOB + '      - uses: "someorg/act@v1"\n',
+            1,
+        ),
+        "read-all": (_WF_HEAD + "permissions: read-all\n" + _WF_JOB + "      - run: echo\n", 0),
+        "contents-write": (
+            _WF_HEAD + "permissions:\n  contents: write\n" + _WF_JOB + "      - run: echo\n",
+            0,
+        ),
+        "quoted-official-local": (
+            _WF_HEAD
+            + "permissions: {}\n"
+            + _WF_JOB
+            + "      - uses: 'actions/checkout@v4'\n      - uses: \"./.github/actions/x\"\n",
+            0,
+        ),
+        "quoted-pinned": (
+            _WF_HEAD + "permissions: {}\n" + _WF_JOB + f'      - uses: "someorg/act@{_SHA}"\n',
+            0,
+        ),
+    }
+    for which in (HYGIENE, HYGIENE_TEMPLATE):
+        for name, (content, want_rc) in fixtures.items():
+            with tempfile.TemporaryDirectory() as td:
+                Path(td, f"{name}.yml").write_text(content)
+                r = run(["python3", target(which), td])
+            expect(
+                r.returncode == want_rc,
+                f"{Path(which).name} on '{name}': want rc {want_rc}: {describe(r)}",
+            )
+            if name == "quoted-unpinned":
+                expect(
+                    "`someorg/act@v1`" in r.stdout,
+                    f"finding must name the unquoted ref: {describe(r)}",
+                )
+    # The real workflows still pass.
+    r = run(["python3", target(HYGIENE), str(REPO / ".github" / "workflows")])
+    expect(
+        r.returncode == 0 and "ERROR" not in r.stdout,
+        f".github/workflows must still pass: {describe(r)}",
+    )
+
+
+# --------------------------------------------------------------------------------------
 # generative-web-media: optimize-image.mjs
 # --------------------------------------------------------------------------------------
 OPTIMIZE = "plugins/generative-web-media/scripts/web-optimize/optimize-image.mjs"
