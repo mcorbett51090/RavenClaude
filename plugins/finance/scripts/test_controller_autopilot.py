@@ -329,6 +329,35 @@ def main():
         check("control: the valid COA is unchanged (rc 0, no warnings)",
               ctrl.returncode == 0 and json.loads(ctrl.stdout).get("warnings") == [])
 
+    print("A-6 — finance_calc variance-bridge: no always-zero 'mix' line, price carries the interaction")
+
+    def _bridge(q0, p0, q1, p1):
+        r = py("finance_calc.py", "variance-bridge", "--q0", q0, "--p0", p0, "--q1", q1, "--p1", p1)
+        nums = {}
+        for key, pat in (("total", r"-> total variance : (-?[\d,]+)"),
+                         ("price", r"\(\(P1-P0\)\*Q1\)\s+: (-?[\d,]+)"),
+                         ("volume", r"volume effect \(\(Q1-Q0\)\*P0\)\s+: (-?[\d,]+)")):
+            m = re.search(pat, r.stdout)
+            nums[key] = int(m.group(1).replace(",", "")) if m else None
+        return r, nums
+
+    r, n = _bridge("1000", "50", "1100", "48")
+    check("the Panel-2 example prints price -2,200 and volume 5,000",
+          n["price"] == -2200 and n["volume"] == 5000)
+    check("...and price + volume == the total change (2,800)",
+          n["total"] == 2800 and n["price"] + n["volume"] == n["total"])
+    check("no 'mix' line and no tautological 'check' line is printed",
+          "mix/interaction" not in r.stdout and "check (price" not in r.stdout
+          and "/ mix" not in r.stdout)
+    check("the price line is labelled as carrying the price x volume interaction",
+          "includes the price x volume interaction" in r.stdout and "at actual volume" in r.stdout)
+    check("the single-product caveat is kept (multi-product mix -> bridge each line)",
+          "MULTI-product mix" in r.stdout)
+    r, n = _bridge("100", "10", "120", "12")  # a real interaction: (12-10)*(120-100) = 40
+    check("with a real interaction (total 440): price 240 (incl. the 40) + volume 200 == total",
+          n["total"] == 440 and n["price"] == 240 and n["volume"] == 200
+          and n["price"] + n["volume"] == n["total"])
+
     print("P4 — orchestrator submit-only invariant")
     src = open(os.path.join(HERE, "controller_cycle.py")).read()
     # strip comments/strings-ish: just assert no .approve(/.lock(/.reopen( call on a ledger
