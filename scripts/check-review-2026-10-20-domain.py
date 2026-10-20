@@ -974,6 +974,43 @@ def _h21() -> None:
     need(huge.returncode == 0 and "break-even at" in huge.stdout, "huge N must finish", huge)
 
 
+# ---------------------------------------------------------------------------
+# H-22  hospice-referral-sales/hospice_calc.py: _pct read a bare '1' as 100%
+# ---------------------------------------------------------------------------
+
+HOSPICE_CALC = "plugins/hospice-referral-sales/scripts/hospice_calc.py"
+
+
+def _weight_loss(value: str) -> subprocess.CompletedProcess[str]:
+    return run(HOSPICE_CALC, "eligibility-indicators", "--weight-loss", value)
+
+
+@case("H-22", "hospice_calc: a bare '1' is ambiguous (exit 2); malformed rates are argparse errors")
+def _h22() -> None:
+    ambiguous = _weight_loss("1")
+    need(ambiguous.returncode == 2, "--weight-loss 1 must exit 2", ambiguous)
+    need("ambiguous" in ambiguous.stderr, "the error must say it is ambiguous", ambiguous)
+    need("100.0%" not in ambiguous.stdout, "no silent 100%", ambiguous)
+
+    for value, shown in (("1%", "1.0%"), ("0.05", "5.0%"), ("12%", "12.0%"), ("12", "12.0%")):
+        proc = _weight_loss(value)
+        need(proc.returncode == 0, f"--weight-loss {value} must be accepted", proc)
+        need(f"weight loss  : {shown}" in proc.stdout, f"{value} must read as {shown}", proc)
+
+    for argv in (
+        ["eligibility-indicators", "--weight-loss", "abc"],
+        ["funnel", "--referrals", "80", "--admit-rate", "abc"],
+        ["funnel", "--referrals", "80", "--admit-rate", "1"],
+        ["funnel", "--referrals", "80", "--admit-rate", "-5%"],
+    ):
+        proc = run(HOSPICE_CALC, *argv)
+        need(proc.returncode == 2, f"{argv} must exit 2", proc)
+        need("Traceback" not in proc.stderr, f"{argv} must not traceback", proc)
+
+    funnel = run(HOSPICE_CALC, "funnel", "--referrals", "80", "--admit-rate", "65%")
+    need("65.0%" in funnel.stdout, "a percent still works", funnel)
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
