@@ -822,6 +822,66 @@ def case_b25() -> None:
 
 
 # --------------------------------------------------------------------------------------
+# content-scan.py: SSRF guard (D-11) and digest rendering (D-12)
+# --------------------------------------------------------------------------------------
+CONTENT_SCAN = "scripts/content-scan.py"
+
+
+@case("D-11")
+def case_d11() -> None:
+    """The SSRF guard must refuse CGNAT / metadata addresses and IPv4-in-IPv6 wrappers."""
+    import socket
+
+    cs = _load_module(CONTENT_SCAN, "content_scan_under_test")
+    real = socket.getaddrinfo
+
+    def public(ip: str) -> bool:
+        socket.getaddrinfo = lambda host, port, *a, **k: [(2, 1, 6, "", (ip, 0))]
+        try:
+            return cs._host_is_public("http://resolves.example/")
+        finally:
+            socket.getaddrinfo = real
+
+    for ip in (
+        "100.100.100.200",  # Alibaba Cloud metadata, 100.64.0.0/10
+        "100.64.0.1",
+        "::ffff:169.254.169.254",  # IPv4-mapped link-local / cloud metadata
+        "::ffff:127.0.0.1",
+        "::ffff:10.0.0.1",
+        "::ffff:100.100.100.200",
+        "2002:a9fe:a9fe::",  # 6to4 wrapping 169.254.169.254
+        "2002:7f00:1::",  # 6to4 wrapping 127.0.0.1
+        "64:ff9b::a9fe:a9fe",  # NAT64 wrapping 169.254.169.254
+        "169.254.169.254",
+        "127.0.0.1",
+        "10.0.0.1",
+        "192.168.1.1",
+        "::1",
+        "fe80::1",
+        "0.0.0.0",
+        "224.0.0.1",
+    ):
+        expect(public(ip) is False, f"{ip} must be refused by the SSRF guard")
+    for ip in (
+        "93.184.216.34",
+        "8.8.8.8",
+        "2606:2800:220:1:248:1893:25c8:1946",
+    ):
+        expect(public(ip) is True, f"public address {ip} must stay allowed")
+    # A mixed resolution (one public, one internal) fails closed.
+    socket.getaddrinfo = lambda host, port, *a, **k: [
+        (2, 1, 6, "", ("93.184.216.34", 0)),
+        (2, 1, 6, "", ("100.100.100.200", 0)),
+    ]
+    try:
+        expect(
+            cs._host_is_public("http://mixed.example/") is False, "mixed result must fail closed"
+        )
+    finally:
+        socket.getaddrinfo = real
+
+
+# --------------------------------------------------------------------------------------
 # generative-web-media: optimize-image.mjs
 # --------------------------------------------------------------------------------------
 OPTIMIZE = "plugins/generative-web-media/scripts/web-optimize/optimize-image.mjs"
