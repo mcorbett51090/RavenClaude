@@ -161,6 +161,84 @@ def case_a20() -> None:
         expect(json.loads(r.stdout)["over_budget"] is False, f"clean ledger: {describe(r)}")
 
 
+# --------------------------------------------------------------------------------------
+# generative-web-media: optimize-image.mjs
+# --------------------------------------------------------------------------------------
+OPTIMIZE = "plugins/generative-web-media/scripts/web-optimize/optimize-image.mjs"
+STUB_SHARP = (
+    'module.exports = function sharp() { process.stderr.write("STUB-SHARP-CALLED\\n");'
+    " process.exit(42); };\n"
+)
+
+
+def _write_stub_sharp(node_modules: str) -> None:
+    d = Path(node_modules) / "sharp"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "package.json").write_text('{"name":"sharp","version":"0.0.0","main":"index.js"}\n')
+    (d / "index.js").write_text(STUB_SHARP)
+
+
+def _path_without_node_modules_bin() -> str:
+    keep = [
+        e
+        for e in os.environ.get("PATH", "").split(os.pathsep)
+        if not e.rstrip("/\\").replace("\\", "/").endswith("node_modules/.bin")
+    ]
+    return os.pathsep.join(keep)
+
+
+@case("A-3")
+def case_a3() -> None:
+    """`npx --package=sharp node optimize-image.mjs` must find the npx-installed sharp."""
+    expect(
+        run(["node", "--version"]).returncode == 0,
+        "node is required for this case; its absence is a failure, not a pass",
+    )
+    with tempfile.TemporaryDirectory() as td:
+        script_dir = os.path.join(td, "script")
+        os.makedirs(script_dir)
+        script = os.path.join(script_dir, "optimize-image.mjs")
+        Path(script).write_text(Path(target(OPTIMIZE)).read_text())
+        work = os.path.join(td, "work")
+        os.makedirs(work)
+        Path(work, "in.png").write_text("not a real png - the stub never reads it")
+        args = ["node", script, "--in", "in.png", "--outdir", "out", "--name", "hero"]
+        clean_path = _path_without_node_modules_bin()
+
+        def hit(r: subprocess.CompletedProcess) -> bool:
+            return "STUB-SHARP-CALLED" in r.stderr and r.returncode == 42
+
+        # (3) the layout `npx --package=sharp` makes: <cache>/node_modules/.bin on PATH.
+        npx = os.path.join(td, "npx")
+        os.makedirs(os.path.join(npx, "node_modules", ".bin"))
+        _write_stub_sharp(os.path.join(npx, "node_modules"))
+        npx_path = os.path.join(npx, "node_modules", ".bin") + os.pathsep + clean_path
+        r = run(args, cwd=work, env={"PATH": npx_path})
+        expect(hit(r), f"sharp under a PATH node_modules/.bin must resolve: {describe(r)}")
+        expect("LOUD-SKIP" not in r.stderr, f"must not LOUD-SKIP: {describe(r)}")
+
+        # (1) $SHARP_DIR (a project dir holding node_modules/sharp).
+        shdir = os.path.join(td, "shdir")
+        _write_stub_sharp(os.path.join(shdir, "node_modules"))
+        r = run(args, cwd=work, env={"PATH": clean_path, "SHARP_DIR": shdir})
+        expect(hit(r), f"$SHARP_DIR must resolve sharp: {describe(r)}")
+
+        # (2) the current directory.
+        proj = os.path.join(td, "proj")
+        os.makedirs(proj)
+        _write_stub_sharp(os.path.join(proj, "node_modules"))
+        Path(proj, "in.png").write_text("x")
+        r = run(args, cwd=proj, env={"PATH": clean_path})
+        expect(hit(r), f"cwd node_modules must resolve sharp: {describe(r)}")
+
+        # Control: sharp nowhere -> LOUD-SKIP, exit 1, unchanged.
+        nowhere = {"PATH": clean_path, "SHARP_DIR": os.path.join(td, "nowhere")}
+        r = run(args, cwd=work, env=nowhere)
+        expect(r.returncode == 1, f"no sharp anywhere must still exit 1: {describe(r)}")
+        expect("LOUD-SKIP" in r.stderr, f"no sharp anywhere must still LOUD-SKIP: {describe(r)}")
+        expect("STUB-SHARP-CALLED" not in r.stderr, f"control run reached the stub: {describe(r)}")
+
+
 def main() -> int:
     global ROOT
     ap = argparse.ArgumentParser(
