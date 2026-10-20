@@ -28,8 +28,9 @@ OID). Credentials come from environment variables only (see knowledge/dataverse-
 acquisition.md): AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_CLIENT_SECRET for the CI path.
 
 EXIT CODES
-  0 success · 2 usage/config error · 10 partial (some flows still Draft) ·
-  20 all reactivation attempts failed · 40 auth error · 50 pac import failed ·
+  0 success · 2 usage/config/file error · 10 partial (some flows still Draft) ·
+  20 all reactivation attempts failed, or Dataverse unreachable / replied in an unexpected
+  shape · 40 auth error (incl. token endpoint unreachable) · 50 pac import failed ·
   60 PROD guard blocked · 70 preflight failed.
 
 The `statecode=1`/`statuscode=2`/`category=5` Dataverse contract is marked
@@ -416,6 +417,12 @@ def acquire_token(org_url: str) -> str:
             tok = json.loads(r.read().decode())["access_token"]
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"token endpoint returned HTTP {e.code} {e.reason}") from None
+    except (urllib.error.URLError, TimeoutError) as e:
+        raise RuntimeError(f"token endpoint unreachable: {getattr(e, 'reason', e)}") from None
+    except (ValueError, KeyError, TypeError):  # not JSON, or no access_token in the reply
+        raise RuntimeError(
+            "token endpoint returned an unexpected reply (no access_token)"
+        ) from None
     _register_secret(tok)
     return tok
 
@@ -475,7 +482,15 @@ def patch_flow_active(
 def _load_config(path: str | None) -> dict:
     if not path:
         return {}
-    cfg = json.load(open(path, encoding="utf-8"))
+    try:
+        with open(path, encoding="utf-8") as fh:
+            cfg = json.load(fh)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"config file {path} is not valid JSON: {e.msg} (line {e.lineno})"
+        ) from None
+    if not isinstance(cfg, dict):
+        raise ValueError(f"config file {path} must contain a JSON object")
     problems = validate_config(cfg)
     if problems:
         _eprint("[managed-import] config validation failed:")
@@ -612,13 +627,22 @@ def cmd_baseline(args, cfg) -> int:
 def _read_baseline(args) -> list[dict]:
     path = args.baseline_file or "./pp-import-baseline.json"
     try:
-        return json.load(open(path, encoding="utf-8")).get("active_flows", [])
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
     except FileNotFoundError:
         _eprint(
             f"[managed-import] baseline file {path} not found — run `baseline` first; "
             "refusing to report success without a baseline (reactivation must be baseline-aware)"
         )
         raise SystemExit(EXIT_USAGE) from None
+    except ValueError as e:
+        _eprint(f"[managed-import] baseline file {path} is not valid JSON: {e}")
+        raise SystemExit(EXIT_USAGE) from None
+    flows = data.get("active_flows", []) if isinstance(data, dict) else None
+    if not isinstance(flows, list):
+        _eprint(f"[managed-import] baseline file {path} has no active_flows list")
+        raise SystemExit(EXIT_USAGE)
+    return flows
 
 
 def cmd_reactivate(args, cfg) -> int:
@@ -678,6 +702,17 @@ def cmd_reactivate(args, cfg) -> int:
                 else:
                     _eprint(f"[managed-import] {name}: HTTP {e.code} {e.reason}")
                 break
+            except (urllib.error.URLError, TimeoutError, ValueError, KeyError) as e:
+                # A transport / reply-shape failure on THIS flow stays in the loop: retry it,
+                # then give up on it and carry on with the rest (B-16).
+                reason = getattr(e, "reason", e)
+                _eprint(
+                    f"[managed-import] {name}: {type(e).__name__}: {reason} (attempt {attempt + 1})"
+                )
+                if attempt < args.max_retries - 1:
+                    time.sleep(waits[attempt] if attempt < len(waits) else waits[-1])
+                    continue
+                break
         activated += 1 if ok else 0
     rc = map_results_to_exit(len(targets), activated)
     print(json.dumps({"targeted": len(targets), "activated": activated, "exit": rc}, indent=2))
@@ -736,6 +771,11 @@ def cmd_preflight(args, cfg) -> int:
             rows = json.loads(opener.open(req, timeout=60).read().decode()).get("value", [])
         except urllib.error.HTTPError as e:
             _eprint(f"[managed-import] preflight query failed for {logical}: HTTP {e.code}")
+            rows = []
+        except (urllib.error.URLError, TimeoutError) as e:  # unreachable env: unverifiable
+            _eprint(
+                f"[managed-import] preflight query failed for {logical}: {getattr(e, 'reason', e)}"
+            )
             rows = []
         if not rows:
             missing.append(logical)
@@ -899,15 +939,32 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     _install_excepthook()
     args = build_parser().parse_args(argv)
-    cfg = _load_config(args.config)
     try:
+        cfg = _load_config(args.config)
         return args._fn(args, cfg)  # noqa: SLF001
+    except json.JSONDecodeError as e:  # a Dataverse reply that is not JSON (files raise ValueError)
+        _eprint(f"[managed-import] unexpected non-JSON reply from the service: {e.msg}")
+        return EXIT_ALL_FAILED
     except ValueError as e:  # config/URL validation
         _eprint(f"[managed-import] {e}")
         return EXIT_USAGE
     except RuntimeError as e:  # auth
         _eprint(f"[managed-import] auth error: {e}")
         return EXIT_AUTH
+    # B-16: nothing below may escape as a traceback + exit 1 — that is outside the documented
+    # exit-code contract and CI cannot tell it from a generic failure.
+    except urllib.error.HTTPError as e:  # an HTTP error no per-call handler caught
+        _eprint(f"[managed-import] HTTP {e.code} {e.reason} from the service")
+        return EXIT_AUTH if e.code in (401, 403) else EXIT_ALL_FAILED
+    except (urllib.error.URLError, TimeoutError) as e:  # DNS / connect / read timeout
+        _eprint(f"[managed-import] network error talking to the service: {getattr(e, 'reason', e)}")
+        return EXIT_ALL_FAILED
+    except KeyError as e:  # a reply row missing a field we need
+        _eprint(f"[managed-import] unexpected reply shape: missing key {e}")
+        return EXIT_ALL_FAILED
+    except OSError as e:  # config / baseline file unreadable or unwritable
+        _eprint(f"[managed-import] file error: {e}")
+        return EXIT_USAGE
 
 
 if __name__ == "__main__":

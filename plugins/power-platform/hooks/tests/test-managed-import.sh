@@ -132,6 +132,7 @@ class FixedDT(datetime):  # Monday 2026-06-29 10:00 in whatever tz is asked for
 mi.datetime = FixedDT
 
 state = {"flows": []}
+REAL_ACQUIRE_TOKEN, REAL_BUILD_OPENER = mi.acquire_token, mi._build_opener
 mi.acquire_token = lambda url: "tok"
 mi.query_solution_flows = lambda opener, org, tok, oid: [dict(f) for f in state["flows"]]
 mi._pac_on_path = lambda: True
@@ -147,6 +148,8 @@ def call(argv, cfg_obj=None):
     try:
         with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
             rc = mi.main(full)
+    except SystemExit as e:  # the CLI's own deliberate exit, e.g. SystemExit(EXIT_USAGE)
+        rc = e.code
     except BaseException as e:  # noqa: BLE001 - an escaped exception is the failure under test
         rc = "RAISED:" + type(e).__name__
     return rc, err.getvalue()
@@ -221,6 +224,98 @@ if SECTION == "b15":
     call(imp)
     ck("b15 a legacy status-less baseline is re-captured", names(bpath) == ["A"])
 
+if SECTION == "b16":
+    # B-16: transport/shape/file errors must map to the documented exit codes, not a traceback.
+    bfile = os.path.join(TMP, "b16.json")
+    json.dump({"env_url": DEV, "status": "pending", "active_flows": [
+        {"uniquename": "mc_a", "name": "A", "workflowid": "1"},
+        {"uniquename": "mc_b", "name": "B", "workflowid": "2"}]}, open(bfile, "w"))
+    react = ["reactivate", "--env-url", DEV, "--baseline-file", bfile,
+             "--retry-wait", "0", "--max-retries", "2"]
+    def draft():
+        state["flows"] = [{"workflowid": str(i), "name": n, "uniquename": "mc_" + n.lower(),
+                           "statecode": 0, "statuscode": 1} for i, n in ((1, "A"), (2, "B"))]
+    def raiser(exc):
+        def f(*a, **k): raise exc
+        return f
+    real_query = mi.query_solution_flows
+
+    # (a) transport / body failures while querying flows
+    mi.query_solution_flows = raiser(urllib.error.URLError("temporary DNS failure"))
+    rc, err = call(react)
+    ck("b16 URLError while querying -> EXIT_ALL_FAILED, no escape", rc == mi.EXIT_ALL_FAILED)
+    ck("b16 the one-line message names the cause", "temporary DNS failure" in err)
+    mi.query_solution_flows = raiser(TimeoutError("timed out"))
+    ck("b16 TimeoutError while querying -> EXIT_ALL_FAILED", call(react)[0] == mi.EXIT_ALL_FAILED)
+    mi.query_solution_flows = raiser(json.JSONDecodeError("Expecting value", "", 0))
+    ck("b16 a non-JSON reply -> EXIT_ALL_FAILED (not a usage error)", call(react)[0] == mi.EXIT_ALL_FAILED)
+    mi.query_solution_flows = raiser(urllib.error.HTTPError(DEV, 403, "Forbidden", {}, None))
+    ck("b16 an unhandled HTTP 403 -> EXIT_AUTH", call(react)[0] == mi.EXIT_AUTH)
+    mi.query_solution_flows = raiser(urllib.error.HTTPError(DEV, 503, "Unavailable", {}, None))
+    ck("b16 an unhandled HTTP 503 -> EXIT_ALL_FAILED", call(react)[0] == mi.EXIT_ALL_FAILED)
+    mi.query_solution_flows = real_query
+
+    # (b) config / baseline file problems -> EXIT_USAGE
+    ck("b16 missing --config -> EXIT_USAGE", call(react + ["--config", os.path.join(TMP, "nope.json")])[0] == mi.EXIT_USAGE)
+    bad_cfg = os.path.join(TMP, "bad.json"); open(bad_cfg, "w").write("{not json")
+    ck("b16 unparseable --config -> EXIT_USAGE", call(react + ["--config", bad_cfg])[0] == mi.EXIT_USAGE)
+    list_cfg = os.path.join(TMP, "list.json"); open(list_cfg, "w").write("[1, 2]")
+    ck("b16 non-object --config -> EXIT_USAGE", call(react + ["--config", list_cfg])[0] == mi.EXIT_USAGE)
+    corrupt = os.path.join(TMP, "corrupt-baseline.json"); open(corrupt, "w").write("{")
+    ck("b16 corrupt baseline -> EXIT_USAGE",
+       call(["reactivate", "--env-url", DEV, "--baseline-file", corrupt])[0] == mi.EXIT_USAGE)
+
+    # (c) the token endpoint: unreachable / malformed -> EXIT_AUTH
+    class StubOpener:
+        def __init__(self, body=None, exc=None): self.body, self.exc = body, exc
+        def open(self, req, timeout=None):
+            if self.exc: raise self.exc
+            return io.BytesIO(self.body)
+    mi.acquire_token = REAL_ACQUIRE_TOKEN
+    saved_env = {k: os.environ.get(k) for k in ("AZURE_CLIENT_ID", "AZURE_TENANT_ID", "AZURE_CLIENT_SECRET")}
+    os.environ.update(AZURE_CLIENT_ID="cid", AZURE_TENANT_ID="tid", AZURE_CLIENT_SECRET="sekret")
+    try:
+        for label, stub in (("URLError", StubOpener(exc=urllib.error.URLError("no route"))),
+                            ("a reply without access_token", StubOpener(body=b"{}")),
+                            ("a non-JSON reply", StubOpener(body=b"<html>captive portal</html>"))):
+            mi._build_opener = lambda host_ok, _s=stub: _s
+            rc, err = call(react)
+            ck(f"b16 token endpoint: {label} -> EXIT_AUTH", rc == mi.EXIT_AUTH)
+            ck(f"b16 token endpoint: {label} never leaks the secret", "sekret" not in err)
+    finally:
+        mi._build_opener = REAL_BUILD_OPENER
+        mi.acquire_token = lambda url: "tok"
+        for k, v in saved_env.items():
+            if v is None: os.environ.pop(k, None)
+            else: os.environ[k] = v
+
+    # (d) per-flow isolation: one flow's transport failure must not skip the rest
+    def patch_flow(wid):
+        for f in state["flows"]:
+            if f["workflowid"] == wid:
+                f["statecode"], f["statuscode"] = 1, 2
+    def patch_a_fails(opener, org, tok, wid, oid):
+        if wid == "1": raise urllib.error.URLError("connection reset")
+        patch_flow(wid)
+    draft(); mi.patch_flow_active = patch_a_fails
+    rc, err = call(react)
+    ck("b16 one flow's URLError does not skip the next flow (partial -> EXIT_PARTIAL)", rc == mi.EXIT_PARTIAL)
+    ck("b16 ... flow B was still reactivated, A stayed Draft",
+       [f["statecode"] for f in state["flows"]] == [0, 1])
+    def patch_all_fail(opener, org, tok, wid, oid): raise urllib.error.URLError("down")
+    draft(); mi.patch_flow_active = patch_all_fail
+    ck("b16 every flow failing on transport -> EXIT_ALL_FAILED", call(react)[0] == mi.EXIT_ALL_FAILED)
+
+    # (e) a malformed flow row (no workflowid) must not escape as a KeyError traceback
+    state["flows"] = [{"uniquename": "mc_a", "name": "A", "statecode": 0, "statuscode": 1}]
+    ck("b16 a flow row without workflowid -> EXIT_ALL_FAILED, no escape", call(react)[0] == mi.EXIT_ALL_FAILED)
+
+    # (f) the real CLI process: no traceback, documented exit code
+    import subprocess
+    r = subprocess.run([sys.executable, sys.argv[1], "reactivate", "--env-url", DEV,
+                        "--config", os.path.join(TMP, "nope.json")], capture_output=True, text=True)
+    ck("b16 CLI: missing --config exits 2 with no Traceback", r.returncode == 2 and "Traceback" not in r.stderr)
+
 bad = [n for n, ok in checks if not ok]
 print("MISSING:" + ",".join(bad) if bad else "ALLPASS")
 sys.exit(1 if bad else 0)
@@ -253,6 +348,10 @@ if [ "$out" = "ALLPASS" ]; then pass "B-14 prod guard holds for --env-url / --en
 echo "C — orchestration (mocked network/pac): B-15 a re-run after a failed pac import keeps the pending baseline"
 out="$(assert_orch "$SK" b15)"
 if [ "$out" = "ALLPASS" ]; then pass "B-15 pending baseline carried forward; completed/foreign/legacy baselines re-captured"; else fail "B-15 orchestration failed -> $out"; fi
+
+echo "C — orchestration (mocked network/pac): B-16 transport/shape/file errors map to the documented exit codes"
+out="$(assert_orch "$SK" b16)"
+if [ "$out" = "ALLPASS" ]; then pass "B-16 URLError/Timeout/JSON/KeyError/OSError map to exit codes; per-flow errors stay in the loop"; else fail "B-16 orchestration failed -> $out"; fi
 
 echo ""
 if [ "$fails" -eq 0 ]; then
