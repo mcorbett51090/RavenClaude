@@ -1,6 +1,6 @@
 # Security policy
 
-RavenClaude is a private Claude Code plugin marketplace operated by **Raven Power LLC**. The maintainer is **Matt Corbett** (`@mcorbett51090`). Repo access is limited to a named collaborator list — see [`docs/access.md`](docs/access.md).
+RavenClaude is a **public** Claude Code plugin marketplace operated by **Raven Power LLC**. The maintainer is **Matt Corbett** (`@mcorbett51090`). Anyone can read, clone, and install from this repository; write access is limited to a named collaborator list — see [`docs/access.md`](docs/access.md).
 
 This document covers responsible disclosure for vulnerabilities in **plugin content shipped from this marketplace** (agents, skills, hooks, bundled MCP servers, CI workflows). Vulnerabilities in Claude Code itself should go to [Anthropic](https://www.anthropic.com/) directly — they're out of scope here.
 
@@ -23,12 +23,12 @@ Functional bugs (a flow that doesn't trigger correctly, a wrong DAX recommendati
 
 ## How to report
 
-**Do not open a public GitHub issue for a security vulnerability.** This repo is private, but issues are visible to all collaborators.
+**Do not open a public GitHub issue, pull request, or discussion for a security vulnerability.** This repository is public, so anything posted there is visible to everyone — including forks and anyone watching the repo.
 
-Instead, contact the maintainer directly:
+Instead, report it privately:
 
-- **Email:** `matt@ravenpower.net` — subject line starting with `[RavenClaude security]`.
-- **GitHub:** open a private security advisory at https://github.com/mcorbett51090/RavenClaude/security/advisories/new (requires GitHub login).
+- **Email (always available):** `matt@ravenpower.net` — subject line starting with `[RavenClaude security]`.
+- **GitHub private vulnerability reporting:** if the repository's [Security tab](https://github.com/mcorbett51090/RavenClaude/security) shows a **Report a vulnerability** button, you can use it instead. The report is visible only to you and the maintainers. If you don't see the button, use email.
 
 Please include:
 
@@ -109,6 +109,6 @@ These aren't disclosure rules — they're house rules for contributors to reduce
 - **Workflows**: never use `pull_request_target` with checkout of the PR head unless you know exactly why. Pin third-party actions to a commit SHA, not a tag.
 - **MCP declarations**: pin the command, document the install prerequisite, document the failure mode if the prerequisite is missing.
 - **Imported content**: include a `NOTICE.md`, link the upstream, record the upstream commit SHA you imported from.
-- **Secrets**: never commit. The repo is private but git history is forever — if a secret lands, rotate it and follow up with a force-push history rewrite via a coordinated maintainer action.
+- **Secrets**: never commit. The repo is public and git history is forever — clones and forks keep every commit, so a secret that lands is exposed the moment it's pushed. Revoke or rotate it **first**; a history rewrite (a coordinated maintainer action) only tidies this repo and doesn't un-publish it.
 
 When in doubt, route the concern through Matt before merging.
