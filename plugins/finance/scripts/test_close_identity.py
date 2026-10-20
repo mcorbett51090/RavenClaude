@@ -16,6 +16,7 @@ import hmac
 import json
 import os
 import sys
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -29,11 +30,52 @@ CLIENT_ID = "close-autopilot-client-0000"
 NOW = 1_800_000_000  # fixed epoch for deterministic exp/nbf/freshness math
 
 results = []
+skipped = []
 
 
 def check(name, cond):
     results.append((name, bool(cond)))
     print(("  PASS " if cond else "  FAIL ") + name)
+
+
+def skip(name, why):
+    """A check that could not run. It is NOT a pass and is not counted as one."""
+    skipped.append(name)
+    print(f"  SKIP (NOT A PASS) {name} - {why}")
+
+
+def probe_pyjwt():
+    """('absent' | 'present' | 'broken', detail) for the OPTIONAL PyJWT dependency.
+
+    A broken install can raise something that is NOT an Exception: PyJWT -> cryptography's Rust
+    extension raises pyo3's PanicException, a BaseException, which `except ImportError` misses
+    and which used to kill the whole suite with a traceback. Anything short of
+    KeyboardInterrupt/SystemExit is reported as 'broken' so the caller can SKIP (NOT A PASS)."""
+    try:
+        import jwt  # noqa: F401
+    except ImportError:
+        return "absent", ""
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except BaseException as exc:  # noqa: BLE001
+        return "broken", f"{type(exc).__name__}: {exc}"
+    return "present", ""
+
+
+def probe_with_fake_jwt(module_source):
+    """Run probe_pyjwt() against a scratch `jwt` module whose body is `module_source`."""
+    saved = sys.modules.pop("jwt", None)
+    with tempfile.TemporaryDirectory() as d:
+        with open(os.path.join(d, "jwt.py"), "w") as fh:
+            fh.write(module_source)
+        sys.path.insert(0, d)
+        try:
+            return probe_pyjwt()
+        finally:
+            sys.path.remove(d)
+            sys.modules.pop("jwt", None)
+            if saved is not None:
+                sys.modules["jwt"] = saved
 
 
 def _seg(obj) -> str:
@@ -134,19 +176,19 @@ def main():
           refused_with(lambda: ci.verify_signature(hs_header_tok, expected_alg="RS256"), "alg_confusion"))
 
     print("PyJWT-absent asymmetric path — REFUSES LOUDLY (never a pass)")
-    have_pyjwt = True
-    try:
-        import jwt  # noqa: F401
-    except ImportError:
-        have_pyjwt = False
+    jwt_state, jwt_detail = probe_pyjwt()
     rs_matched = mint(base_claims(), alg="RS256")  # header alg matches adapter -> reaches the PyJWT gate
-    if not have_pyjwt:
+    if jwt_state == "absent":
         check("RS256 with PyJWT absent -> reason 'pyjwt_absent' (refused, NOT passed)",
               refused_with(lambda: ci.verify_signature(rs_matched, expected_alg="RS256"), "pyjwt_absent"))
-    else:
+    elif jwt_state == "present":
         # PyJWT present in this env -> the seam still refuses without consumer JWKS wiring
         check("RS256 with PyJWT present -> refuses pending JWKS wiring (still never an unverified pass)",
               refused_with(lambda: ci.verify_signature(rs_matched, expected_alg="RS256"), "pyjwt_wiring_required"))
+    else:
+        skip("RS256 with PyJWT present -> refuses pending JWKS wiring",
+             f"PyJWT is installed but cannot be imported ({jwt_detail}); the PyJWT-present branch "
+             "was not exercised")
 
     print("OidcJwtAdapter.resolve — subject is sub@iss, verified=True end-to-end")
     adapter = ci.OidcJwtAdapter(issuer=ISS, client_id=CLIENT_ID, hs256_key=FAKE_HS256_SECRET)
@@ -249,8 +291,27 @@ def main():
     check("no off-box signer + no WORM sink -> reports tamper-EVIDENT only",
           rpt["tier"].startswith("tamper-evident") and not rpt["detached_signer_wired"])
 
+    print("A-28 — a broken optional PyJWT/cryptography install SKIPs, it does not crash the suite")
+    check("an absent jwt module -> 'absent'",
+          probe_with_fake_jwt("raise ImportError('no jwt')")[0] == "absent")
+    check("a working jwt module -> 'present'", probe_with_fake_jwt("VALUE = 1")[0] == "present")
+    pyo3_shape = ("class PanicException(BaseException):\n    pass\n"
+                  "raise PanicException('Python API call failed')\n")
+    state, detail = probe_with_fake_jwt(pyo3_shape)
+    check("a jwt whose import raises a BaseException (pyo3 PanicException shape) -> 'broken', no crash",
+          state == "broken" and "PanicException" in detail)
+    for exc in ("KeyboardInterrupt", "SystemExit"):
+        try:
+            probe_with_fake_jwt(f"raise {exc}()")
+            propagated = False
+        except (KeyboardInterrupt, SystemExit):
+            propagated = True
+        check(f"{exc} still propagates out of the optional-import guard", propagated)
+
     n_pass = sum(1 for _, ok in results if ok)
     print(f"\n{n_pass}/{len(results)} acceptance tests passed.")
+    if skipped:
+        print(f"{len(skipped)} check(s) SKIPPED (NOT A PASS): " + "; ".join(skipped))
     return 0 if n_pass == len(results) else 1
 
 
