@@ -489,7 +489,7 @@ _Last verified: 2026-10-20_
 
 **The question to answer first: does anything have to _run_ when a visitor asks for this URL?**
 
-- **No** — the HTML, CSS, JS and images were built ahead of time. They are **static assets**. Cloudflare serves them straight off its network, and per the docs: _"By default, if a requested URL matches a file in the static assets directory, that file will be served — without invoking Worker code."_ Those requests cost nothing: _"Requests to static assets are free and unlimited."_
+- **No** — the HTML, CSS, JS and images were built ahead of time. They are **static assets**. Cloudflare serves them straight off its network, and per the docs: _"If a requested URL matches a file in the static assets directory, that file will be served — without invoking Worker code."_ Those requests cost nothing: _"Requests to static assets are free and unlimited."_
 - **Yes** — a session must be checked, a database read, an API called, a page rendered from live data. That is a **Worker**: your code, executed once per request, before a response exists.
 
 **Pages and Workers are not two different runtimes.** A **Pages Function _is_ a Worker** — the docs define Functions as "executing code on the Cloudflare network with Cloudflare Workers." And Workers serve static assets natively: `wrangler` uploads your build output and "deploys both your Worker code and your static assets in a single operation." So one Workers project can be the entire site — the static files _and_ the handful of routes that need code.
@@ -501,7 +501,7 @@ _Last verified: 2026-10-20_
 | Durable Objects, Cron Triggers, Queue consumers, Email Workers | File-based routing with no framework adapter |
 | Workers Logs, Logpush, Tail Workers, source maps | Early Hints (a workaround exists on Workers) |
 | Gradual deployments, remote development, the Vite plugin | Custom domains outside your Cloudflare zones |
-| Serving assets on a path, non-root routes, rate limiting, image resizing | Pages Plugins and Branch Deploy Controls (workarounds exist on Workers) |
+| Non-root routes, serving assets on a path, rate limiting, image resizing | |
 
 Practical read: **start on Workers unless you specifically want Pages' file-based routing or need a custom domain on a zone you don't run.** Everything a growing app reaches for later — a durable coordination object, a cron job, a queue consumer, real logs — is on the Workers side of that table.
 
@@ -509,13 +509,13 @@ Practical read: **start on Workers unless you specifically want Pages' file-base
 
 **Cold starts.** Workers don't run a container per tenant; they run V8 **isolates**, and paying the runtime's startup cost once per machine _"eliminates the cold starts of the virtual machine model."_ An isolate _"can start around a hundred times faster than a Node process on a container or virtual machine."_ Stop designing around warm-up — there is nothing to keep warm.
 
-**Workers is not Node, and this is what breaks your libraries.** There is no Node runtime underneath. On a compatibility date of **2026-08-04 or later** the docs say _"Workers enables both `nodejs_compat` and `nodejs_compat_v2` by default"_; for dates from **2024-09-23 through 2026-08-03** you opt in with the `nodejs_compat` compatibility flag. Either way, much of the standard library really works — `node:crypto`, `Buffer`, streams, `path`, `http`/`https`, `net`, `AsyncLocalStorage`, `zlib`. What still breaks:
+**Workers is not Node, and this is what breaks your libraries.** There is no Node runtime underneath. With a compatibility date of **2026-08-04 or later**, Node APIs are on by default; for dates from 2024-09-23 through 2026-08-03 you opt in with the `nodejs_compat` compatibility flag. Either way, much of the standard library really works — `node:crypto`, `Buffer`, streams, `path`, `http`/`https`, `net`, `AsyncLocalStorage`, `zlib`. What still breaks:
 
-- **Non-functional stubs** — `node:worker_threads`, `node:cluster`, `node:vm`, `node:http2` (among others) import fine and then do nothing. A library that reaches for them fails at runtime, not at build time.
+- **Non-functional stubs** — `node:worker_threads`, `node:cluster`, `node:vm`, `node:http2` import fine and then do nothing. A library that reaches for them fails at runtime, not at build time.
 - **Anything assuming a long-lived process** — a background thread, an in-process job queue, a connection pool that outlives the request, a native addon.
-- **On an older compatibility date, no flag, no Node.** Before 2026-08-04 you must add `nodejs_compat` yourself; the Node APIs are not on by default.
+- **Old compatibility date, no flag, no Node.** A Worker dated before 2026-08-04 without `nodejs_compat` set gets no Node APIs — `node:` imports don't resolve at all.
 
-**The limits that actually bite.** **CPU time**, not wall-clock, is the ceiling: 10 ms per request on Free, 30 s by default on Paid (raisable to 5 min). Waiting on a database or an API isn't CPU time, and an HTTP request has "no limit" on duration while the client stays connected. Memory is **128 MB** per isolate. A Worker bundle is capped at **64 MiB** uncompressed on both Free and Paid (_"There is no compressed size limit. Only the uncompressed bundle size counts."_), and _"Larger Worker bundles can impact startup time"_ against a 1-second startup limit — worth checking if you bundle a large headless-CMS SDK.
+**The limits that actually bite.** **CPU time**, not wall-clock, is the ceiling: 10 ms per request on Free, 30 s by default on Paid (raisable to 5 min). Waiting on a database or an API isn't CPU time, and an HTTP request has "no limit" on duration while the client stays connected. Memory is **128 MB** per isolate. Worker size is **64 MiB uncompressed** on both Free and Paid, with no separate compressed cap — but a bigger bundle still costs startup time, and startup is capped at **1 second**.
 
 ```mermaid
 flowchart TD
@@ -575,7 +575,7 @@ KV _"achieves high performance by being eventually-consistent."_ A write is usua
 
 _"Each Durable Object has a globally-unique name, which allows you to send requests to a specific object from anywhere in the world"_ and — the property everything else rests on — _"each Durable Object has one active instance at any particular time. All requests sent to that Durable Object are handled by that same instance."_ That is the coordination primitive: give a chat room, a document, a game match, or a rate-limit bucket its own ID and every client converges on one authority instead of racing.
 
-Its storage is _"durable, transactional, and strongly consistent"_ (up to 10 GB per object), and the SQLite storage backend exposes both SQL and key-value APIs. The mistake to avoid: in-memory variables are a cache, not state — _"because in-memory state is not preserved across eviction or hibernation, persist anything important to storage."_
+Its storage is _"durable, transactional, and strongly consistent"_ (up to 10 GB per object on Workers Paid, 1 GB on Free), and the SQLite storage backend exposes both SQL and key-value APIs. The mistake to avoid: in-memory variables are a cache, not state — _"because in-memory state is not preserved across eviction or hibernation, persist anything important to storage."_
 
 ### Queues — take it out of the request path
 
@@ -595,7 +595,7 @@ flowchart TD
 
 **See also:** What actually runs your site on Cloudflare · Who Cloudflare lets in
 
-**Sources:** [Cloudflare Docs — D1 overview](https://developers.cloudflare.com/d1/) · [Cloudflare Docs — D1 limits](https://developers.cloudflare.com/d1/platform/limits/) · [Cloudflare Docs — R2 pricing](https://developers.cloudflare.com/r2/pricing/) · [Cloudflare Docs — How KV works](https://developers.cloudflare.com/kv/concepts/how-kv-works/) · [Cloudflare Docs — Durable Objects overview](https://developers.cloudflare.com/durable-objects/) · [Cloudflare Docs — Durable Objects in-memory state](https://developers.cloudflare.com/durable-objects/reference/in-memory-state/) · [Cloudflare Docs — What are Durable Objects?](https://developers.cloudflare.com/durable-objects/what-are-durable-objects/) · [Cloudflare Docs — Queues overview](https://developers.cloudflare.com/queues/) · [Cloudflare Docs — Queues pricing](https://developers.cloudflare.com/queues/platform/pricing/)
+**Sources:** [Cloudflare Docs — D1 overview](https://developers.cloudflare.com/d1/) · [Cloudflare Docs — D1 limits](https://developers.cloudflare.com/d1/platform/limits/) · [Cloudflare Docs — R2 pricing](https://developers.cloudflare.com/r2/pricing/) · [Cloudflare Docs — How KV works](https://developers.cloudflare.com/kv/concepts/how-kv-works/) · [Cloudflare Docs — Durable Objects overview](https://developers.cloudflare.com/durable-objects/) · [Cloudflare Docs — What are Durable Objects?](https://developers.cloudflare.com/durable-objects/concepts/what-are-durable-objects/) · [Cloudflare Docs — Durable Objects limits](https://developers.cloudflare.com/durable-objects/platform/limits/) · [Cloudflare Docs — Durable Objects in-memory state](https://developers.cloudflare.com/durable-objects/reference/in-memory-state/) · [Cloudflare Docs — Queues overview](https://developers.cloudflare.com/queues/) · [Cloudflare Docs — Queues pricing](https://developers.cloudflare.com/queues/platform/pricing/)
 
 _Last verified: 2026-10-20_
 
@@ -639,7 +639,7 @@ Two keys, and mixing them up is the classic failure:
 
 The WAF _"checks incoming web and API requests and filters undesired traffic based on sets of rules called rulesets,"_ matching on request properties such as _"IP address, URL path, headers, and body content."_ Three rule families do the work: **Custom rules** you write, **Managed Rules** Cloudflare maintains and updates for zero-days, and **Rate limiting rules** that cap requests matching an expression.
 
-Plan matters here, so check before you design around it: Free gets custom rules, **one** rate limiting rule, IP access rules, sampled security events and the **Free Managed Ruleset only**. **The full Managed Rules need Pro or above**; advanced rate limiting (a paid add-on) and account-level configuration are Enterprise.
+Plan matters here, so check before you design around it: Free gets custom rules, **one** rate limiting rule, IP access rules, sampled security events, and **only the Free Managed Ruleset** — the full Cloudflare Managed Rules need Pro or above. Advanced rate limiting is an Enterprise paid add-on, and account-level configuration is Enterprise.
 
 ### They stack — and the order is the point
 
@@ -660,7 +660,7 @@ flowchart TD
 
 **See also:** What actually runs your site on Cloudflare · Where Cloudflare keeps your data
 
-**Sources:** [Cloudflare Docs — Access policies](https://developers.cloudflare.com/cloudflare-one/policies/access/) · [Cloudflare Docs — Cloudflare One / Zero Trust](https://developers.cloudflare.com/cloudflare-one/) · [Cloudflare Docs — Turnstile overview](https://developers.cloudflare.com/turnstile/) · [Cloudflare Docs — Turnstile: get started](https://developers.cloudflare.com/turnstile/get-started/) · [Cloudflare Docs — Turnstile server-side validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/) · [Cloudflare Docs — Turnstile hostname management](https://developers.cloudflare.com/turnstile/concepts/hostname-management/) · [Cloudflare Docs — Cloudflare WAF](https://developers.cloudflare.com/waf/)
+**Sources:** [Cloudflare Docs — Access policies](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/) · [Cloudflare Docs — Cloudflare One / Zero Trust](https://developers.cloudflare.com/cloudflare-one/) · [Cloudflare Docs — Turnstile overview](https://developers.cloudflare.com/turnstile/) · [Cloudflare Docs — Turnstile: get started](https://developers.cloudflare.com/turnstile/get-started/) · [Cloudflare Docs — Turnstile server-side validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/) · [Cloudflare Docs — Turnstile hostname management](https://developers.cloudflare.com/turnstile/additional-configuration/hostname-management/) · [Cloudflare Docs — Cloudflare WAF](https://developers.cloudflare.com/waf/)
 
 _Last verified: 2026-10-20_
 
@@ -676,7 +676,7 @@ You own a domain and you want it to point somewhere new — a new host, a new si
 **Three roles. Learn to say which one you mean.**
 
 - **Registrar** — who you rent the *name* from (GoDaddy, Namecheap, Cloudflare Registrar). It holds exactly one thing that matters day to day: the list of **nameservers**. Nothing about your site's content lives here.
-- **DNS host** — the service that *answers the questions*: "what IP is example.com?", "where does its mail go?". Your records live here. Cloudflare's own docs draw the line: you obtain a domain "through a registrar, a service that handles the reservation of domain names"; authoritative DNS is "the service whose nameservers provide the final answer mapping a hostname (such as example.com or blog.example.com) to the IP address that hosts the corresponding content or resources."
+- **DNS host** — the service that *answers the questions*: "what IP is example.com?", "where does its mail go?". Your records live here. Cloudflare's own setup guide draws the line: moving DNS involves "not only Cloudflare, but also your registrar and your previous DNS provider" — two different parties.
 - **CDN / proxy** — a network that sits *in front of* your server: terminates TLS, caches, filters. Entirely optional. Cloudflare can be all three at once, which is exactly why the three get merged.
 
 **Nameservers are the switch at the top.** An `NS` record "indicate[s] which server should be used for authoritative DNS." You set it **at the registrar**, and it decides which company gets asked everything else. Change it and every record moves at once. Cloudflare tells you to "wait up to 24 hours while your registrar updates your nameservers" — that lag is why the nameserver change is the one you plan, and the record change is the one you do casually.
@@ -690,7 +690,7 @@ You own a domain and you want it to point somewhere new — a new host, a new si
 
 **Proxied vs DNS-only is a real fork, not a display setting.** Proxied means "Cloudflare sits between your visitors and your server — optimizing, caching, and protecting traffic along the way": visitors resolve to Cloudflare's anycast IPs, never your origin. DNS-only records "respond with your server's actual IP address and do not route HTTP/HTTPS traffic through its network." Only address-resolving records qualify — "Other record types (such as MX or TXT) are always DNS-only." The part that bites: DDoS protection, caching, and "WAF rules, caching, and redirect rules" apply **only to proxied traffic**. A record you flipped to DNS-only while debugging is a record with no cache, no WAF, and your origin IP published.
 
-**SSL is automatic, and it is a property of the edge.** Cloudflare "issues — and renews — free, unshared, publicly trusted SSL certificates to all domains added to and activated on Cloudflare." On a full setup that covers the root domain and first-level subdomains; deeper names need more certificate. Because the edge presents it, the automatic certificate is for **proxied** hostnames — turn the proxy off and you are back to whatever certificate your origin holds.
+**SSL is automatic, and it is a property of the edge.** Cloudflare "issues — and renews — free, unshared, publicly trusted SSL certificates to all domains added to and activated on Cloudflare." On a full setup that covers the root domain and first-level subdomains; deeper names need Total TLS or an advanced certificate. Because the edge presents it, the automatic certificate is for **proxied** hostnames — turn the proxy off and you are back to whatever certificate your origin holds.
 
 **Caching defaults surprise people in one specific direction.** "The Cloudflare CDN does not cache HTML or JSON by default." It caches by file extension — CSS, JS, images, fonts, PDFs. So your *assets* are cached at the edge and your *pages* are not, unless you asked. Cloudflare skips caching when `Cache-Control` is `private`, `no-store`, `no-cache`, or `max-age=0`, and caches when it is `public` with `max-age` greater than 0. Practical consequence: "I deployed and still see the old page" is usually your **browser**, not the CDN.
 
@@ -722,7 +722,7 @@ flowchart TD
 
 **See also:** Cloudflare deployment traps that cost a day · Build-time config vs runtime config · Source control basics
 
-**Sources:** [Cloudflare DNS — proxy status (proxied vs DNS-only)](https://developers.cloudflare.com/dns/proxy-status/) · [Cloudflare DNS — DNS record types](https://developers.cloudflare.com/dns/manage-dns-records/reference/dns-record-types/) · [Cloudflare DNS — concepts (registrar, authoritative DNS)](https://developers.cloudflare.com/dns/concepts/) · [Cloudflare DNS — full setup, change your nameservers](https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/) · [Cloudflare SSL — Universal SSL](https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/) · [Cloudflare Cache — default cache behavior](https://developers.cloudflare.com/cache/concepts/default-cache-behavior/)
+**Sources:** [Cloudflare DNS — proxy status (proxied vs DNS-only)](https://developers.cloudflare.com/dns/proxy-status/) · [Cloudflare DNS — DNS record types](https://developers.cloudflare.com/dns/manage-dns-records/reference/dns-record-types/) · [Cloudflare DNS — primary (full) setup overview](https://developers.cloudflare.com/dns/zone-setups/full-setup/) · [Cloudflare DNS — full setup, change your nameservers](https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/) · [Cloudflare SSL — Universal SSL](https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/) · [Cloudflare Cache — default cache behavior](https://developers.cloudflare.com/cache/concepts/default-cache-behavior/)
 
 _Last verified: 2026-10-20_
 
