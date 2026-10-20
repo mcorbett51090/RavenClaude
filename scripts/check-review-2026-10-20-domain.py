@@ -563,6 +563,42 @@ def _h7() -> None:
     need(data["timeline_events"][0]["payload"] == {"priority": "high"}, "payload object")
 
 
+# ---------------------------------------------------------------------------
+# H-9  fintech-payments-engineering/recon_diff.py: short rows and BOM CSVs
+# ---------------------------------------------------------------------------
+
+RECON_DIFF = "plugins/fintech-payments-engineering/scripts/recon_diff.py"
+
+
+def _recon(ledger: bytes, psp: bytes, *flags: str) -> subprocess.CompletedProcess[str]:
+    with tempfile.TemporaryDirectory() as tmp:
+        ledger_path = Path(tmp, "ledger.csv")
+        psp_path = Path(tmp, "psp.csv")
+        ledger_path.write_bytes(ledger)
+        psp_path.write_bytes(psp)
+        return run(RECON_DIFF, "--ledger", str(ledger_path), "--psp", str(psp_path), *flags)
+
+
+@case("H-9", "recon_diff: a short row exits 2 with its row number; a BOM CSV parses")
+def _h9() -> None:
+    ledger = b"reference,amount,currency\nr1,1000,usd\n"
+    # Control: a well-formed fee column nets out and balances.
+    ok = _recon(ledger, b"reference,amount,currency,fee\nr1,1030,usd,30\n", "--net-fees")
+    need(ok.returncode == 0, "well-formed --net-fees pair must balance", ok)
+    # Short row: the row ends before the 'fee' cell.
+    short = _recon(ledger, b"reference,amount,currency,fee\nr1,1000,usd\n", "--net-fees")
+    need(short.returncode == 2, "a short row must exit 2 (input error), not crash with 1", short)
+    need("row 2" in short.stderr, "the error must name the row", short)
+    need("Traceback" not in short.stderr, "no traceback for a malformed row", short)
+    # BOM on the first header (Excel / PSP export).
+    bom = b"\xef\xbb\xbf"
+    parsed = _recon(bom + ledger, bom + b"reference,amount,currency\nr1,1000,usd\n")
+    need(parsed.returncode == 0, "a BOM-prefixed CSV must parse and balance", parsed)
+    # Undecodable bytes are an input error too.
+    junk = _recon(ledger, b"reference,amount,currency\n\xff\xfe,1,usd\n")
+    need(junk.returncode == 2, "an undecodable file must exit 2", junk)
+
+
 # ===========================================================================
 # driver
 # ===========================================================================
