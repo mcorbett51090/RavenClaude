@@ -73,6 +73,26 @@
 
 set -uo pipefail
 
+# ── FAIL-CLOSED (AppSec 2026-10-23) ───────────────────────────────────────────
+# For `check`, any hook error (unexpected exit code, unparseable input, missing
+# jq/git, helper crash) DENIES: clear stderr, exit 2, one line appended to
+# ${RC_WG_ERROR_LOG:-/workspace/state/worktree-guard/errors.log}. Never silent-allow.
+_wg_fail_closed() {
+  local why="$1" log="${RC_WG_ERROR_LOG:-/workspace/state/worktree-guard/errors.log}"
+  printf '%s\n' "worktree-guard: DENIED (fail-closed) — ${why}. The guard could not complete its check, so this tool call is blocked. See ${log}." >&2
+  mkdir -p "$(dirname "$log")" 2>/dev/null
+  printf '%s\t%s\tpid=%s\ttool=%s\tcwd=%s\t%s\n' "$(date -Is 2>/dev/null)" "${SUBCMD:-?}" "$$" "${tn:-?}" "${cwd:-$PWD}" "$why" >> "$log" 2>/dev/null
+  trap - EXIT
+  exit 2
+}
+_wg_exit_trap() {
+  local rc=$?
+  if [ "${SUBCMD:-}" = "check" ] && [ "$rc" -ne 0 ] && [ "$rc" -ne 2 ]; then
+    _wg_fail_closed "hook error: unexpected exit code ${rc}"
+  fi
+}
+trap _wg_exit_trap EXIT
+
 # ── sourced helpers (fail-safe: define stubs if absent) ───────────────────────
 _wg_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
 # shellcheck source=/dev/null
@@ -192,7 +212,7 @@ if [ "$_wg_stdin_state" = "timeout" ] || [ "$_wg_stdin_state" = "error" ]; then
   if [ "$SUBCMD" = "check" ]; then
     printf '%s\n' "worktree-guard: DENIED — refusing to wave through a tool call it could not read. Retry; if this repeats the payload writer is stalled, and RC_GUARD_STDIN_TIMEOUT=0 restores the old unbounded read." >&2
     _emit_hook_event "worktree-guard.sh" "deny" "unknown" "" "stdin-${_wg_stdin_state}" "2"
-    exit 2
+    _wg_fail_closed "stdin payload unreadable/malformed (${_wg_stdin_state})"
   fi
   printf '%s\n' "worktree-guard: ${SUBCMD:-<none>} proceeds UNGUARDED for this call." >&2
   _emit_hook_event "worktree-guard.sh" "warn" "unknown" "" "stdin-${_wg_stdin_state}" "0"
@@ -242,6 +262,10 @@ if [ "$mode" = "off" ] && [ "$bound" = "off" ] && [ "$_wg_lease_knob" = "off" ];
 fi
 
 # ── fail-open dependency floor (missing git/jq/shasum -> allow) ────────────────
+if [ "$SUBCMD" = "check" ] && [ -n "$payload" ]; then
+  command -v git >/dev/null 2>&1 || _wg_fail_closed "git not found on PATH"
+  command -v jq  >/dev/null 2>&1 || _wg_fail_closed "jq not found on PATH (cannot parse the tool payload)"
+fi
 command -v git >/dev/null 2>&1 || exit 0
 
 wg_git() { git -C "$cwd" "$@" 2>/dev/null; }
@@ -421,8 +445,8 @@ if [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
   tn="$(printf '%s' "$payload" | jq -r '.tool_name // ""' 2>/dev/null)"
   [ "$tn" = "Bash" ] && cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // ""' 2>/dev/null)"
   case "$tn" in
-    Write|Edit|MultiEdit)
-      fp="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // ""' 2>/dev/null)"
+    Write|Edit|MultiEdit|NotebookEdit)
+      fp="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.notebook_path // .tool_input.path // ""' 2>/dev/null)"
       ;;
   esac
 fi
@@ -457,7 +481,7 @@ _wg_path_under_tree() {
 # they belong in this list (mirrors runaway-brake.sh's fuller mutating-token set).
 _wg_is_mutating() {
   case "$tn" in
-    Write|Edit|MultiEdit)
+    Write|Edit|MultiEdit|NotebookEdit)
       if [ -n "$fp" ]; then _wg_path_under_tree "$fp" && return 0 || return 1; fi
       return 0 ;;               # unknown path -> fail-safe (treat as under-tree)
     Bash) : ;;
@@ -734,7 +758,7 @@ _wg_lease_autocheckin() {
       return 1
       ;;
   esac
-  wg_git add -A >/dev/null 2>&1 || return 1
+  return 1   # AppSec 2026-10-23: never add/commit (function retained, unused)
   mins="$(( idle / 60 ))"
   wg_git commit -q -m "wip(worktree-lease): auto-checkin of a stale worktree
 
@@ -956,6 +980,23 @@ case "$SUBCMD" in
     ;;
 
   check)
+    # ── BASH OUT-OF-TREE WRITES (AppSec 2026-10-23). BEST-EFFORT shell parsing:
+    # redirects, tee, cp/mv/rm/sed -i/..., python/node/perl -c/-e and heredoc
+    # programs. Variables, eval, globs and encodings can evade it — the real
+    # backstop is the bwrap sandbox write allowlist (cwd + /tmp). Helper error
+    # => fail closed. Escape: RC_WORKTREE_BASH_WRITE_ACK=1.
+    if [ "$tn" = "Bash" ] && [ -n "$cmd" ] && [ "${RC_WORKTREE_BASH_WRITE_ACK:-}" != "1" ]; then
+      _wg_helper="$(dirname "${BASH_SOURCE[0]}")/worktree-guard-bash.py"
+      [ -f "$_wg_helper" ] || _wg_fail_closed "bash-write helper missing: ${_wg_helper}"
+      _wg_bw_out="$(printf '%s' "$cmd" | RC_WG_GUARD_HOME="${GUARD_HOME:-}" python3 "$_wg_helper" "$REAL_TOP" "$cwd" 2>/dev/null)"; _wg_bw_rc=$?
+      case "$_wg_bw_rc" in
+        0) : ;;
+        3) printf '%s\n' "worktree-guard: DENIED — BASH-OUT-OF-TREE: this command appears to write outside the session worktree ${REAL_TOP}: ${_wg_bw_out}. Write inside the worktree or /tmp. (best-effort parse; RC_WORKTREE_BASH_WRITE_ACK=1 to override)" >&2
+           _emit_hook_event "worktree-guard.sh" "deny" "Bash" "" "bash-out-of-tree" "2"
+           exit 2 ;;
+        *) _wg_fail_closed "bash-write helper crashed (rc=${_wg_bw_rc})" ;;
+      esac
+    fi
     # ── SESSION LEASE (before FOREIGN/CONTENTION: it answers "may I write HERE
     # at all", which precedes "is this the right tree"). Fail-OPEN throughout —
     # a lease bug must never be able to brick a session, so every unknown
@@ -982,16 +1023,24 @@ case "$SUBCMD" in
         _wg_idle="$(_wg_lease_idle || printf '')"
         _wg_ttl="$(_wg_lease_idle_secs)"
         if [ -n "$_wg_idle" ] && [ "$_wg_idle" -ge "$_wg_ttl" ] 2>/dev/null; then
-          # STALE -> take over, but only after the holder's work is safely in.
-          if _wg_lease_autocheckin "$_wg_holder" "$_wg_idle"; then
+          # STALE (AppSec ruling 2026-10-23): NEVER `git add`/commit on anyone's
+          # behalf. A clean tree is taken over; a dirty one is recorded in
+          # stale-leases.log and denied — commits are the maker's job.
+          if [ -z "$(wg_git status --porcelain 2>/dev/null)" ]; then
             _wg_lease_write "$wg_transcript_path" || true
-            printf '%s\n' "worktree-guard: took over a stale worktree lease from session ${_wg_holder} (idle $(( _wg_idle / 60 ))m). Their work was auto-committed as a wip(worktree-lease) checkpoint first." >&2
+            printf '%s\n' "worktree-guard: took over a stale worktree lease from session ${_wg_holder} (idle $(( _wg_idle / 60 ))m); the tree was clean." >&2
             _emit_hook_event "worktree-guard.sh" "warn" "${tn:-Bash}" "" "lease-takeover" "0"
-          elif [ "$(_wg_lease_mode)" = "warn" ]; then
-            : # advisory mode: the refusal was reported, proceed anyway
           else
-            _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "" "lease-stale-anchor" "2"
-            exit 2
+            _wg_sl="${RC_WG_STALE_LOG:-/workspace/state/worktree-guard/stale-leases.log}"
+            mkdir -p "$(dirname "$_wg_sl")" 2>/dev/null
+            printf '%s\tstale-lease\ttree=%s\tholder=%s\tidle_s=%s\tclaimant=%s\ttool=%s\n' "$(date -Is)" "$REAL_TOP" "$_wg_holder" "$_wg_idle" "$session" "${tn:-?}" >> "$_wg_sl" 2>/dev/null
+            if [ "$(_wg_lease_mode)" = "warn" ]; then
+              printf '%s\n' "worktree-guard: stale lease from ${_wg_holder} on a dirty tree (recorded in ${_wg_sl}); proceeding because worktree_lease is 'warn'. Nothing was staged or committed." >&2
+            else
+              printf '%s\n' "worktree-guard: DENIED — session ${_wg_holder} left a stale lease (idle $(( _wg_idle / 60 ))m) on ${REAL_TOP} with uncommitted changes. The guard no longer auto-commits; nothing was staged or committed. Recorded in ${_wg_sl}. The maker must commit/stash that work (or write \"holder: ${_wg_holder}\" to ${LEASE_DIR}/release.md to take over), then retry." >&2
+              _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "" "lease-stale-dirty" "2"
+              exit 2
+            fi
           fi
         elif [ "$(_wg_lease_mode)" = "warn" ]; then
           printf '%s\n' "worktree-guard: session ${_wg_holder} holds this worktree (idle $(( ${_wg_idle:-0} / 60 ))m of ${_wg_ttl} s). Proceeding because worktree_lease is 'warn'." >&2

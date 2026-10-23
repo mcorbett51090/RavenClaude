@@ -220,6 +220,7 @@ assert needle in src, "MF anchor drift: the '_wg_is_mutating' call site was not 
 open(sys.argv[2], "w").write(src.replace(needle, repl, 1))
 PY
 chmod +x "$PATCH_HOOK"
+cp "$(dirname "$HOOK")/worktree-guard-bash.py" "$PATCH_TMP/" 2>/dev/null || true  # fail-closed hook needs its Bash helper beside it
 SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
 R="$SB/repo"; mk_repo "$R" block
 BUCKET="$SB/guard/sessions/$(path_key "$R")"
@@ -249,6 +250,7 @@ assert needle in src, "MF2 anchor drift: the '_wg_bound_should_deny' call site w
 open(sys.argv[2], "w").write(src.replace(needle, repl, 1))
 PY
 chmod +x "$PATCH_HOOK"
+cp "$(dirname "$HOOK")/worktree-guard-bash.py" "$PATCH_TMP/" 2>/dev/null || true  # fail-closed hook needs its Bash helper beside it
 SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
 R="$SB/repo"; mk_repo "$R" warn
 git -C "$R" worktree add -q -b sibmf2 "$SB/sibling"

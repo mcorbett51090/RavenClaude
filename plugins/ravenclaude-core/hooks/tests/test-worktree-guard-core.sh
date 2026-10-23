@@ -636,6 +636,7 @@ assert needle in src, "MF anchor drift: latecomer guard line not found"
 open(sys.argv[2], "w").write(src.replace(needle, repl))
 PY
 chmod +x "$PATCH_HOOK"
+cp "$(dirname "$HOOK")/worktree-guard-bash.py" "$PATCH_TMP/" 2>/dev/null || true  # fail-closed hook needs its Bash helper beside it
 SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
 R="$SB/repo"; mk_repo "$R" warn
 PK="$(path_key "$R")"; BUCKET="$SB/guard/sessions/$PK"

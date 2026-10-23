@@ -50,6 +50,7 @@ ok_() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
 no_() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
 
 TMP="$(mktemp -d 2>/dev/null || mktemp -d -t gate229)"
+export RC_WG_STALE_LOG="$TMP/stale-leases.log" RC_WG_ERROR_LOG="$TMP/errors.log"
 cleanup() { [ -n "${TMP:-}" ] && [ -d "$TMP" ] && rm -rf "$TMP"; }
 trap cleanup EXIT
 
@@ -171,24 +172,29 @@ printf 'work-in-progress\n' > "$WT/holder-work.txt"          # untracked
 printf 'edited\n' >> "$WT/file.txt"                          # tracked
 touch -t 200001010000 "$GHL/leases/"*/lease.json 2>/dev/null
 
+head_before="$(git -C "$WT" rev-parse HEAD 2>/dev/null)"
 out="$(runL "$WT/file.txt" "$WT" sB)"
-[ "$(exit_of "$out")" = "0" ] && ok_ "a STALE lease is taken over, not stranded" \
-                              || no_ "stale lease still blocked — the fallback does not work"
+# AppSec ruling 2026-10-23: a stale lease on a DIRTY tree is recorded and DENIED;
+# the guard never runs `git add`/`git commit` on anyone's behalf.
+[ "$(exit_of "$out")" = "2" ] && ok_ "a STALE lease on a dirty tree is denied (no auto-commit takeover)" \
+                              || no_ "stale dirty lease was taken over"
+case "$out" in *"no longer auto-commits"*) ok_ "the denial explains why" ;;
+  *) no_ "stale denial is silent / unexplained" ;; esac
+
+# ⛔ THE ASSERTION THIS GATE EXISTS FOR (inverted 2026-10-23): nothing staged or committed.
+[ "$(git -C "$WT" rev-parse HEAD 2>/dev/null)" = "$head_before" ] && ok_ "no commit was made on the holder's behalf" \
+  || no_ "the guard committed the holder's work"
+[ -z "$(git -C "$WT" diff --cached --name-only 2>/dev/null)" ] && ok_ "nothing was staged (no git add -A)" \
+  || no_ "the guard staged files"
+grep -q "holder=sA" "$RC_WG_STALE_LOG" 2>/dev/null && ok_ "the stale lease was recorded in stale-leases.log" \
+  || no_ "stale lease not recorded"
+# Maker lands their own work -> the next claimant takes over cleanly.
+git_q -C "$WT" add -A; git_q -C "$WT" commit -qm "maker lands work"
+out="$(runL "$WT/file.txt" "$WT" sB)"
+[ "$(exit_of "$out")" = "0" ] && ok_ "once the maker commits, a stale lease is taken over" \
+                              || no_ "clean stale lease still blocked"
 case "$out" in *"took over"*) ok_ "the takeover is announced" ;;
   *) no_ "takeover happened silently" ;; esac
-
-# ⛔ THE ASSERTION THIS GATE EXISTS FOR.
-committed="$(git -C "$WT" log -1 --pretty=%s 2>/dev/null || printf '')"
-case "$committed" in "wip(worktree-lease)"*) ok_ "the holder's work was auto-committed" ;;
-  *) no_ "no auto-checkin commit — the takeover may have lost work (HEAD: $committed)" ;; esac
-if git -C "$WT" show --stat HEAD 2>/dev/null | grep -q 'holder-work.txt'; then
-  ok_ "untracked work was included (owner ruling: tracked AND untracked)"
-else
-  no_ "untracked work was NOT captured"
-fi
-[ -z "$(git -C "$WT" status --porcelain 2>/dev/null)" ] \
-  && ok_ "the tree is clean for the new holder" \
-  || no_ "the new session inherited a dirty tree"
 
 # ── part 4: the anchor branch is never auto-committed ───────────────────────
 GHL="$TMP/ghanchor"
