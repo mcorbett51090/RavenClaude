@@ -32,9 +32,9 @@
 #       general jail. Knob: worktree_bound (default block). Escape: RC_WORKTREE_BOUND_ACK=1.
 #   (d) LEASE-HELD — another session holds a live claim on THIS worktree. (a)
 #       only nudges; this DENIES. Goes stale after worktree_lease_idle_minutes
-#       (default 20), after which the next session auto-commits the holder's
-#       work as a wip(worktree-lease) checkpoint and takes over — never on the
-#       anchor branch. Knob: worktree_lease (default on).
+#       (default 20). A stale lease on a CLEAN tree is taken over; on a dirty tree,
+#       or when git status fails, it is logged to stale-leases.log and DENIED —
+#       the guard never stages or commits (AppSec 2026-10-23). Knob: worktree_lease (default on).
 #
 # Subcommands (selected by $1):
 #   register       SessionStart. Records this session's own file, GC-sweeps the
@@ -69,9 +69,34 @@
 #
 # Portability: set -uo pipefail (NOT -e — a guard must not die mid-check). macOS
 # bash 3.2 / BSD-safe (no declare -A / mapfile / grep -P / timeout / sed -i /
-# ${x^^} / globstar). Fail-OPEN (missing git/jq/shasum -> exit 0 allow).
+# ${x^^} / globstar). `check` FAILS CLOSED (AppSec 2026-10-23): errors, missing
+# git/jq and internal command failures deny (EXIT + ERR traps). Allow-exits remain
+# only for not-a-repo and the documented off knobs.
 
 set -uo pipefail
+# Armed FIRST, before anything can fail; the handler is defined just below and
+# resolved at fire time. `check` additionally runs under an ERR trap (see `check)`).
+trap _wg_exit_trap EXIT
+
+# ── FAIL-CLOSED (AppSec 2026-10-23) ───────────────────────────────────────────
+# For `check`, any hook error (unexpected exit code, unparseable input, missing
+# jq/git, helper crash) DENIES: clear stderr, exit 2, one line appended to
+# ${RC_WG_ERROR_LOG:-/workspace/state/worktree-guard/errors.log}. Never silent-allow.
+_wg_fail_closed() {
+  trap - ERR
+  local why="$1" log="${RC_WG_ERROR_LOG:-/workspace/state/worktree-guard/errors.log}"
+  printf '%s\n' "worktree-guard: DENIED (fail-closed) — ${why}. The guard could not complete its check, so this tool call is blocked. See ${log}." >&2
+  mkdir -p "$(dirname "$log")" 2>/dev/null
+  printf '%s\t%s\tpid=%s\ttool=%s\tcwd=%s\t%s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z' 2>/dev/null)" "${SUBCMD:-?}" "$$" "${tn:-?}" "${cwd:-$PWD}" "$why" >> "$log" 2>/dev/null
+  trap - EXIT
+  exit 2
+}
+_wg_exit_trap() {
+  local rc=$?
+  if [ "${SUBCMD:-}" = "check" ] && [ "$rc" -ne 0 ] && [ "$rc" -ne 2 ]; then
+    _wg_fail_closed "hook error: unexpected exit code ${rc}"
+  fi
+}
 
 # ── sourced helpers (fail-safe: define stubs if absent) ───────────────────────
 _wg_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
@@ -192,7 +217,7 @@ if [ "$_wg_stdin_state" = "timeout" ] || [ "$_wg_stdin_state" = "error" ]; then
   if [ "$SUBCMD" = "check" ]; then
     printf '%s\n' "worktree-guard: DENIED — refusing to wave through a tool call it could not read. Retry; if this repeats the payload writer is stalled, and RC_GUARD_STDIN_TIMEOUT=0 restores the old unbounded read." >&2
     _emit_hook_event "worktree-guard.sh" "deny" "unknown" "" "stdin-${_wg_stdin_state}" "2"
-    exit 2
+    _wg_fail_closed "stdin payload unreadable/malformed (${_wg_stdin_state})"
   fi
   printf '%s\n' "worktree-guard: ${SUBCMD:-<none>} proceeds UNGUARDED for this call." >&2
   _emit_hook_event "worktree-guard.sh" "warn" "unknown" "" "stdin-${_wg_stdin_state}" "0"
@@ -222,7 +247,7 @@ posture="${cwd}/.ravenclaude/comfort-posture.yaml"
 #                                    one session. INDEPENDENT: the two knobs
 #                                    above cannot silence it.)
 #    worktree_lease_idle_minutes: N  DEFAULT 20    (idle holder -> the next
-#                                    session auto-commits their work and takes over)
+#                                    session takes over a CLEAN tree; dirty -> deny)
 #    Both-off short-circuits BEFORE any git shell-out. status still reports. ─
 mode="$(sed -n 's/^[[:space:]]*worktree_guard:[[:space:]]*\([A-Za-z]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
 [ -z "$mode" ] && mode="warn"
@@ -242,6 +267,10 @@ if [ "$mode" = "off" ] && [ "$bound" = "off" ] && [ "$_wg_lease_knob" = "off" ];
 fi
 
 # ── fail-open dependency floor (missing git/jq/shasum -> allow) ────────────────
+if [ "$SUBCMD" = "check" ] && [ -n "$payload" ]; then
+  command -v git >/dev/null 2>&1 || _wg_fail_closed "git not found on PATH"
+  command -v jq  >/dev/null 2>&1 || _wg_fail_closed "jq not found on PATH (cannot parse the tool payload)"
+fi
 command -v git >/dev/null 2>&1 || exit 0
 
 wg_git() { git -C "$cwd" "$@" 2>/dev/null; }
@@ -268,8 +297,13 @@ _wg_sha256() {
 # form runs. Leading-digits strip is a belt-and-suspenders against any stray trailing byte.
 _wg_mtime() {
   local m
-  m="$(stat -c %Y "$1" 2>/dev/null)"                    # GNU / Linux
-  [ -n "$m" ] || m="$(stat -f %m "$1" 2>/dev/null)"     # BSD / macOS
+  # ⛔ `|| m=""` on BOTH probes, not decoration (PR #1394, macOS CI run 40030178445):
+  # the lease section runs under `set -E` + an ERR trap (fail-closed), and on macOS the
+  # GNU probe is EXPECTED to fail. A bare failing assignment fired the trap, so every
+  # stale-lease check on stock macOS DENIED as an "internal error". The probe failing
+  # is the portable fallback working, not an error.
+  m="$(stat -c %Y "$1" 2>/dev/null)" || m=""                    # GNU / Linux
+  [ -n "$m" ] || m="$(stat -f %m "$1" 2>/dev/null)" || m=""     # BSD / macOS
   m="${m%%[!0-9]*}"
   printf '%s' "$m"
 }
@@ -421,8 +455,8 @@ if [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
   tn="$(printf '%s' "$payload" | jq -r '.tool_name // ""' 2>/dev/null)"
   [ "$tn" = "Bash" ] && cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // ""' 2>/dev/null)"
   case "$tn" in
-    Write|Edit|MultiEdit)
-      fp="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // ""' 2>/dev/null)"
+    Write|Edit|MultiEdit|NotebookEdit)
+      fp="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.notebook_path // .tool_input.path // ""' 2>/dev/null)"
       ;;
   esac
 fi
@@ -457,7 +491,7 @@ _wg_path_under_tree() {
 # they belong in this list (mirrors runaway-brake.sh's fuller mutating-token set).
 _wg_is_mutating() {
   case "$tn" in
-    Write|Edit|MultiEdit)
+    Write|Edit|MultiEdit|NotebookEdit)
       if [ -n "$fp" ]; then _wg_path_under_tree "$fp" && return 0 || return 1; fi
       return 0 ;;               # unknown path -> fail-safe (treat as under-tree)
     Bash) : ;;
@@ -582,7 +616,7 @@ _wg_owning_worktree() {
 # is simply closed — and the next session has no sanctioned way in, so it learns
 # to bypass the guard. That is how a lock becomes a thing people route around.
 # So: after `worktree_lease_idle_minutes` (default 20) with no activity, the next
-# session TAKES OVER — auto-committing the holder's work first so nothing is lost.
+# session TAKES OVER — taking over a CLEAN tree; a dirty tree is denied (never auto-committed).
 #
 # Liveness is the lease file's MTIME, refreshed on every mutating op by the
 # holder. Not a pid check: a pid says the process exists, not that it is still
@@ -598,7 +632,7 @@ LEASE_FILE="$LEASE_DIR/lease.json"
 # have: an unrecognised knob value must land on a NAMED default, never fall out.
 _wg_lease_mode() {
   local v
-  v="$(sed -n 's/^[[:space:]]*worktree_lease:[[:space:]]*\([A-Za-z]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
+  v="$(sed -n 's/^[[:space:]]*worktree_lease:[[:space:]]*\([A-Za-z]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)" || v=""
   case "$v" in
     on|off|warn) printf '%s' "$v" ;;
     *) printf 'on' ;;          # unset or garbage -> ENFORCE (the safe direction)
@@ -607,7 +641,7 @@ _wg_lease_mode() {
 
 _wg_lease_idle_secs() {
   local v
-  v="$(sed -n 's/^[[:space:]]*worktree_lease_idle_minutes:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
+  v="$(sed -n 's/^[[:space:]]*worktree_lease_idle_minutes:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)" || v=""
   case "$v" in
     ''|*[!0-9]*) v=20 ;;       # unset or non-numeric -> the documented default
     *) ;;                      # a valid number is used as-is
@@ -633,7 +667,7 @@ _wg_lease_write() {
   host="$(hostname 2>/dev/null || printf 'unknown')"
   claimed="$(date +%s 2>/dev/null || printf '0')"
   if [ -n "$ts_path" ]; then
-    thash="$(_wg_sha256 "$ts_path" 2>/dev/null)"
+    thash="$(_wg_sha256 "$ts_path" 2>/dev/null)" || thash=""
     [ -n "$thash" ] && isrc="transcript_path" || isrc="pid-ttl"
   else
     thash=""
@@ -663,7 +697,7 @@ _wg_lease_write() {
 # _wg_lease_idle's own comment states the invariant this function exists to
 # preserve: "Empty => unknown, and an unknown age must NEVER be treated as
 # stale." Reusing _wg_is_live at check-time would invert that — a lease that
-# merely failed to parse would trigger a takeover-plus-auto-commit against
+# merely failed to parse would trigger a takeover against
 # what could be a live session's tree. This returns true ONLY on a positively
 # confirmed dead pid; every read/parse failure returns false (not-dead /
 # unknown), never true. _wg_is_live itself is never modified by this file.
@@ -681,7 +715,7 @@ _wg_lease_holder_dead() {
 # deliberately NOT _wg_json_field (that requires valid JSON; this file mirrors
 # the premise-gate's own control.md convention, plain text, human-writable
 # without needing jq to construct it right). Empty/missing -> empty, same
-# fail-open contract as every other lease reader here.
+# contract as every other lease reader here (callers decide; check denies on error).
 _wg_release_field() {
   local f="$1" key="$2"
   [ -f "$f" ] || return 1
@@ -700,52 +734,14 @@ _wg_lease_idle() {
   printf '%s' "$(( now - m ))"
 }
 
-# Auto-checkin: commit the stale holder's work so the takeover loses nothing.
-# Owner ruling 2026-08-18: tracked AND untracked (`git add -A`). .gitignore is
-# still honoured, so `.ravenclaude/runs/` scratch is not swept.
-#
-# ⛔ REFUSES ON THE ANCHOR BRANCH. This repo keeps main as the shared anchor and
-# has a dedicated check against working on it; auto-committing a stranded tree
-# there would be the guard creating exactly the mess it exists to prevent. On the
-# anchor we report and decline the takeover rather than commit.
-_wg_lease_autocheckin() {
-  local holder="$1" idle="$2" branch mins
-  # ⛔ ORDER IS LOAD-BEARING — this check MUST precede the anchor refusal below.
-  # Nothing to check in is a clean takeover, not a failure, and that is true on
-  # EVERY branch INCLUDING the anchor: there is no work to auto-checkin, so the
-  # hazard the refusal exists to prevent cannot arise.
-  #
-  # It used to sit AFTER the `case`, which made the refusal UNCONDITIONAL on the
-  # anchor. MEASURED 2026-08-24: a CLEAN anchor (one untracked file), a holder
-  # session dead 4.4 days, and every mutating op still denied — for hours, across
-  # two sessions. The denial tells you to "Land or move that work by hand, then
-  # retry", but the retry never reached the line that checks whether you landed
-  # it, so the instruction was unsatisfiable BY CONSTRUCTION. Because the house
-  # convention keeps the anchor checkout on `main` permanently, that stranded the
-  # anchor for good rather than transiently.
-  #
-  # The safety property is UNCHANGED: an anchor with real work still refuses,
-  # because this returns only when the tree is clean. Only the vacuous case moves.
-  [ -z "$(wg_git status --porcelain 2>/dev/null)" ] && return 0
-  branch="$(wg_git rev-parse --abbrev-ref HEAD 2>/dev/null || printf '')"
-  case "$branch" in
-    main|master|HEAD|"")
-      printf '%s\n' "worktree-guard: stale lease (holder ${holder}, idle $(( idle / 60 ))m) but HEAD is '${branch:-detached}' — REFUSING to auto-commit the anchor. Land or move that work by hand, then retry." >&2
-      return 1
-      ;;
-  esac
-  wg_git add -A >/dev/null 2>&1 || return 1
-  mins="$(( idle / 60 ))"
-  wg_git commit -q -m "wip(worktree-lease): auto-checkin of a stale worktree
-
-Session ${holder} held this worktree and went idle for ${mins}m, so the lease
-expired and another session took it over. This commit is that session's work,
-committed automatically so the takeover could not lose it.
-
-Tracked AND untracked files are included (.gitignore still applies). Reword,
-amend or reset this commit freely — it is a checkpoint, not a decision." \
-    >/dev/null 2>&1 || return 1
-  return 0
+# Tree-cleanliness probe for the stale-lease path. rc 0 = clean, 1 = dirty,
+# 2 = git status FAILED (F-7: never read as clean; callers deny or skip).
+# The old _wg_lease_autocheckin (git add -A + commit) was deleted per AppSec F-8.
+_wg_tree_state() {
+  local out
+  out="$(git -C "$cwd" status --porcelain 2>/dev/null)" || return 2
+  [ -z "$out" ] && return 0
+  return 1
 }
 
 # Which operations the lease governs: a mutating op aimed at THIS tree. Foreign
@@ -906,7 +902,7 @@ case "$SUBCMD" in
       # holder still needs the existing autocheckin ceremony at check-time —
       # GC must never bypass the safety net that preserves uncommitted work,
       # it only clears the common (clean-tree) case cheaply.
-      if [ -z "$(wg_git status --porcelain 2>/dev/null)" ]; then
+      if _wg_tree_state; then
         rm -f "$LEASE_DIR/lease.json" "$LEASE_DIR/release.md" 2>/dev/null || true
       fi
     fi
@@ -956,10 +952,33 @@ case "$SUBCMD" in
     ;;
 
   check)
+    # ── BASH OUT-OF-TREE WRITES (AppSec 2026-10-23). BEST-EFFORT shell parsing:
+    # redirects, tee, cp/mv/rm/sed -i/..., python/node/perl -c/-e and heredoc
+    # programs. Variables, eval, globs and encodings can evade it — the real
+    # backstop is the bwrap sandbox write allowlist (cwd + /tmp). Helper error
+    # => fail closed. Escape: RC_WORKTREE_BASH_WRITE_ACK=1.
+    if [ "$tn" = "Bash" ] && [ -n "$cmd" ] && [ "${RC_WORKTREE_BASH_WRITE_ACK:-}" != "1" ]; then
+      _wg_helper="$(dirname "${BASH_SOURCE[0]}")/worktree-guard-bash.py"
+      [ -f "$_wg_helper" ] || _wg_fail_closed "bash-write helper missing: ${_wg_helper}"
+      _wg_bw_out="$(printf '%s' "$cmd" | RC_WG_GUARD_HOME="${GUARD_HOME:-}" python3 "$_wg_helper" "$REAL_TOP" "$cwd" 2>/dev/null)"; _wg_bw_rc=$?
+      case "$_wg_bw_rc" in
+        0) : ;;
+        3) printf '%s\n' "worktree-guard: DENIED — BASH-OUT-OF-TREE: this command appears to write outside the session worktree ${REAL_TOP}: ${_wg_bw_out}. Write inside the worktree or /tmp. (best-effort parse; RC_WORKTREE_BASH_WRITE_ACK=1 to override)" >&2
+           _emit_hook_event "worktree-guard.sh" "deny" "Bash" "" "bash-out-of-tree" "2"
+           exit 2 ;;
+        *) _wg_fail_closed "bash-write helper crashed (rc=${_wg_bw_rc})" ;;
+      esac
+    fi
     # ── SESSION LEASE (before FOREIGN/CONTENTION: it answers "may I write HERE
-    # at all", which precedes "is this the right tree"). Fail-OPEN throughout —
-    # a lease bug must never be able to brick a session, so every unknown
-    # (no session id, unreadable lease, unknown age, failed write) allows.
+    # at all", which precedes "is this the right tree"). FAIL-CLOSED (AppSec
+    # 2026-10-23): an internal error here trips the ERR trap and denies; a failed
+    # git status on a stale lease denies (F-7). Unknown lease AGE is never stale.
+    # The ERR trap (with -E, so it reaches the lease functions) is armed for this
+    # section only: every probe below is written to succeed or be tested in a
+    # condition, so ANY other failing command is a real internal error -> deny.
+    # Outside this section the EXIT trap still turns a crash into a deny.
+    set -E
+    trap '_wg_fail_closed "internal error in the lease section (worktree-guard.sh line ${LINENO})"' ERR
     if [ "$(_wg_lease_mode)" != "off" ] && [ "$session" != "unknown" ] \
        && _wg_lease_should_enforce; then
       _wg_holder="$(_wg_lease_holder)"
@@ -982,26 +1001,43 @@ case "$SUBCMD" in
         _wg_idle="$(_wg_lease_idle || printf '')"
         _wg_ttl="$(_wg_lease_idle_secs)"
         if [ -n "$_wg_idle" ] && [ "$_wg_idle" -ge "$_wg_ttl" ] 2>/dev/null; then
-          # STALE -> take over, but only after the holder's work is safely in.
-          if _wg_lease_autocheckin "$_wg_holder" "$_wg_idle"; then
-            _wg_lease_write "$wg_transcript_path" || true
-            printf '%s\n' "worktree-guard: took over a stale worktree lease from session ${_wg_holder} (idle $(( _wg_idle / 60 ))m). Their work was auto-committed as a wip(worktree-lease) checkpoint first." >&2
-            _emit_hook_event "worktree-guard.sh" "warn" "${tn:-Bash}" "" "lease-takeover" "0"
-          elif [ "$(_wg_lease_mode)" = "warn" ]; then
-            : # advisory mode: the refusal was reported, proceed anyway
-          else
-            _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "" "lease-stale-anchor" "2"
+          # STALE (AppSec ruling 2026-10-23): NEVER `git add`/commit on anyone's
+          # behalf. A clean tree is taken over; a dirty one is recorded in
+          # stale-leases.log and denied — commits are the maker's job.
+          _wg_ts=0; _wg_tree_state || _wg_ts=$?
+          if [ "$_wg_ts" -eq 2 ]; then
+            _wg_sl="${RC_WG_STALE_LOG:-/workspace/state/worktree-guard/stale-leases.log}"
+            mkdir -p "$(dirname "$_wg_sl")" 2>/dev/null || true
+            printf '%s\tstale-lease-git-status-failed\ttree=%s\tholder=%s\tclaimant=%s\ttool=%s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$REAL_TOP" "$_wg_holder" "$session" "${tn:-?}" >> "$_wg_sl" 2>/dev/null || true
+            printf '%s\n' "worktree-guard: DENIED — stale lease from ${_wg_holder} on ${REAL_TOP}, but 'git status' failed, so the tree cannot be proven clean. Nothing was taken over, staged or committed. Recorded in ${_wg_sl}." >&2
+            _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "" "lease-stale-git-error" "2"
             exit 2
+          elif [ "$_wg_ts" -eq 0 ]; then
+            _wg_lease_write "$wg_transcript_path" || true
+            printf '%s\n' "worktree-guard: took over a stale worktree lease from session ${_wg_holder} (idle $(( _wg_idle / 60 ))m); the tree was clean." >&2
+            _emit_hook_event "worktree-guard.sh" "warn" "${tn:-Bash}" "" "lease-takeover" "0"
+          else
+            _wg_sl="${RC_WG_STALE_LOG:-/workspace/state/worktree-guard/stale-leases.log}"
+            mkdir -p "$(dirname "$_wg_sl")" 2>/dev/null || true
+            printf '%s\tstale-lease\ttree=%s\tholder=%s\tidle_s=%s\tclaimant=%s\ttool=%s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$REAL_TOP" "$_wg_holder" "$_wg_idle" "$session" "${tn:-?}" >> "$_wg_sl" 2>/dev/null || true
+            if [ "$(_wg_lease_mode)" = "warn" ]; then
+              printf '%s\n' "worktree-guard: stale lease from ${_wg_holder} on a dirty tree (recorded in ${_wg_sl}); proceeding because worktree_lease is 'warn'. Nothing was staged or committed." >&2
+            else
+              printf '%s\n' "worktree-guard: DENIED — session ${_wg_holder} left a stale lease (idle $(( _wg_idle / 60 ))m) on ${REAL_TOP} with uncommitted changes. The guard no longer auto-commits; nothing was staged or committed. Recorded in ${_wg_sl}. The maker must commit/stash that work (or write \"holder: ${_wg_holder}\" to ${LEASE_DIR}/release.md to take over), then retry." >&2
+              _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "" "lease-stale-dirty" "2"
+              exit 2
+            fi
           fi
         elif [ "$(_wg_lease_mode)" = "warn" ]; then
           printf '%s\n' "worktree-guard: session ${_wg_holder} holds this worktree (idle $(( ${_wg_idle:-0} / 60 ))m of ${_wg_ttl} s). Proceeding because worktree_lease is 'warn'." >&2
         else
-          printf '%s\n' "worktree-guard: DENIED — session ${_wg_holder} holds a live lease on ${REAL_TOP} (idle $(( ${_wg_idle:-0} / 60 ))m; it expires at $(( _wg_ttl / 60 ))m). Open your own worktree (rcwt / forge-worktree.sh), wait for the lease to go stale (the next session then auto-commits their work and takes over), or — if you ARE that session continuing after a restart/fork — release it yourself: write \"holder: ${_wg_holder}\" into ${LEASE_DIR}/release.md (outside this tree; the Write tool can reach it) and retry. Set 'worktree_lease: off' in .ravenclaude/comfort-posture.yaml to disable." >&2
+          printf '%s\n' "worktree-guard: DENIED — session ${_wg_holder} holds a live lease on ${REAL_TOP} (idle $(( ${_wg_idle:-0} / 60 ))m; it expires at $(( _wg_ttl / 60 ))m). Open your own worktree (rcwt / forge-worktree.sh), wait for the lease to go stale (a clean tree is then taken over; a dirty one is denied until its maker commits), or — if you ARE that session continuing after a restart/fork — release it yourself: write \"holder: ${_wg_holder}\" into ${LEASE_DIR}/release.md (outside this tree; the Write tool can reach it) and retry. Set 'worktree_lease: off' in .ravenclaude/comfort-posture.yaml to disable." >&2
           _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "" "lease-held" "2"
           exit 2
         fi
       fi
     fi
+    trap - ERR; set +E
 
     # PreToolUse. FOREIGN-TREE first (independent of CONTENTION/ANCHOR), then
     # the existing two-writers / anchor clauses if worktree_guard != off.
