@@ -196,6 +196,31 @@ out="$(runL "$WT/file.txt" "$WT" sB)"
 case "$out" in *"took over"*) ok_ "the takeover is announced" ;;
   *) no_ "takeover happened silently" ;; esac
 
+# ── part 3b: the same clean takeover under BSD `stat` semantics ─────────────
+# PR #1394 (macOS CI run 40030178445): the lease section runs under `set -E` + an
+# ERR trap, and _wg_mtime's GNU probe `stat -c %Y` is EXPECTED to fail on stock
+# macOS. Unguarded, that expected failure fired the trap and every stale-lease
+# check denied as an "internal error" — green on Linux, red only on macOS. This
+# shim makes the macOS shape reproducible on any host: `-c` is rejected like BSD
+# stat, `-f %m` prints the mtime. Built on python3, not GNU stat.
+# It BITES under bash 3.2 (the macOS shell), where a failing $(...) inside a
+# function still fires the inherited ERR trap in an `||` context; bash 5 suppresses
+# it there, so under Linux bash 5 this case is a control, not the teeth.
+BSDSTAT="$TMP/bsd-stat-bin"; mkdir -p "$BSDSTAT"
+cat > "$BSDSTAT/stat" <<'SHIM'
+#!/bin/sh
+case "$1" in
+  -f) [ "$2" = "%m" ] || exit 1; shift 2
+      exec python3 -c 'import os,sys; print(int(os.stat(sys.argv[1]).st_mtime))' "$@" ;;
+  *) echo "stat: illegal option -- ${1#-}" >&2; exit 1 ;;
+esac
+SHIM
+chmod +x "$BSDSTAT/stat"
+touch -t 200001010000 "$GHL/leases/"*/lease.json 2>/dev/null
+out="$(PATH="$BSDSTAT:$PATH" runL "$WT/file.txt" "$WT" sC)"
+[ "$(exit_of "$out")" = "0" ] && ok_ "BSD stat: a clean stale lease is still taken over (expected GNU-probe failure is not an ERR)" \
+  || no_ "BSD stat: clean stale lease denied — the fail-closed ERR trap fired on the portable stat fallback"
+
 # ── part 4: the anchor branch is never auto-committed ───────────────────────
 GHL="$TMP/ghanchor"
 posture "worktree_guard: off

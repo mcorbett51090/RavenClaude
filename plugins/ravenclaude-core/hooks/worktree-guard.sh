@@ -297,8 +297,13 @@ _wg_sha256() {
 # form runs. Leading-digits strip is a belt-and-suspenders against any stray trailing byte.
 _wg_mtime() {
   local m
-  m="$(stat -c %Y "$1" 2>/dev/null)"                    # GNU / Linux
-  [ -n "$m" ] || m="$(stat -f %m "$1" 2>/dev/null)"     # BSD / macOS
+  # ⛔ `|| m=""` on BOTH probes, not decoration (PR #1394, macOS CI run 40030178445):
+  # the lease section runs under `set -E` + an ERR trap (fail-closed), and on macOS the
+  # GNU probe is EXPECTED to fail. A bare failing assignment fired the trap, so every
+  # stale-lease check on stock macOS DENIED as an "internal error". The probe failing
+  # is the portable fallback working, not an error.
+  m="$(stat -c %Y "$1" 2>/dev/null)" || m=""                    # GNU / Linux
+  [ -n "$m" ] || m="$(stat -f %m "$1" 2>/dev/null)" || m=""     # BSD / macOS
   m="${m%%[!0-9]*}"
   printf '%s' "$m"
 }
