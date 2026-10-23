@@ -143,6 +143,69 @@ def test_detector_is_reused_from_html_lane():
     assert infer_office.infer.detect_data_shaped_literal("Executive Summary")["is_data_shaped"] is False
 
 
+_WRAPPED_DOC = (
+    b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    b'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'
+    b"<w:p><w:r><w:t>Plain intro</w:t></w:r></w:p>"
+    b"<w:p><w:hyperlink><w:r><w:t>Revenue $4,821,300</w:t></w:r></w:hyperlink></w:p>"
+    b"<w:sdt><w:sdtPr/><w:sdtContent><w:p><w:r><w:t>Backlog 1,203,400 units</w:t></w:r></w:p>"
+    b"</w:sdtContent></w:sdt>"
+    b'<w:p><w:ins w:id="1"><w:r><w:t>Margin 18.7%</w:t></w:r></w:ins></w:p>'
+    b"<w:p><w:r><w:t>Direct $9,999</w:t></w:r></w:p>"
+    b"</w:body></w:document>"
+)
+_WRAPPER_ANCHORS = {
+    "body/p[2]/hyperlink[1]": ("hyperlink", "Revenue $4,821,300"),
+    "body/sdt[1]": ("sdt", "Backlog 1,203,400 units"),
+    "body/p[3]/ins[1]": ("ins", "Margin 18.7%"),
+}
+
+
+def test_b10_unwalked_wrappers_surface_as_needs_review_and_are_badged():
+    import io
+    import zipfile
+
+    import rr_anchor
+
+    for sub_dir in ("rebind-manifest", "rebind-office"):
+        path = os.path.join(os.path.dirname(_SKILL_DIR), sub_dir)
+        if path not in sys.path:
+            sys.path.insert(0, path)
+    import build_manifest
+    import rebind_office
+
+    rsg, _ = infer_office.build_rsg(_WRAPPED_DOC, template_id="wrapped")
+    assert infer.validate_instance(rsg, infer.load_schema()) == []
+    index = _index_nodes(rsg["root"], {})
+    for anchor, (local, text) in _WRAPPER_ANCHORS.items():
+        node = index.get(anchor)
+        assert node is not None, f"B-10: no RSG node for the {local} wrapper"
+        assert node["class"] == "needs-review"
+        resolved = rr_anchor.ooxml_resolve(_WRAPPED_DOC, node["anchor"])
+        assert resolved.local_name == local and resolved.text() == text
+    # the plain-run binding is unchanged
+    plain = index["body/p[4]/r[1]"]
+    assert (plain["role"], plain["class"]) == ("kpi-value", "needs-review")
+
+    manifest, _ = build_manifest.build_manifest(
+        rsg, {}, {"all": []}, {"source_ref": "new", "value_domain": [], "source_period": None},
+        "0.1.0", 0.7)
+    bound = {b["anchor"]["value"]: b["class"] for b in manifest["bindings"]}
+    for anchor in _WRAPPER_ANCHORS:
+        assert bound.get(anchor) == "needs-review", f"B-10: wrapper {anchor} not bound"
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("[Content_Types].xml", '<?xml version="1.0"?><Types/>')
+        zf.writestr("word/document.xml", _WRAPPED_DOC)
+    out, _changes, nrc = rebind_office.rebind(buf.getvalue(), manifest, {})
+    assert nrc >= 3, f"B-10: rebind_office counted {nrc} needs-review node(s)"
+    out_doc = rebind_office.read_part(out, rebind_office.DOCUMENT_PART)
+    for anchor, (local, text) in _WRAPPER_ANCHORS.items():
+        node = rr_anchor.ooxml_resolve(out_doc, anchor)  # marker sits INSIDE the wrapper
+        assert node.local_name == local and rebind_office.NEEDS_REVIEW_TOKEN in node.text(), anchor
+        assert text in node.text(), "the flagged wrapper's own text must be left untouched"
+
+
 def test_xxe_dtd_is_rejected():
     hostile = (
         b'<?xml version="1.0"?>'

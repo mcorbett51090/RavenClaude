@@ -22,13 +22,15 @@ Usage:
       --provider xai --license commercial --indemnity none [--c2pa present] \\
       [--client] [--override "served via the paid BFL API"]
   provenance.py audit --ledger media/provenance.jsonl [--client]
-  provenance.py audit --dir media           # audit every *.jsonl under a dir
+  provenance.py audit --dir media           # audit every *.jsonl under a dir (gen-budget
+                                            # spend ledgers are skipped + listed on stderr)
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -47,6 +49,32 @@ NON_COMMERCIAL_MARKERS = (
     "non-commercial",
     "noncommercial",
 )
+
+# The FLUX dev mode under every common spelling. Each model/license/license_class field is
+# normalised first (lowercase, every run of non-alphanumerics -> "-"), so "FLUX.1 [dev]",
+# "flux_dev", "flux dev", "fal-ai/flux-kontext/dev" and "fal-ai/flux-1/dev" all read
+# "...flux-...-dev". schnell / pro variants do not match.
+FLUX_DEV_RE = re.compile(
+    r"\bflux(?:-?\d+(?:-\d+)?)?(?:-(?:kontext|krea|fill|redux|canny|depth))?-dev\b"
+)
+
+
+def _normalise(text: object) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", str(text).lower()).strip("-")
+
+
+def _is_non_commercial(e: dict) -> bool:
+    fields = [str(e.get(k, "")) for k in ("model", "license", "license_class")]
+    blob = " ".join(fields).lower()
+    if any(m in blob for m in NON_COMMERCIAL_MARKERS):
+        return True
+    return any(FLUX_DEV_RE.search(_normalise(f)) for f in fields)
+
+
+def _present(value: object) -> bool:
+    """A required field is present only as a non-blank string: str(None) is 'None' and
+    str([]) is '[]', so a stringified null/empty container must not count."""
+    return isinstance(value, str) and bool(value.strip())
 
 
 def _now_iso() -> str:
@@ -72,7 +100,7 @@ def cmd_record(args: argparse.Namespace) -> int:
         "for_client": bool(args.client),
         "override": (args.override or "").strip(),
     }
-    missing = [f for f in REQUIRED_FIELDS if not str(entry.get(f, "")).strip()]
+    missing = [f for f in REQUIRED_FIELDS if not _present(entry.get(f))]
     if missing:
         return _loud_fail(f"Refusing to record — missing required field(s): {', '.join(missing)}")
 
@@ -108,13 +136,12 @@ def _audit_entries(
     problems: list[str] = []
     warnings: list[str] = []
     for idx, e in enumerate(entries):
-        asset = e.get("asset", f"<entry {idx}>")
+        asset = e["asset"] if _present(e.get("asset")) else f"<entry {idx}>"
         for f in REQUIRED_FIELDS:
-            if not str(e.get(f, "")).strip():
+            if not _present(e.get(f)):
                 problems.append(f"{source}: {asset} — missing provenance field '{f}'")
-        blob = f"{e.get('model', '')} {e.get('license', '')} {e.get('license_class', '')}".lower()
         is_client = client_scope or bool(e.get("for_client"))
-        if is_client and any(m in blob for m in NON_COMMERCIAL_MARKERS):
+        if is_client and _is_non_commercial(e):
             override = str(e.get("override", "")).strip()
             if override:
                 # Escape hatch: a non-commercial marker with a recorded override reason
@@ -136,13 +163,28 @@ def _audit_entries(
     return problems, warnings
 
 
+def _is_spend_ledger(path: Path) -> bool:
+    """True only for a recognisable gen-budget spend ledger: it parses as JSON Lines, is
+    non-empty, every entry has 'line_cost' and none has 'asset'. Anything else (including a
+    malformed or mixed file) is NOT skipped, so an unknown file is still audited."""
+    try:
+        entries = _read_ledger(path)
+    except (ValueError, OSError):
+        return False
+    return bool(entries) and all("line_cost" in e and "asset" not in e for e in entries)
+
+
 def cmd_audit(args: argparse.Namespace) -> int:
     ledgers: list[Path] = []
     if args.dir:
         d = Path(args.dir)
         if not d.is_dir():
             return _loud_fail(f"--dir is not a directory: {d}")
-        ledgers = sorted(d.rglob("*.jsonl"))
+        found = sorted(d.rglob("*.jsonl"))
+        ledgers = [p for p in found if not _is_spend_ledger(p)]
+        for p in found:
+            if p not in ledgers:
+                sys.stderr.write(f"[provenance] skipped (gen-budget spend ledger): {p}\n")
         if not ledgers:
             return _loud_fail(f"No *.jsonl provenance ledgers found under {d}")
     elif args.ledger:
@@ -220,7 +262,11 @@ def main() -> int:
 
     aud = sub.add_parser("audit", help="audit a ledger (or a dir of ledgers) for traps + gaps")
     aud.add_argument("--ledger", help="path to a .jsonl ledger")
-    aud.add_argument("--dir", help="directory to scan recursively for *.jsonl")
+    aud.add_argument(
+        "--dir",
+        help="directory to scan recursively for *.jsonl (a recognisable gen-budget spend "
+        "ledger is skipped and listed on stderr; every other file is audited)",
+    )
     aud.add_argument("--client", action="store_true", help="treat every asset as client-scoped")
     aud.set_defaults(func=cmd_audit)
 

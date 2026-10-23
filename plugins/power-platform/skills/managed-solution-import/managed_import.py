@@ -28,8 +28,9 @@ OID). Credentials come from environment variables only (see knowledge/dataverse-
 acquisition.md): AZURE_CLIENT_ID / AZURE_TENANT_ID / AZURE_CLIENT_SECRET for the CI path.
 
 EXIT CODES
-  0 success · 2 usage/config error · 10 partial (some flows still Draft) ·
-  20 all reactivation attempts failed · 40 auth error · 50 pac import failed ·
+  0 success · 2 usage/config/file error · 10 partial (some flows still Draft) ·
+  20 all reactivation attempts failed, or Dataverse unreachable / replied in an unexpected
+  shape · 40 auth error (incl. token endpoint unreachable) · 50 pac import failed ·
   60 PROD guard blocked · 70 preflight failed.
 
 The `statecode=1`/`statuscode=2`/`category=5` Dataverse contract is marked
@@ -416,6 +417,12 @@ def acquire_token(org_url: str) -> str:
             tok = json.loads(r.read().decode())["access_token"]
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"token endpoint returned HTTP {e.code} {e.reason}") from None
+    except (urllib.error.URLError, TimeoutError) as e:
+        raise RuntimeError(f"token endpoint unreachable: {getattr(e, 'reason', e)}") from None
+    except (ValueError, KeyError, TypeError):  # not JSON, or no access_token in the reply
+        raise RuntimeError(
+            "token endpoint returned an unexpected reply (no access_token)"
+        ) from None
     _register_secret(tok)
     return tok
 
@@ -475,7 +482,15 @@ def patch_flow_active(
 def _load_config(path: str | None) -> dict:
     if not path:
         return {}
-    cfg = json.load(open(path, encoding="utf-8"))
+    try:
+        with open(path, encoding="utf-8") as fh:
+            cfg = json.load(fh)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"config file {path} is not valid JSON: {e.msg} (line {e.lineno})"
+        ) from None
+    if not isinstance(cfg, dict):
+        raise ValueError(f"config file {path} must contain a JSON object")
     problems = validate_config(cfg)
     if problems:
         _eprint("[managed-import] config validation failed:")
@@ -506,8 +521,73 @@ def _resolve_env(args, cfg: dict) -> tuple[str, str | None, str | None]:
     return env_url, settings_file, oid
 
 
-def _classified_prod(env_name: str | None, cfg: dict) -> bool:
-    return bool(env_name) and env_name in ((cfg.get("prod_guard") or {}).get("environments", []))
+def _host_of(url: object) -> str | None:
+    """Normalised host (lower-case, no trailing dot) of a URL, or None."""
+    host = (urlparse(str(url)).hostname or "").lower().rstrip(".") if url else ""
+    return host or None
+
+
+def _prod_env_name(env_name: str | None, env_url: str | None, cfg: dict) -> str | None:
+    """The PROD-guarded config environment this run targets, or None (B-14). Classified by
+    NAME (--env) and ALSO by the resolved URL: --env-url / --env dev --env-url <prod> reach a
+    prod org without naming it, so the host is compared against the url of every config env
+    listed in prod_guard.environments. An unknown URL stays unclassified (no new refusal)."""
+    guarded = (cfg.get("prod_guard") or {}).get("environments", [])
+    if env_name and env_name in guarded:
+        return env_name
+    host = _host_of(env_url)
+    if host:
+        for name in guarded:
+            entry = (cfg.get("environments") or {}).get(name)
+            if isinstance(entry, dict) and _host_of(entry.get("url")) == host:
+                return name
+    return None
+
+
+def _classified_prod(env_name: str | None, cfg: dict, env_url: str | None = None) -> bool:
+    return _prod_env_name(env_name, env_url, cfg) is not None
+
+
+def _write_baseline(path: str, data: dict) -> None:
+    """Write the baseline via a temp file + os.replace so a crash never leaves it truncated."""
+    tmp = f"{path}.tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2)
+    os.replace(tmp, path)
+
+
+def _pending_baseline_flows(path: str, env_url: str) -> list[dict]:
+    """Active flows recorded by a PRIOR run for this env whose baseline is still 'pending'
+    (that run never finished reactivating) — else []. A complete, legacy (no status), foreign-env
+    or unreadable baseline is not carried forward: it is re-captured as before (B-15)."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            old = json.load(fh)
+    except FileNotFoundError:
+        return []
+    except (OSError, ValueError) as e:
+        _eprint(
+            f"[managed-import] existing baseline {path} unreadable ({e}); capturing a fresh one"
+        )
+        return []
+    if not isinstance(old, dict) or old.get("status") != "pending":
+        return []
+    if _host_of(old.get("env_url")) != _host_of(env_url):
+        return []
+    flows = old.get("active_flows")
+    return [f for f in flows if isinstance(f, dict)] if isinstance(flows, list) else []
+
+
+def _mark_baseline_complete(args) -> None:
+    """Reactivation finished cleanly: the baseline is no longer needed by a retry (B-15)."""
+    path = args.baseline_file or "./pp-import-baseline.json"
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        data["status"] = "complete"
+        _write_baseline(path, data)
+    except (OSError, ValueError, TypeError) as e:
+        _eprint(f"[managed-import] could not mark baseline {path} complete: {e}")
 
 
 def cmd_baseline(args, cfg) -> int:
@@ -516,10 +596,30 @@ def cmd_baseline(args, cfg) -> int:
     opener = _build_opener(is_allowed_dataverse_host)
     flows = query_solution_flows(opener, env_url, token, oid)
     active = [f for f in flows if int(f.get("statecode", 0)) == STATE_ACTIVE]
-    out = {"env_url": env_url, "active_flows": active, "total_flows_queried": len(flows)}
     path = args.baseline_file or "./pp-import-baseline.json"
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(out, fh, indent=2)
+    # B-15: a prior run that disabled flows and then failed before reactivating leaves a
+    # 'pending' baseline. Re-baselining now would see those flows already Draft and forget
+    # them for good, so carry the pending baseline's active set forward (union by flow_key).
+    have = {k for f in active if (k := flow_key(f)) is not None}
+    carried = [
+        f
+        for f in _pending_baseline_flows(path, env_url)
+        if (k := flow_key(f)) is not None and k not in have
+    ]
+    if carried:
+        _eprint(
+            f"[managed-import] prior baseline {path} is still 'pending' (the previous run did "
+            f"not finish reactivating): carrying {len(carried)} flow(s) forward instead of "
+            f"overwriting it. Delete {path} to start fresh."
+        )
+        active = active + carried
+    out = {
+        "env_url": env_url,
+        "status": "pending",
+        "active_flows": active,
+        "total_flows_queried": len(flows),
+    }
+    _write_baseline(path, out)
     print(json.dumps({"baseline_file": path, "active": len(active), "total": len(flows)}, indent=2))
     return EXIT_OK
 
@@ -527,13 +627,22 @@ def cmd_baseline(args, cfg) -> int:
 def _read_baseline(args) -> list[dict]:
     path = args.baseline_file or "./pp-import-baseline.json"
     try:
-        return json.load(open(path, encoding="utf-8")).get("active_flows", [])
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
     except FileNotFoundError:
         _eprint(
             f"[managed-import] baseline file {path} not found — run `baseline` first; "
             "refusing to report success without a baseline (reactivation must be baseline-aware)"
         )
         raise SystemExit(EXIT_USAGE) from None
+    except ValueError as e:
+        _eprint(f"[managed-import] baseline file {path} is not valid JSON: {e}")
+        raise SystemExit(EXIT_USAGE) from None
+    flows = data.get("active_flows", []) if isinstance(data, dict) else None
+    if not isinstance(flows, list):
+        _eprint(f"[managed-import] baseline file {path} has no active_flows list")
+        raise SystemExit(EXIT_USAGE)
+    return flows
 
 
 def cmd_reactivate(args, cfg) -> int:
@@ -553,6 +662,8 @@ def cmd_reactivate(args, cfg) -> int:
     targets = reactivation_targets(baseline_active, current)
     if not targets:
         print(json.dumps({"targeted": 0, "activated": 0, "note": "no Draft baseline-Active flows"}))
+        if not args.dry_run:
+            _mark_baseline_complete(args)
         return EXIT_OK
     waits = retry_backoff_schedule(args.max_retries, args.retry_wait)
     activated = 0
@@ -591,9 +702,22 @@ def cmd_reactivate(args, cfg) -> int:
                 else:
                     _eprint(f"[managed-import] {name}: HTTP {e.code} {e.reason}")
                 break
+            except (urllib.error.URLError, TimeoutError, ValueError, KeyError) as e:
+                # A transport / reply-shape failure on THIS flow stays in the loop: retry it,
+                # then give up on it and carry on with the rest (B-16).
+                reason = getattr(e, "reason", e)
+                _eprint(
+                    f"[managed-import] {name}: {type(e).__name__}: {reason} (attempt {attempt + 1})"
+                )
+                if attempt < args.max_retries - 1:
+                    time.sleep(waits[attempt] if attempt < len(waits) else waits[-1])
+                    continue
+                break
         activated += 1 if ok else 0
     rc = map_results_to_exit(len(targets), activated)
     print(json.dumps({"targeted": len(targets), "activated": activated, "exit": rc}, indent=2))
+    if rc == EXIT_OK and not args.dry_run:
+        _mark_baseline_complete(args)
     return rc
 
 
@@ -648,6 +772,11 @@ def cmd_preflight(args, cfg) -> int:
         except urllib.error.HTTPError as e:
             _eprint(f"[managed-import] preflight query failed for {logical}: HTTP {e.code}")
             rows = []
+        except (urllib.error.URLError, TimeoutError) as e:  # unreachable env: unverifiable
+            _eprint(
+                f"[managed-import] preflight query failed for {logical}: {getattr(e, 'reason', e)}"
+            )
+            rows = []
         if not rows:
             missing.append(logical)
     if missing:
@@ -663,7 +792,8 @@ def cmd_preflight(args, cfg) -> int:
 def cmd_import(args, cfg) -> int:
     env_url, settings_file, oid = _resolve_env(args, cfg)
     # Step 0 — PROD guard (FM7: aware datetime; approved honored before tz can hard-fail).
-    if _classified_prod(args.env, cfg):
+    prod_name = _prod_env_name(args.env, env_url, cfg)
+    if prod_name:
         from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
         tzname = ((cfg.get("prod_guard") or {}).get("timezone")) or "UTC"
@@ -677,7 +807,7 @@ def cmd_import(args, cfg) -> int:
                 )
                 return EXIT_PROD_GUARD
             now = datetime.now().astimezone()
-        blocked, reason = prod_guard_verdict(now, args.env, cfg.get("prod_guard"), args.approved)
+        blocked, reason = prod_guard_verdict(now, prod_name, cfg.get("prod_guard"), args.approved)
         _eprint(f"[managed-import] PROD guard: {reason}")
         if blocked:
             return EXIT_PROD_GUARD
@@ -809,15 +939,32 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     _install_excepthook()
     args = build_parser().parse_args(argv)
-    cfg = _load_config(args.config)
     try:
+        cfg = _load_config(args.config)
         return args._fn(args, cfg)  # noqa: SLF001
+    except json.JSONDecodeError as e:  # a Dataverse reply that is not JSON (files raise ValueError)
+        _eprint(f"[managed-import] unexpected non-JSON reply from the service: {e.msg}")
+        return EXIT_ALL_FAILED
     except ValueError as e:  # config/URL validation
         _eprint(f"[managed-import] {e}")
         return EXIT_USAGE
     except RuntimeError as e:  # auth
         _eprint(f"[managed-import] auth error: {e}")
         return EXIT_AUTH
+    # B-16: nothing below may escape as a traceback + exit 1 — that is outside the documented
+    # exit-code contract and CI cannot tell it from a generic failure.
+    except urllib.error.HTTPError as e:  # an HTTP error no per-call handler caught
+        _eprint(f"[managed-import] HTTP {e.code} {e.reason} from the service")
+        return EXIT_AUTH if e.code in (401, 403) else EXIT_ALL_FAILED
+    except (urllib.error.URLError, TimeoutError) as e:  # DNS / connect / read timeout
+        _eprint(f"[managed-import] network error talking to the service: {getattr(e, 'reason', e)}")
+        return EXIT_ALL_FAILED
+    except KeyError as e:  # a reply row missing a field we need
+        _eprint(f"[managed-import] unexpected reply shape: missing key {e}")
+        return EXIT_ALL_FAILED
+    except OSError as e:  # config / baseline file unreadable or unwritable
+        _eprint(f"[managed-import] file error: {e}")
+        return EXIT_USAGE
 
 
 if __name__ == "__main__":

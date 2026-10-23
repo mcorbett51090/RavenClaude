@@ -30,6 +30,7 @@ All outputs are illustrative; validate against your cluster's measured numbers.
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 
 
@@ -48,8 +49,9 @@ def size_partitions(
         return 2
 
     effective_target = target_mps * headroom
-    # Ceiling division without importing math.
-    needed = int(-(-effective_target // per_consumer_mps))
+    # Round the ratio before the ceiling: 100 * 1.1 / 10 is 11.000000000000002 in binary
+    # floating point, which a bare ceiling turns into a phantom 12th partition.
+    needed = math.ceil(round(effective_target / per_consumer_mps, 9))
     needed = max(needed, 1)
 
     print("=== Partition / parallelism sizing ===")

@@ -7,7 +7,9 @@
 #   Teeth: a mutant whose reactivation_targets() returns [] no longer targets the recreated flow.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SK="$(cd "$HERE/../.." && pwd)/skills/managed-solution-import/managed_import.py"
+# MANAGED_IMPORT_PY lets a caller point the whole test at another copy of the module
+# (used to show the orchestration cases fail against a pre-fix tree).
+SK="${MANAGED_IMPORT_PY:-$(cd "$HERE/../.." && pwd)/skills/managed-solution-import/managed_import.py}"
 fails=0
 pass() { echo "  ✓ $1"; }
 fail() {
@@ -106,6 +108,220 @@ sys.exit(1 if bad else 0)
 PY
 }
 
+# Orchestration cases (mocked network + pac; no tenant). Section name in $2.
+assert_orch() {
+  python3 - "$1" "$2" <<'PY'
+import contextlib, importlib.util, io, json, os, sys, tempfile, types, urllib.error
+from datetime import datetime, timezone
+
+spec = importlib.util.spec_from_file_location("mi", sys.argv[1])
+mi = importlib.util.module_from_spec(spec); spec.loader.exec_module(mi)
+SECTION = sys.argv[2]
+TMP = tempfile.mkdtemp()
+checks = []
+def ck(name, cond): checks.append((name, bool(cond)))
+
+PROD = "https://prod.crm.dynamics.com"
+DEV = "https://dev.crm.dynamics.com"
+OTHER = "https://other.crm.dynamics.com"
+
+class FixedDT(datetime):  # Monday 2026-06-29 10:00 in whatever tz is asked for
+    @classmethod
+    def now(cls, tz=None):
+        return datetime(2026, 6, 29, 10, 0, tzinfo=tz or timezone.utc)
+mi.datetime = FixedDT
+
+state = {"flows": []}
+REAL_ACQUIRE_TOKEN, REAL_BUILD_OPENER = mi.acquire_token, mi._build_opener
+mi.acquire_token = lambda url: "tok"
+mi.query_solution_flows = lambda opener, org, tok, oid: [dict(f) for f in state["flows"]]
+mi._pac_on_path = lambda: True
+
+def call(argv, cfg_obj=None):
+    """Run mi.main in-process; return (rc, stderr). A raised exception is rc 'RAISED:<type>'."""
+    full = list(argv)
+    if cfg_obj is not None:
+        path = os.path.join(TMP, "cfg.json")
+        with open(path, "w") as fh: json.dump(cfg_obj, fh)
+        full += ["--config", path]
+    err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            rc = mi.main(full)
+    except SystemExit as e:  # the CLI's own deliberate exit, e.g. SystemExit(EXIT_USAGE)
+        rc = e.code
+    except BaseException as e:  # noqa: BLE001 - an escaped exception is the failure under test
+        rc = "RAISED:" + type(e).__name__
+    return rc, err.getvalue()
+
+if SECTION == "b14":
+    # B-14: the PROD business-hours guard must also classify by the RESOLVED env URL.
+    cfg = {"environments": {"prod": {"url": PROD}, "dev": {"url": DEV}},
+           "prod_guard": {"environments": ["prod"], "timezone": "UTC",
+                          "business_hours": {"window": "09:00-17:00"}}}
+    base = ["import", "--solution-path", "s.zip", "--skip-preflight", "--dry-run",
+            "--baseline-file", os.path.join(TMP, "b14.json")]
+    G = mi.EXIT_PROD_GUARD
+    ck("b14 control: --env prod is blocked", call(base + ["--env", "prod"], cfg)[0] == G)
+    ck("b14 --env-url equal to the prod url is blocked", call(base + ["--env-url", PROD], cfg)[0] == G)
+    ck("b14 --env dev --env-url <prod url> is blocked", call(base + ["--env", "dev", "--env-url", PROD], cfg)[0] == G)
+    ck("b14 prod url match is host-normalised (case)", call(base + ["--env-url", "https://PROD.crm.dynamics.com"], cfg)[0] == G)
+    ck("b14 --approved still overrides a url-classified prod", call(base + ["--env-url", PROD, "--approved"], cfg)[0] == mi.EXIT_OK)
+    ck("b14 a non-prod config url proceeds", call(base + ["--env-url", DEV], cfg)[0] == mi.EXIT_OK)
+    ck("b14 an unknown url stays unclassified (no new refusal)", call(base + ["--env-url", OTHER], cfg)[0] == mi.EXIT_OK)
+    ck("b14 --env dev alone proceeds", call(base + ["--env", "dev"], cfg)[0] == mi.EXIT_OK)
+
+if SECTION == "b15":
+    # B-15: a re-run after a failed pac import must not forget the flows that import disabled.
+    pac = {"fail": True}
+    def fake_run(argv, check=False):  # the managed import turns every flow off
+        for f in state["flows"]:
+            f["statecode"], f["statuscode"] = 0, 1
+        return types.SimpleNamespace(returncode=1 if pac["fail"] else 0)
+    def fake_patch(opener, org, tok, wid, oid):
+        for f in state["flows"]:
+            if f["workflowid"] == wid:
+                f["statecode"], f["statuscode"] = 1, 2
+    mi.subprocess.run = fake_run
+    mi.patch_flow_active = fake_patch
+    bpath = os.path.join(TMP, "b15.json")
+    def flow(i, name, code):
+        return {"workflowid": str(i), "name": name, "uniquename": "mc_" + name.lower(),
+                "statecode": code, "statuscode": 2 if code else 1}
+    def names(path):
+        return sorted(f["name"] for f in json.load(open(path))["active_flows"])
+    imp = ["import", "--env-url", DEV, "--solution-path", "s.zip", "--skip-preflight",
+           "--baseline-file", bpath, "--retry-wait", "0"]
+    state["flows"] = [flow(1, "A", 1), flow(2, "B", 1)]
+    rc1, _ = call(imp)
+    ck("b15 run 1: pac failure surfaces as EXIT_PAC_FAILED", rc1 == mi.EXIT_PAC_FAILED)
+    ck("b15 run 1 left the flows Draft", all(f["statecode"] == 0 for f in state["flows"]))
+    ck("b15 run 1 baseline holds A,B and is pending",
+       names(bpath) == ["A", "B"] and json.load(open(bpath)).get("status") == "pending")
+    pac["fail"] = False
+    rc2, err2 = call(imp)
+    ck("b15 run 2: the pending baseline is carried forward (A,B reactivated)",
+       rc2 == mi.EXIT_OK and all(f["statecode"] == 1 for f in state["flows"]))
+    ck("b15 run 2 baseline still names A,B", names(bpath) == ["A", "B"])
+    ck("b15 run 2 says it carried the pending baseline forward", "pending" in err2)
+    ck("b15 run 2 marks the baseline complete", json.load(open(bpath)).get("status") == "complete")
+    # A completed prior run -> a fresh baseline (operator turned A off deliberately).
+    state["flows"] = [flow(1, "A", 0), flow(2, "B", 1)]
+    rc3, _ = call(imp)
+    ck("b15 run 3 (prior complete): fresh baseline holds only B", names(bpath) == ["B"])
+    ck("b15 run 3 does not reactivate the deliberately-off flow",
+       rc3 == mi.EXIT_OK and state["flows"][0]["statecode"] == 0 and state["flows"][1]["statecode"] == 1)
+    # A pending baseline for a DIFFERENT environment is not merged.
+    json.dump({"env_url": OTHER, "status": "pending",
+               "active_flows": [{"uniquename": "mc_z", "name": "Z", "workflowid": "9"}]}, open(bpath, "w"))
+    state["flows"] = [flow(1, "A", 1)]
+    call(imp)
+    ck("b15 a pending baseline for another env is overwritten, not merged", names(bpath) == ["A"])
+    # A legacy baseline (no status key) is re-captured as today.
+    json.dump({"env_url": DEV, "active_flows": [{"uniquename": "mc_old", "name": "Old", "workflowid": "8"}]},
+              open(bpath, "w"))
+    state["flows"] = [flow(1, "A", 1)]
+    call(imp)
+    ck("b15 a legacy status-less baseline is re-captured", names(bpath) == ["A"])
+
+if SECTION == "b16":
+    # B-16: transport/shape/file errors must map to the documented exit codes, not a traceback.
+    bfile = os.path.join(TMP, "b16.json")
+    json.dump({"env_url": DEV, "status": "pending", "active_flows": [
+        {"uniquename": "mc_a", "name": "A", "workflowid": "1"},
+        {"uniquename": "mc_b", "name": "B", "workflowid": "2"}]}, open(bfile, "w"))
+    react = ["reactivate", "--env-url", DEV, "--baseline-file", bfile,
+             "--retry-wait", "0", "--max-retries", "2"]
+    def draft():
+        state["flows"] = [{"workflowid": str(i), "name": n, "uniquename": "mc_" + n.lower(),
+                           "statecode": 0, "statuscode": 1} for i, n in ((1, "A"), (2, "B"))]
+    def raiser(exc):
+        def f(*a, **k): raise exc
+        return f
+    real_query = mi.query_solution_flows
+
+    # (a) transport / body failures while querying flows
+    mi.query_solution_flows = raiser(urllib.error.URLError("temporary DNS failure"))
+    rc, err = call(react)
+    ck("b16 URLError while querying -> EXIT_ALL_FAILED, no escape", rc == mi.EXIT_ALL_FAILED)
+    ck("b16 the one-line message names the cause", "temporary DNS failure" in err)
+    mi.query_solution_flows = raiser(TimeoutError("timed out"))
+    ck("b16 TimeoutError while querying -> EXIT_ALL_FAILED", call(react)[0] == mi.EXIT_ALL_FAILED)
+    mi.query_solution_flows = raiser(json.JSONDecodeError("Expecting value", "", 0))
+    ck("b16 a non-JSON reply -> EXIT_ALL_FAILED (not a usage error)", call(react)[0] == mi.EXIT_ALL_FAILED)
+    mi.query_solution_flows = raiser(urllib.error.HTTPError(DEV, 403, "Forbidden", {}, None))
+    ck("b16 an unhandled HTTP 403 -> EXIT_AUTH", call(react)[0] == mi.EXIT_AUTH)
+    mi.query_solution_flows = raiser(urllib.error.HTTPError(DEV, 503, "Unavailable", {}, None))
+    ck("b16 an unhandled HTTP 503 -> EXIT_ALL_FAILED", call(react)[0] == mi.EXIT_ALL_FAILED)
+    mi.query_solution_flows = real_query
+
+    # (b) config / baseline file problems -> EXIT_USAGE
+    ck("b16 missing --config -> EXIT_USAGE", call(react + ["--config", os.path.join(TMP, "nope.json")])[0] == mi.EXIT_USAGE)
+    bad_cfg = os.path.join(TMP, "bad.json"); open(bad_cfg, "w").write("{not json")
+    ck("b16 unparseable --config -> EXIT_USAGE", call(react + ["--config", bad_cfg])[0] == mi.EXIT_USAGE)
+    list_cfg = os.path.join(TMP, "list.json"); open(list_cfg, "w").write("[1, 2]")
+    ck("b16 non-object --config -> EXIT_USAGE", call(react + ["--config", list_cfg])[0] == mi.EXIT_USAGE)
+    corrupt = os.path.join(TMP, "corrupt-baseline.json"); open(corrupt, "w").write("{")
+    ck("b16 corrupt baseline -> EXIT_USAGE",
+       call(["reactivate", "--env-url", DEV, "--baseline-file", corrupt])[0] == mi.EXIT_USAGE)
+
+    # (c) the token endpoint: unreachable / malformed -> EXIT_AUTH
+    class StubOpener:
+        def __init__(self, body=None, exc=None): self.body, self.exc = body, exc
+        def open(self, req, timeout=None):
+            if self.exc: raise self.exc
+            return io.BytesIO(self.body)
+    mi.acquire_token = REAL_ACQUIRE_TOKEN
+    saved_env = {k: os.environ.get(k) for k in ("AZURE_CLIENT_ID", "AZURE_TENANT_ID", "AZURE_CLIENT_SECRET")}
+    os.environ.update(AZURE_CLIENT_ID="cid", AZURE_TENANT_ID="tid", AZURE_CLIENT_SECRET="sekret")
+    try:
+        for label, stub in (("URLError", StubOpener(exc=urllib.error.URLError("no route"))),
+                            ("a reply without access_token", StubOpener(body=b"{}")),
+                            ("a non-JSON reply", StubOpener(body=b"<html>captive portal</html>"))):
+            mi._build_opener = lambda host_ok, _s=stub: _s
+            rc, err = call(react)
+            ck(f"b16 token endpoint: {label} -> EXIT_AUTH", rc == mi.EXIT_AUTH)
+            ck(f"b16 token endpoint: {label} never leaks the secret", "sekret" not in err)
+    finally:
+        mi._build_opener = REAL_BUILD_OPENER
+        mi.acquire_token = lambda url: "tok"
+        for k, v in saved_env.items():
+            if v is None: os.environ.pop(k, None)
+            else: os.environ[k] = v
+
+    # (d) per-flow isolation: one flow's transport failure must not skip the rest
+    def patch_flow(wid):
+        for f in state["flows"]:
+            if f["workflowid"] == wid:
+                f["statecode"], f["statuscode"] = 1, 2
+    def patch_a_fails(opener, org, tok, wid, oid):
+        if wid == "1": raise urllib.error.URLError("connection reset")
+        patch_flow(wid)
+    draft(); mi.patch_flow_active = patch_a_fails
+    rc, err = call(react)
+    ck("b16 one flow's URLError does not skip the next flow (partial -> EXIT_PARTIAL)", rc == mi.EXIT_PARTIAL)
+    ck("b16 ... flow B was still reactivated, A stayed Draft",
+       [f["statecode"] for f in state["flows"]] == [0, 1])
+    def patch_all_fail(opener, org, tok, wid, oid): raise urllib.error.URLError("down")
+    draft(); mi.patch_flow_active = patch_all_fail
+    ck("b16 every flow failing on transport -> EXIT_ALL_FAILED", call(react)[0] == mi.EXIT_ALL_FAILED)
+
+    # (e) a malformed flow row (no workflowid) must not escape as a KeyError traceback
+    state["flows"] = [{"uniquename": "mc_a", "name": "A", "statecode": 0, "statuscode": 1}]
+    ck("b16 a flow row without workflowid -> EXIT_ALL_FAILED, no escape", call(react)[0] == mi.EXIT_ALL_FAILED)
+
+    # (f) the real CLI process: no traceback, documented exit code
+    import subprocess
+    r = subprocess.run([sys.executable, sys.argv[1], "reactivate", "--env-url", DEV,
+                        "--config", os.path.join(TMP, "nope.json")], capture_output=True, text=True)
+    ck("b16 CLI: missing --config exits 2 with no Traceback", r.returncode == 2 and "Traceback" not in r.stderr)
+
+bad = [n for n, ok in checks if not ok]
+print("MISSING:" + ",".join(bad) if bad else "ALLPASS")
+sys.exit(1 if bad else 0)
+PY
+}
+
 echo "A — pure-logic core"
 out="$(assert_core "$SK")"
 if [ "$out" = "ALLPASS" ]; then pass "all core assertions hold"; else fail "core assertions failed -> $out"; fi
@@ -124,6 +340,18 @@ else
     fail "must-fail: neutered targeting still passed FM6 (no teeth) -> $mout"
   fi
 fi
+
+echo "C — orchestration (mocked network/pac): B-14 PROD guard also classifies by the resolved env url"
+out="$(assert_orch "$SK" b14)"
+if [ "$out" = "ALLPASS" ]; then pass "B-14 prod guard holds for --env-url / --env+--env-url, unknown urls unaffected"; else fail "B-14 orchestration failed -> $out"; fi
+
+echo "C — orchestration (mocked network/pac): B-15 a re-run after a failed pac import keeps the pending baseline"
+out="$(assert_orch "$SK" b15)"
+if [ "$out" = "ALLPASS" ]; then pass "B-15 pending baseline carried forward; completed/foreign/legacy baselines re-captured"; else fail "B-15 orchestration failed -> $out"; fi
+
+echo "C — orchestration (mocked network/pac): B-16 transport/shape/file errors map to the documented exit codes"
+out="$(assert_orch "$SK" b16)"
+if [ "$out" = "ALLPASS" ]; then pass "B-16 URLError/Timeout/JSON/KeyError/OSError map to exit codes; per-flow errors stay in the loop"; else fail "B-16 orchestration failed -> $out"; fi
 
 echo ""
 if [ "$fails" -eq 0 ]; then

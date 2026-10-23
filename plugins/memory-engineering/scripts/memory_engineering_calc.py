@@ -331,8 +331,12 @@ def cmd_cache_economics(a):
     # Units are cache-adjusted input tokens (tokens x multiplier). Multiply by
     # your model's input price per token for currency — deliberately not a flag
     # and never a constant here, because that price moves.
-    breaking = (invalidations * a.prefix_tokens * a.cache_write_multiplier
-                + max(0.0, turns - invalidations) * a.prefix_tokens
+    # The stable design pays one cold-start write, so the breaking design pays AT LEAST one
+    # too: max(inv, 1) writes. Charging only `inv` (< 1 for a rare invalidation) dropped that
+    # write and made the breaking design look cheaper than the stable one.
+    writes = max(invalidations, 1.0)
+    breaking = (writes * a.prefix_tokens * a.cache_write_multiplier
+                + max(0.0, turns - writes) * a.prefix_tokens
                 * a.cache_read_multiplier)
     stable = (a.prefix_tokens * a.cache_write_multiplier
               + max(0.0, turns - 1.0) * a.prefix_tokens * a.cache_read_multiplier)
@@ -344,8 +348,8 @@ def cmd_cache_economics(a):
     print(f"  Read multiplier     : {a.cache_read_multiplier:,.3f}x")
     print(f"  Invalidations/turn  : {a.invalidations_per_N_turns:,.4f}")
     print(f"  Turns/month         : {turns:,.0f}")
-    print("  Formula             : breaking = inv x prefix x write + "
-          "(turns - inv) x prefix x read")
+    print("  Formula             : breaking = max(inv, 1) x prefix x write + "
+          "(turns - max(inv, 1)) x prefix x read")
     print("                        stable   = prefix x write + "
           "(turns - 1) x prefix x read")
     print(f"  Invalidations/month : {invalidations:,.0f}")

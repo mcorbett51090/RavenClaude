@@ -53,6 +53,7 @@ SET LOCAL app.tenant_id = '<jwt-claim-tenant_id>';
 4. **`bypassrls` on the connection role** — superusers and roles with `BYPASSRLS` skip RLS entirely. ELT roles intentionally have `BYPASSRLS`; viewer-facing roles never should.
 5. **Missing index on `tenant_id`** — RLS-filtered queries scan whole tables without it. Production cost surprise.
 6. **Forgetting to add the policy to a new table** — the schema-deployment hook should detect tables with `tenant_id` but no `ENABLE ROW LEVEL SECURITY`.
+7. **`SET LOCAL app.tenant_id = $1` from a parameterised caller** — `SET` cannot take a bind parameter, so a driver that binds server-side (node-pg, for example) gets `syntax error at or near "$1"`. Parameterised callers must use `SELECT set_config('app.tenant_id', $1, true)` (`true` = transaction-local, the same scope as `SET LOCAL`), never string-interpolate the tenant id into the `SET` text.
 
 ## Cross-boundary denial test (ships alongside every RLS schema)
 
