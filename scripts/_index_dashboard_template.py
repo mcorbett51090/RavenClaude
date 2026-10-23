@@ -781,6 +781,9 @@ TEMPLATE = r"""<!doctype html>
          window.__dashApp exists when route() first runs. IIFE-wrapped so its
          globals (svg/toast/esc…) can't collide with the shell's. -->
     <script>
+      // Where the packed decision-tree shards (pack-NN.js) live, relative to THIS page. The dashboard
+      // fragment's loader (visual_pack.CLIENT_JS) reads it lazily; dashboard.html uses its default.
+      window.__rcTreeBase = "plugins/ravenclaude-core/knowledge/tree-visuals/";
       /*__DASH_JS__*/
     </script>
 
@@ -1397,10 +1400,12 @@ TEMPLATE = r"""<!doctype html>
           const one = (el) => {
             const title = el.getAttribute("data-title") || "Decision tree";
             const when = el.getAttribute("data-when") || "";
-            const src = el.getAttribute("data-svg") || "";
-            // Lazy <img> — the browser fetches the SVG only when this <details> is
-            // opened/scrolled near, so the portal never ships 600+ inlined diagrams.
-            const img = src ? `<img loading="lazy" decoding="async" src="${esc(src)}" alt="${esc(title)} decision tree" class="dt-tree-img">` : "";
+            const tid = el.getAttribute("data-tree") || "";
+            const pack = el.getAttribute("data-pack") || "";
+            // Lazy <img> with no src — the rc-tree-loader (visual_pack.CLIENT_JS, in the dashboard
+            // JS above) loads the packed shard and sets the image when this <details> is opened,
+            // so the portal never ships 600+ inlined diagrams.
+            const img = pack && tid ? `<img decoding="async" data-tree="${esc(tid)}" data-pack="${esc(pack)}" alt="${esc(title)} decision tree" class="dt-tree-img">` : "";
             return `<details class="dt-tree"><summary class="dt-tree-summary"><span class="dt-tree-title">${esc(title)}</span>${when ? `<span class="dt-tree-when">${esc(when)}</span>` : ""}</summary><div class="dt-tree-svg">${img}</div></details>`;
           };
           return { count: mine.length, html: `<div class="section-title"><h2>Decision trees <span class="hint">${mine.length}</span></h2></div><p class="dt-tree-intro">When-this-applies guidance these agents follow. Click to expand each flow.</p><div class="dt-tree-list">${mine.map(one).join("")}</div>` };

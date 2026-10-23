@@ -134,7 +134,8 @@ on that same page.
 
 Research for "make handing a Wallet business card to someone as frictionless as possible."
 Tags: **DOC** = a primary source says it (quoted) · **MEAS** = a credible hands-on report ·
-**UNVER** = claimed or inferred, not proven. New ledger items are #30–#37 in [`verify.md`](verify.md).
+**UNVER** = claimed or inferred, not proven. New ledger items are #30–#37 in [`verify.md`](verify.md)
+(#38 added 2026-10-18 with § Straight to Wallet).
 
 ### The shape of the answer
 
@@ -160,7 +161,7 @@ wallet from the link — the gap a card product can own.
 | 6 | **Hold two iPhones together** | open pass, hold phones | Accept the AirDrop offer | iPhone ↔ iPhone, "eligible passes", iOS 17.2+ | DOC 111112: "hold your iPhone a few centimeters from the top of the other person's iPhone. A glow will appear…". Apple never defines **eligible** (#30); proximity AirDrop is DOC'd for "someone **in your contacts**". Do **not** promise it — see § Hold-to-share, in detail. |
 | 7 | **Android Tap to share** (NFC-started Quick Share) | overlap phone tops | accept | Android 17, Pixel 6+; Samsung Fold8/Flip8 "coming soon" | DOC [support.google.com/android/answer/17161144](https://support.google.com/android/answer/17161144): shares "contact information, photos, videos, links, location"; "Tap to share is available for Pixel 6 and newer phones running Android 17 and higher." Free if you offer #4. |
 | 8 | **Quick Share → iPhone (AirDrop interop)** | share sheet | iPhone must set *Everyone for 10 Minutes* | Pixel 8a+ / Galaxy S24+ → iPhone | DOC (Pixel help): files; links **UNVER**. |
-| 9 | **NameDrop** | hold iPhones | accept | iPhone ↔ iPhone | Shares the Contacts *My Card*, not the pass (no API — #5). Lever: coach owners to put the card URL in *My Card*. |
+| 9 | **NameDrop** | hold iPhones | accept | iPhone ↔ iPhone | Swaps contact details, never the pass or the card link (no API — #5). DOC ([Apple Personal Safety guide](https://support.apple.com/guide/personal-safety/secure-namedrop-ips97e16d3b1/web)): "NameDrop shares only your name, the phone number or email address you choose, and Contact Poster information" — a URL in *My Card* does **not** travel, so coaching owners to add the card URL there does nothing (corrected 2026-10-18). |
 
 ### Hold-to-share, in detail (research 2026-10-14)
 
@@ -205,6 +206,55 @@ hold-together gesture is exempt from the code: **not found** (#36).
 | **Hidden buttons that show anyway** | A component library's `.btn { display:inline-flex }` beats the UA `[hidden]` rule. Measured on a production card page (2026-10-14): `hidden` set, `display:flex`, 53 px tall — a dead Share button on every desktop. | `[hidden]{display:none!important}` wherever script un-hides controls. |
 | **Strict CSP on the card host** | A `script-src` without `'self'`/inline blocks the page's own share script; `form-action 'none'` refuses a share-back form submit (CSP semantics). | Ship the card script as a **same-origin file**; allow exactly the form's target origin. |
 | **Desktop visitor** | DOC ([Add to Apple Wallet guidelines](https://developer.apple.com/wallet/add-to-apple-wallet-guidelines/)): pages opened elsewhere should say "To add this [pass] to Wallet, open this [email, web page] on your iPhone". | Keep the QR on the page; a share button degrades to **Copy link**. |
+
+### Straight to Wallet from the QR and the tag (built 2026-10-18)
+
+Built in RavenPower (RavenPower-Website PR #685, ravenpower-app #18, RavenPower-website-factory
+#102). It drops the receiver's steps from *camera → page → Add to Apple Wallet → Add* to
+*camera → Add*.
+
+**The pattern.**
+
+- **Only the scan carriers are marked.** The Apple pass's QR and the NFC tag carry the card URL
+  plus a marker **fragment**, `#add-to-wallet` (the Google pass's QR does not — Save-JWT row
+  below). Shared links, printed links and the holder's own links to
+  the card stay plain — otherwise opening your own card re-offers its pass.
+- **When the card page's script sees exactly that fragment**, it (1) removes it with
+  `history.replaceState`, then (2) about 150 ms after paint navigates to *this phone's* Wallet
+  link: the `.pkpass` on iPhone/iPad; on Android the Google save link **only when a native Google
+  pass exists** — never the `.pkpass` import on Android (it loses updates, § Receiving-page traps).
+  The card page stays underneath, so **Cancel** lands on the card.
+- **It does nothing** in an in-app browser, on a computer, or when the card has no Wallet button.
+  After an auto-open the two-step "Save contact + Wallet" button is not set up.
+
+**Why a fragment, not a query parameter.**
+
+- The server never sees a fragment, so static hosts and edge caches serve the same object and no
+  server change is needed.
+- A page without the script ignores it.
+- It survives a redirect: when a 3xx `Location` has no fragment, the user agent keeps the
+  original one (RFC 9110 §10.2.2 — DOC, not re-read 2026-10-18).
+
+**Fail closed** (from a security review). No auto-open unless `replaceState` succeeded — otherwise
+Back returns to the marked URL and runs it again. Navigate only to a same-site path
+(`/^\/(?!\/)/`) or an `https://` URL — never `javascript:`, `data:`, `http:` or protocol-relative
+`//host` — because the same script ships to hand-built pages whose markup is authored elsewhere.
+
+| Constraint | Evidence | Rule |
+|---|---|---|
+| **Google Save-JWT budget** | MEAS (2026-10-18): a rich card's compact-tier Save JWT measured 1,791 of Google's 1,800-character safe limit ([`google.md`](google.md), DOC). Adding the 14-character fragment to the Google object's barcode pushed it over, and the add-time pass shed to the bare tier (title and colour lost). | The **Google** pass's QR does **not** carry the marker. Anything added to a Google object costs about 4/3 of its length in the Save JWT. Revisit when the Save link carries only a REST-created object id. |
+| **Apple: a barcode change is a Wallet push** | MEAS (2026-10-18): changing the barcode `message` changes `pass.json`, so the update-service version moves and every holder gets an update push on the pass's next build — silent, since there is no `changeMessage`. A key-by-key diff of 8 builds showed exactly one changed key (`barcodes[0].message`); images and `rev` unchanged. | Treat it as a Wallet push that needs the owner's GO before the production deploy. |
+| **NFC tag capacity (NTAG213)** | 144 bytes of user memory − 3 (Type-2 TLV: type, length, terminator) − 4 (NDEF short-record header: flags, type length, payload length, type `U`) = a **137-byte URI payload** (the identifier code plus the URL after the abbreviated prefix). DOC (NXP datasheet; NFC Forum Type 2 / NDEF formats), not re-read 2026-10-18. Which tag type to buy is still #13. | Keep the marker only while the marked record still fits; otherwise write the plain URL. The marker must never be what makes a tag unwritable. |
+
+**Measured (#38, partly resolved):** MEAS (owner device test on a real iPhone, 2026-10-18): a card
+URL ending `#add-to-wallet`, opened directly in Safari on RavenPower's preview
+(`preview.ravenpower-sites.pages.dev/connect`) and on production (`www.ravenpower.net/connect`),
+showed Wallet's pass sheet (Add / review) with **no tap**. So iOS Safari does present the
+Add-to-Wallet sheet for the script-initiated `location.assign()` to the `.pkpass`, about 150 ms
+after page load, without user activation. **Not yet recorded:** the iOS version, the Camera QR
+banner and NFC-tag notification entry points themselves (the test opened the URL directly in
+Safari), and a non-Safari default browser. If it does not fire on one of those, the person simply
+lands on the card.
 
 ### Google: the second person to save the card
 

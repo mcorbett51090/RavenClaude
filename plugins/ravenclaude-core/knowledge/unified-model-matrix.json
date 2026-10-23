@@ -30,17 +30,17 @@
     "claude": {
       "fast": {
         "model_alias": "haiku",
-        "model_id_hint": "claude-haiku-4-5-20251001",
+        "model_id_hint": "claude-haiku-5-5",
         "notes": "Volume / summarize / extract / inventory"
       },
       "balanced": {
         "model_alias": "sonnet",
-        "model_id_hint": "claude-sonnet-5",
+        "model_id_hint": "claude-sonnet-5-5",
         "notes": "Bounded code edits against a plan"
       },
       "top": {
         "model_alias": "opus",
-        "model_id_hint": "claude-opus-4-8",
+        "model_id_hint": "claude-opus-5-5",
         "notes": "Gates, adjudication, Team Lead judgment"
       }
     },

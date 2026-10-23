@@ -67,8 +67,8 @@ function selfTest() {
     errors.push("grok fast vs balanced must differ on perspective");
   if (gt.model.startsWith("claude-")) errors.push("grok top must not be claude-*");
   const missing = resolveTier(undefined, "top", data);
-  if (missing.model !== "claude-opus-4-8")
-    errors.push("default host top should be claude-opus-4-8");
+  if (missing.model !== "claude-opus-5-5")
+    errors.push("default host top should be claude-opus-5-5");
   if (errors.length) {
     console.log("substrate-tier-map.js self-test FAIL:");
     for (const e of errors) console.log("  -", e);

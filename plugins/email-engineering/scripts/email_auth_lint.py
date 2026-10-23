@@ -68,11 +68,23 @@ def lint_spf(record: str) -> list[tuple[str, str]]:
     elif lookups >= 8:
         findings.append(("WARN", f"{lookups}/10 DNS-lookup mechanisms — close to the SPF limit."))
 
-    # The terminal 'all' mechanism.
+    # The terminal 'all' mechanism -- or, instead of it, a redirect= modifier that hands the
+    # policy to another domain's record (a valid way to end an SPF record).
     all_tok = next((t for t in tokens if t.lower().lstrip("+-~?") == "all"), None)
+    has_redirect = any(t.lower().startswith("redirect=") for t in tokens)
     if all_tok is None:
-        findings.append(("WARN", "No terminal 'all' mechanism — add '~all' or '-all'."))
+        if not has_redirect:
+            findings.append(("WARN", "No terminal 'all' mechanism — add '~all' or '-all'."))
     else:
+        if has_redirect:
+            findings.append(
+                (
+                    "WARN",
+                    "Both 'redirect=' and an 'all' mechanism — redirect= is only consulted when "
+                    "no mechanism matches and 'all' always matches, so it is never used. "
+                    "Keep one of them.",
+                )
+            )
         qualifier = all_tok[0] if all_tok[0] in "+-~?" else "+"
         if qualifier == "+":
             findings.append(("ERROR", "'+all' passes ALL senders — this is effectively no SPF."))

@@ -10,7 +10,11 @@
 export interface SquareClientConfig {
   accessToken: string;
   environment: "sandbox" | "production";
+  /** Abort a request Square has not answered within this many ms. Default 10_000. */
+  timeoutMs?: number;
 }
+
+const DEFAULT_TIMEOUT_MS = 10_000;
 
 // [unverified -- training knowledge] bump per Square's API version
 // changelog before go-live: https://developer.squareup.com/docs/build-basics/api-lifecycle
@@ -26,6 +30,25 @@ export class SquareApiError extends Error {
     this.status = status;
     this.body = body;
   }
+}
+
+/**
+ * Square did not answer within `timeoutMs`. The request may still have been
+ * applied upstream, so retry a mutating call with the SAME idempotency key.
+ */
+export class SquareTimeoutError extends Error {
+  readonly timeoutMs: number;
+
+  constructor(path: string, timeoutMs: number) {
+    super(`Square API request to ${path} timed out after ${timeoutMs} ms`);
+    this.name = "SquareTimeoutError";
+    this.timeoutMs = timeoutMs;
+  }
+}
+
+function isAbortOrTimeout(err: unknown): boolean {
+  const name = (err as { name?: unknown } | null)?.name;
+  return name === "TimeoutError" || name === "AbortError";
 }
 
 /** Reads Square credentials from env only -- never hard-code a key (CLAUDE.md §2 #4). */
@@ -55,17 +78,29 @@ export async function squareFetch<T>(
   init: { method: "GET" | "POST"; body?: unknown },
   config: SquareClientConfig,
 ): Promise<T> {
-  const response = await fetch(baseUrl(config.environment) + path, {
-    method: init.method,
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${config.accessToken}`,
-      "square-version": SQUARE_API_VERSION,
-    },
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
-  });
+  const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  let response: Response;
+  try {
+    response = await fetch(baseUrl(config.environment) + path, {
+      method: init.method,
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${config.accessToken}`,
+        "square-version": SQUARE_API_VERSION,
+      },
+      body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (err) {
+    if (isAbortOrTimeout(err)) throw new SquareTimeoutError(path, timeoutMs);
+    throw err;
+  }
 
-  const json = (await response.json().catch(() => ({}))) as unknown;
+  // The signal also covers a body that stalls after the headers arrive.
+  const json = (await response.json().catch((err: unknown) => {
+    if (isAbortOrTimeout(err)) throw new SquareTimeoutError(path, timeoutMs);
+    return {};
+  })) as unknown;
   if (!response.ok) {
     throw new SquareApiError(
       `Square API request to ${path} failed with ${response.status}`,

@@ -42,6 +42,11 @@ def main() -> int:
     cfg = {"panel": {"thor": {"model": "mock"}}, "confidence_threshold": 0.55}
     # Heimdall abstains; Forseti + Mímir vote a confident unanimous 'yes' on a smuggled
     # framing. Thor is mocked to 'defer' via THING_DECIDE_MOCK_VERDICT=heimdall-abstain.
+    # The decide engine honours a mock only with the harness marker and outside a
+    # live session (thing-decide.py _mock_gate).
+    os.environ.pop("CLAUDECODE", None)
+    os.environ.pop("THING_DECIDE_LIVE_SESSION", None)
+    os.environ["THING_DECIDE_ALLOW_MOCK"] = "1"
     os.environ["THING_DECIDE_MOCK_VERDICT"] = "heimdall-abstain"
     seat_results = {
         "forseti": _voted("forseti", "yes"),

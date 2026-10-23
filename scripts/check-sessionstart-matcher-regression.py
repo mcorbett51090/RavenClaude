@@ -69,14 +69,28 @@ _SOURCE_HOOKS = frozenset(
         "worktree-guard.sh",  # matched by basename; "register" arg stripped below
         "thing-denial-kb-recall.sh",
         "dashboard-autostart.sh",
+        "dashboard-prompt.sh",  # unconfigured-project prompt; host-neutral wording, so
+        # every host projector derives it from hooks.json and none needs a _SKIP entry
         "caveman-route-hook.sh",
         "oath-hook.sh",
         "plugin-lifecycle-sweep.sh",
         "alias-deprecation-advisory.sh",
         "routine-reserve-hook.sh",  # matched by basename; "--event session" stripped
         "spectate-emit.sh",  # observe-only Spectate emitter (v0.2)
+        "env-integrity-guard.sh",  # AppSec hook-env: quarantine notice ("session" arg stripped)
     }
 )
+
+# env-integrity-guard.sh reads the Claude-Code-only `.claude/settings.json` env
+# block; every other host's generator `_SKIP`s it (same reason in each).
+_ENV_GUARD = "env-integrity-guard.sh"
+
+# Check B exemption set: EMPTY. The repo's own dev mirror (.claude/settings.json)
+# no longer carries an `env` block (RAVENCLAUDE_TEAM_MODE was unread;
+# RAVENCLAUDE_WORKTREE_ROOT's value is rcwt's built-in default, see bin/rcwt), so
+# env-integrity-guard.sh is mirrored there and checked like every other hook.
+# Keep it empty: the guard is strict, with no allowlist.
+_SETTINGS_PARITY_EXEMPT: frozenset = frozenset()
 _COMPACT_HOOK = "compact-anchor.sh"
 
 # The full canonical SessionStart hook set, across ALL matcher lanes (the
@@ -99,6 +113,7 @@ _GEMINI_HOST_EXEMPT = frozenset(
         # generate-gemini-hooks.py's _SKIP entry for the same hook.
         "routine-reserve-hook.sh",  # claude.ai Routines + Claude Code statusline
         # data only; see the same generator's _SKIP entry.
+        _ENV_GUARD,
         # spectate-emit.sh is NOT exempt: v0.7 per-event skip wires SessionStart
         # (and PreToolUse/PostToolUse); only unmapped lifecycle events stay skipped.
     }
@@ -109,7 +124,7 @@ _GEMINI_HOST_EXEMPT = frozenset(
 # store does not exist on this host" -- identical reasoning to Gemini's).
 # spectate-emit.sh is NOT exempt here: Copilot wires it (SubagentStart mode
 # remapped; other events project).
-_COPILOT_HOST_EXEMPT = frozenset({"caveman-route-hook.sh", "routine-reserve-hook.sh"})
+_COPILOT_HOST_EXEMPT = frozenset({"caveman-route-hook.sh", "routine-reserve-hook.sh", _ENV_GUARD})
 
 # Same exemption again, independently declared by generate-cursor-hooks.py's
 # own `_SKIP` map (identical reasoning for caveman/routine-reserve).
@@ -120,6 +135,7 @@ _CURSOR_HOST_EXEMPT = frozenset(
     {
         "caveman-route-hook.sh",
         "routine-reserve-hook.sh",
+        _ENV_GUARD,
     }
 )
 
@@ -561,7 +577,15 @@ def _session_start_groups(hooks_json_path: Path) -> dict:
             cmd = h.get("command", "")
             # "worktree-guard.sh register" -> basename is "register"; take the
             # script token specifically (first path-shaped word).
-            for tok in cmd.split():
+            # The hardened launch line (`/usr/bin/env -u ... PATH=/usr/...
+            # /bin/bash --noprofile --norc "${CLAUDE_PLUGIN_ROOT}/hooks/x.sh"`)
+            # puts path-shaped tokens before the script: prefer the first
+            # token naming the plugin root (hooks.json: ${CLAUDE_PLUGIN_ROOT};
+            # the dev mirror: ${CLAUDE_PROJECT_DIR}/plugins/...), else the
+            # first path-shaped word.
+            toks = cmd.split()
+            rooted = [t for t in toks if "CLAUDE_PLUGIN_ROOT" in t or "CLAUDE_PROJECT_DIR}/plugins/" in t]
+            for tok in rooted or toks:
                 if "/" in tok or tok.endswith(".sh"):
                     names.add(_basename(tok))
                     break
@@ -592,8 +616,8 @@ def check_b_parity(
 ) -> None:
     a = _session_start_groups(hooks_json_path or _HOOKS_JSON)
     b = _session_start_groups(settings_json_path or _SETTINGS_JSON)
-    a_source = a.get(_SOURCE_MATCHER, set())
-    b_source = b.get(_SOURCE_MATCHER, set())
+    a_source = a.get(_SOURCE_MATCHER, set()) - _SETTINGS_PARITY_EXEMPT
+    b_source = b.get(_SOURCE_MATCHER, set()) - _SETTINGS_PARITY_EXEMPT
     if a_source != b_source:
         only_a = sorted(a_source - b_source)
         only_b = sorted(b_source - a_source)

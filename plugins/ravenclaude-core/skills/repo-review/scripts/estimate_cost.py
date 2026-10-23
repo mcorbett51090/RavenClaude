@@ -218,12 +218,23 @@ def estimate(
     b = max(b, 0)
 
     full_coverage = b >= batches_planned
-    batches_affordable = batches_planned if full_coverage else min(b, batches_planned)
-    batches_affordable = max(batches_affordable, 0)
+    # min(b, batches_planned) already yields batches_planned on full coverage and
+    # b otherwise (b is floored at 0 above); the max(0, …) guards only a
+    # pathological negative batches_planned. Collapsed from the prior 3-line branch.
+    batches_affordable = max(0, min(b, batches_planned))
 
     review_agents = batches_affordable * review_agents_per_batch_with_cache_checks
     total_agents = review_agents + v_max + k_max + o
     waves_at_16_concurrency = math.ceil(total_agents / 16) if total_agents > 0 else 0
+
+    # Surface — rather than silently emit — a total that overruns the requested
+    # budget or the Workflow tool's hard cap. A large --verify-cap/--fix-cap/
+    # --overhead can push total_agents past agent_budget_effective (and even past
+    # the 1000-call hard cap) while batches_affordable still reports "affordable",
+    # because those caps are added AFTER the per-batch budget math. Without these
+    # flags that overrun was invisible in the estimate.
+    total_exceeds_budget = total_agents > agent_budget_effective
+    total_exceeds_hard_cap = total_agents > WORKFLOW_AGENT_CALL_HARD_CAP
 
     return {
         "effort_tier": tier,
@@ -245,6 +256,8 @@ def estimate(
         "full_coverage": full_coverage,
         "review_agents": review_agents,
         "total_agents": total_agents,
+        "total_exceeds_budget": total_exceeds_budget,
+        "total_exceeds_hard_cap": total_exceeds_hard_cap,
         "waves_at_16_concurrency": waves_at_16_concurrency,
         "full": full,
         "reviewable_files": reviewable,
@@ -391,6 +404,8 @@ EXPECTED_OUTPUT_KEYS = {
     "full_coverage",
     "review_agents",
     "total_agents",
+    "total_exceeds_budget",
+    "total_exceeds_hard_cap",
     "waves_at_16_concurrency",
     "full",
     "reviewable_files",
@@ -784,6 +799,31 @@ def run_self_test() -> int:
             "CLI output is valid JSON round-tripping via json.loads with all Output keys present",
             json_ok and keys_ok,
             detail,
+        )
+
+        # --- Assertion 9: over-budget / over-cap flags surface a silent overrun ---
+        # A huge --verify-cap pushes total_agents past the budget AND the hard cap
+        # even while batches_affordable still reports "affordable"; the flags must fire.
+        result_overrun = estimate(
+            plan=_make_plan(10),
+            tier="high",
+            cross_model_flag=False,
+            agent_budget=900,
+            verify_cap=1500,
+            fix_cap=None,
+            overhead=6,
+        )
+        check(
+            "overrun: a 1500 verify-cap sets total_exceeds_budget and total_exceeds_hard_cap",
+            result_overrun["total_exceeds_budget"] is True
+            and result_overrun["total_exceeds_hard_cap"] is True,
+            str(result_overrun.get("total_agents")),
+        )
+        check(
+            "overrun: a normal estimate leaves both flags False",
+            result_high["total_exceeds_budget"] is False
+            and result_high["total_exceeds_hard_cap"] is False,
+            str(result_high.get("total_agents")),
         )
 
     failing = [name for name, ok, _ in results if not ok]

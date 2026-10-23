@@ -39,13 +39,13 @@ test -d plugins/edtech-partner-success/bi-report/lenses/motion && echo "T4 ✓" 
 
 | Tier | Brief | Owns |
 |---|---|---|
-| **T0** | `docs/plans/archive/2026-06-04-partner-success-command-center/build-plan-tier-0-foundation.md` | The canonical `data.schema.json`, the fixture contract test, the empty-state component, the design tokens. **No charts yet.** |
-| **T0.5** | `build-plan-tier-0.5-connectors.md` | The first real source connectors (Salesforce, Planhat, support, rostering) writing into `data.json`. **No new UI.** |
-| **T1** | `build-plan-tier-1-daily.md` | Portfolio Summary + Daily Action Center + Health Distribution — the operational home page. |
-| **T2** | `build-plan-tier-2-account-360.md` | Account drill-down, timeline, per-component evidence. |
-| **T3** | `build-plan-tier-3-segments.md` | K-12 / higher-ed / corporate-L&D lenses; persona-segmented sentiment. |
-| **T4** | `build-plan-tier-4-motions.md` | Renewal motion, recovery motion, expansion motion lenses. |
-| **T5** | `build-plan-tier-5-ai.md` (**deferred** — do not start without explicit approval) | AI summarization, recommended-NBA, narrative generation. |
+| **T0** | `docs/plans/archive/2026-06-04-partner-success-command-center/plan.md` § "Tier 0" | The canonical `data.schema.json`, the fixture contract test, the empty-state component, the design tokens. **No charts yet.** |
+| **T0.5** | `build-plan-tier-0.5-real-connectors.md` | The first real source connectors (Salesforce, Planhat, support, rostering) writing into `data.json`. **No new UI.** |
+| **T1** | `build-plan-tier-1-daily-operating-system.md` | Portfolio Summary + Daily Action Center + Health Distribution — the operational home page. |
+| **T2** | `build-plan-tier-2-drill-downs.md` | Account drill-down, timeline, per-component evidence. |
+| **T3** | `build-plan-tier-3-segment-lenses.md` | K-12 / higher-ed / corporate-L&D lenses; persona-segmented sentiment. |
+| **T4** | `build-plan-tier-4-motion-lenses.md` | Renewal motion, recovery motion, expansion motion lenses. |
+| **T5** | _no brief yet_ (**deferred** — do not start without explicit approval) | AI summarization, recommended-NBA, narrative generation. |
 
 **Tier-boundary discipline:** if Tier N's gate-1 check returns "✓" but Tier N+1's check returns "✗", you are working on Tier N+1. If you find yourself opening Tier N+1's brief while a Tier N file is still in your diff, **stop and split the PR**.
 

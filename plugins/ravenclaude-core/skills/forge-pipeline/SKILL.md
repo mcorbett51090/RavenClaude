@@ -259,7 +259,7 @@ is fail-closed. Same model with different `effort` or `perspective` is allowed
 (Grok Build CLI only dispatches `grok-4.5` / `grok-4.6`; `fast` vs `balanced`
 share `grok-4.5` and diverge on `effort=low`/`perspective=scanner` vs
 `effort=high`/`perspective=architect`). Spec: Claude `A=opus,B=sonnet` →
-`claude-opus-4-8` vs `claude-sonnet-5`. Grok `A=opus,B=sonnet` → `grok-4.6` vs
+`claude-opus-5-5` vs `claude-sonnet-5-5`. Grok `A=opus,B=sonnet` → `grok-4.6` vs
 `grok-4.5`. Grok `A=sonnet,B=haiku` → `grok-4.5`/`high`/`architect` vs
 `grok-4.5`/`low`/`scanner`. Inject into each panel brief:
 `You are the <perspective> lens. Do not adopt the other panel's framing.`

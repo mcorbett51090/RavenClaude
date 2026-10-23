@@ -55,6 +55,27 @@ except ModuleNotFoundError:  # pragma: no cover - stock macOS ships 3.9
         _toml = None
 
 
+# Independent least-privilege oracle. ⛔ Deliberately NOT mod.sandbox_for (the
+# generator under audit): the docstring's invariant (lines 16-19) is that assertion
+# 3 is checked against the CANONICAL agents, not against the generator. Computing
+# `expected` from the generator's own mapping means a loosening of sandbox_for (or
+# of its _WRITE_TOOLS) plus a regen passes this gate green, with review-only agents
+# silently shipping workspace-write. Kept in lockstep with
+# generate-codex-agents.sandbox_for BY TEST (a mismatch fails the main run), never
+# by importing the function it exists to audit.
+_WRITE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+
+
+def _expected_sandbox(tools, mod) -> str:
+    if not tools or "*" in tools:
+        return mod.SANDBOX_WORKSPACE_WRITE
+    return (
+        mod.SANDBOX_WORKSPACE_WRITE
+        if any(t in _WRITE_TOOLS for t in tools)
+        else mod.SANDBOX_READ_ONLY
+    )
+
+
 def load_generator():
     spec = importlib.util.spec_from_file_location("_codex_agents_under_test", GEN)
     mod = importlib.util.module_from_spec(spec)
@@ -85,9 +106,10 @@ def run(mod, *, mutate: bool = False) -> int:
 
         def no_sandbox(agent: dict) -> str:
             out = original(agent)
-            return "\n".join(
-                ln for ln in out.splitlines() if not ln.startswith("sandbox_mode =")
-            ) + "\n"
+            return (
+                "\n".join(ln for ln in out.splitlines() if not ln.startswith("sandbox_mode ="))
+                + "\n"
+            )
 
         mod.build_agent_toml = no_sandbox
 
@@ -131,25 +153,32 @@ def run(mod, *, mutate: bool = False) -> int:
             # 5 — the body actually travelled.
             body = data.get("developer_instructions") or ""
             if len(body) < 200:
-                bad(f"{label} {name}: developer_instructions is only {len(body)} chars "
-                    "— the agent body did not travel")
+                bad(
+                    f"{label} {name}: developer_instructions is only {len(body)} chars "
+                    "— the agent body did not travel"
+                )
 
             # 2 — presence. THE security assertion.
             sandbox = data.get("sandbox_mode")
             if not sandbox:
-                bad(f"{label} {name}: NO sandbox_mode — Codex inherits the PARENT "
+                bad(
+                    f"{label} {name}: NO sandbox_mode — Codex inherits the PARENT "
                     "turn's permissions when it is omitted, so this agent runs with "
-                    "whatever the session has")
+                    "whatever the session has"
+                )
                 continue
             if sandbox not in (mod.SANDBOX_READ_ONLY, mod.SANDBOX_WORKSPACE_WRITE):
                 bad(f"{label} {name}: unknown sandbox_mode {sandbox!r}")
                 continue
 
-            # 3 — least privilege, derived from the CANONICAL tools.
-            expected = mod.sandbox_for(agent["tools"])
+            # 3 — least privilege, derived from the CANONICAL tools via an oracle
+            # INDEPENDENT of the generator (see _expected_sandbox above).
+            expected = _expected_sandbox(agent["tools"], mod)
             if sandbox != expected:
-                bad(f"{label} {name}: sandbox_mode={sandbox!r} but canonical tools "
-                    f"{agent['tools']} imply {expected!r}")
+                bad(
+                    f"{label} {name}: sandbox_mode={sandbox!r} but canonical tools "
+                    f"{agent['tools']} imply {expected!r}"
+                )
 
     # 4 — no orphans.
     if CODEX_DIR.is_dir():
@@ -172,16 +201,18 @@ def main() -> int:
             failures = run(mod, mutate=True)
         text = err.getvalue()
         if failures == 0:
-            print("MUST-FAIL: dropping sandbox_mode produced NO failures — no teeth",
-                  file=sys.stderr)
+            print(
+                "MUST-FAIL: dropping sandbox_mode produced NO failures — no teeth", file=sys.stderr
+            )
             return 1
         if "NO sandbox_mode" not in text:
-            print("MUST-FAIL: failed, but not on the missing-sandbox assertion",
-                  file=sys.stderr)
+            print("MUST-FAIL: failed, but not on the missing-sandbox assertion", file=sys.stderr)
             print(text, file=sys.stderr)
             return 1
-        print(f"  ok: teeth — omitting sandbox_mode (silent parent inheritance) is "
-              f"caught ({failures} failure(s))")
+        print(
+            f"  ok: teeth — omitting sandbox_mode (silent parent inheritance) is "
+            f"caught ({failures} failure(s))"
+        )
         print("Codex agent sandbox: MUST-FAIL half behaved correctly")
         return 0
 
@@ -191,7 +222,8 @@ def main() -> int:
         return 1
     n = len(list(AGENTS_DIR.glob("*.md")))
     ro = sum(
-        1 for p in CODEX_DIR.glob("*.toml")
+        1
+        for p in CODEX_DIR.glob("*.toml")
         if _toml.loads(p.read_text(encoding="utf-8")).get("sandbox_mode") == "read-only"
     )
     print(f"  ok: {n} agents projected; every file carries an explicit sandbox_mode")

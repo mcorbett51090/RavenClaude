@@ -111,9 +111,21 @@ def parse_shard_filename(name: str):
 # --------------------------------------------------------------------------- #
 
 
-def load_shards(in_dir: str) -> list[tuple[str, str, str, dict]]:
-    """Return (dimension, model, batch_id, finding) tuples in deterministic order."""
+def load_shards(in_dir: str) -> tuple[list[tuple[str, str, str, dict]], dict]:
+    """Return (records, load_stats) where records are (dimension, model, batch_id,
+    finding) tuples in deterministic order.
+
+    load_stats makes every DROPPED input distinguishable from an empty dimension —
+    a silently-dropped shard previously looked identical to "that dimension found
+    nothing", so a torn or mis-shaped shard vanished with no trace in the report.
+    """
     records: list[tuple[str, str, str, dict]] = []
+    load_stats = {
+        "shards_unreadable": [],  # could not open / not valid JSON
+        "shards_non_array": [],  # valid JSON but not a list of findings
+        "shards_bad_name": [],  # filename not <dimension>.<model>.<batch>.json
+        "findings_non_dict": 0,  # array element that was not an object
+    }
     filenames = sorted(
         f
         for f in os.listdir(in_dir)
@@ -122,18 +134,35 @@ def load_shards(in_dir: str) -> list[tuple[str, str, str, dict]]:
     for fname in filenames:
         parsed = parse_shard_filename(fname)
         if parsed is None:
-            # Not a shard-shaped filename — skip rather than guess.
+            # Not a shard-shaped filename — count it, don't guess.
+            load_stats["shards_bad_name"].append(fname)
             continue
         dimension, model, batch_id = parsed
         path = os.path.join(in_dir, fname)
-        with open(path, encoding="utf-8") as fh:
-            data = json.load(fh)
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, ValueError) as exc:
+            # A single torn/unreadable shard must NOT abort the whole merge — that
+            # would discard every GOOD shard already on disk, defeating the
+            # documented hand-recovery path (SKILL.md "Recovering from a mid-run
+            # dispatch failure"). Record it and continue. (json.JSONDecodeError is
+            # a subclass of ValueError.)
+            load_stats["shards_unreadable"].append(fname)
+            print(
+                f"[findings_merge] WARN: skipped unreadable shard {fname}: {exc}", file=sys.stderr
+            )
+            continue
         if not isinstance(data, list):
+            load_stats["shards_non_array"].append(fname)
+            print(f"[findings_merge] WARN: skipped non-array shard {fname}", file=sys.stderr)
             continue
         for finding in data:
             if isinstance(finding, dict):
                 records.append((dimension, model, batch_id, finding))
-    return records
+            else:
+                load_stats["findings_non_dict"] += 1
+    return records, load_stats
 
 
 # --------------------------------------------------------------------------- #
@@ -217,7 +246,11 @@ def merge_findings(records: list[tuple[str, str, str, dict]]) -> list[dict]:
 def tag_near_duplicates(survivors: list[dict], policy: str) -> list[dict]:
     """Mutates survivor dicts in place (same objects, so callers see the tags)."""
     judge_candidates: list[dict] = []
-    ordered = sorted(survivors, key=lambda s: (s["id"] is None, s["id"] or ""))
+    # str()-coerce the id: a shard may emit "id": 42 (int) alongside a string id,
+    # and a mixed-type sort key raises TypeError, crashing the whole near-dup pass.
+    ordered = sorted(
+        survivors, key=lambda s: (s["id"] is None, str(s["id"]) if s["id"] is not None else "")
+    )
     n = len(ordered)
 
     for i in range(n):
@@ -264,7 +297,11 @@ def tag_near_duplicates(survivors: list[dict], policy: str) -> list[dict]:
 
 
 def apply_cap(survivors: list[dict], cap: int) -> tuple[list[dict], list[dict]]:
-    ordered = sorted(survivors, key=lambda s: (severity_rank(s["severity"]), s["id"] or ""))
+    # str()-coerce the id tie-break so a mixed int/str id set cannot raise TypeError.
+    ordered = sorted(
+        survivors,
+        key=lambda s: (severity_rank(s["severity"]), str(s["id"]) if s["id"] is not None else ""),
+    )
     if cap and cap > 0:
         return ordered[:cap], ordered[cap:]
     return ordered, []
@@ -294,7 +331,7 @@ def priority_counts(survivors: list[dict]) -> dict:
 
 
 def run_merge(in_dir: str, cap: int, near_dup_policy: str) -> dict:
-    records = load_shards(in_dir)
+    records, load_stats = load_shards(in_dir)
     raw_input_count = len(records)
 
     survivors = merge_findings(records)
@@ -309,11 +346,19 @@ def run_merge(in_dir: str, cap: int, near_dup_policy: str) -> dict:
         "over_cap": over_cap,
         "judge_candidates": judge_candidates,
         "by_priority": priority_counts(capped_survivors),
+        # by_priority_all counts EVERY survivor (capped + over_cap) so a P0 pushed
+        # past --cap is not invisible — a convergence loop keying "0 open P0-P3" on
+        # by_priority alone would otherwise report converged with P0s in over_cap.
+        "by_priority_all": priority_counts(survivors),
         "stats": {
             "raw_input_count": raw_input_count,
             "after_dedup_count": after_dedup_count,
             "survivors_count": len(capped_survivors),
             "over_cap_count": len(over_cap),
+            "shards_unreadable": load_stats["shards_unreadable"],
+            "shards_non_array": load_stats["shards_non_array"],
+            "shards_bad_name": load_stats["shards_bad_name"],
+            "findings_non_dict": load_stats["findings_non_dict"],
         },
     }
 
@@ -752,6 +797,122 @@ def _self_test() -> int:
     except (AttributeError, TypeError):
         _crashed = True
     check("test11: non-string title/file does not crash compute_key", not _crashed)
+
+    with tempfile.TemporaryDirectory() as tmp2:
+        # --- Test 12: a torn shard must not abort the merge; good shards survive,
+        # and the bad one is recorded in stats.shards_unreadable (the hand-recovery
+        # contract). A non-array shard is likewise recorded, not silently dropped.
+        t12 = os.path.join(tmp2, "t12")
+        os.makedirs(t12, exist_ok=True)
+        _write_json(
+            t12,
+            "correctness.sonnet.good.json",
+            [
+                {
+                    "id": "good-1",
+                    "file": "ok.py",
+                    "line": 5,
+                    "severity": "major",
+                    "title": "A real finding that must survive a sibling torn shard",
+                    "failure_scenario": "x",
+                    "evidence_quote": "y",
+                    "category": "correctness",
+                }
+            ],
+        )
+        # a torn (invalid-JSON) shard and a valid-JSON-but-not-an-array shard
+        (Path(t12) / "correctness.sonnet.torn.json").write_text("{not valid json", encoding="utf-8")
+        (Path(t12) / "correctness.sonnet.obj.json").write_text(
+            '{"not":"an array"}', encoding="utf-8"
+        )
+        r12 = run_merge(t12, cap=0, near_dup_policy="keep-separate")
+        check(
+            "test12: good shard survives a sibling torn shard",
+            [s["id"] for s in r12["survivors"]] == ["good-1"],
+            str(r12["survivors"]),
+        )
+        check(
+            "test12: torn shard recorded in stats.shards_unreadable",
+            r12["stats"]["shards_unreadable"] == ["correctness.sonnet.torn.json"],
+            str(r12["stats"]["shards_unreadable"]),
+        )
+        check(
+            "test12: non-array shard recorded in stats.shards_non_array",
+            r12["stats"]["shards_non_array"] == ["correctness.sonnet.obj.json"],
+            str(r12["stats"]["shards_non_array"]),
+        )
+
+        # --- Test 13: a mixed int/str id set must not crash the sort/near-dup/cap.
+        t13 = os.path.join(tmp2, "t13")
+        os.makedirs(t13, exist_ok=True)
+        _write_json(
+            t13,
+            "correctness.sonnet.b01.json",
+            [
+                {
+                    "id": 7,  # int id
+                    "file": "a.py",
+                    "line": 1,
+                    "severity": "major",
+                    "title": "Finding with an integer id from a sloppy shard",
+                    "failure_scenario": "x",
+                    "evidence_quote": "y",
+                },
+                {
+                    "id": "str-id",  # string id
+                    "file": "b.py",
+                    "line": 1,
+                    "severity": "minor",
+                    "title": "Finding with a string id in the same merge",
+                    "failure_scenario": "x",
+                    "evidence_quote": "y",
+                },
+            ],
+        )
+        _crashed13 = False
+        r13 = None
+        try:
+            r13 = run_merge(t13, cap=1, near_dup_policy="judge")
+        except TypeError:
+            _crashed13 = True
+        check("test13: mixed int/str ids do not crash the merge", not _crashed13)
+        check(
+            "test13: mixed-id merge still caps to 1 survivor + 1 over_cap",
+            r13 is not None and len(r13["survivors"]) == 1 and len(r13["over_cap"]) == 1,
+            str(r13),
+        )
+
+        # --- Test 14: by_priority_all counts over_cap findings; by_priority does not.
+        t14 = os.path.join(tmp2, "t14")
+        os.makedirs(t14, exist_ok=True)
+        _write_json(
+            t14,
+            "correctness.sonnet.b01.json",
+            [
+                {
+                    "id": f"cap-{i}",
+                    "file": f"module_{i}.py",
+                    "line": 10 * i,
+                    "severity": sev,
+                    "title": f"Distinct issue number {i} in module {i}",
+                    "failure_scenario": f"Scenario {i}.",
+                    "evidence_quote": f"evidence {i}",
+                    "category": "correctness",
+                }
+                for i, sev in enumerate(["blocking", "major", "minor", "nit", "major"], start=1)
+            ],
+        )
+        r14 = run_merge(t14, cap=2, near_dup_policy="keep-separate")
+        check(
+            "test14: by_priority (capped) counts only the 2 kept survivors",
+            sum(v for k, v in r14["by_priority"].items() if k in PRIORITY_ORDER) == 2,
+            str(r14["by_priority"]),
+        )
+        check(
+            "test14: by_priority_all counts all 5 (capped + over_cap)",
+            r14["by_priority_all"] == {"P0": 1, "P1": 2, "P2": 1, "P3": 1},
+            str(r14["by_priority_all"]),
+        )
 
     print(f"\n{'ALL PASS' if not failures else f'{len(failures)} FAILED'}: {len(failures)} failing")
     return 1 if failures else 0

@@ -2,6 +2,18 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-17 pyramid_ratio --dir classifies by relative path and whole tokens
+
+## [0.3.4] — 2026-10-18
+
+### Fixed
+
+- `hooks/check-qa-test-automation-anti-patterns.sh` was dead on arrival: the brittle-selector grep pattern `page\.\$x\(` was inside a double-quoted string, so `$x` expanded as an unset variable under `set -u` and the hook exited 1 before reporting any finding. Escaped the `$` so the pattern is literal; the hook now detects XPath / `page.$x(` selectors as intended. Verified: the old pattern errors (`x: unbound variable`, rc=1) under `set -u` while the fixed pattern builds cleanly, and the fixed hook flags a `page.$x(...)` write end-to-end. **Migration:** none.
+
 ## [0.3.3] — 2026-08-14
 
 ### Changed

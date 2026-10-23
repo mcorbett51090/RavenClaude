@@ -85,7 +85,7 @@ fi
 # misclassified as in-project — which would leave rel_path unstripped (the `#`
 # strip below requires the slash) and produce a spurious deny.
 if [[ "$file" == "$project_root"/* ]]; then
-  rel_path="${file#$project_root/}"
+  rel_path="${file#"$project_root"/}"
 else
   # File is outside the project root — not our policy to enforce.
   exit 0

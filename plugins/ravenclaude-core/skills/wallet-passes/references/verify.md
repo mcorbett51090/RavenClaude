@@ -67,6 +67,12 @@ From the sender's-playbook research ([`tap-to-share.md`](tap-to-share.md) § Pus
 - Unverified: **#36 (P3)** — whether the hold-together pass share is exempt from iOS 26.2's **AirDrop code** requirement for non-contacts ("if someone tries to send you an item with AirDrop and they're not in your contacts, they must use an AirDrop code"). Not found.
 - Unverified: **#37 (P3)** — what the iOS share sheet does with `navigator.share({ files: [<.pkpass File>] })`. Safari's `canShare` has no MIME allow-list (DOC, WebKit `Navigator.cpp`); Chrome's permitted list has no `.pkpass` or `.vcf` (DOC, Chromium FILE_TYPES). Share the URL instead until tested.
 
+## Added 2026-10-18 — straight to Wallet from the QR and the tag
+
+From [`tap-to-share.md`](tap-to-share.md) § Straight to Wallet from the QR and the tag.
+
+- Partly resolved 2026-10-18: **#38 (P2)** — whether iOS Safari presents the **Add-to-Wallet sheet for a script-initiated navigation** to a `.pkpass` with **no user activation**. **Now evidenced:** MEAS (owner device test on a real iPhone, 2026-10-18): a card URL ending `#add-to-wallet`, opened directly in Safari on RavenPower's preview (`preview.ravenpower-sites.pages.dev/connect`) and on production (`www.ravenpower.net/connect`), showed Wallet's pass sheet (Add / review) with **no tap**. So iOS Safari does present the sheet for a script-initiated `location.assign()` to a `.pkpass` made about 150 ms after page load without user activation. **Still open:** the iOS version (not recorded); the Camera QR banner and NFC-tag notification entry points themselves (the test opened the URL directly in Safari); and a non-Safari default browser. Where it does not appear, the person simply lands on the card (the page they would have seen anyway). How to verify the rest: on a current iPhone, record the iOS version, open the same marked URL from the Camera and from an NFC tag, then repeat with a non-Safari default browser. Control: the same URL without the fragment shows only the page.
+
 ## Cross-platform asymmetries worth a second look
 
 - **Headshots.** Google states flatly that "personal images" are **not supported** on passes (documented, not a VERIFY item). Apple has no equivalent statement in the docs reviewed (#29). If RavenPass wants a photo on the card, the design may differ per platform — or the photo lives only behind the URL.

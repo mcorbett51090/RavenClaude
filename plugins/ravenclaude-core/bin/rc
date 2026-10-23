@@ -53,6 +53,13 @@ Usage:
                                         [--recipe copy-paste|same-host|os-terminal]
   rc dispatch-summary [--session ID] [--json]   Per-session handoff-tax rollup: tier mix, brief/report
                                         sizes, flags — the "cost per completed task" shape.
+  rc cache-report [--days N] [--json] [--log PATH]
+                                        Sum headless claude -p usage from
+                                        .ravenclaude/runs/headless-usage.jsonl.
+                                        total_cost_usd is a client-side estimate.
+  rc ttl-advice [--root DIR] [--min-dispatches N] [--json]
+                                        Which subagents would save money with a 1-hour
+                                        prompt-cache TTL, from the dispatch ledgers.
                                         Print (and optionally spawn) a same-host
                                         successor from a run-dir handoff.md.
   rc forge-worktree init|checkpoint|path|--self-test
@@ -438,6 +445,25 @@ PY
       exit 1
     }
     exec python3 "$PLUGIN_ROOT/scripts/handoff-tax-meter.py" --summary "$@"
+    ;;
+  cache-report)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc cache-report' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/headless-usage.py" report "$@"
+    ;;
+  ttl-advice)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc ttl-advice' needs python3." >&2
+      exit 1
+    }
+    # Read-only. NO cd: the ledgers live under the caller's project
+    # (.ravenclaude/runs/*/dispatch-ledger.jsonl), resolved from CLAUDE_PROJECT_DIR
+    # or the current directory.
+    exec python3 "$PLUGIN_ROOT/scripts/subagent-ttl-advisor.py" "$@"
     ;;
   artifacts)
     shift

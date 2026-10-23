@@ -101,7 +101,14 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 64, // 63 -> 64: scripts/claim_grounding_scan.py (SH-F9 / core 0.339.3 — single-process
+  tools: 66, // 65 -> 66: scripts/subagent-ttl-advisor.py (core 0.358.0 — rc ttl-advice, reads
+  //   the dispatch ledgers for 1-hour subagent cache TTL break-even). COUNTED, not inferred:
+  //   the plugin-detail island's scripts_index for ravenclaude-core -> 66 after
+  //   generate-index-dashboard.py regen.
+  //        64 -> 65: scripts/headless-usage.py (core 0.353.0 — sidecar recorder for
+  //   headless claude -p usage envelopes). COUNTED, not inferred: the plugin-detail
+  //   island's scripts_index for ravenclaude-core -> 65 after generate-index-dashboard.py.
+  //        63 -> 64: scripts/claim_grounding_scan.py (SH-F9 / core 0.339.3 — single-process
   //   scan for claim-grounding-lint.sh). COUNTED, not inferred: the plugin-detail island's
   //   scripts_index for ravenclaude-core -> 64 after generate-index-dashboard.py regen.
   //        61 -> 63: scripts/spectate_store.py + scripts/spectate_demo.py (Harness Spectate
@@ -212,8 +219,13 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 81, // 79 -> 81: spectate-emit WIRED on PermissionDenied + StopFailure (Spectate v0.16)
-  //   COUNTED, not inferred: hooks.json on this tree holds 81 registrations.
+  hooks: 85, // 82 -> 85: env-integrity-guard.sh WIRED on PreToolUse(*) + SessionStart(startup|resume|clear|fork),
+  //   pretool-record-check.sh WIRED on PostToolUse (AppSec hook-env, core 0.355.9).
+  //   COUNTED, not inferred: hooks.json on this tree holds 85 registrations.
+  //        81 -> 82: dashboard-prompt.sh WIRED on SessionStart(startup|resume|clear|fork)
+  //   (unconfigured-project dashboard prompt, core 0.353.0 — fixed text, writes nothing).
+  //   COUNTED, not inferred: hooks.json on this tree holds 82 registrations.
+  //   79 -> 81: spectate-emit WIRED on PermissionDenied + StopFailure (Spectate v0.16).
   //        78 -> 79: spectate-emit WIRED on PostToolUseFailure (Spectate v0.15)
   //   COUNTED, not inferred: hooks.json on this tree holds 79 registrations.
   //        77 -> 78: spectate-emit WIRED on PostCompact (Spectate v0.13)

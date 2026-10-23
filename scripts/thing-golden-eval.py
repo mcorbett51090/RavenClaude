@@ -202,6 +202,8 @@ def _run_seat(
         env_extra["THING_MODEL"] = model
     if mock:
         env_extra["THING_SEAT_MOCK_VERDICT"] = mock
+        # AppSec #1370: the seat honours a mock only with the harness marker.
+        env_extra["THING_SEAT_ALLOW_MOCK"] = "1"
     import os
 
     env = {**os.environ, **env_extra}

@@ -170,20 +170,32 @@ s = re.sub(r"""(-m\s+)'[^'\n]*'""", r"\1MSG", s)
 _INTERP_BASE = re.compile(
     r"^(?:sh|bash|dash|zsh|ksh|ash|csh|tcsh|mksh|busybox|python[0-9.]*|perl|ruby|node|php|tclsh|lua|Rscript)$"
 )
-def _heredoc_feeds_interpreter(prefix):
+# (b0') 2026-10-18 heredoc-to-interpreter bypass: the command-word-only check missed an
+# interpreter reached through a WRAPPER (`sudo bash <<'EOF'`, `nohup sh <<X`, `timeout 5
+# bash <<X`, `exec bash <<X`, `doas sh <<X`) and a heredoc PIPED into one on its opening
+# line (`cat <<'EOF' | bash`, `cat <<EOF | sudo sh -s`). Fail-safe rule: the heredoc feeds
+# an interpreter when ANY word of its simple command (before `<<`), or of any pipeline
+# stage after it on the opening line, is an interpreter. Over-matching only means a body
+# is scanned rather than blanked, i.e. the conservative direction.
+def _words_name_interpreter(seg):
+    for tok in seg.split():
+        tok = tok.strip("'\"").lstrip("\\")
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tok):
+            continue
+        if _INTERP_BASE.match(tok.rsplit("/", 1)[-1]):
+            return True
+    return False
+def _heredoc_feeds_interpreter(prefix, opening=""):
     seg = re.split(r"[\n;&|(]", prefix)[-1]
-    toks = seg.split()
-    i = 0
-    while i < len(toks) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", toks[i]):
-        i += 1
-    if i < len(toks) and toks[i].lstrip("\\").rsplit("/", 1)[-1] == "env":
-        i += 1
-        while i < len(toks) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", toks[i]):
-            i += 1
-    if i >= len(toks):
-        return False
-    base = toks[i].lstrip("\\").rsplit("/", 1)[-1]
-    return bool(_INTERP_BASE.match(base))
+    if _words_name_interpreter(seg):
+        return True
+    # Pipeline stages after the heredoc operator on its opening line.
+    stages = re.split(r"\|\|?&?", opening)
+    for stage in stages[1:]:
+        stage = re.split(r"[;&]", stage)[0]
+        if _words_name_interpreter(stage):
+            return True
+    return False
 # (b1) SAME-COMMAND write-then-execute (2026-07-08 review, finding 11). A heredoc that
 # writes to a FILE with a non-interpreter command word (`cat <<'EOF' > /tmp/x.sh`) is
 # inert data on its own — but if the SAME command string then executes that written file
@@ -212,7 +224,7 @@ def _cmd_executes_path(full, path):
 def _strip_heredoc(m):
     quoted, body = m.group(1), m.group(3)
     prefix = m.string[: m.start()]
-    if _heredoc_feeds_interpreter(prefix):
+    if _heredoc_feeds_interpreter(prefix, m.group(0).split("\n", 1)[0]):
         return m.group(0)  # interpreter heredoc: body IS executed — scan it, don't blank
     # Look for the redirect target on this simple command (either before `<<`, in the
     # prefix's last segment, or after it, in the heredoc's opening line).
@@ -1883,6 +1895,30 @@ EOF
   return 1
 }
 
+
+# P1-4 (2026-10-18): `git reset --hard` must be order-independent inside the
+# reset segment — the contiguous deny_patterns entry missed
+# `git reset HEAD~3 --hard` and `git reset -q --hard HEAD`. Mirrors
+# _is_dangerous_git_clean's force-flag-anywhere scan. Short-flag `h` is NOT
+# treated as hard (git has no -h hard synonym; -h is help).
+_is_dangerous_git_reset_hard() {
+  local cmd="$1" seg
+  while IFS= read -r seg; do
+    # Identify a `git … reset` segment (global flags like -C/-c may precede).
+    case "$seg" in
+      *git[[:space:]]*reset[[:space:]]*|*git[[:space:]]*reset) ;;
+      *) continue ;;
+    esac
+    # Require the reset subcommand (not a path named reset).
+    printf '%s' "$seg" | grep -Eq '(^|[[:space:]])git([[:space:]]+-[[:alnum:]=._/-]+)*[[:space:]]+reset([[:space:]]|$)' || continue
+    # --hard anywhere in the segment (not --help).
+    printf '%s' "$seg" | grep -Eq '(^|[[:space:]])--hard([[:space:]]|$)' && return 0
+  done <<EOFSEG
+$(printf '%s' "$cmd" | tr ';&|' '\n\n\n')
+EOFSEG
+  return 1
+}
+
 # --- Pattern array (matched against the normalized command) ----------------
 # The settings.json deny-list catches the top-level form; this catches them
 # when nested / wrapped / reordered.
@@ -1892,7 +1928,7 @@ deny_patterns=(
   'git[[:space:]]+push[[:space:]]+([^;&|]*[[:space:]])?-[A-Za-z]*f[A-Za-z]*([[:space:]]|$)'  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
   'git[[:space:]]+push[[:space:]][^;&|]*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
   'git[[:space:]]+push[[:space:]]+[^;&|]*--mirror([[:space:]]|$)'       # --mirror force-updates every ref + deletes remote refs absent locally
-  'git[[:space:]]+reset[[:space:]]+--hard([[:space:]]+|$)'
+  # git reset --hard: see _is_dangerous_git_reset_hard (order-independent)
   # NB: git force-branch-delete (_is_dangerous_git_branch_delete), remote-branch
   # deletion (_is_dangerous_git_push_delete), and `git clean` force
   # (_is_dangerous_git_clean) are handled by the order-independent structural
@@ -1946,6 +1982,7 @@ if _is_dangerous_truncate "$norm"; then _deny "truncate-zero-of-dangerous-target
 if _is_dangerous_git_branch_delete "$norm"; then _deny "git-branch-force-delete"; fi
 if _is_dangerous_git_push_delete "$norm";   then _deny "git-push-remote-branch-delete"; fi
 if _is_dangerous_git_clean "$norm";         then _deny "git-clean-force"; fi
+if _is_dangerous_git_reset_hard "$norm";    then _deny "git-reset-hard"; fi
 if _is_dangerous_merge "$norm" "$_norm_before_gitstrip";      then _deny "bypass-shaped-merge"; fi
 if _is_dangerous_update_ref "$norm"; then _deny "git-update-ref-delete"; fi
 if _is_dangerous_gh_curl_delete "$norm"; then _deny "destructive-delete-api-call"; fi

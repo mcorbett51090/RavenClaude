@@ -217,7 +217,9 @@ def cmd_mde(args: argparse.Namespace) -> int:
     target_n = float(args.per_arm)
 
     # Bisection on the absolute effect delta in (0, max_delta).
-    max_delta = min(1.0 - p1, p1) - 1e-6  # keep p2 strictly inside (0,1)
+    # The bisection only searches UPWARD (p2 = p1 + delta), so the ceiling is the headroom
+    # to 100%, not min(p1, 1 - p1): at a low baseline the true MDE can exceed the baseline.
+    max_delta = (1.0 - p1) - 1e-6  # keep p2 strictly inside (0,1)
     lo, hi = 1e-9, max_delta
     if _per_arm_n(p1, p1 + hi, args.alpha, args.power) > target_n:
         print("Minimum detectable effect at fixed sample")

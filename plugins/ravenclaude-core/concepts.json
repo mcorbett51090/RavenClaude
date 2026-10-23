@@ -70,7 +70,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "The fundamental agent-loop shape changes, or Claude Code/the Agent SDK restructures how a turn is driven.",
       "sources": [
         {
@@ -80,6 +80,14 @@
         {
           "label": "\"The Anatomy of an Agent Harness\" (Akshay Pachaar)",
           "url": "https://x.com/_avichawla/status/2062082282878627946"
+        },
+        {
+          "label": "Agent SDK — How the agent loop works",
+          "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop"
+        },
+        {
+          "label": "LangChain — The anatomy of an agent harness (source of the quoted saying)",
+          "url": "https://langchain.com/blog/the-anatomy-of-an-agent-harness"
         }
       ],
       "body_md": "A language model on its own is **stateless**: it forgets what it did three steps ago, a failed tool call would otherwise vanish silently, and its context window fills with noise. An **agent** is a model plus the software that fixes all that — the **harness**. As the saying goes, *\"if you're not the model, you're the harness.\"*\n\nThe harness drives one **turn** as a loop, and every agentic tool — Claude Code, the Agent SDK, your own script — runs some version of it:\n\n1. **Assemble the prompt** — system prompt + tool schemas + project memory (`CLAUDE.md` / `AGENTS.md`) + the conversation so far + your message.\n2. **Call the model.**\n3. **Classify the output** — did it ask to use a tool, or just answer? Plain text with no tool call ends the turn.\n4. **Execute the requested tools** — and this is where permission gates, hooks, or a review panel can deny, edit, or wave the call through.\n5. **Package the results** as the next message — crucially, an *error* comes back as a result the model can read and self-correct from, not a crash.\n6. **Update context** (compacting when it fills) and loop back to step 1.\n\nThe same loop scales up: a lead agent can **dispatch a subagent** for a slice of work and fold its short summary back in at step 5. A guiding principle the better harnesses inherit: **treat memory as a hint and verify against real state before acting** — which is why a careful agent doesn't stop at \"looks done,\" it stops when a verification step says it's done.\n\nRavenClaude is one such harness layer: it rides on Claude Code's loop and adds orchestration, a review tribunal at step 4, and verification gates at the end — but the loop itself is how *any* agent works by default.",
@@ -139,19 +147,19 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Anthropic changes the tool-use request/result message shape, the tool_choice options, or the parallel-tool-call behavior.",
       "sources": [
         {
           "label": "Tool use (function calling) — Claude API",
-          "url": "https://docs.claude.com/en/docs/build-with-claude/tool-use"
+          "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"
         },
         {
           "label": "Agent SDK — tools & permissions",
           "url": "https://code.claude.com/docs/en/agent-sdk"
         }
       ],
-      "body_md": "A language model only produces **text**. It can't read a file, run a command, or call an API by itself. **Tool use** (also called *function calling*) is the bridge: you describe the available tools — each with a name, a description, and a JSON schema for its inputs — and the model, instead of answering in prose, emits a structured **tool-use request** naming one tool and the arguments to call it with.\n\nThe model never runs anything. The **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.\n\nThree details that bite:\n\n- **The model picks the tool, not the harness.** You can constrain it (`tool_choice` can force a specific tool, force *any* tool, or leave it `auto`), but in normal operation the model chooses. A vague tool description is the most common reason it picks the wrong one or fills arguments badly.\n- **Errors are data, not crashes.** A failed tool call should return its error *as a tool-result* so the model can read it and self-correct. Throwing away the loop on the first failure is the classic broken-agent bug.\n- **Results re-enter the context window.** Tool output isn't free — a command that dumps 10k lines lands all of it back in the prompt. This is why focused tools that return *conclusions* beat raw firehoses.\n\nA permission layer can sit between the request and the execution: the model may *ask* for a tool, but the harness (or a hook, or a tribunal) can still deny, edit, or gate the call before it runs.",
+      "body_md": "A language model only produces **text**. It can't read a file, run a command, or call an API by itself. **Tool use** (also called *function calling*) is the bridge: you describe the available tools — each with a name, a description, and a JSON schema for its inputs — and the model, instead of answering in prose, emits a structured **tool-use request** naming one tool and the arguments to call it with.\n\nThe model never runs anything. For client tools — the usual case — the **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. (Server tools such as web search run on Anthropic's infrastructure instead, with no handler code in your harness.) The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.\n\nThree details that bite:\n\n- **The model picks the tool, not the harness.** You can constrain it (`tool_choice` can force a specific tool, force *any* tool, or leave it `auto`), but in normal operation the model chooses. A vague tool description is the most common reason it picks the wrong one or fills arguments badly.\n- **Errors are data, not crashes.** A failed tool call should return its error *as a tool-result* so the model can read it and self-correct. Throwing away the loop on the first failure is the classic broken-agent bug.\n- **Results re-enter the context window.** Tool output isn't free — a command that dumps 10k lines lands all of it back in the prompt. This is why focused tools that return *conclusions* beat raw firehoses.\n\nA permission layer can sit between the request and the execution: the model may *ask* for a tool, but the harness (or a hook, or a tribunal) can still deny, edit, or gate the call before it runs.",
       "diagram": "flowchart TD\n  G[Your goal] --> M[Model reads prompt + tool schemas]\n  M --> D{Answer or act?}\n  D -- answer --> OUT[Plain-text reply · turn ends]\n  D -- act --> REQ[Tool-use request<br/>name + JSON arguments]\n  REQ --> GATE{Permission / hook}\n  GATE -- deny --> BACK[Denied result fed back]\n  GATE -- allow --> RUN[Harness executes the tool]\n  RUN --> RES[Tool-result message<br/>output or error]\n  RES --> M\n  BACK --> M\n  class M,REQ,RUN,RES fact\n  class GATE built",
       "diagram_mini": "flowchart LR\n  M[model] --> R[tool request] --> X[harness runs it] --> O[result] --> M\n  class M,R,X,O fact",
       "steps": [],
@@ -173,19 +181,19 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Frontier context-window sizes change materially, or Claude Code changes its compaction / auto-compact behavior.",
       "sources": [
         {
           "label": "Context windows — Claude API",
-          "url": "https://docs.claude.com/en/docs/build-with-claude/context-windows"
+          "url": "https://platform.claude.com/docs/en/build-with-claude/context-windows"
         },
         {
           "label": "Manage context — Claude Code",
           "url": "https://code.claude.com/docs/en/costs"
         }
       ],
-      "body_md": "A model has **no memory between turns.** Everything it \"knows\" while answering is whatever text sits in its **context window** right now: the system prompt, the tool schemas, the project instructions (`CLAUDE.md` / `AGENTS.md`), the conversation so far, and the contents of any file or tool result that's been pulled in. Nothing outside that window exists to the model — if it isn't in context, the model can't see it, no matter how relevant.\n\nThe window is **finite** (measured in tokens — roughly ¾ of a word each). Two consequences follow:\n\n- **It fills up.** Long sessions, big files, and chatty tool output all consume the budget. As it fills, the *effective* room for reasoning shrinks, and far-back details get crowded out — the model can genuinely \"forget\" what happened early in a long session.\n- **When it's nearly full, the harness compacts.** Claude Code summarizes the older part of the conversation into a compact recap and continues with that plus the recent turns. The work isn't lost, but it's now a *summary* — which is why durable facts belong in `CLAUDE.md` or committed files, not just in chat.\n\nThe practical model: treat context like a **desk, not a filing cabinet.** Things on the desk are usable now; everything else has to be fetched back on (a tool call, a file read) before the model can use it — and fetching it costs space. Good agent design keeps the desk clear: focused tool results, subagents that return short summaries instead of raw dumps, and important state written somewhere persistent.\n\nThis is also why a **SessionStart** context injection (the orientation banner) is deliberately kept small — it rides in *every* session's window, so it's a recurring tax on the budget.",
+      "body_md": "A model has **no memory between turns.** Everything it \"knows\" while answering is whatever text sits in its **context window** right now: the system prompt, the tool schemas, the project instructions (`CLAUDE.md` / `AGENTS.md`), the conversation so far, and the contents of any file or tool result that's been pulled in. Nothing outside that window exists to the model — if it isn't in context, the model can't see it, no matter how relevant.\n\nThe window is **finite** (measured in tokens — roughly ½ to ¾ of a word each, depending on the model's tokenizer). Two consequences follow:\n\n- **It fills up.** Long sessions, big files, and chatty tool output all consume the budget. As it fills, the *effective* room for reasoning shrinks, and far-back details get crowded out — the model can genuinely \"forget\" what happened early in a long session.\n- **When it's nearly full, the harness compacts.** Claude Code summarizes the older part of the conversation into a compact recap and continues with that plus the recent turns. The work isn't lost, but it's now a *summary* — which is why durable facts belong in `CLAUDE.md` or committed files, not just in chat.\n\nThe practical model: treat context like a **desk, not a filing cabinet.** Things on the desk are usable now; everything else has to be fetched back on (a tool call, a file read) before the model can use it — and fetching it costs space. Good agent design keeps the desk clear: focused tool results, subagents that return short summaries instead of raw dumps, and important state written somewhere persistent.\n\nThis is also why a **SessionStart** context injection (the orientation banner) is deliberately kept small — it rides in *every* session's window, so it's a recurring tax on the budget.",
       "diagram": "flowchart TD\n  subgraph W[Context window · finite token budget]\n    S[System prompt + tool schemas]\n    P[Project memory · CLAUDE.md / AGENTS.md]\n    H[Conversation history]\n    F[Pulled-in files + tool results]\n  end\n  W --> M[Model reasons over ONLY what's in the window]\n  H --> FULL{Near the limit?}\n  FULL -- yes --> C[Harness compacts older turns to a summary]\n  C --> W\n  FULL -- no --> M\n  class S,P,H,F,M fact\n  class C built",
       "diagram_mini": "flowchart LR\n  C[context window] --> L{full?}\n  L -- yes --> S[compact to summary]\n  L -- no --> R[model reasons]\n  class C,R fact",
       "steps": [],
@@ -207,7 +215,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Claude Code changes the subagent dispatch model, the Task/Agent tool shape, or how subagent results return to the parent.",
       "sources": [
         {
@@ -240,7 +248,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "The MCP spec changes its primitives (tools/resources/prompts), transport set, or Claude Code changes how MCP servers are configured.",
       "sources": [
         {
@@ -252,7 +260,7 @@
           "url": "https://code.claude.com/docs/en/mcp"
         }
       ],
-      "body_md": "Tool use lets a model call a tool — but who *supplies* the tools? If every integration (GitHub, a database, a ticketing system) had to be hand-wired into every agent, you'd rebuild the same connectors over and over. The **Model Context Protocol (MCP)** is the open standard that fixes this. It's often described as *\"a USB-C port for AI\"*: a single, uniform way for an agent to plug into outside tools and data.\n\nThe shape is **client ↔ server.** Your agent host (Claude Code, an IDE, a desktop app) is an **MCP client**. An **MCP server** is a small program that exposes capabilities over the protocol. Write the server once, and *any* MCP-aware client can use it — the glue is the protocol, not bespoke per-app code. Servers offer three kinds of primitive:\n\n- **Tools** — actions the model can call (the GitHub tools this very session uses are an MCP server).\n- **Resources** — data the agent can read (files, records, query results).\n- **Prompts** — reusable prompt templates the server provides.\n\nTwo things worth knowing:\n\n- **Servers run as separate processes** and connect over a transport (local stdio, or remote HTTP/SSE). A server may be on your machine or across the network — the client talks to both the same way.\n- **MCP tools are still just tool use.** Once connected, an MCP tool appears to the model exactly like any built-in tool: same request/result loop, same permission gating. MCP standardizes *where tools come from*, not *how the model calls them*. (In Claude Code a server can show as \"still connecting\" at startup — its tools are name-only until the schema loads, which is a connection state, not an absent capability.)",
+      "body_md": "Tool use lets a model call a tool — but who *supplies* the tools? If every integration (GitHub, a database, a ticketing system) had to be hand-wired into every agent, you'd rebuild the same connectors over and over. The **Model Context Protocol (MCP)** is the open standard that fixes this. It's often described as *\"a USB-C port for AI\"*: a single, uniform way for an agent to plug into outside tools and data.\n\nThe shape is **client ↔ server.** Your agent host (Claude Code, an IDE, a desktop app) is an **MCP client**. An **MCP server** is a small program that exposes capabilities over the protocol. Write the server once, and *any* MCP-aware client can use it — the glue is the protocol, not bespoke per-app code. Servers offer three kinds of primitive:\n\n- **Tools** — actions the model can call (the GitHub tools this very session uses are an MCP server).\n- **Resources** — data the agent can read (files, records, query results).\n- **Prompts** — reusable prompt templates the server provides.\n\nTwo things worth knowing:\n\n- **Servers run as separate processes** and connect over a transport (local stdio, or remote Streamable HTTP — the older SSE transport is deprecated). A server may be on your machine or across the network — the client talks to both the same way.\n- **MCP tools are still just tool use.** Once connected, an MCP tool appears to the model exactly like any built-in tool: same request/result loop, same permission gating. MCP standardizes *where tools come from*, not *how the model calls them*. (In Claude Code a server can show as \"still connecting\" at startup — its tools are name-only until the schema loads, which is a connection state, not an absent capability.)",
       "diagram": "flowchart TD\n  H[Agent host · MCP client<br/>Claude Code · IDE · app] -->|protocol| S1[MCP server: GitHub]\n  H -->|protocol| S2[MCP server: database]\n  H -->|protocol| S3[MCP server: your own]\n  S1 --> P[Tools · Resources · Prompts]\n  S2 --> P\n  S3 --> P\n  P --> M[Model calls them like any tool<br/>same request/result loop]\n  class H,M fact\n  class S1,S2,S3 built",
       "diagram_mini": "flowchart LR\n  C[agent · client] -->|MCP| S[servers] --> T[tools · data]\n  class C,T fact",
       "steps": [],
@@ -273,19 +281,19 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "The Claude model line-up (Opus / Sonnet / Haiku tiers) or the default-model guidance for agents changes.",
       "sources": [
         {
           "label": "Models overview — Claude API",
-          "url": "https://docs.claude.com/en/docs/about-claude/models"
+          "url": "https://platform.claude.com/docs/en/models/overview"
         },
         {
           "label": "Choosing a model — Claude Code",
           "url": "https://code.claude.com/docs/en/model-config"
         }
       ],
-      "body_md": "An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the three tiers exist precisely so you can match the model to the work:\n\n- **Frontier (e.g. Opus)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and most expensive per token. Reach for it when the task genuinely needs it.\n- **Balanced (e.g. Sonnet)** — the everyday workhorse: strong reasoning at much lower cost and latency. The sensible default for most agent work.\n- **Fast (e.g. Haiku)** — quick, cheap, great for classification, routing, summarizing, and high-volume routine steps where frontier-grade reasoning is overkill.\n\nTwo ideas make this practical:\n\n- **Mix models within one task.** A capable orchestrator can plan and supervise while dispatching the routine legwork to a faster, cheaper model — *strong model supervises, cheap models execute.* Subagents are the natural place to drop a tier: the lead reasons in Sonnet/Opus, the workers grind in Haiku.\n- **Diversity is a safety property, not just a cost one.** When multiple agents *review* the same thing, running them all on the **same** model means one model's blind spot can pass the whole panel — the \"anti-correlated hallucination\" failure. Deliberately running ≥2 *different* backbones on a review panel catches what a monoculture would miss. (RavenClaude's command-review tribunal enforces exactly this.)\n\nThe wrong instinct is \"always use the biggest model.\" The right instinct is \"use the smallest model that reliably clears this specific bar,\" and let a stronger model check the cheaper ones' work.",
+      "body_md": "An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the model tiers exist precisely so you can match the model to the work (this page teaches the three everyday tiers; Anthropic's line-up now also has a Fable tier above Opus for the most demanding long-horizon work):\n\n- **Frontier (e.g. Opus; Fable for the most demanding long-horizon work)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and pricier per token than the tiers below. Reach for it when the task genuinely needs it.\n- **Balanced (e.g. Sonnet)** — the everyday workhorse: strong reasoning at much lower cost and latency. The sensible default for most agent work.\n- **Fast (e.g. Haiku)** — quick, cheap, great for classification, routing, summarizing, and high-volume routine steps where frontier-grade reasoning is overkill.\n\nTwo ideas make this practical:\n\n- **Mix models within one task.** A capable orchestrator can plan and supervise while dispatching the routine legwork to a faster, cheaper model — *strong model supervises, cheap models execute.* Subagents are the natural place to drop a tier: the lead reasons in Sonnet/Opus, the workers grind in Haiku.\n- **Diversity is a safety property, not just a cost one.** When multiple agents *review* the same thing, running them all on the **same** model means one model's blind spot can pass the whole panel — the \"anti-correlated hallucination\" failure. Deliberately running ≥2 *different* backbones on a review panel catches what a monoculture would miss. (RavenClaude's command-review tribunal enforces exactly this.)\n\nThe wrong instinct is \"always use the biggest model.\" The right instinct is \"use the smallest model that reliably clears this specific bar,\" and let a stronger model check the cheaper ones' work.",
       "diagram": "flowchart TD\n  T[Task slice] --> Q{How hard?}\n  Q -- routine: classify / route / summarize --> FAST[Fast model · Haiku-class]\n  Q -- everyday reasoning + edits --> BAL[Balanced · Sonnet-class]\n  Q -- hardest reasoning + planning --> FRONT[Frontier · Opus-class]\n  FRONT --> SUP[Strong model supervises<br/>cheaper models execute]\n  REV[Review panel] --> DIV[Run ≥2 DIFFERENT models<br/>· avoid a blind-spot monoculture]\n  class FAST,BAL,FRONT,Q fact\n  class SUP,DIV built",
       "diagram_mini": "flowchart LR\n  J{job} -- routine --> F[fast]\n  J -- everyday --> B[balanced]\n  J -- hardest --> O[frontier]\n  class J,F,B,O fact",
       "steps": [],
@@ -306,15 +314,11 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Git or GitHub change a load-bearing default (branch name, PR flow), or the marketplace's PR conventions or branch-archive contract change.",
       "sources": [
         {
-          "label": "AGENTS.md — PR conventions",
-          "url": "AGENTS.md"
-        },
-        {
-          "label": "AGENTS.md — House rules (branch-archive)",
+          "label": "AGENTS.md — PR conventions; House rules (branch-archive)",
           "url": "AGENTS.md"
         },
         {
@@ -326,8 +330,8 @@
           "url": "https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control"
         }
       ],
-      "body_md": "**Source control** (the tool is called **git**, the website is **GitHub**) is a time-machine for every file in a project: every change is saved as a labeled snapshot, and many people can work on the same project in parallel without overwriting each other. The load-bearing fact for you: **RavenClaude does almost all of the git work for you** — this page is the vocabulary so you understand what Claude Code is doing on your behalf, and can step in when something goes sideways.\n\n**Four ideas cover almost everything you'll see:**\n\n- **Commit** — one saved snapshot of your work, with a short message explaining _why_ (not what — the diff already shows what).\n- **Branch** — a parallel timeline for a piece of work-in-progress, kept separate from the project's official timeline (the **main** branch).\n- **Pull request (PR)** — a proposal that the work on a branch be merged back into main; it gets reviewed (by a person, by CI checks, sometimes by Claude) before anything moves.\n- **Merge** — combining a branch's commits into main once the PR is approved.\n\n**The minimum vocabulary** you'll see in commands and logs:\n\n- `git status` — what's changed since the last snapshot\n- `git add <file>` — stage a file for the next snapshot\n- `git commit -m \"why\"` — take the snapshot\n- `git push` — upload local commits to GitHub\n- `git pull` — download new commits from GitHub\n- `git log` — read the history\n\n**Two patterns you'll actually encounter in this repo:**\n\n1. **Docs commit straight to main, no PR.** Pure documentation under `docs/` (plans, designs, research notes, the rolling session log) commits direct to main because it can't break a consumer's `/plugin marketplace update`. Faster planning loop.\n2. **Code, hooks, manifests, and CI go through a PR.** Claude Code creates the branch, makes the commits, opens the PR, and tells you the URL. You review in GitHub and click **Merge**.\n\n**The safety nets** mean you can experiment without breaking things:\n\n- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push to main**, `git reset --hard`, `git clean -f`, and `git branch -D` on a protected branch. It denies them before they run.\n- The sanctioned way to retire a finished branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost.\n\nYou will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _\"I opened PR #238 on branch `feat/rc-hardener-followups`\"_ or _\"the guard denied a force-push\"_, you know exactly what happened and what your next click is.",
-      "diagram": "flowchart TD\n  W[Your working files] -->|git add| S[Staging area]\n  S -->|git commit| C[Commit on a branch]\n  C -->|git push| GH[(GitHub: branch)]\n  GH -->|open PR| PR[Pull request · reviewed]\n  PR -->|merge| MAIN[(main branch · official timeline)]\n  D[Docs change under docs/] -->|commit + push| MAIN\n  X[git push --force to main<br/>git reset --hard<br/>rm -rf the repo] -.->|guard-destructive.sh| BLOCK[Blocked — safety net]\n  R[Retire a finished branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]\n  class C,PR,MAIN,TAG fact\n  class BLOCK,GH built",
+      "body_md": "**Source control** (the tool is called **git**, the website is **GitHub**) is a time-machine for every file in a project: every change is saved as a labeled snapshot, and many people can work on the same project in parallel without overwriting each other. The load-bearing fact for you: **RavenClaude does almost all of the git work for you** — this page is the vocabulary so you understand what Claude Code is doing on your behalf, and can step in when something goes sideways.\n\n**Four ideas cover almost everything you'll see:**\n\n- **Commit** — one saved snapshot of your work, with a short message explaining _why_ (not what — the diff already shows what).\n- **Branch** — a parallel timeline for a piece of work-in-progress, kept separate from the project's official timeline (the **main** branch).\n- **Pull request (PR)** — a proposal that the work on a branch be merged back into main; it gets reviewed (by a person, by CI checks, sometimes by Claude) before anything moves.\n- **Merge** — combining a branch's commits into main once the PR is approved.\n\n**The minimum vocabulary** you'll see in commands and logs:\n\n- `git status` — what's changed since the last snapshot\n- `git add <file>` — stage a file for the next snapshot\n- `git commit -m \"why\"` — take the snapshot\n- `git push` — upload local commits to GitHub\n- `git pull` — download new commits from GitHub\n- `git log` — read the history\n\n**Two patterns you'll actually encounter in this repo:**\n\n1. **Docs commit straight to main, no PR.** Pure documentation under `docs/` (plans, designs, research notes, the rolling session log) commits direct to main because it can't break a consumer's `/plugin marketplace update`. Faster planning loop.\n2. **Code, hooks, manifests, and CI go through a PR.** Claude Code creates the branch, makes the commits, opens the PR, and tells you the URL. You review in GitHub and click **Merge**.\n\n**The safety nets** mean you can experiment without breaking things:\n\n- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push**, `git reset --hard`, `git clean -f`, and `git branch -D` (on any branch). It denies them before they run.\n- The sanctioned way to retire an abandoned or unmerged branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost. (A cleanly merged branch needs no archive tag — its commits already live in `main`, so you just delete it on GitHub.)\n\nYou will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _\"I opened PR #238 on branch `feat/rc-hardener-followups`\"_ or _\"the guard denied a force-push\"_, you know exactly what happened and what your next click is.",
+      "diagram": "flowchart TD\n  W[Your working files] -->|git add| S[Staging area]\n  S -->|git commit| C[Commit on a branch]\n  C -->|git push| GH[(GitHub: branch)]\n  GH -->|open PR| PR[Pull request · reviewed]\n  PR -->|merge| MAIN[(main branch · official timeline)]\n  D[Docs change under docs/] -->|commit + push| MAIN\n  X[git push --force to main<br/>git reset --hard<br/>rm -rf the repo] -.->|guard-destructive.sh| BLOCK[Blocked — safety net]\n  R[Retire an abandoned branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]\n  class C,PR,MAIN,TAG fact\n  class BLOCK,GH built",
       "diagram_mini": "flowchart LR\n  E[edit] --> C[commit] --> B[branch] --> P[PR] --> M[main]\n  class C,P,M fact",
       "steps": [
         {
@@ -445,7 +449,7 @@
         "href": "#/settings"
       },
       "node_links": {},
-      "last_verified": "2026-07-28",
+      "last_verified": "2026-10-20",
       "refresh_when": "Anthropic adds/removes a settings layer, or changes the cross-layer merge rule.",
       "sources": [
         {
@@ -457,7 +461,7 @@
           "url": "https://code.claude.com/docs/en/settings"
         }
       ],
-      "body_md": "Permission rules live under `permissions.allow`, `permissions.ask`, and `permissions.deny` in any of the settings files. Each rule is either a bare tool name (`Bash`, `WebSearch`) or a tool plus a specifier (`Bash(git status:*)`, `Read(/etc/**)`).\n\n**Within one file**, rules evaluate `deny → ask → allow` — the first match wins, so deny always beats ask and ask always beats allow.\n\n**Across files**, the layers **merge** rather than override: a deny in *any* layer blocks the action regardless of allow rules elsewhere. You **cannot override down** — if your user-level settings deny `Bash(rm *)`, no project-level allow re-enables it. That's the safe behavior, but it surprises people who expect a later layer to win.\n\nThe most-surprising rule: a **bare-tool deny** (`deny: [\"Bash\"]`) removes the tool from Claude's context entirely — Claude never sees it. A **scoped deny** (`Bash(rm *)`) keeps the tool and blocks only matching calls.",
+      "body_md": "Permission rules live under `permissions.allow`, `permissions.ask`, and `permissions.deny` in any of the settings files. Each rule is either a bare tool name (`Bash`, `WebSearch`) or a tool plus a specifier (`Bash(git status:*)`, `Read(//etc/**)`). In a path specifier a single leading `/` anchors at the settings file's source, not the filesystem root — an absolute path takes `//`.\n\n**Within one file**, rules evaluate `deny → ask → allow` — the first match wins, so deny always beats ask and ask always beats allow.\n\n**Across files**, the layers **merge** rather than override: a deny in *any* layer blocks the action regardless of allow rules elsewhere. You **cannot override down** — if your user-level settings deny `Bash(rm *)`, no project-level allow re-enables it. That's the safe behavior, but it surprises people who expect a later layer to win.\n\nThe most-surprising rule: a **bare-tool deny** (`deny: [\"Bash\"]`) removes the tool from Claude's context entirely — Claude never sees it. A **scoped deny** (`Bash(rm *)`) keeps the tool and blocks only matching calls.",
       "diagram": "flowchart TD\n  CALL[Tool call] --> MERGE[Merge rules across all layers]\n  MERGE --> D{Any layer<br/>DENY match?}\n  D -- yes --> BLOCK[Blocked — cannot be overridden]\n  D -- no --> A{Any layer<br/>ASK match?}\n  A -- yes --> PROMPT[Prompt the user]\n  A -- no --> AL{Any layer<br/>ALLOW match?}\n  AL -- yes --> RUN[Run without asking]\n  AL -- no --> PROMPT\n  class BLOCK built\n  class D,A,AL fact",
       "diagram_mini": "flowchart LR\n  C[Call] --> D{deny<br/>anywhere?}\n  D -- yes --> X[Blocked]\n  D -- no --> OK[allow / ask]\n  class X built",
       "steps": [
@@ -504,7 +508,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-07-28",
+      "last_verified": "2026-10-20",
       "refresh_when": "Anthropic adds/renames a permission mode or changes auto-mode's drop-broad-rules behavior.",
       "sources": [
         {
@@ -516,7 +520,7 @@
           "url": "https://code.claude.com/docs/en/permissions"
         }
       ],
-      "body_md": "The permission **mode** sets the baseline posture on top of your allow/ask/deny rules. There are six: `default` (prompt when uncertain), `acceptEdits` (auto-approve common filesystem Bash inside the cwd), `plan` (read/think only — no writes), `auto` (research-preview classifier-driven autonomy), `dontAsk` (auto-deny anything not explicitly allowed — handy for CI), and `bypassPermissions` (skips most checks).\n\nTwo surprises bite. **`bypassPermissions` is not a total kill-switch:** `rm -rf /` and `rm -rf ~` *still* prompt as a circuit breaker, and a `PreToolUse` hook `deny` still blocks. **`auto` mode silently drops broad allow rules** — `Bash(*)`, wildcarded interpreters, `npm run *`, and all `Agent` allows are dropped while it's active (they restore when you leave), and `defaultMode: \"auto\"` is *ignored* in project settings — it must live in user-level `~/.claude/settings.json`.",
+      "body_md": "The permission **mode** sets the baseline posture on top of your allow/ask/deny rules. There are six: `default` (shown as **Manual** — asks before most edits, shell commands, and network access), `acceptEdits` (auto-approve file edits and common filesystem Bash inside the working directory), `plan` (research and propose — Claude doesn't edit your source until you approve the plan), `auto` (a classifier model reviews actions instead of you; the built-in starting mode for interactive terminal and VS Code sessions since v2.1.283), `dontAsk` (auto-deny every call that would otherwise prompt — handy for CI), and `bypassPermissions` (skips most checks).\n\nTwo surprises bite. **`bypassPermissions` is not a total kill-switch:** `rm -rf /` and `rm -rf ~` *still* prompt as a circuit breaker (in a terminal, on a two-minute countdown after which the removal is denied), and a `PreToolUse` hook `deny` still blocks. **`auto` mode silently drops broad allow rules** — `Bash(*)`, wildcarded interpreters, package-manager run commands (e.g. `npm run *`), and all `Agent` and `Monitor` allows are dropped while it's active (they restore when you leave), and `defaultMode: \"auto\"` is *ignored* when set in `.claude/settings.json` or `.claude/settings.local.json` (the built-in default applies instead) — put it in user-level `~/.claude/settings.json`.",
       "diagram": "flowchart TD\n  M[Permission mode] --> DEF[default · prompt on uncertain]\n  M --> AE[acceptEdits · auto-approve cwd file ops]\n  M --> AUTO[auto · classifier autonomy<br/>drops broad allow rules]\n  M --> BP[bypassPermissions · skips most checks]\n  BP --> CB{rm -rf / or ~ ?}\n  CB -- yes --> STOP[still prompts · circuit breaker]\n  CB -- no --> RUN[runs]\n  class M,DEF,AE,AUTO,BP fact\n  class STOP built",
       "diagram_mini": "flowchart LR\n  D[default] --> A[acceptEdits] --> AU[auto] --> B[bypass]\n  B --> S[rm -rf / still blocks]\n  class S built",
       "steps": [
@@ -526,7 +530,7 @@
           "svg": "knowledge/concepts/visuals/permission-modes.step-1.svg"
         },
         {
-          "caption": "default prompts on uncertain; acceptEdits auto-approves cwd file ops; plan is read-only.",
+          "caption": "default asks first; acceptEdits auto-approves cwd file ops; plan proposes, no source edits until approved.",
           "diagram": "flowchart LR\n  N1[Mode baseline] --> N2[Default modes] --> N3[Auto drops allows] --> N4[DontAsk] --> N5[Bypass still blocks]\n  class N2 built",
           "svg": "knowledge/concepts/visuals/permission-modes.step-2.svg"
         },
@@ -536,7 +540,7 @@
           "svg": "knowledge/concepts/visuals/permission-modes.step-3.svg"
         },
         {
-          "caption": "dontAsk auto-denies anything not explicitly allowed (handy for CI).",
+          "caption": "dontAsk auto-denies anything that would otherwise prompt (handy for CI).",
           "diagram": "flowchart LR\n  N1[Mode baseline] --> N2[Default modes] --> N3[Auto drops allows] --> N4[DontAsk] --> N5[Bypass still blocks]\n  class N4 built",
           "svg": "knowledge/concepts/visuals/permission-modes.step-4.svg"
         },
@@ -555,7 +559,7 @@
       "category": "Platform model",
       "kind": "platform-fact",
       "order": 20,
-      "summary": "Only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny.",
+      "summary": "By default only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny.",
       "see_also": [
         "permission-layers",
         "command-review-tribunal"
@@ -563,7 +567,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-07-28",
+      "last_verified": "2026-10-20",
       "refresh_when": "Anthropic changes hook exit-code semantics, the hookSpecificOutput schema, or timeout behavior.",
       "sources": [
         {
@@ -575,8 +579,8 @@
           "url": "https://code.claude.com/docs/en/hooks-guide"
         }
       ],
-      "body_md": "A `PreToolUse` hook reads the pending tool call as JSON on stdin and decides its fate. **Exit codes are the load-bearing, easy-to-get-wrong detail:** only **exit 2** blocks (and the hook's stderr is fed back to the model); **exit 0** allows; and **exit 1 or any other code is a *non-blocking* error — the tool still runs.** The trap is that `exit 1` is the conventional Unix \"failure\", so a policy hook that fails with `exit 1` *looks* like it blocked but doesn't.\n\nFor richer control, a hook can instead print a `hookSpecificOutput.permissionDecision` JSON on **exit 0**: `allow`, `deny`, `ask`, or `defer` (headless-only). When several hooks and rules apply, priority is **`deny` > `defer` > `ask` > `allow`**.\n\nTwo asymmetries make this safe: a hook **`deny` beats permission-mode bypass** (it blocks even under `bypassPermissions`), but a hook **`allow` does NOT override a settings `deny`** — hooks can *tighten* but never *loosen*. Note hooks **fail open**: on timeout or crash the tool proceeds, so a hook that must fail closed has to emit its own `deny` before its deadline.",
-      "diagram": "flowchart TD\n  H[PreToolUse hook] --> EX{exit code?}\n  EX -- \"exit 2\" --> BLOCK[Blocked · stderr fed to model]\n  EX -- \"exit 1 / other\" --> NB[Non-blocking error · tool still RUNS]\n  EX -- \"exit 0\" --> J{JSON permissionDecision?}\n  J -- deny --> DEN[Denied · beats bypass mode]\n  J -- ask --> ASK[User prompted]\n  J -- \"allow / none\" --> ALL[Prompt skipped · settings deny still wins]\n  class H,EX,J,NB,ASK,ALL fact\n  class BLOCK,DEN built",
+      "body_md": "A `PreToolUse` hook reads the pending tool call as JSON on stdin and decides its fate. **Exit codes are the load-bearing, easy-to-get-wrong detail:** by default only **exit 2** blocks (and the hook's stderr is fed back to the model); **exit 0** takes no decision of its own — the call goes on to the normal permission flow (\"staying silent doesn't approve it\"); and **exit 1 or any other code is a *non-blocking* error — the tool still runs.** The trap is that `exit 1` is the conventional Unix \"failure\", so a policy hook that fails with `exit 1` *looks* like it blocked but doesn't. The one opt-in exception (Claude Code v2.1.295+): a `command` or `http` hook with `\"onFailure\": \"block\"` blocks when it fails — it can't start, exits with a code other than 0 or 2, times out, or prints invalid output.\n\nFor richer control, a hook can instead print a `hookSpecificOutput.permissionDecision` JSON on **exit 0**: `allow`, `deny`, `ask`, or `defer` (headless-only). When several hooks and rules apply, priority is **`deny` > `defer` > `ask` > `allow`**.\n\nTwo asymmetries make this safe: a hook **`deny` beats permission-mode bypass** (it blocks even under `bypassPermissions`), but a hook **`allow` does NOT override a settings `deny`** — hooks can *tighten* but never *loosen*. Note hooks **fail open by default**: on timeout or crash the tool proceeds, so a hook that must fail closed should set `\"onFailure\": \"block\"` (v2.1.295+) or emit its own `deny` before its deadline.",
+      "diagram": "flowchart TD\n  H[PreToolUse hook] --> EX{exit code?}\n  EX -- \"exit 2\" --> BLOCK[Blocked · stderr fed to model]\n  EX -- \"exit 1 / other\" --> NB[Non-blocking error · tool still RUNS]\n  EX -- \"exit 0\" --> J{JSON permissionDecision?}\n  J -- deny --> DEN[Denied · beats bypass mode]\n  J -- ask --> ASK[User prompted]\n  J -- allow --> ALL[Prompt skipped · settings deny still wins]\n  J -- none --> NORM[Normal permission flow]\n  class H,EX,J,NB,ASK,ALL,NORM fact\n  class BLOCK,DEN built",
       "diagram_mini": "flowchart LR\n  E{exit?} -- \"2\" --> B[blocks]\n  E -- \"0\" --> J[JSON verdict]\n  E -- \"1\" --> R[runs anyway]\n  class B built",
       "steps": [
         {
@@ -614,7 +618,7 @@
       "category": "Platform model",
       "kind": "platform-fact",
       "order": 22,
-      "summary": "SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup, and hook output is capped at 10,000 characters (overflow becomes a file preview).",
+      "summary": "SessionStart hooks inject additionalContext every session — additive only; can't block startup (first response still waits), output capped at 10,000 chars (overflow becomes a file preview).",
       "see_also": [
         "hook-lifecycle",
         "capability-banner"
@@ -624,7 +628,7 @@
       "node_links": {
         "H": "hook-lifecycle"
       },
-      "last_verified": "2026-07-28",
+      "last_verified": "2026-10-20",
       "refresh_when": "Anthropic changes the SessionStart additionalContext field, its size cap, or matcher set.",
       "sources": [
         {
@@ -632,7 +636,7 @@
           "url": "https://code.claude.com/docs/en/hooks"
         }
       ],
-      "body_md": "`PreToolUse` hooks gate tool calls; **`SessionStart` hooks can't gate anything.** Their job is to add text to the session via a different field — `hookSpecificOutput.additionalContext` — and nothing more. The output is read **only on exit 0**; a non-zero exit is a non-blocking error and the session still starts. A SessionStart hook can never block or delay a session; its output is purely additive.\n\nRules that bite: hook output strings — `additionalContext`, `systemMessage`, and plain stdout — are **capped at 10,000 characters**; output past the cap isn't silently cut, it's **saved to a file and replaced with a preview plus the file path** (the same way an oversized tool result is handled). It's injected every session either way, so it's a recurring token cost — keep it tight. **multiple SessionStart hooks run in parallel and their outputs are concatenated**; the optional `matcher` is `startup` / `resume` / `clear` / `compact` / `fork`; and like other hooks it **fails open** on timeout. This is the mechanism RavenClaude's capability banner rides on.",
+      "body_md": "`PreToolUse` hooks gate tool calls; **`SessionStart` hooks can't gate anything.** Their job is to add text to the session via a different field — `hookSpecificOutput.additionalContext` — and nothing more. Plain-text stdout becomes context on **exit 0**; any other exit is a non-blocking error (exit 2 shows its stderr to the user only — Claude never sees it) and the session still starts. A SessionStart hook can never block a session, but it can delay the first response: the hooks run in the background so you can type at once, yet \"Claude's first response still waits for the hooks to finish\" and a prompt sent meanwhile doesn't reach Claude until they do — so keep them fast. Its output is purely additive.\n\nRules that bite: hook output strings — `additionalContext`, `systemMessage`, `initialUserMessage`, and plain stdout — are **capped at 10,000 characters**; output past the cap isn't silently cut, it's **saved to a file and replaced with a preview plus the file path** (a preview of up to the first 2,000 characters; a large valid Bash result is handled the same way). It's injected every session either way, so it's a recurring token cost — keep it tight. **multiple SessionStart hooks run in parallel and their outputs are concatenated**; the optional `matcher` is `startup` / `resume` / `clear` / `compact` / `fork`; and like other hooks it **fails open** on timeout. This is the mechanism RavenClaude's capability banner rides on.",
       "diagram": "flowchart TD\n  S[Session starts] --> H[SessionStart hooks run in parallel]\n  H --> EX{exit 0?}\n  EX -- no --> SKIP[Non-blocking error · session starts anyway]\n  EX -- yes --> ADD[additionalContext concatenated into context]\n  ADD --> CAP[~10k char cap · injected every session]\n  CAP --> GO[Session proceeds · never blocked]\n  SKIP --> GO\n  class S,H,EX,SKIP,GO fact\n  class ADD,CAP built",
       "diagram_mini": "flowchart LR\n  S[SessionStart] --> A[additionalContext]\n  A --> C[added to context<br/>· can't block]\n  class A built",
       "steps": [
@@ -642,7 +646,7 @@
           "svg": "knowledge/concepts/visuals/session-start-context.step-1.svg"
         },
         {
-          "caption": "They can't gate anything — output is read only on exit 0.",
+          "caption": "They can't gate anything — plain-text stdout becomes context on exit 0.",
           "diagram": "flowchart LR\n  N1[Session starts] --> N2[Hooks parallel] --> N3[Exit 0 only] --> N4[Context added] --> N5[10k cap]\n  class N2 built",
           "svg": "knowledge/concepts/visuals/session-start-context.step-2.svg"
         },
@@ -679,8 +683,8 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-07-21",
-      "refresh_when": "Cloudflare changes the Pages-vs-Workers feature split (the migration guide's two comparison tables), announces a Pages deprecation or migration mandate, changes the free/paid CPU-time or script-size limits, or moves a node: module out of the non-functional-stub list.",
+      "last_verified": "2026-10-20",
+      "refresh_when": "Cloudflare changes the Pages-vs-Workers feature split (the migration guide's two comparison tables), announces a Pages deprecation or migration mandate, changes the free/paid CPU-time or Worker-size limits, changes the compatibility date at which Node.js APIs turn on by default, or moves a node: module out of the non-functional-stub list.",
       "sources": [
         {
           "label": "Cloudflare Docs — Static assets on Workers",
@@ -711,7 +715,7 @@
           "url": "https://developers.cloudflare.com/workers/platform/limits/"
         }
       ],
-      "body_md": "**The question to answer first: does anything have to _run_ when a visitor asks for this URL?**\n\n- **No** — the HTML, CSS, JS and images were built ahead of time. They are **static assets**. Cloudflare serves them straight off its network, and per the docs: _\"If a requested URL matches a file in the static assets directory, that file will be served — without invoking Worker code.\"_ Those requests cost nothing: _\"Requests to static assets are free and unlimited.\"_\n- **Yes** — a session must be checked, a database read, an API called, a page rendered from live data. That is a **Worker**: your code, executed once per request, before a response exists.\n\n**Pages and Workers are not two different runtimes.** A **Pages Function _is_ a Worker** — the docs define Functions as \"executing code on the Cloudflare network with Cloudflare Workers.\" And Workers serve static assets natively: `wrangler` uploads your build output and \"deploys both your Worker code and your static assets in a single operation.\" So one Workers project can be the entire site — the static files _and_ the handful of routes that need code.\n\n**Which one, then?** Cloudflare's own migration guide does **not** deprecate Pages, and it does not tell you to move. It publishes a feature split, and that split is the real decision:\n\n| Only on Workers | Only on Pages |\n| --- | --- |\n| Durable Objects, Cron Triggers, Queue consumers, Email Workers | File-based routing with no framework adapter |\n| Workers Logs, Logpush, Tail Workers, source maps | Early Hints (a workaround exists on Workers) |\n| Gradual deployments, remote development, the Vite plugin | Custom domains outside your Cloudflare zones |\n| Non-root routes, rate limiting, image resizing | Serving assets on a path without a workaround |\n\nPractical read: **start on Workers unless you specifically want Pages' file-based routing or need a custom domain on a zone you don't run.** Everything a growing app reaches for later — a durable coordination object, a cron job, a queue consumer, real logs — is on the Workers side of that table.\n\n**What \"edge\" actually means.** Not a metaphor: your code is deployed to _\"a growing global network of thousands of machines distributed across hundreds of locations,\"_ and _\"each of these machines hosts an instance of the Workers runtime.\"_ A request is handled by whichever machine took the connection. The consequence people miss: your **compute** is everywhere, but your **data** usually isn't — a Worker in Sydney hitting a database in Virginia is still a trip to Virginia.\n\n**Cold starts.** Workers don't run a container per tenant; they run V8 **isolates**, and paying the runtime's startup cost once per machine _\"eliminates the cold starts of the virtual machine model.\"_ An isolate _\"can start around a hundred times faster than a Node process on a container or virtual machine.\"_ Stop designing around warm-up — there is nothing to keep warm.\n\n**Workers is not Node, and this is what breaks your libraries.** There is no Node runtime underneath. You opt into Node APIs with the `nodejs_compat` compatibility flag and a compatibility date of **2024-09-23 or later**; with it, much of the standard library really works — `node:crypto`, `Buffer`, streams, `path`, `http`/`https`, `net`, `AsyncLocalStorage`, `zlib`. What still breaks:\n\n- **Non-functional stubs** — `node:worker_threads`, `node:cluster`, `node:vm`, `node:http2` import fine and then do nothing. A library that reaches for them fails at runtime, not at build time.\n- **Anything assuming a long-lived process** — a background thread, an in-process job queue, a connection pool that outlives the request, a native addon.\n- **No flag, no Node.** Without `nodejs_compat` set, `node:` imports don't resolve at all.\n\n**The limits that actually bite.** **CPU time**, not wall-clock, is the ceiling: 10 ms per request on Free, 30 s by default on Paid (raisable to 5 min). Waiting on a database or an API isn't CPU time, and an HTTP request has \"no limit\" on duration while the client stays connected. Memory is **128 MB** per isolate. A script is capped at **3 MB** compressed on Free, **10 MB** on Paid — which is what a bundled headless-CMS SDK runs into.",
+      "body_md": "**The question to answer first: does anything have to _run_ when a visitor asks for this URL?**\n\n- **No** — the HTML, CSS, JS and images were built ahead of time. They are **static assets**. Cloudflare serves them straight off its network, and per the docs: _\"If a requested URL matches a file in the static assets directory, that file will be served — without invoking Worker code.\"_ Those requests cost nothing: _\"Requests to static assets are free and unlimited.\"_\n- **Yes** — a session must be checked, a database read, an API called, a page rendered from live data. That is a **Worker**: your code, executed once per request, before a response exists.\n\n**Pages and Workers are not two different runtimes.** A **Pages Function _is_ a Worker** — the docs define Functions as \"executing code on the Cloudflare network with Cloudflare Workers.\" And Workers serve static assets natively: `wrangler` uploads your build output and \"deploys both your Worker code and your static assets in a single operation.\" So one Workers project can be the entire site — the static files _and_ the handful of routes that need code.\n\n**Which one, then?** Cloudflare's own migration guide does **not** deprecate Pages, and it does not tell you to move. It publishes a feature split, and that split is the real decision:\n\n| Only on Workers | Only on Pages |\n| --- | --- |\n| Durable Objects, Cron Triggers, Queue consumers, Email Workers | File-based routing with no framework adapter |\n| Workers Logs, Logpush, Tail Workers, source maps | Early Hints (a workaround exists on Workers) |\n| Gradual deployments, remote development, the Vite plugin | Custom domains outside your Cloudflare zones |\n| Non-root routes, serving assets on a path, rate limiting, image resizing | |\n\nPractical read: **start on Workers unless you specifically want Pages' file-based routing or need a custom domain on a zone you don't run.** Everything a growing app reaches for later — a durable coordination object, a cron job, a queue consumer, real logs — is on the Workers side of that table.\n\n**What \"edge\" actually means.** Not a metaphor: your code is deployed to _\"a growing global network of thousands of machines distributed across hundreds of locations,\"_ and _\"each of these machines hosts an instance of the Workers runtime.\"_ A request is handled by whichever machine took the connection. The consequence people miss: your **compute** is everywhere, but your **data** usually isn't — a Worker in Sydney hitting a database in Virginia is still a trip to Virginia.\n\n**Cold starts.** Workers don't run a container per tenant; they run V8 **isolates**, and paying the runtime's startup cost once per machine _\"eliminates the cold starts of the virtual machine model.\"_ An isolate _\"can start around a hundred times faster than a Node process on a container or virtual machine.\"_ Stop designing around warm-up — there is nothing to keep warm.\n\n**Workers is not Node, and this is what breaks your libraries.** There is no Node runtime underneath. With a compatibility date of **2026-08-04 or later**, Node APIs are on by default; for dates from 2024-09-23 through 2026-08-03 you opt in with the `nodejs_compat` compatibility flag. Either way, much of the standard library really works — `node:crypto`, `Buffer`, streams, `path`, `http`/`https`, `net`, `AsyncLocalStorage`, `zlib`. What still breaks:\n\n- **Non-functional stubs** — `node:worker_threads`, `node:cluster`, `node:vm`, `node:http2` import fine and then do nothing. A library that reaches for them fails at runtime, not at build time.\n- **Anything assuming a long-lived process** — a background thread, an in-process job queue, a connection pool that outlives the request, a native addon.\n- **Old compatibility date, no flag, no Node.** A Worker dated before 2026-08-04 without `nodejs_compat` set gets no Node APIs — `node:` imports don't resolve at all.\n\n**The limits that actually bite.** **CPU time**, not wall-clock, is the ceiling: 10 ms per request on Free, 30 s by default on Paid (raisable to 5 min). Waiting on a database or an API isn't CPU time, and an HTTP request has \"no limit\" on duration while the client stays connected. Memory is **128 MB** per isolate. Worker size is **64 MiB uncompressed** on both Free and Paid, with no separate compressed cap — but a bigger bundle still costs startup time, and startup is capped at **1 second**.",
       "diagram": "flowchart TD\n  R[Request for a URL] --> M{Does a built file<br/>match this path?}\n  M -- yes --> A[Static asset served<br/>no code runs · free and unlimited]\n  M -- no --> W[Your Worker runs<br/>a Pages Function IS a Worker]\n  W --> N{Needs a Node<br/>runtime feature?}\n  N -- worker_threads · cluster · vm · http2 --> X[Non-functional stub · breaks at runtime]\n  N -- crypto · Buffer · streams · path --> OK[Works with nodejs_compat<br/>compat date 2024-09-23+]\n  W --> L[Budget: 128 MB memory<br/>CPU 10 ms free · 30 s paid]\n  class M,N fact\n  class A,W,X,OK,L built",
       "diagram_mini": "flowchart LR\n  U[request] --> F{file exists?}\n  F -- yes --> S[static · free]\n  F -- no --> C[Worker code runs]\n  class F fact\n  class S,C built",
       "steps": [],
@@ -732,7 +736,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-07-21",
+      "last_verified": "2026-10-20",
       "refresh_when": "R2 starts charging egress or changes the $0.015/GB-month or Class A/B prices, D1 raises the 10 GB per-database cap or stops processing queries one at a time, KV's stated 60-second propagation window changes, or Queues changes its free allocation.",
       "sources": [
         {
@@ -756,15 +760,27 @@
           "url": "https://developers.cloudflare.com/durable-objects/"
         },
         {
+          "label": "Cloudflare Docs — What are Durable Objects?",
+          "url": "https://developers.cloudflare.com/durable-objects/concepts/what-are-durable-objects/"
+        },
+        {
+          "label": "Cloudflare Docs — Durable Objects limits",
+          "url": "https://developers.cloudflare.com/durable-objects/platform/limits/"
+        },
+        {
           "label": "Cloudflare Docs — Durable Objects in-memory state",
           "url": "https://developers.cloudflare.com/durable-objects/reference/in-memory-state/"
+        },
+        {
+          "label": "Cloudflare Docs — Queues overview",
+          "url": "https://developers.cloudflare.com/queues/"
         },
         {
           "label": "Cloudflare Docs — Queues pricing",
           "url": "https://developers.cloudflare.com/queues/platform/pricing/"
         }
       ],
-      "body_md": "Five stores, and the choice is almost never close once you name the shape of the data. Ask the question in the left column; the answer picks the product.\n\n| What you have | Store | The fact that decides it |\n| --- | --- | --- |\n| Rows you want to query and join | **D1** | SQLite semantics; 10 GB per database (Paid), 500 MB (Free) |\n| Files: uploads, images, backups, exports | **R2** | **Egress is free** — the whole reason to leave S3 |\n| Read-mostly config, flags, cached responses | **KV** | Writes can take **60 s or more** to show up elsewhere |\n| Many clients that must agree on one state | **Durable Objects** | One active instance per ID handles every request for it |\n| Work that shouldn't happen in the request | **Queues** | Guaranteed delivery, batching, retries, dead-letter queue |\n\n### D1 — rows you query\n\n_\"D1 is Cloudflare's managed, serverless database with SQLite's SQL semantics.\"_ Real SQL, real joins, real constraints, queried from a Worker binding or over HTTP. Limits worth knowing before you design: **10 GB per database** on Workers Paid (500 MB Free), **1 TB total** per account (5 GB Free), **50,000 databases** (10 on Free), 30-second query duration, 2 MB max row.\n\nThe load-bearing one is not a size: _\"Each individual D1 database is inherently single-threaded, and processes queries one at a time.\"_ That is why there is no published rows-per-second figure — throughput is just one over your query duration. A slow query doesn't only hurt its own caller; it holds up everything behind it. The intended answer to a write-heavy workload is **more databases**, not a bigger one — Cloudflare specifically notes you can \"create thousands of databases at no extra cost for isolation,\" so a per-tenant or per-shard database is the sanctioned pattern.\n\n### R2 — files, and the egress story\n\nObject storage, S3-API-compatible, and the differentiator is one line: **\"Egress (data transfer to Internet)\" is \"Free.\"** No per-GB bandwidth bill for serving what you stored. That single fact is what makes user-uploaded media, public downloads, dataset hosting and video segments viable at a price S3 can't match, and it is the reason to migrate even when nothing else about R2 is better for you.\n\nYou pay for storage and operations instead: **$0.015/GB-month** standard ($0.01 for Infrequent Access), **Class A $4.50/million** (writes and lists — `PutObject`, `ListObjects`, `CopyObject`, multipart), **Class B $0.36/million** (reads — `GetObject`, `HeadObject`). Deletes are free. The free tier is 10 GB-month plus 1M Class A and 10M Class B operations per month. The practical shape: **writes cost 12× what reads cost**, so batch uploads and stop listing a bucket on every page load.\n\n### KV — fast reads, and the trap\n\nKV _\"achieves high performance by being eventually-consistent.\"_ A write is usually visible immediately where you made it, but _\"changes may take up to 60 seconds or more to be visible in other global network locations.\"_ Reads are additionally cached with a `cacheTtl` defaulting to 60 seconds, and negative lookups are cached too — so a key you just created can keep reading as missing.\n\n**Never put anything needing read-after-write in KV.** Not a user's just-saved profile, not a session that a redirect immediately reads, not a counter, not a lock. Cloudflare says it plainly: KV is wrong for workloads needing _\"atomic operations or where values must be read and written in a single transaction,\"_ and wrong for write-heavy keys updated _\"tens or hundreds of times per second.\"_ It is right for feature flags, routing tables, config, and cached API responses — things written rarely and read everywhere.\n\n### Durable Objects — one place where truth lives\n\n_\"Each Durable Object has a globally-unique name, which allows you to send requests to a specific object from anywhere in the world\"_ and — the property everything else rests on — _\"each Durable Object has one active instance at any particular time. All requests sent to that Durable Object are handled by that same instance.\"_ That is the coordination primitive: give a chat room, a document, a game match, or a rate-limit bucket its own ID and every client converges on one authority instead of racing.\n\nIts storage is _\"durable, transactional, and strongly consistent\"_ (up to 10 GB per object), and the SQLite storage backend exposes both SQL and key-value APIs. The mistake to avoid: in-memory variables are a cache, not state — _\"because in-memory state is not preserved across eviction or hibernation, persist anything important to storage.\"_\n\n### Queues — take it out of the request path\n\n_\"Send and receive messages with guaranteed delivery,\"_ with batching, delays, retries and a dead-letter queue for repeated failures. Reach for it when the user shouldn't wait: send the email, resize the image, sync the CRM, rebuild the index. No egress charges. Free plan gets 10,000 operations/day; Paid is $0.40/million with 1M included, where **an operation is each 64 KB written, read, or deleted** — so a 200 KB message is four operations on each hop, not one.",
+      "body_md": "Five stores, and the choice is almost never close once you name the shape of the data. Ask the question in the left column; the answer picks the product.\n\n| What you have | Store | The fact that decides it |\n| --- | --- | --- |\n| Rows you want to query and join | **D1** | SQLite semantics; 10 GB per database (Paid), 500 MB (Free) |\n| Files: uploads, images, backups, exports | **R2** | **Egress is free** — the whole reason to leave S3 |\n| Read-mostly config, flags, cached responses | **KV** | Writes can take **60 s or more** to show up elsewhere |\n| Many clients that must agree on one state | **Durable Objects** | One active instance per ID handles every request for it |\n| Work that shouldn't happen in the request | **Queues** | Guaranteed delivery, batching, retries, dead-letter queue |\n\n### D1 — rows you query\n\n_\"D1 is Cloudflare's managed, serverless database with SQLite's SQL semantics.\"_ Real SQL, real joins, real constraints, queried from a Worker binding or over HTTP. Limits worth knowing before you design: **10 GB per database** on Workers Paid (500 MB Free), **1 TB total** per account (5 GB Free), **50,000 databases** (10 on Free), 30-second query duration, 2 MB max row.\n\nThe load-bearing one is not a size: _\"Each individual D1 database is inherently single-threaded, and processes queries one at a time.\"_ That is why there is no published rows-per-second figure — throughput is just one over your query duration. A slow query doesn't only hurt its own caller; it holds up everything behind it. The intended answer to a write-heavy workload is **more databases**, not a bigger one — Cloudflare specifically notes you can \"create thousands of databases at no extra cost for isolation,\" so a per-tenant or per-shard database is the sanctioned pattern.\n\n### R2 — files, and the egress story\n\nObject storage, S3-API-compatible, and the differentiator is one line: **\"Egress (data transfer to Internet)\" is \"Free.\"** No per-GB bandwidth bill for serving what you stored. That single fact is what makes user-uploaded media, public downloads, dataset hosting and video segments viable at a price S3 can't match, and it is the reason to migrate even when nothing else about R2 is better for you.\n\nYou pay for storage and operations instead: **$0.015/GB-month** standard ($0.01 for Infrequent Access), **Class A $4.50/million** (writes and lists — `PutObject`, `ListObjects`, `CopyObject`, multipart), **Class B $0.36/million** (reads — `GetObject`, `HeadObject`). Deletes are free. The free tier is 10 GB-month plus 1M Class A and 10M Class B operations per month. The practical shape: **writes cost 12.5× what reads cost**, so batch uploads and stop listing a bucket on every page load.\n\n### KV — fast reads, and the trap\n\nKV _\"achieves high performance by being eventually-consistent.\"_ A write is usually visible immediately where you made it, but _\"changes may take up to 60 seconds or more to be visible in other global network locations.\"_ Reads are additionally cached with a `cacheTtl` defaulting to 60 seconds, and negative lookups are cached too — so a key you just created can keep reading as missing.\n\n**Never put anything needing read-after-write in KV.** Not a user's just-saved profile, not a session that a redirect immediately reads, not a counter, not a lock. Cloudflare says it plainly: KV is wrong for workloads needing _\"atomic operations or where values must be read and written in a single transaction,\"_ and wrong for write-heavy keys updated _\"tens or hundreds of times per second.\"_ It is right for feature flags, routing tables, config, and cached API responses — things written rarely and read everywhere.\n\n### Durable Objects — one place where truth lives\n\n_\"Each Durable Object has a globally-unique name, which allows you to send requests to a specific object from anywhere in the world\"_ and — the property everything else rests on — _\"each Durable Object has one active instance at any particular time. All requests sent to that Durable Object are handled by that same instance.\"_ That is the coordination primitive: give a chat room, a document, a game match, or a rate-limit bucket its own ID and every client converges on one authority instead of racing.\n\nIts storage is _\"durable, transactional, and strongly consistent\"_ (up to 10 GB per object on Workers Paid, 1 GB on Free), and the SQLite storage backend exposes both SQL and key-value APIs. The mistake to avoid: in-memory variables are a cache, not state — _\"because in-memory state is not preserved across eviction or hibernation, persist anything important to storage.\"_\n\n### Queues — take it out of the request path\n\n_\"Send and receive messages with guaranteed delivery,\"_ with batching, delays, retries and a dead-letter queue for repeated failures. Reach for it when the user shouldn't wait: send the email, resize the image, sync the CRM, rebuild the index. No egress charges. Free plan gets 10,000 operations/day; Paid is $0.40/million with 1M included, where **an operation is each 64 KB written, read, or deleted** — so a 200 KB message is four operations on each hop, not one.",
       "diagram": "flowchart TD\n  Q{What shape is it?} -- rows you query --> D1[D1 · SQLite<br/>one query at a time per DB<br/>10 GB · shard by tenant]\n  Q -- a file --> R2[R2 · object storage<br/>EGRESS FREE · $0.015 per GB-month]\n  Q -- config read everywhere --> KV[KV · eventually consistent<br/>up to 60 s to propagate]\n  Q -- clients must agree --> DO[Durable Objects<br/>one instance per ID · strongly consistent]\n  Q -- work to defer --> QU[Queues · guaranteed delivery<br/>batch · retry · dead-letter]\n  KV --> W[Needs read-after-write?<br/>then NOT KV · use D1 or a Durable Object]\n  class Q fact\n  class D1,R2,KV,DO,QU,W built",
       "diagram_mini": "flowchart LR\n  D[rows] --> D1[D1]\n  F[files] --> R2[R2 · free egress]\n  C[config] --> KV[KV · 60s stale]\n  S[shared state] --> DO[Durable Object]\n  class D,F,C,S fact\n  class D1,R2,KV,DO built",
       "steps": [],
@@ -785,16 +801,20 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-07-21",
-      "refresh_when": "Turnstile changes the 300-second token lifetime, single-use replay rule, or starts supporting wildcards in the hostname field; Access changes its deny-by-default posture or policy building blocks; or Cloudflare moves WAF Managed Rules onto or off the Free plan.",
+      "last_verified": "2026-10-20",
+      "refresh_when": "Turnstile changes the 300-second token lifetime, single-use replay rule, or starts supporting wildcards in the hostname field; Access changes its deny-by-default posture or policy building blocks; or Cloudflare changes what the Free plan gets from WAF Managed Rules (today: the Free Managed Ruleset only).",
       "sources": [
         {
           "label": "Cloudflare Docs — Access policies",
-          "url": "https://developers.cloudflare.com/cloudflare-one/policies/access/"
+          "url": "https://developers.cloudflare.com/cloudflare-one/access-controls/policies/"
         },
         {
           "label": "Cloudflare Docs — Cloudflare One / Zero Trust",
           "url": "https://developers.cloudflare.com/cloudflare-one/"
+        },
+        {
+          "label": "Cloudflare Docs — Turnstile overview",
+          "url": "https://developers.cloudflare.com/turnstile/"
         },
         {
           "label": "Cloudflare Docs — Turnstile: get started",
@@ -806,14 +826,14 @@
         },
         {
           "label": "Cloudflare Docs — Turnstile hostname management",
-          "url": "https://developers.cloudflare.com/turnstile/concepts/hostname-management/"
+          "url": "https://developers.cloudflare.com/turnstile/additional-configuration/hostname-management/"
         },
         {
           "label": "Cloudflare Docs — Cloudflare WAF",
           "url": "https://developers.cloudflare.com/waf/"
         }
       ],
-      "body_md": "These three get confused constantly, and the confusion is expensive: people put a CAPTCHA in front of an admin panel that needed a login, or expect a firewall rule to stop credential stuffing from a real browser. Each answers a **different question**, and each has a different unit it judges.\n\n| Product | The question it answers | What it judges |\n| --- | --- | --- |\n| **Access** (Cloudflare One / Zero Trust) | *Who are you, and are you allowed in?* | A **person**, against an identity provider |\n| **Turnstile** | *Is this visitor a human?* | A **visitor** on a page, at one moment |\n| **WAF** | *Is this request trying to hurt me?* | A single **HTTP request** |\n\n### Access — identity in front of a whole application\n\n_\"Cloudflare Access determines who can reach your application by applying the Access policies you configure.\"_ Unauthenticated visitors are stopped before the app is reached at all — **\"Access is deny by default.\"** You are not writing auth code; you are putting a policy-enforced door in front of an existing app (self-hosted, SaaS, or non-HTTP).\n\nA policy is four parts: an **action** (Allow, Block, Bypass, or Service Auth), **rule types** that combine criteria, **selectors** — the attribute being checked, such as email domain, country, or device posture — and the **values** to match. Identity is validated against an IdP: the canonical example is allowing anyone _\"with an `@example.com` email address, as validated against an IdP.\"_ Note the docs' own warning: Cloudflare _\"does not recommend using Bypass to grant direct permanent access to your internal applications.\"_\n\nUse it for the staging site, the admin panel, the internal dashboard, the metrics endpoint. Do **not** reach for Turnstile there — a bot check does not know who someone is.\n\n### Turnstile — proving a visitor is a human, without a CAPTCHA\n\n_\"Cloudflare's smart CAPTCHA alternative.\"_ It runs _\"a series of small non-interactive JavaScript challenges to gather signals about the visitor or browser environment\"_ instead of making people label traffic lights, and it is a drop-in replacement for reCAPTCHA and hCaptcha. Critically, **your site does not have to be on Cloudflare**: _\"Turnstile can be embedded into any website without sending traffic through Cloudflare.\"_\n\nTwo keys, and mixing them up is the classic failure:\n\n- **Sitekey — public.** _\"Public key used to invoke the Turnstile widget on your site.\"_ It ships in your HTML. That is fine and by design.\n- **Secret key — private.** _\"Private key used for server-side token validation,\"_ with the docs' own rule: _\"Never expose secret keys in client-side code.\"_\n\n**The widget alone proves nothing.** A rendered widget just hands the browser a token; anyone can POST your form without one. The check is the server-side call to `POST https://challenges.cloudflare.com/turnstile/v0/siteverify` with `secret` and `response`, and acting on `success`. Two properties shape your code: the token is **valid for 300 seconds (5 minutes)**, and it is **single-use** — _\"a replayed token will be rejected.\"_ So verify once, at submit, on the server, and never cache or re-check a token.\n\n**Hostname behaviour catches people out.** A hostname you add covers itself *and everything under it*: _\"the widget will work on that exact hostname and all of its subdomains.\"_ But you cannot express that with a glob — _\"wildcard characters (such as `*`) are not supported in the hostname field.\"_ So add `example.com` and `app.example.com` and `staging.example.com` are already covered; typing `*.example.com` is not a pattern, it is a broken hostname.\n\n### WAF — blocking malicious requests\n\nThe WAF _\"checks incoming web and API requests and filters undesired traffic based on sets of rules called rulesets,\"_ matching on request properties such as _\"IP address, URL path, headers, and body content.\"_ Three rule families do the work: **Custom rules** you write, **Managed Rules** Cloudflare maintains and updates for zero-days, and **Rate limiting rules** that cap requests matching an expression.\n\nPlan matters here, so check before you design around it: Free gets custom rules, **one** rate limiting rule, IP access rules and sampled security events. **Managed Rules require Pro or above**; advanced rate limiting and account-level configuration are Enterprise.\n\n### They stack — and the order is the point\n\nA request can pass the WAF (it isn't a SQL injection), fail Turnstile (it's a scripted signup), and never reach Access (nobody logged in). Putting Turnstile on a login form does not authenticate anyone; putting Access on a public marketing site locks out your customers; a WAF rule cannot tell a legitimate user from a stolen password. Pick by the question you actually have.",
+      "body_md": "These three get confused constantly, and the confusion is expensive: people put a CAPTCHA in front of an admin panel that needed a login, or expect a firewall rule to stop credential stuffing from a real browser. Each answers a **different question**, and each has a different unit it judges.\n\n| Product | The question it answers | What it judges |\n| --- | --- | --- |\n| **Access** (Cloudflare One / Zero Trust) | *Who are you, and are you allowed in?* | A **person**, against an identity provider |\n| **Turnstile** | *Is this visitor a human?* | A **visitor** on a page, at one moment |\n| **WAF** | *Is this request trying to hurt me?* | A single **HTTP request** |\n\n### Access — identity in front of a whole application\n\n_\"Cloudflare Access determines who can reach your application by applying the Access policies you configure.\"_ Unauthenticated visitors are stopped before the app is reached at all — **\"Access is deny by default.\"** You are not writing auth code; you are putting a policy-enforced door in front of an existing app (self-hosted, SaaS, or non-HTTP).\n\nA policy is four parts: an **action** (Allow, Block, Bypass, or Service Auth), **rule types** that combine criteria, **selectors** — the attribute being checked, such as email domain, country, or device posture — and the **values** to match. Identity is validated against an IdP: the canonical example is allowing anyone _\"with an `@example.com` email address, as validated against an IdP.\"_ Note the docs' own warning: Cloudflare _\"does not recommend using Bypass to grant direct permanent access to your internal applications.\"_\n\nUse it for the staging site, the admin panel, the internal dashboard, the metrics endpoint. Do **not** reach for Turnstile there — a bot check does not know who someone is.\n\n### Turnstile — proving a visitor is a human, without a CAPTCHA\n\n_\"Cloudflare's smart CAPTCHA alternative.\"_ It runs _\"a series of small non-interactive JavaScript challenges to gather signals about the visitor or browser environment\"_ instead of making people label traffic lights, and it is a drop-in replacement for reCAPTCHA and hCaptcha. Critically, **your site does not have to be on Cloudflare**: _\"Turnstile can be embedded into any website without sending traffic through Cloudflare.\"_\n\nTwo keys, and mixing them up is the classic failure:\n\n- **Sitekey — public.** _\"Public key used to invoke the Turnstile widget on your site.\"_ It ships in your HTML. That is fine and by design.\n- **Secret key — private.** _\"Private key used for server-side token validation,\"_ with the docs' own rule: _\"Never expose secret keys in client-side code.\"_\n\n**The widget alone proves nothing.** A rendered widget just hands the browser a token; anyone can POST your form without one. The check is the server-side call to `POST https://challenges.cloudflare.com/turnstile/v0/siteverify` with `secret` and `response`, and acting on `success`. Two properties shape your code: the token is **valid for 300 seconds (5 minutes)**, and it is **single-use** — _\"a replayed token will be rejected.\"_ So verify once, at submit, on the server, and never cache or re-check a token.\n\n**Hostname behaviour catches people out.** A hostname you add covers itself *and everything under it*: _\"the widget will work on that exact hostname and all of its subdomains.\"_ But you cannot express that with a glob — _\"wildcard characters (such as `*`) are not supported in the hostname field.\"_ So add `example.com` and `app.example.com` and `staging.example.com` are already covered; typing `*.example.com` is not a pattern, it is a broken hostname.\n\n### WAF — blocking malicious requests\n\nThe WAF _\"checks incoming web and API requests and filters undesired traffic based on sets of rules called rulesets,\"_ matching on request properties such as _\"IP address, URL path, headers, and body content.\"_ Three rule families do the work: **Custom rules** you write, **Managed Rules** Cloudflare maintains and updates for zero-days, and **Rate limiting rules** that cap requests matching an expression.\n\nPlan matters here, so check before you design around it: Free gets custom rules, **one** rate limiting rule, IP access rules, sampled security events, and **only the Free Managed Ruleset** — the full Cloudflare Managed Rules need Pro or above. Advanced rate limiting is an Enterprise paid add-on, and account-level configuration is Enterprise.\n\n### They stack — and the order is the point\n\nA request can pass the WAF (it isn't a SQL injection), fail Turnstile (it's a scripted signup), and never reach Access (nobody logged in). Putting Turnstile on a login form does not authenticate anyone; putting Access on a public marketing site locks out your customers; a WAF rule cannot tell a legitimate user from a stolen password. Pick by the question you actually have.",
       "diagram": "flowchart TD\n  V[Incoming request] --> W{WAF · is this request malicious?<br/>IP · path · headers · body}\n  W -- matched a rule --> B1[Blocked or rate-limited]\n  W -- clean --> A{Access · who is this person?<br/>validated against your IdP}\n  A -- no identity --> B2[Deny by default · sent to login]\n  A -- allowed, or app is public --> T{Turnstile · is this visitor human?<br/>on the form that matters}\n  T -- token verified server-side --> OK[Request handled]\n  T -- no token · replayed · expired after 300 s --> B3[Rejected]\n  class W,A,T fact\n  class B1,B2,B3,OK built",
       "diagram_mini": "flowchart LR\n  R[request] --> W[WAF · malicious?]\n  W --> A[Access · who?]\n  A --> T[Turnstile · human?]\n  class W,A,T fact",
       "steps": [],
@@ -835,7 +855,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-07-21",
+      "last_verified": "2026-10-20",
       "refresh_when": "Cloudflare changes which record types can be proxied, what Universal SSL covers, or the default no-cache-for-HTML behaviour — or the registrar/DNS-host split stops being how domains work.",
       "sources": [
         {
@@ -845,6 +865,10 @@
         {
           "label": "Cloudflare DNS — DNS record types",
           "url": "https://developers.cloudflare.com/dns/manage-dns-records/reference/dns-record-types/"
+        },
+        {
+          "label": "Cloudflare DNS — primary (full) setup overview",
+          "url": "https://developers.cloudflare.com/dns/zone-setups/full-setup/"
         },
         {
           "label": "Cloudflare DNS — full setup, change your nameservers",
@@ -859,7 +883,7 @@
           "url": "https://developers.cloudflare.com/cache/concepts/default-cache-behavior/"
         }
       ],
-      "body_md": "You own a domain and you want it to point somewhere new — a new host, a new site, a new mail provider — without breaking the other two. The whole question is **who do I change, and where**. It is only hard because three separate jobs are usually sold by one company, so people merge them into a single mental \"my domain.\"\n\n**Three roles. Learn to say which one you mean.**\n\n- **Registrar** — who you rent the *name* from (GoDaddy, Namecheap, Cloudflare Registrar). It holds exactly one thing that matters day to day: the list of **nameservers**. Nothing about your site's content lives here.\n- **DNS host** — the service that *answers the questions*: \"what IP is example.com?\", \"where does its mail go?\". Your records live here. Cloudflare's own setup guide draws the line: the registrar is where you \"registered and own your domain\"; the DNS provider is \"the service managing your DNS records.\"\n- **CDN / proxy** — a network that sits *in front of* your server: terminates TLS, caches, filters. Entirely optional. Cloudflare can be all three at once, which is exactly why the three get merged.\n\n**Nameservers are the switch at the top.** An `NS` record \"indicate[s] which server should be used for authoritative DNS.\" You set it **at the registrar**, and it decides which company gets asked everything else. Change it and every record moves at once. Cloudflare tells you to \"wait up to 24 hours while your registrar updates your nameservers\" — that lag is why the nameserver change is the one you plan, and the record change is the one you do casually.\n\n**The four records you will actually touch**, all at the DNS host:\n\n- **A / AAAA** — \"map a domain name to one or multiple IPv4 or IPv6 address(es).\" The literal \"the site lives at this machine\" record.\n- **CNAME** — \"map[s] a domain name to another (canonical) domain name.\" Use it when your host gives you a hostname (`my-app.pages.dev`) instead of an IP.\n- **MX** — \"required to deliver email to a mail server.\" **Email is a separate system from the website.** Moving your site does not touch MX; deleting MX by accident is how a site move takes the mail down with it.\n- **TXT** — \"let you enter text into the DNS system.\" Domain-ownership proofs and email authentication (SPF / DKIM / DMARC) live here.\n\n**Proxied vs DNS-only is a real fork, not a display setting.** Proxied means \"Cloudflare sits between your visitors and your server — optimizing, caching, and protecting traffic along the way\": visitors resolve to Cloudflare's anycast IPs, never your origin. DNS-only records \"respond with your server's actual IP address and do not route HTTP/HTTPS traffic through its network.\" Only address-resolving records qualify — \"Other record types (such as MX or TXT) are always DNS-only.\" The part that bites: DDoS protection, caching, and \"WAF rules, caching, and redirect rules\" apply **only to proxied traffic**. A record you flipped to DNS-only while debugging is a record with no cache, no WAF, and your origin IP published.\n\n**SSL is automatic, and it is a property of the edge.** Cloudflare \"issues — and renews — free, unshared, publicly trusted SSL certificates to all domains added to and activated on Cloudflare.\" On a full setup that covers the root domain and first-level subdomains; deeper names need more certificate. Because the edge presents it, the automatic certificate is for **proxied** hostnames — turn the proxy off and you are back to whatever certificate your origin holds.\n\n**Caching defaults surprise people in one specific direction.** \"The Cloudflare CDN does not cache HTML or JSON by default.\" It caches by file extension — CSS, JS, images, fonts, PDFs. So your *assets* are cached at the edge and your *pages* are not, unless you asked. Cloudflare skips caching when `Cache-Control` is `private`, `no-store`, `no-cache`, or `max-age=0`, and caches when it is `public` with `max-age` greater than 0. Practical consequence: \"I deployed and still see the old page\" is usually your **browser**, not the CDN.\n\n**So: who do I change, and where.**\n\n| What you want | Where you do it |\n| --- | --- |\n| Move to a different DNS host | `NS` — at the **registrar** |\n| Point the site at a new server or host | `A` / `AAAA` / `CNAME` — at the **DNS host** |\n| Move email | `MX` — at the DNS host; unrelated to the website |\n| Turn the CDN on or off for one hostname | proxy status on that record — at the DNS host |\n| Prove ownership to a third party | `TXT` — at the DNS host |\n| Move to a different registrar | transfer — at the **registrar**; records are unaffected if the nameservers do not change |\n\nThe sentence worth keeping: **the registrar decides who answers, the DNS host answers, and the proxy decides what happens after the answer.** Most \"move my site\" work is one row of A/CNAME edits at the DNS host — people reach for the nameservers, and the 24-hour clock, when they never needed to.",
+      "body_md": "You own a domain and you want it to point somewhere new — a new host, a new site, a new mail provider — without breaking the other two. The whole question is **who do I change, and where**. It is only hard because three separate jobs are usually sold by one company, so people merge them into a single mental \"my domain.\"\n\n**Three roles. Learn to say which one you mean.**\n\n- **Registrar** — who you rent the *name* from (GoDaddy, Namecheap, Cloudflare Registrar). It holds exactly one thing that matters day to day: the list of **nameservers**. Nothing about your site's content lives here.\n- **DNS host** — the service that *answers the questions*: \"what IP is example.com?\", \"where does its mail go?\". Your records live here. Cloudflare's own setup guide draws the line: moving DNS involves \"not only Cloudflare, but also your registrar and your previous DNS provider\" — two different parties.\n- **CDN / proxy** — a network that sits *in front of* your server: terminates TLS, caches, filters. Entirely optional. Cloudflare can be all three at once, which is exactly why the three get merged.\n\n**Nameservers are the switch at the top.** An `NS` record \"indicate[s] which server should be used for authoritative DNS.\" You set it **at the registrar**, and it decides which company gets asked everything else. Change it and every record moves at once. Cloudflare tells you to \"wait up to 24 hours while your registrar updates your nameservers\" — that lag is why the nameserver change is the one you plan, and the record change is the one you do casually.\n\n**The four records you will actually touch**, all at the DNS host:\n\n- **A / AAAA** — \"map a domain name to one or multiple IPv4 or IPv6 address(es).\" The literal \"the site lives at this machine\" record.\n- **CNAME** — \"map[s] a domain name to another (canonical) domain name.\" Use it when your host gives you a hostname (`my-app.pages.dev`) instead of an IP.\n- **MX** — \"required to deliver email to a mail server.\" **Email is a separate system from the website.** Moving your site does not touch MX; deleting MX by accident is how a site move takes the mail down with it.\n- **TXT** — \"let you enter text into the DNS system.\" Domain-ownership proofs and email authentication (SPF / DKIM / DMARC) live here.\n\n**Proxied vs DNS-only is a real fork, not a display setting.** Proxied means \"Cloudflare sits between your visitors and your server — optimizing, caching, and protecting traffic along the way\": visitors resolve to Cloudflare's anycast IPs, never your origin. DNS-only records \"respond with your server's actual IP address and do not route HTTP/HTTPS traffic through its network.\" Only address-resolving records qualify — \"Other record types (such as MX or TXT) are always DNS-only.\" The part that bites: DDoS protection, caching, and \"WAF rules, caching, and redirect rules\" apply **only to proxied traffic**. A record you flipped to DNS-only while debugging is a record with no cache, no WAF, and your origin IP published.\n\n**SSL is automatic, and it is a property of the edge.** Cloudflare \"issues — and renews — free, unshared, publicly trusted SSL certificates to all domains added to and activated on Cloudflare.\" On a full setup that covers the root domain and first-level subdomains; deeper names need Total TLS or an advanced certificate. Because the edge presents it, the automatic certificate is for **proxied** hostnames — turn the proxy off and you are back to whatever certificate your origin holds.\n\n**Caching defaults surprise people in one specific direction.** \"The Cloudflare CDN does not cache HTML or JSON by default.\" It caches by file extension — CSS, JS, images, fonts, PDFs. So your *assets* are cached at the edge and your *pages* are not, unless you asked. Cloudflare skips caching when `Cache-Control` is `private`, `no-store`, `no-cache`, or `max-age=0`, and caches when it is `public` with `max-age` greater than 0. Practical consequence: \"I deployed and still see the old page\" is usually your **browser**, not the CDN.\n\n**So: who do I change, and where.**\n\n| What you want | Where you do it |\n| --- | --- |\n| Move to a different DNS host | `NS` — at the **registrar** |\n| Point the site at a new server or host | `A` / `AAAA` / `CNAME` — at the **DNS host** |\n| Move email | `MX` — at the DNS host; unrelated to the website |\n| Turn the CDN on or off for one hostname | proxy status on that record — at the DNS host |\n| Prove ownership to a third party | `TXT` — at the DNS host |\n| Move to a different registrar | transfer — at the **registrar**; records are unaffected if the nameservers do not change |\n\nThe sentence worth keeping: **the registrar decides who answers, the DNS host answers, and the proxy decides what happens after the answer.** Most \"move my site\" work is one row of A/CNAME edits at the DNS host — people reach for the nameservers, and the 24-hour clock, when they never needed to.",
       "diagram": "flowchart TD\n  U[Visitor types example.com] --> Q{Who is authoritative?}\n  Q --> REG[Registrar · owns the name<br/>holds the NS pointer]\n  REG -->|NS points here| DNS[DNS host · answers lookups<br/>A · AAAA · CNAME · MX · TXT]\n  DNS -->|A or CNAME · proxied| CDN[CDN edge · anycast IP<br/>auto TLS · cache · WAF]\n  DNS -->|A or CNAME · DNS-only| ORG[Your server · real IP published<br/>no cache · no WAF]\n  CDN --> ORG2[Your server · origin IP hidden]\n  DNS -->|MX · always DNS-only| MAIL[Mail provider · separate system]\n  class REG,DNS,CDN fact\n  class ORG,ORG2,MAIL built",
       "diagram_mini": "flowchart LR\n  R[registrar<br/>NS] --> D[DNS host<br/>records] --> P[proxy<br/>TLS · cache] --> S[server]\n  class R,D,P fact",
       "steps": [],
@@ -880,7 +904,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-07-21",
+      "last_verified": "2026-10-20",
       "refresh_when": "Stripe changes its webhook delivery guarantee (at-least-once / unordered), changes the invoice.paid + status:active provisioning rule, stops creating a zero-amount invoice for trial subscriptions, or renames the lifecycle events.",
       "sources": [
         {
@@ -952,7 +976,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-07-21",
+      "last_verified": "2026-10-20",
       "refresh_when": "Google changes its scope categories, moves a Drive scope between categories, changes the drive.file grant wording, or drops/replaces the CASA third-party security assessment or its 12-month recertification.",
       "sources": [
         {
@@ -968,8 +992,8 @@
           "url": "https://developers.google.com/identity/protocols/oauth2/production-readiness/sensitive-scope-verification"
         }
       ],
-      "body_md": "You sketch a feature: *\"we'll make a folder in the customer's Google Drive, they drop files in, and we read them.\"* One sentence, one afternoon of work. It is, in fact, a multi-week compliance project with a recurring annual bill — and nothing in the code tells you that. The scope does.\n\n**Check the scope before you design the feature.** The scope is not a checkbox you fill in at the end; it is the thing that decides whether the feature is cheap, expensive, or effectively off the table for a small team.\n\n## Google's three tiers\n\nGoogle sorts OAuth scopes into three buckets, and the bucket sets the price:\n\n- **Recommended / non-sensitive** — narrow, per-item access. No Google review. Ship today.\n- **Sensitive** — broader access to user data. *\"Sensitive scopes require review by Google before any Google Account can grant access.\"* Weeks of back-and-forth, but no outside auditor.\n- **Restricted** — the highest-risk data. Verification **plus** an independent security assessment.\n\nThe restricted tier is where the surprise lives. Google's own words: *\"Every app that requests access to Google users' restricted data and has the ability to access data from or through a third-party server must go through a security assessment\"* — standardised on the App Defense Alliance's **CASA** framework. And it does not end: *\"apps must be reverified for compliance and complete a security assessment at least every 12 months after your assessor's Letter of Assessment (LOA) approval date.\"* Google warns that restricted-scope verification alone *\"can potentially take several weeks to complete.\"*\n\nRead the trigger carefully: it fires on **the ability to access restricted data from or through a server**. A purely client-side toy might dodge it. Anything with a backend — which is to say, anything real — does not.\n\n## The Drive example, concretely\n\n`drive.file` is **non-sensitive**. Google describes what it grants exactly:\n\n> *\"Create new Drive files, or modify existing files, that you open with an app or that the user shares with an app while using the Google Picker API or the app's file picker.\"*\n\nThat wording is per-file, and it names exactly two ways a file enters your grant: **your app created it**, or **the user handed it to you through a picker**. Nothing else.\n\nSo run the sketch through it. Your app creates the folder — fine, the app created that. The user then drags in twelve invoices. Your app did not create those files and the user never picked them, so they are simply not in the grant. There is no \"the folder is mine, therefore its contents are mine\" rule. The only way to enumerate whatever a user happens to put in a folder is a scope like `drive` or `drive.readonly` — and both are **restricted**. Your afternoon feature just bought you verification, a CASA assessment, and an annual re-audit forever.\n\nThe cheap redesign is usually right there: keep `drive.file` and put a Google Picker in the flow, so the user *hands you* the files instead of you going to find them. Same user outcome, one tier down, no auditor.\n\n## Two honesty notes\n\n**Providers differ, and I only checked one.** Google's tiering, the CASA assessment, and the 12-month recertification were verified against Google's own documentation for this concept. Microsoft, Slack, GitHub, Dropbox and the rest each have their own review regimes, their own definitions of \"sensitive\", and their own audit requirements — some lighter, some heavier. Do not carry Google's rules across; go read the provider you are actually integrating with. Nothing here is verified for any provider other than **Google**.\n\n**This is engineering guidance, not legal or compliance advice.** The costs, timelines and audit terms are Google's published requirements as of the verification date, not a quote for your app.",
-      "diagram": "flowchart TD\n  F[Feature idea] --> Q[Ask FIRST: which scope does this need?]\n  Q --> C{Google's scope tier}\n  C -- recommended / non-sensitive --> R[Ship it · no Google review]\n  C -- sensitive --> S[Google review · weeks · no outside auditor]\n  C -- restricted --> T{Server touches<br/>the data?}\n  T -- no --> V[Verification only]\n  T -- yes --> A[Verification + CASA security assessment<br/>+ re-audit every 12 months]\n  A --> RD[Redesign: Picker + drive.file<br/>drops you back to non-sensitive]\n  RD --> R\n  class R,S,V,A,RD built\n  class C,T fact",
+      "body_md": "You sketch a feature: *\"we'll make a folder in the customer's Google Drive, they drop files in, and we read them.\"* One sentence, one afternoon of work. It is, in fact, a multi-week compliance project with a recurring annual bill — and nothing in the code tells you that. The scope does.\n\n**Check the scope before you design the feature.** The scope is not a checkbox you fill in at the end; it is the thing that decides whether the feature is cheap, expensive, or effectively off the table for a small team.\n\n## Google's three tiers\n\nGoogle sorts OAuth scopes into three buckets, and the bucket sets the price:\n\n- **Recommended / non-sensitive** — narrow, per-item access. Google says these scopes *\"only require basic OAuth App Verification\"* — no scope-specific review. Ship today.\n- **Sensitive** — broader access to user data. *\"Sensitive scopes require review by Google before any Google Account can grant access.\"* Google says the process *\"typically takes 3-5 business days to complete\"*, and its sensitive-scope page names no outside auditor.\n- **Restricted** — the highest-risk data. Verification **plus** an independent security assessment.\n\nThe restricted tier is where the surprise lives. Google's own words: *\"Every app that requests access to Google users' restricted data and has the ability to access data from or through a third-party server must go through a security assessment\"* — standardised on the App Defense Alliance's **CASA** framework. And it does not end: *\"apps must be reverified for compliance and complete a security assessment at least every 12 months after your assessor's Letter of Assessment (LOA) approval date.\"* Google warns that restricted-scope verification alone *\"can potentially take several weeks to complete.\"*\n\nRead the trigger carefully: it fires on **the ability to access restricted data from or through a server**. A purely client-side toy might dodge it. Anything with a backend — which is to say, anything real — does not.\n\n## The Drive example, concretely\n\n`drive.file` is **non-sensitive**. Google describes what it grants exactly:\n\n> *\"Create new Drive files, or modify existing files, that you open with an app or that the user shares with an app while using the Google Picker API or the app's file picker.\"*\n\nThat wording is per-file, and it names exactly two ways a file enters your grant: **your app created it**, or **the user handed it to you through a picker**. Nothing else.\n\nSo run the sketch through it. Your app creates the folder — fine, the app created that. The user then drags in twelve invoices. Your app did not create those files and the user never picked them, so they are simply not in the grant. There is no \"the folder is mine, therefore its contents are mine\" rule. The only way to enumerate whatever a user happens to put in a folder is a scope like `drive` or `drive.readonly` — and both are **restricted**. Your afternoon feature just bought you verification, a CASA assessment, and an annual re-audit forever.\n\nThe cheap redesign is usually right there: keep `drive.file` and put a Google Picker in the flow, so the user *hands you* the files instead of you going to find them. Same user outcome, one tier down, no auditor.\n\n## Two honesty notes\n\n**Providers differ, and I only checked one.** Google's tiering, the CASA assessment, and the 12-month recertification were verified against Google's own documentation for this concept. Microsoft, Slack, GitHub, Dropbox and the rest each have their own review regimes, their own definitions of \"sensitive\", and their own audit requirements — some lighter, some heavier. Do not carry Google's rules across; go read the provider you are actually integrating with. Nothing here is verified for any provider other than **Google**.\n\n**This is engineering guidance, not legal or compliance advice.** The costs, timelines and audit terms are Google's published requirements as of the verification date, not a quote for your app.",
+      "diagram": "flowchart TD\n  F[Feature idea] --> Q[Ask FIRST: which scope does this need?]\n  Q --> C{Google's scope tier}\n  C -- recommended / non-sensitive --> R[Ship it · basic app verification]\n  C -- sensitive --> S[Google review · ~3-5 business days · no outside auditor]\n  C -- restricted --> T{Server touches<br/>the data?}\n  T -- no --> V[Verification only]\n  T -- yes --> A[Verification + CASA security assessment<br/>+ re-audit every 12 months]\n  A --> RD[Redesign: Picker + drive.file<br/>drops you back to non-sensitive]\n  RD --> R\n  class R,S,V,A,RD built\n  class C,T fact",
       "diagram_mini": "flowchart LR\n  S[Scope] --> T{tier?}\n  T -- restricted --> A[audit yearly]\n  T -- per-file --> OK[ship]\n  class A,OK built",
       "steps": [
         {
@@ -1436,7 +1460,7 @@
           "url": "plugins/ravenclaude-core/CLAUDE.md"
         }
       ],
-      "body_md": "The **runaway brake** is the **depth guard**: it stops an agent from disappearing down a rabbit hole — looping on a fabricated error, or grinding through hundreds of calls without converging. It is a `PreToolUse` hook that runs *before every tool call*, counts the calls per session, and **pauses** (a deny) when one of two limits trips. It exists because Claude Code's native `auto`-mode brake (the 3-consecutive / 20-total block) is Anthropic-API-only, so it can't protect the model-agnostic GitHub Copilot CLI surface (Claude / ChatGPT / Grok). This hook is the portable, **model-free** equivalent — there is no LLM in the loop, just a counter.\n\nTwo limits, both tunable in `.ravenclaude/comfort-posture.yaml`. **`max_consecutive`** (default 8) trips when the agent makes the *same* tool call — byte-identical name and input — that many times in a row; that repetition is the \"stuck in a loop\" signal. **`max_total`** (default 1200) is a generous per-session ceiling on *all* calls, the backstop against a slow grind that never repeats exactly. State lives in a per-session counter file under `.ravenclaude/runs/thing/runaway/`, so a brand-new session always starts fresh. The whole hook is **opt-in and fail-safe**: with no posture file it exits immediately (one `stat`, zero cost), and `runaway: off` disables it entirely.\n\nThe load-bearing subtlety is the **read-only carve-out**. A legitimate startup burst of read-only calls — repeated `git log`, `ls`, `cat`, `grep` — is not a runaway, so it must not trip the consecutive-loop counter. A call counts as read-only when the tool is `Read`/`Grep`/`Glob`/`NotebookRead`, *or* it's a `Bash` command matching a **strict, anchored, fail-closed** allowlist of obviously-non-mutating programs. A read-only call is **transparent** to the loop counter (it neither increments nor resets the consecutive count) but **still increments the total** — so the session ceiling keeps bounding *every* call regardless of type. Any doubt fails closed: a shell metacharacter that could chain to a mutating command (`&&`, `;`, `|`, `>`, `` ` ``) or any mutating token anywhere in the string forces the call to count as a normal (non-read-only) call.",
+      "body_md": "The **runaway brake** is the **depth guard**: it stops an agent from disappearing down a rabbit hole — looping on a fabricated error, or grinding through hundreds of calls without converging. It is a `PreToolUse` hook that runs *before every tool call*, counts the calls per session, and **pauses** (a deny) when one of two limits trips. It exists because Claude Code's native `auto`-mode brake (the 3-consecutive / 20-total block) is Anthropic-API-only, so it can't protect the model-agnostic GitHub Copilot CLI surface (Claude / ChatGPT / Grok). This hook is the portable, **model-free** equivalent — there is no LLM in the loop, just a counter.\n\nTwo limits, both tunable in `.ravenclaude/comfort-posture.yaml`. **`max_consecutive`** (default 8) trips when the agent makes the *same* tool call — byte-identical name and input — that many times in a row; that repetition is the \"stuck in a loop\" signal. **`max_total`** (default 1200) is a generous per-session ceiling on *all* calls, the backstop against a slow grind that never repeats exactly. State lives in a per-session counter file under `.ravenclaude/runs/thing/runaway/`, so a brand-new session always starts fresh. The whole hook is **opt-in and fail-safe**: with no posture file it exits immediately (one `stat`, zero cost), and `runaway: off` disables it entirely.\n\nThe load-bearing subtlety is the **read-only carve-out**. A legitimate startup burst of read-only calls — repeated `git log`, `ls`, `cat`, `grep` — is not a runaway, so it must not trip the consecutive-loop counter. A call counts as read-only when the tool is `Read`/`Grep`/`Glob`/`NotebookRead`, *or* it's a `Bash` command matching a **strict, anchored, fail-closed** allowlist of obviously-non-mutating programs. A read-only call is **transparent** to the loop counter (it neither increments nor resets the consecutive count) but **still increments the total** — so the session ceiling keeps bounding *every* call regardless of type. Any doubt fails closed: a shell metacharacter that could chain to a mutating command (`&&`, `;`, `|`, `>`, a backtick) or any mutating token anywhere in the string forces the call to count as a normal (non-read-only) call.",
       "diagram": "flowchart TD\n  A[PreToolUse: a tool call] --> B{posture present<br/>and runaway not off?}\n  B -- no --> Z[allow · zero cost]\n  B -- yes --> C{read-only call?<br/>strict allowlist}\n  C -- yes --> T[total++ only<br/>consec untouched]\n  C -- no --> D[total++; same as last?<br/>consec++, else reset]\n  T --> G{consec ≥ max OR<br/>total ≥ ceiling?}\n  D --> G\n  G -- yes --> DENY[PAUSE · deny · explain]\n  G -- no --> ALLOW[allow]\n  class T,D,DENY,ALLOW built\n  class B,C,G fact",
       "diagram_mini": "flowchart LR\n  C[tool call] --> K{thrash or<br/>ceiling?}\n  K -- yes --> P[pause]\n  K -- no --> A[allow]\n  class P,A built",
       "steps": [],
@@ -1905,7 +1929,7 @@
           "url": "plugins/ravenclaude-core/monitors/watch-run-state.sh"
         }
       ],
-      "body_md": "Heimdall, Víðarr, and Norns are **pull** surfaces — you open a tab and read what already happened. The **run-state monitor** is the **push** complement: it streams the same guardrail signals to Claude Code as **native notifications**, so the agent reacts to a deny or warn *as it lands* during a multi-agent run, without anyone asking it to go look. It is the marketplace's first member of a new component type, `monitors/`.\n\nIt is scoped **`on-skill-invoke:spawn-team`**, not `when: always` — it starts the first time the team-dispatch skill runs (exactly when multiple agents are live and guardrails matter most) and stays up for the rest of the session. That scoping is the **cost bound**: ordinary single-agent sessions never start it. It tails the newest session hook-event log and, for each new line, emits **one** notification built only from a whitelist of **derived labels** — verdict, hook name, tool, and rule. It **never** echoes the raw path or command field, because every monitor stdout line becomes a Claude notification, so the emit surface is an injection surface; the fixed label vocabulary is the defense, mirroring the capability-banner rule.\n\nTwo more invariants keep it safe and robust. It is **read-only** — it tails and summarizes, writing nothing and mutating no run state. And it is **fail-safe** against the empty-glob trap: rather than `tail -F` a bare glob (which would exit on no match and crash-loop), it resolves the single newest log itself and idle-polls to re-resolve when a log rotates. It is **Claude-Code-only** — plugin monitors are a Claude Code component with no Copilot equivalent, so under Copilot it simply doesn't load and the pull tabs remain the surface there.",
+      "body_md": "Heimdall, Víðarr, and Norns are **pull** surfaces — you open a tab and read what already happened. The **run-state monitor** is the **push** complement: it streams the same guardrail signals to Claude Code as **native notifications**, so the agent reacts to a deny or warn *as it lands* during a multi-agent run, without anyone asking it to go look. It is the marketplace's first member of a new component type, `monitors/`.\n\nIt is scoped **`on-skill-invoke:spawn-team`**, not `when: always` — it starts the first time the team-dispatch skill runs (exactly when multiple agents are live and guardrails matter most) and stays up for the rest of the session. That scoping is the **cost bound**: ordinary single-agent sessions never start it. It tails the newest session hook-event log (only its own session's `runs/<id>/` when `CLAUDE_SESSION_ID` is set, so concurrent sessions do not flap between each other's logs) and, for each new line, including the first line of a log that appears after it started, emits **one** notification built only from a whitelist of **derived labels** — verdict, hook name, tool, and rule. It **never** echoes the raw path or command field, because every monitor stdout line becomes a Claude notification, so the emit surface is an injection surface; the fixed label vocabulary is the defense, mirroring the capability-banner rule.\n\nTwo more invariants keep it safe and robust. It is **read-only** — it tails and summarizes, writing nothing and mutating no run state. And it is **fail-safe** against the empty-glob trap: rather than `tail -F` a bare glob (which would exit on no match and crash-loop), it resolves the single newest log itself and idle-polls to re-resolve when a log rotates. It is **Claude-Code-only** — plugin monitors are a Claude Code component with no Copilot equivalent, so under Copilot it simply doesn't load and the pull tabs remain the surface there.",
       "diagram": "flowchart TD\n  ST[spawn-team dispatched] --> W[watch-run-state.sh]\n  HJ[(hook-events.jsonl)] --> W\n  W --> WL[whitelist:<br/>verdict · hook · tool · rule]\n  WL --> NT[Claude notification]\n  class W,WL,NT built\n  class ST,HJ fact",
       "diagram_mini": null,
       "steps": [],
@@ -2183,11 +2207,7 @@
       "refresh_when": "The Last-Mile Completion Protocol section in ravenclaude-core/CLAUDE.md changes — the five rules, the done-vs-your-turn report shape, or the deep-link requirement.",
       "sources": [
         {
-          "label": "ravenclaude-core constitution — Last-Mile Completion Protocol",
-          "url": "plugins/ravenclaude-core/CLAUDE.md"
-        },
-        {
-          "label": "Capability Grounding Protocol (the floor it pairs with)",
+          "label": "ravenclaude-core constitution — Last-Mile Completion Protocol; Capability Grounding Protocol (the floor it pairs with)",
           "url": "plugins/ravenclaude-core/CLAUDE.md"
         }
       ],
@@ -2824,6 +2844,7 @@
         "plugins/ravenclaude-core/hooks/copilot-hook-adapter.sh",
         "plugins/ravenclaude-core/hooks/cursor-hook-adapter.sh",
         "plugins/ravenclaude-core/hooks/dashboard-autostart.sh",
+        "plugins/ravenclaude-core/scripts/dashboard-prompt.sh",
         "plugins/ravenclaude-core/hooks/delegation-nudge.sh",
         "plugins/ravenclaude-core/hooks/dod-gate.sh",
         "plugins/ravenclaude-core/hooks/enforce-git-protocol.sh",
@@ -2860,7 +2881,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard-bash.py",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:f6a2328cb218dced05bd0a51f832578a56abc349cfaadbfaa68888e9b62c6e00",
+      "covers_digest": "sha256:019a96515a9a97de174841ba23983770867fcb05290f94a91510b10af3c74a01",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2909,7 +2930,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:1d5984806f20c024ca602bd02fd4f9b454bfbbe74b1e20c42ae3ae2cf489c11e",
+      "covers_digest": "sha256:64bf57a954413beec9364ca51d3a99ff10349031b3156459e09d8e2e355caa8a",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2957,7 +2978,7 @@
         "plugins/ravenclaude-core/scripts/route-task.py",
         "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
       ],
-      "covers_digest": "sha256:66ab18c43c1bdf39a4058009d5b5bd79ca5ca8305996c5f192920ac9cdcdca1c",
+      "covers_digest": "sha256:c8999c98292a8e9d5d0ddf591d906e99fb3c9f7f725ac0627ade974f1a86185d",
       "nuance": "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model.",
       "nuance_evidence": {
         "measured": "2026-08-26",
@@ -2983,7 +3004,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-12",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -3003,7 +3024,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:531406e6095a5ed24bb8e25faf4833bc9259134c7223300a0193617cb06c1997",
+      "covers_digest": "sha256:f2a92cb973de48c6218d6f384e92ea21835115babc93dd0737b376fbfdb88379",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3032,7 +3053,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-13",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -3065,7 +3086,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:26de9cf3bdc10b919c38d402719ff0d479d29bf8d047a466a739cd34e27ddf93",
+      "covers_digest": "sha256:c2d3c16498f19ac3e762ef4e1887386150122780c8c185b9525cb5a80abba6e2",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3136,7 +3157,7 @@
         "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/screening-vendor-invoices/SKILL.md",
         "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/screening-vendor-invoices/reference/tolerances.md"
       ],
-      "covers_digest": "sha256:97edf90d26b4700772017c0a7f3cac124585bee7c9251ab70dff6dfc830a8a08",
+      "covers_digest": "sha256:9c743b2b41cef15842561bc7301013902442938ca5a71c95fa18d837b1b4eefd",
       "nuance": "A rule's tier is READ from `reference/platform-constraints.md`, never hand-set, so a constraint the vendor contradicts itself on ships as WARN instead of a guess. Research moves the packer's default and never the tier: docs say what the platform emits, not what its unpacker accepts.",
       "nuance_evidence": {
         "measured": "2026-08-25",
@@ -3325,7 +3346,7 @@
         "scripts/concepts.py",
         "scripts/spike-selfheal-contract.sh"
       ],
-      "covers_digest": "sha256:3e59db309dd91ecfe3e1963bb60e3eb01b3e10b010b6922d6456226cc92e216a",
+      "covers_digest": "sha256:d17d7456c734871c3f74dac0594be7a612379fd873398192beb74094b0579d17",
       "nuance": "`regenerate-artifacts.yml` greps `RC-CONCEPTS-CLASS: human-reverify-required` (plus a one-release prose OR-fallback); an unmarked class runs `exit '$_crc'` and every later self-heal step is skipped.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3373,7 +3394,7 @@
         "scripts/concepts.py",
         "scripts/check-covers-completeness.py"
       ],
-      "covers_digest": "sha256:48aa36caf02c197dc7a6db79325398e16f63f4e1b95555c2572a89e2eefef0bc",
+      "covers_digest": "sha256:fa4c92548858ddee0cf9d743097ad22eaf8a8c3c1fd04b6457991dcb9fd0f9d6",
       "nuance": "`_staleness_violations` skipped on an OR, so a concept escaped for not being a `platform-fact` or merely for lacking `last_verified`; with 41 `ravenclaude-built` against 17 it gated only the minority kind.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3422,7 +3443,7 @@
         "scripts/inventory-sweep.py",
         "scripts/inventory-coverage.py"
       ],
-      "covers_digest": "sha256:6767ac9b98b8d1b7e6dc94fa910022c7a2acf7f2de37fb0d0acd74fb55db2122",
+      "covers_digest": "sha256:46cd5ab6f63f4c0c6a08414bad0679ed2a939405faa31e5f8153cdaf6985ee14",
       "nuance": "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3476,7 +3497,7 @@
         "plugins/ravenclaude-core/monitors/watch-spectate.sh",
         "plugins/ravenclaude-core/skills/spectate/SKILL.md"
       ],
-      "covers_digest": "sha256:8b0d18058aba36ba003c96a83cdba6255219c13e25561584d1bb7f822941cec2",
+      "covers_digest": "sha256:003c40085bad4c069875e47cb53fa803f7c73183b83b8cac9192a21e7c4b58b2",
       "nuance": "An empty Spectate stream reduces every node to idle with cause-not-established; a capability cell whose state is unknown never reduces to unavailable-harness.",
       "nuance_evidence": {
         "measured": "2026-10-09",
@@ -3505,7 +3526,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-10",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -3526,7 +3547,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:3a8444e515388436e4d9a6891adc8786e1a3f9f2d8a1083d41ac29a6644804be",
+      "covers_digest": "sha256:ce1a20e7450ba8ca5c10bf8c3957b847d6d8aa7de85551cd98c40ed650b690c1",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3574,7 +3595,7 @@
         "scripts/inventory-sweep.py",
         "scripts/audit-prose-rendering-path.py"
       ],
-      "covers_digest": "sha256:a74be45f73db3b577a0b10c461553c7634d8ed5b3f2c702a0c30042d8fa0132b",
+      "covers_digest": "sha256:008c33ac653cd5733f3f7dba4c7cd5f7e2c46c2787887f945d4de9633c48f13d",
       "nuance": "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3975,7 +3996,7 @@
         "plugins/ravenclaude-core/skills/repo-review/scripts/estimate_cost.py",
         "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js"
       ],
-      "covers_digest": "sha256:aee7bd5d3c4d1486fd21e7c699982709c9e007803fb46bd92fb0d04322495b39",
+      "covers_digest": "sha256:a5bcb6a5a3def687960fd71d3bedd83fb1eee52133e507846b9c50dce7d5fd6e",
       "nuance": "A dedup key built from each finding's own title tokens misses two models describing one bug in different words at the same line -- keys differ, so exact-key merge misses it. The near-dup fallback's bucket-diff bound was `== 1` (adjacent only), excluding 0 (the identical line) -- the single most common real shape cross-model review exists to catch.",
       "nuance_evidence": {
         "measured": "2026-09-02",
@@ -4004,7 +4025,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -4025,7 +4046,7 @@
         "plugins/ravenclaude-core/scripts/caveman-route-hook.sh",
         "plugins/ravenclaude-core/scripts/caveman-route-engine.py"
       ],
-      "covers_digest": "sha256:e747cee327d3497794420abc9c1ce997eefd78df5ab43f66f216840bf368eb98",
+      "covers_digest": "sha256:7f9f9ff371c29ddc9a6492bdce0de6207b10637475c521f8327aa8ae9ebbae4c",
       "nuance": "caveman-route-hook.sh ships from scripts/, not hooks/ -- a NEW hooks/*.sh chmod is denied,\nsame reason ask-on-ambiguity.sh lives there. P7 live calls the applier (on→lite, off→off);\nshadow still records only. Absent/off is the default and writes nothing.",
       "nuance_evidence": {
         "measured": "2026-09-10",
@@ -4241,7 +4262,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-10",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -4267,7 +4288,7 @@
         "plugins/ravenclaude-core/skills/prompt-optimizer/SKILL.md",
         "plugins/ravenclaude-core/skills/prompt-optimizer/eval/golden-set.jsonl"
       ],
-      "covers_digest": "sha256:0cd423848dc86d2a1f3e83a031c27d8d7190a7922b4f3ca69842481db2ba9a66",
+      "covers_digest": "sha256:4953dac206b7b87fbf380c65340e16588baffd4c6805adc02247af4297f5f152",
       "nuance": "A whitelist-based zero-anchor skip rule can be adversarially rephrased indefinitely — closing every demonstrated instance never closes the underlying gap, because the gap is a property of matching sentence shape, not meaning.",
       "nuance_evidence": {
         "measured": "2026-09-03",
@@ -4314,7 +4335,7 @@
         "plugins/ravenclaude-core/skills/forge-pipeline/agents/openai.yaml",
         "plugins/ravenclaude-core/skills/spawn-team/agents/openai.yaml"
       ],
-      "covers_digest": "sha256:5c429cafe53b23ed828af7a6864168fd61e2db6cabae5b44a6a520845071c5fa",
+      "covers_digest": "sha256:ab6867f928af43ce05d6615cf818ca849b489b47b3038c125b0e17055257f628",
       "nuance": "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count -- a fixed point reached on the second pass, never the first.",
       "nuance_evidence": {
         "measured": "2026-09-08",
@@ -4386,7 +4407,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-09-22",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -4407,7 +4428,7 @@
         "plugins/ravenclaude-core/knowledge/coordinator-ledger-convention.md",
         "plugins/ravenclaude-core/scripts/ledger.py"
       ],
-      "covers_digest": "sha256:b7fd60ce46b957cafbe64b2c0ed23b737cabf282dfffe7deaf50274c478b973c",
+      "covers_digest": "sha256:983feeaa5cda1ad9db0b67c063002ed45ef2e016f7bb415cb3301225138faa18",
       "nuance": "--repo-root/--actor are ledger.py's TOP-LEVEL parser flags, added before add_subparsers(); a build plan citing them AFTER `append` fails with 'unrecognized arguments', verified live. A companion claim (fresh ledger = exit 2/UNKNOWN) was also wrong: cmd_init always appends a ledger_init event, so the true fresh state is exit 0/PASS.",
       "nuance_evidence": {
         "measured": "2026-09-09",
@@ -4444,7 +4465,7 @@
           "url": "https://github.com/mcorbett51090/RavenClaude/pull/1161"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nThat a new tribunal-shaped script would need its own model/agent config — either a duplicated seat table or a fresh entry in `.ravenclaude/thing.yaml` — since it reviews a different payload (a diff, not a command or a question) from the Thing or decision-review.\n\n## The discriminator\n\ncontrol: ran `routine-review-tribunal.py --root . panels`; the returned seat->model mapping matched thing-decision's own built-in defaults for the same seat names, not a separately hardcoded pair.\n\nMeasured 2026-09-11: `resolve_panels()` loads `thing-decision.py` via `importlib.util.spec_from_file_location` and calls `resolve_panel_config(root, posture)` on it directly — the exact function the live command-review tribunal and decision-review already use. There is no second, parallel model table to keep in sync.\n\n## Why it matters\n\nIf `.ravenclaude/comfort-posture.yaml` or `.ravenclaude/thing.yaml` ever repoints a seat to a different model (e.g. to raise Forseti's reasoning effort), the routine-review tribunal picks that up automatically on its next `panels` call — the same way the Thing and decision-review would. A script that had instead hardcoded `\"agent\": \"security-reviewer\", \"model\": \"claude-opus-4-8\"` would silently keep reviewing routine diffs with a stale seat long after the rest of the marketplace moved on.\n\nFalsifier: a future edit to `routine-review-tribunal.py` that hardcodes a seat's model/agent instead of calling `resolve_panel_config`.",
+      "body_md": "## What a reader would have assumed instead\n\nThat a new tribunal-shaped script would need its own model/agent config — either a duplicated seat table or a fresh entry in `.ravenclaude/thing.yaml` — since it reviews a different payload (a diff, not a command or a question) from the Thing or decision-review.\n\n## The discriminator\n\ncontrol: ran `routine-review-tribunal.py --root . panels`; the returned seat->model mapping matched thing-decision's own built-in defaults for the same seat names, not a separately hardcoded pair.\n\nMeasured 2026-09-11: `resolve_panels()` loads `thing-decision.py` via `importlib.util.spec_from_file_location` and calls `resolve_panel_config(root, posture)` on it directly — the exact function the live command-review tribunal and decision-review already use. There is no second, parallel model table to keep in sync.\n\n## Why it matters\n\nIf `.ravenclaude/comfort-posture.yaml` or `.ravenclaude/thing.yaml` ever repoints a seat to a different model (e.g. to raise Forseti's reasoning effort), the routine-review tribunal picks that up automatically on its next `panels` call — the same way the Thing and decision-review would. A script that had instead hardcoded `\"agent\": \"security-reviewer\", \"model\": \"claude-opus-5-5\"` would silently keep reviewing routine diffs with a stale seat long after the rest of the marketplace moved on.\n\nFalsifier: a future edit to `routine-review-tribunal.py` that hardcodes a seat's model/agent instead of calling `resolve_panel_config`.",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -4493,7 +4514,7 @@
           "url": "https://code.claude.com/docs/en/sub-agents"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\nThe meter reads the dispatched agent's `model:` frontmatter, so a `scout` (pinned `haiku`) can\nnever trip `frontier_readonly` — the frontmatter is the tier, and the gate on `model:` in\n`check-frontmatter.py` is what makes the flag unnecessary for shipped agents.\n\n## The discriminator\n\ncontrol: with `resolvedModel` held at `claude-opus-4-8` across three self-test payloads, `Explore`\nand `ravenclaude-core:scout` both returned `SIGNAL frontier_readonly` while `architect` returned\n`OK` — the role was the only input that changed between the flagged and the unflagged runs.\nMeasured 2026-09-14: the flag is computed from the `PostToolUse(Agent)` payload alone —\n`tool_response.resolvedModel` classified to a tier, crossed with the basename of\n`tool_input.subagent_type` against `READ_ONLY_TYPES = {explore, scout}` — and the agent file is\nnever opened, so a per-invocation `model` override that puts a scout on opus is caught while a\njudgment role on opus is deliberately not.\n\n## Why it matters\n\nThe `model:` frontmatter gate closes one door (a shipped agent cannot silently inherit the\nsession's model), but Claude Code resolves the model **per invocation first** — the Team Lead's\n`model` parameter, then the frontmatter, then `CLAUDE_CODE_SUBAGENT_MODEL`. A meter that trusted\nthe frontmatter would report every scout as haiku forever. Reading `resolvedModel` is what lets\nthe ledger's `tier` column be the tier the worker actually billed at, and what lets the built-in\n`Explore` (which has no frontmatter and since v2.1.198 inherits the main model) be flagged at all.\n\nFalsifier: an `architect` dispatch on an opus id emitting `frontier_readonly`, or a `scout`\ndispatch on an opus id staying silent.\n\nProbe: `plugins/ravenclaude-core/scripts/handoff-tax-meter.py --self-test` (exit 1 on any failed\ncheck; the three role-crossed payloads are named `Explore on opus`, `plugin-scoped scout on opus`,\n`architect on opus`).",
+      "body_md": "## What a reader would have assumed instead\n\nThe meter reads the dispatched agent's `model:` frontmatter, so a `scout` (pinned `haiku`) can\nnever trip `frontier_readonly` — the frontmatter is the tier, and the gate on `model:` in\n`check-frontmatter.py` is what makes the flag unnecessary for shipped agents.\n\n## The discriminator\n\ncontrol: with `resolvedModel` held at an opus-family id across three self-test payloads, `Explore`\nand `ravenclaude-core:scout` both returned `SIGNAL frontier_readonly` while `architect` returned\n`OK` — the role was the only input that changed between the flagged and the unflagged runs.\nMeasured 2026-09-14: the flag is computed from the `PostToolUse(Agent)` payload alone —\n`tool_response.resolvedModel` classified to a tier, crossed with the basename of\n`tool_input.subagent_type` against `READ_ONLY_TYPES = {explore, scout}` — and the agent file is\nnever opened, so a per-invocation `model` override that puts a scout on opus is caught while a\njudgment role on opus is deliberately not.\n\n## Why it matters\n\nThe `model:` frontmatter gate closes one door (a shipped agent cannot silently inherit the\nsession's model), but Claude Code resolves the model **per invocation first** — the Team Lead's\n`model` parameter, then the frontmatter, then `CLAUDE_CODE_SUBAGENT_MODEL`. A meter that trusted\nthe frontmatter would report every scout as haiku forever. Reading `resolvedModel` is what lets\nthe ledger's `tier` column be the tier the worker actually billed at, and what lets the built-in\n`Explore` (which has no frontmatter and since v2.1.198 inherits the main model) be flagged at all.\n\nFalsifier: an `architect` dispatch on an opus id emitting `frontier_readonly`, or a `scout`\ndispatch on an opus id staying silent.\n\nProbe: `plugins/ravenclaude-core/scripts/handoff-tax-meter.py --self-test` (exit 1 on any failed\ncheck; the three role-crossed payloads are named `Explore on opus`, `plugin-scoped scout on opus`,\n`architect on opus`).",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -4506,11 +4527,11 @@
         "plugins/ravenclaude-core/scripts/handoff-tax-meter.py",
         "plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh"
       ],
-      "covers_digest": "sha256:36c351e47c58a66a25a558b4a6dbfb41fbf79eb15dd09edc9281e63bc47ff0a5",
+      "covers_digest": "sha256:c8021dec3a012eddad53af6c96c42319c2741433b08d74bc9efa0edabf3f46d2",
       "nuance": "`frontier_readonly` fires on `tool_response.resolvedModel` × the basename of `tool_input.subagent_type` (`explore` / `scout`), never on the agent file's `model:` — so `scout` dispatched with a per-call `model: opus` override is flagged while `scout.md` still reads `haiku`, and `architect` on opus is not.",
       "nuance_evidence": {
         "measured": "2026-09-14",
-        "control": "same resolvedModel (claude-opus-4-8), three subagent_types: `Explore` -> SIGNAL frontier_readonly, `ravenclaude-core:scout` -> SIGNAL frontier_readonly, `architect` -> OK; the only input that changed between the flagged and unflagged runs was the role",
+        "control": "same resolvedModel (an opus-family id), three subagent_types: `Explore` -> SIGNAL frontier_readonly, `ravenclaude-core:scout` -> SIGNAL frontier_readonly, `architect` -> OK; the only input that changed between the flagged and unflagged runs was the role",
         "falsifier": "an `architect` dispatch on an opus id emitting frontier_readonly, or a `scout` dispatch on an opus id staying silent",
         "probe": "plugins/ravenclaude-core/scripts/handoff-tax-meter.py"
       },
@@ -4597,11 +4618,7 @@
       "refresh_when": null,
       "sources": [
         {
-          "label": "PE DIGEST ship Norse Runes ready-queue (Longship amend), 2026-09-15",
-          "url": "https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md"
-        },
-        {
-          "label": "docs/runes-ready-queue.md",
+          "label": "docs/runes-ready-queue.md (PE DIGEST ship Norse Runes ready-queue, Longship amend, 2026-09-15)",
           "url": "https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md"
         }
       ],
@@ -4646,15 +4663,11 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-10",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
-          "label": "PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15",
-          "url": "https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml"
-        },
-        {
-          "label": "knowledge/thing-harden-transforms.yaml",
+          "label": "knowledge/thing-harden-transforms.yaml (PE DIGEST ship Thing hardening EDIT 0.323.5, 2026-09-15)",
           "url": "https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml"
         }
       ],
@@ -4669,7 +4682,7 @@
         "plugins/ravenclaude-core/scripts/thing-harden.py",
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh"
       ],
-      "covers_digest": "sha256:16e54e815ddf99470e2ef2b24383eba02d9bf1f6b4c6b68f5b9c70640e197de1",
+      "covers_digest": "sha256:58003eaa74ebbac1c462ca8b08a23e47097bb16639f52622e4d5e2d389151a42",
       "nuance": "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op.",
       "nuance_evidence": {
         "measured": "2026-09-16",
@@ -4718,7 +4731,7 @@
         "plugins/ravenclaude-core/skills/repo-review/workflows/repo-sweep.workflow.js",
         "plugins/ravenclaude-core/skills/repo-review/SKILL.md"
       ],
-      "covers_digest": "sha256:9b7b9f447605fa72915be31351bfcdc8f633c9b87eca2e37c3ec32006b3c5c83",
+      "covers_digest": "sha256:0bf50edbcc7a6eee531f04d5d1b955af824ae49abd71f2b4358f95a9b5971e7e",
       "nuance": "_capacity() clamps every result to max(1, ...) so a block always covers at least one batch once it exists. The finalize-capacity guard read that ALREADY-CLAMPED value, so 'nothing fits at all' could never be observed -- the clamp and the check that needs the unclamped truth were reading the same variable.",
       "nuance_evidence": {
         "measured": "2026-09-16",
@@ -4800,7 +4813,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-12",
+      "last_verified": "2026-10-18",
       "refresh_when": null,
       "sources": [
         {
@@ -4821,7 +4834,7 @@
         "plugins/ravenclaude-core/skills/routine-reserve/SKILL.md",
         "plugins/ravenclaude-core/commands/routine-reserve.md"
       ],
-      "covers_digest": "sha256:e8d14edfa9d9df2d06aaf58db7f1067b64490a1bef7625d4cf453d3a7bea8599",
+      "covers_digest": "sha256:b4c508b2a677c66432c09f09ececf05626a5fcefb5462d855c38d5a1d01a87e3",
       "nuance": "k = weekly % / metered spend. A session first seen mid-week counts only its growth after that\nsnapshot (unless created inside the window), so unseen spend RAISES k and the reserve —\nthe safe error. Over-counting (double-counted or pre-window cost) is what starves Routines.",
       "nuance_evidence": {
         "measured": "2026-09-24",
@@ -4942,7 +4955,7 @@
         "plugins/ravenclaude-core/skills/wallet-passes/references/tap-to-share.md",
         "plugins/ravenclaude-core/skills/wallet-passes/references/verify.md"
       ],
-      "covers_digest": "sha256:2f8ee6083a6d606729c98d4699927a2abb971af6db79543692db953987a3ceb4",
+      "covers_digest": "sha256:f76e8c6d8d95d4d4bb3bdaa49315d38a2ec3dd3ea8ce8334dd7c43cc2618e27b",
       "nuance": "Apple `PassKit_PG/Creating.html` names `headerFields` counts and says overflow hides fields; it never publishes a per-slot character maximum. Google `generic/resources/brand-guidelines` Content does publish English caps. An invented Apple char-limit table is working guidance, not a contract.",
       "nuance_evidence": {
         "measured": "2026-10-11",
@@ -4956,6 +4969,154 @@
         "rationale": "This is an official-docs capacity fact, not offline-stageable in CI. Re-verification is re-reading the cited Apple Creating.html field section and Google Brand guidelines Content table, not a staged probe."
       },
       "strength_badge": "Unverified"
+    },
+    {
+      "id": "headless-usage-sidecar-not-verdict",
+      "title": "Headless usage metering sits beside the seat",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 944,
+      "summary": "Where a headless call's token and cost envelope goes after the call returns.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-10-18",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "2026-10-14 prompt-caching analysis — headless envelopes were not metered",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/analysis.md"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat recording token use means the seat's own JSON answer grows a usage object, and that a bad envelope fails the seat.\n\n## The discriminator\n\ncontrol: `headless-usage.py --self-test` writes a derived row and record mode exits 0 even when the envelope is not JSON.\n\nMeasured 2026-10-17: the recorder appends a sidecar and leaves the caller to print its own verdict. A missing envelope skips the write.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/headless-usage.py"
+      ],
+      "covers_digest": "sha256:71875d5db313b4113c34755709b17d71c5fcddc4209436761cbe410a6bd4671b",
+      "nuance": "The caller still prints only its own verdict on `stdout`, and record mode returns exit 0 after it writes `.ravenclaude/runs/headless-usage.jsonl`. A missing envelope skips the append rather than replacing that verdict.",
+      "nuance_evidence": {
+        "measured": "2026-10-17",
+        "control": "headless-usage.py --self-test writes a row that keeps a present 0, omits an absent field, and drops result text, while record mode itself exits 0",
+        "falsifier": "a seat whose stdout is no longer the verdict JSON alone, or a record failure that changes the caller exit code",
+        "probe": "plugins/ravenclaude-core/scripts/headless-usage.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/headless-usage.py",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/scripts/headless-usage.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "project-settings-env-reaches-hooks",
+      "title": "A repo's settings env reaches every hook; the launch line and the guard close it",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 945,
+      "summary": "Project settings env (PATH, BASH_ENV, THING_SEAT_*) reaches hooks; a hardened launch line plus a quarantine guard stop it.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-10-18",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "Claude Code docs: What runs before you trust a folder (env block and settings hooks are used)",
+          "url": "https://code.claude.com/docs/en/permissions#what-runs-before-you-trust-a-folder"
+        },
+        {
+          "label": "Claude Code docs: hooks reference (shell form runs sh -c; a hook inherits the parent environment)",
+          "url": "https://code.claude.com/docs/en/hooks"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a hook runs with the user's own environment, so a cloned repository can only add\nhooks the user sees in `/hooks`, not change how RavenClaude's own hooks run.\n\n## The discriminator\n\ncontrol: `bash plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`. The old\ncommand form sources a planted `BASH_ENV` (marker written). Under the hardened launch line\nno marker is written, a fake `jq`/`bash` on a planted `PATH` is never used, and\n`env-integrity-guard.sh` denies the call with `project settings plant execution-control env\n(<keys>); this repo is quarantined`.\n\n## Why it matters\n\nThe `env` block is not a hook, so neither the trust dialog nor `/hooks` shows it, and a\n`claude -p` run applies it in a folder that was never trusted. Without the launch line a\nplanted `THING_SEAT_ACTIVE` would also have switched command review off. The seat-child\nlock (`_rc-runtime.sh`) and the pre-tool record check (`pretool-record-check.sh`) cover the\nrecursion guard and a review hook that never started.\n\nFalsifier: a hooks.json command without the hardened prefix, or a planted key that does not\ndeny. Probe: `plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/env-integrity-guard.sh",
+        "plugins/ravenclaude-core/hooks/_rc-runtime.sh",
+        "plugins/ravenclaude-core/hooks/pretool-record-check.sh",
+        "scripts/check-hook-launch-line.py"
+      ],
+      "covers_digest": "sha256:6838a617753d681d186b8ae652cd33bf826c068a258380aaafefa95a3ed4a194",
+      "nuance": "Claude Code 2.1.260 exports project settings env into every hook (sh -c): a planted BASH_ENV ran in every bash hook, a planted PATH chose jq. The hardened launch line keeps them out; env-integrity-guard.sh denies every tool call. A real LD_PRELOAD library cannot be stopped, only refused.",
+      "nuance_evidence": {
+        "measured": "2026-10-18",
+        "control": "test-hook-env-hardening.sh: the pre-hardening 'bash \"${CLAUDE_PLUGIN_ROOT}/…\"' form DOES source a planted BASH_ENV; the hardened commands do not, and the guard denies",
+        "falsifier": "a hooks.json command without the /usr/bin/env -u … /bin/bash --noprofile --norc prefix, or a planted PATH/BASH_ENV/THING_SEAT_* key that does not deny",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/env-integrity-guard.sh; scripts/check-hook-launch-line.py",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "subagent-ttl-advisor-in-window-gaps",
+      "title": "The TTL advisor counts only gaps the 1-hour cache changes",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 946,
+      "summary": "Which re-dispatches count toward a 1-hour subagent cache, and why most agents should keep the default.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-10-18",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "2026-10-14 prompt-caching build plan — Phase 4, subagent TTL from data",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/BUILD-PLAN.md"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat any agent dispatched more than once in a session would save money on a 1-hour cache, so the advisor should recommend it for every busy agent.\n\n## The discriminator\n\ncontrol: `subagent-ttl-advisor.py --self-test` scores an agent re-dispatched every 2 minutes at zero in-window gaps, and does not recommend one re-dispatched every 2 hours.\n\nMeasured 2026-10-18: a gap under 5 minutes already reads the 5-minute cache, and a gap over 60 minutes misses either way, so only the 5-60 minute band changes the bill.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py"
+      ],
+      "covers_digest": "sha256:d7b37eeb8435f8e1098610702438e45eeaa7d60db6a1293f341cd859da253680",
+      "nuance": "Only a same-session re-dispatch 5 to 60 minutes after the previous one counts. A recommendation needs at least 5 dispatches and 0.65 such gaps per 1-hour write; with no ledgers the advisor prints a notice and exits 0.",
+      "nuance_evidence": {
+        "measured": "2026-10-18",
+        "control": "subagent-ttl-advisor.py --self-test passes 18 checks, including an agent re-dispatched every 2 minutes that scores zero in-window gaps and one re-dispatched every 2 hours that is not recommended, and --must-fail catches a mutant that recommends 1h for every agent with enough data",
+        "falsifier": "a gap under 5 minutes or over 60 minutes counted as in-window, or an agent below the 0.65 ratio recommended",
+        "probe": "plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
     }
   ]
 }

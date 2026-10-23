@@ -19,7 +19,7 @@ export const meta = {
   description:
     "Whole-repo systematic bug sweep across 8 review dimensions (including ci-cd-actions-security for GitHub Actions/CI-gate defects) — maps the repo into risk-ranked batches, reviews each batch per dimension/model with a cache-hit skip, merges + dedupes findings into a P0-P3 priority breakdown, adversarially verifies every file's survivors, optionally auto-fixes CONFIRMED + fixable findings file-by-file (once, or iteratively via args.converge until no P0-P3 findings remain or no further auto-fixable progress is possible), and reports coverage + convergence honestly.",
   whenToUse:
-    "When the user wants a comprehensive, multi-dimension bug sweep over an entire repository (or a --only/--since-narrowed slice of it), with adversarial verification gating any fix. Requires args.effort to be one of high, xhigh, max, or ultra — low and medium are refused outright, no phase runs for them. Set args.converge:true to loop Review->Merge->Verify->Fix until the repo has 0 open P0-P3 findings or no further auto-fixable progress can be made (capped at args.convergeMaxIterations, default 5). For a plan too large for one invocation's agent-call budget, run scripts/block_planner.py first and dispatch one invocation per block, passing args.batchIds (that block's slice) and args.finalizeBlock:true on the LAST block only — every block must share the SAME args.runId so their Review shards land in one findings dir.",
+    "When the user wants a comprehensive, multi-dimension bug sweep over an entire repository (or a --only/--since-narrowed slice of it), with adversarial verification gating any fix. Requires args.effort to be one of high, xhigh, max, or ultra — low and medium are refused outright, no phase runs for them. Also requires args.runId, a unique id per run (e.g. repo-sweep-$(date -u +%Y%m%dT%H%M%SZ)) — the script has no clock to mint one, so it refuses to start without it, and a non-block run refuses a runId whose findings dir already holds shards. Set args.converge:true to loop Review->Merge->Verify->Fix until the repo has 0 open P0-P3 findings or no further auto-fixable progress can be made (capped at args.convergeMaxIterations, default 5). For a plan too large for one invocation's agent-call budget, run scripts/block_planner.py first and dispatch one invocation per block, passing args.batchIds (that block's slice) and args.finalizeBlock:true on the LAST block only — every block must share the SAME args.runId so their Review shards land in one findings dir.",
   phases: [
     {
       title: "Map",
@@ -57,9 +57,10 @@ export const meta = {
 // ─── Resume-safe ordinal clock shim (Date.now()/new Date() THROW in a workflow
 // script — they would break resume) — copied verbatim from the pattern used by
 // plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js. These
-// are monotonic ORDINALS, not wall-clock ms; good enough for a run-id suffix
-// and a store --timestamp argument, never for anything a human reads as a
-// real time.
+// are monotonic ORDINALS, not wall-clock ms; good enough for a store
+// --timestamp argument, never for anything a human reads as a real time, and
+// NEVER a run-id source: the counter restarts at 1000 on every invocation, so
+// an id derived from it is the same constant on every run (see RUN_ID below).
 let _wfClock = 1_000;
 const _now = () => (_wfClock += 1);
 const _isoNow = () => "1970-01-01T00:00:00.000Z";
@@ -100,10 +101,10 @@ const SINGLE_MODEL_ONLY_DIMENSIONS = new Set(["dead-code-simplification"]);
 // Deliberately 3 distinct backbones so the third-model verifier rule (below)
 // can always activate on an unqualified run — a caller-supplied args.models
 // under 3 entries correctly narrows what that rule can do.
-const DEFAULT_MODEL_POOL = ["claude-opus-4-8", "claude-sonnet-5", "claude-haiku-4-5-20251001"];
+const DEFAULT_MODEL_POOL = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"];
 // The cheap, fast model used ONLY for the cache-lookup pre-check step (never
 // for an actual review/verify/fix pass).
-const CACHE_CHECK_MODEL = "claude-haiku-4-5-20251001";
+const CACHE_CHECK_MODEL = "claude-haiku-5-5";
 
 // ─── The one severity scale, used everywhere ───────────────────────────────
 // SEVERITY_RANK previously diverged between this file (which had its own
@@ -492,10 +493,24 @@ if (!isSafeShellArg(REPO_PATH, SAFE_PATH_RE)) {
   };
 }
 
+// args.runId is REQUIRED. The script has no real clock (_now() above is an
+// ordinal counter that restarts at 1000 on every invocation), so a default id
+// derived from it was the constant "repo-sweep-1001" on every run: every sweep
+// in a repo shared one run dir, and Merge read the previous run's shards as
+// this run's findings. Uniqueness has to come from the caller.
 const RUN_ID =
   args && typeof args === "object" && typeof args.runId === "string" && args.runId.trim()
     ? args.runId.trim()
-    : `repo-sweep-${_now()}`;
+    : "";
+if (!RUN_ID) {
+  return {
+    error:
+      `repo-sweep requires args.runId, a unique id for this run (e.g. ` +
+      `repo-sweep-$(date -u +%Y%m%dT%H%M%SZ), minted in a shell before dispatch). This script has no ` +
+      `clock to mint one itself, and a fixed default would make every sweep in this repo share one ` +
+      `.ravenclaude/runs/<runId>/findings/ dir, merging an earlier run's shards into this one.`,
+  };
+}
 if (!isSafeShellArg(RUN_ID, SAFE_RUN_ID_RE)) {
   return {
     error:
@@ -509,6 +524,11 @@ if (!isSafeShellArg(RUN_ID, SAFE_RUN_ID_RE)) {
 
 const RUN_DIR = joinPath(REPO_PATH, ".ravenclaude/runs", RUN_ID);
 const PLAN_PATH = joinPath(RUN_DIR, "review-plan.json");
+// Shared across the WHOLE run (every iteration) AND across every block
+// invocation sharing this run_id — see resolveBatchesForFiles() below for
+// why a per-iteration-suffixed dir would silently drop still-valid findings
+// once convergence iterations stop re-reviewing every batch.
+const FINDINGS_DIR = joinPath(RUN_DIR, "findings");
 const CACHE_DIR = joinPath(REPO_PATH, ".ravenclaude/repo-review-cache");
 
 const crossModelRequested = !!(args && args.crossModel === true);
@@ -533,7 +553,7 @@ const modelCount = resolveModelCount(EFFORT, crossModelActive);
 // NEAR_DUP_POLICY are already guarded at above. DEFAULT_MODEL_POOL is a
 // hardcoded literal and needs no check; only a caller-supplied args.models
 // can carry an unsafe value. Real model identifiers are always alphanumeric
-// with "." "_" "-" (e.g. "claude-opus-4-8", "claude-haiku-4-5-20251001"), so
+// with "." "_" "-" (e.g. "claude-opus-5-5", "claude-haiku-5-5"), so
 // a tight allow-list refuses cleanly rather than silently stripping — same
 // discipline as SAFE_PATH_RE/SAFE_RUN_ID_RE/SAFE_PATHSPEC_RE.
 const SAFE_MODEL_RE = /^[A-Za-z0-9._-]+$/;
@@ -651,6 +671,57 @@ if (SINCE_VALUE && !isSafeShellArg(SINCE_VALUE, SAFE_PATHSPEC_RE)) {
 }
 const sinceFlag = SINCE_VALUE ? ` --since ${SINCE_VALUE}` : "";
 
+// ─── Fresh-run preflight (non-block mode only) ─────────────────────────────
+// FINDINGS_DIR is never cleared and findings_merge.py reads EVERY shard in it,
+// so a single-shot run into a run dir an earlier run already populated would
+// silently merge that run's shards (another tier, another --only scope, code
+// since fixed) into this one's Merge/Verify/Fix. Block mode shares the dir
+// across invocations ON PURPOSE, so it is exempt. Fail closed: a preflight
+// that cannot answer is a refusal, never a pass.
+const FINDINGS_PREFLIGHT_SCHEMA = {
+  type: "object",
+  required: ["exists", "shard_count"],
+  properties: { exists: { type: "boolean" }, shard_count: { type: "integer" } },
+};
+const BLOCK_MODE_REQUESTED = !!(args && Array.isArray(args.batchIds) && args.batchIds.length > 0);
+if (!BLOCK_MODE_REQUESTED) {
+  const findingsCheck = await agent(
+    [
+      `Check whether the directory ${FINDINGS_DIR} exists. Do NOT create, modify, or delete anything.`,
+      `If it does not exist, return {exists: false, shard_count: 0}.`,
+      `If it exists, count the regular files directly inside it and return {exists: true, shard_count: <that count>}.`,
+      `Return ONLY structured output.`,
+    ].join("\n"),
+    {
+      label: "preflight:findings-dir",
+      phase: "Map",
+      schema: FINDINGS_PREFLIGHT_SCHEMA,
+      model: CACHE_CHECK_MODEL,
+    },
+  ).catch(() => null);
+  if (
+    !findingsCheck ||
+    typeof findingsCheck.exists !== "boolean" ||
+    typeof findingsCheck.shard_count !== "number"
+  ) {
+    return {
+      error:
+        `repo-sweep could not confirm that ${FINDINGS_DIR}/ is empty before starting run "${RUN_ID}" ` +
+        `(the preflight check returned no usable answer), so it did not start. Re-dispatch with a new ` +
+        `unique args.runId.`,
+    };
+  }
+  if (findingsCheck.exists && findingsCheck.shard_count > 0) {
+    return {
+      error:
+        `repo-sweep refuses to start run "${RUN_ID}": ${FINDINGS_DIR}/ already holds ` +
+        `${findingsCheck.shard_count} file(s) from an earlier run, and Merge would read them as this ` +
+        `run's findings. Pass a NEW unique args.runId. To deliberately continue that run into the same ` +
+        `findings dir, use block mode (args.batchIds), which shares the dir on purpose.`,
+    };
+  }
+}
+
 const mapReceipt = await agent(
   [
     `Run this exact command (the shell expands ${PLUGIN_ROOT_EXPR} to the installed plugin root):`,
@@ -740,11 +811,54 @@ if (BLOCK_MODE) {
       `total batch(es) — ${FINALIZE_BLOCK ? "FINALIZE block (runs Merge/Verify/Fix/Report/converge after)" : "review-only block (returns after Review)"}.`,
   );
 }
-// Shared across the WHOLE run (every iteration) AND across every block
-// invocation sharing this run_id — see resolveBatchesForFiles() below for
-// why a per-iteration-suffixed dir would silently drop still-valid findings
-// once convergence iterations stop re-reviewing every batch.
-const FINDINGS_DIR = joinPath(RUN_DIR, "findings");
+
+// ─── Agent-call demand guard (before ANY review dispatch) ──────────────────
+// The Workflow tool hard-caps a run at 1,000 agent() calls. Each (dimension,
+// model, batch) triple costs up to 2 calls on a cold cache (the cache check,
+// then the review), so the max/ultra default budgets alone demand 2,400-4,800.
+// Past the cap every call throws: review agents degrade to "0 findings" and the
+// Merge dispatch fails, after the run has already spent its tokens. So the
+// demand is computed here, from the real plan, and a run that cannot fit is
+// REFUSED, never silently clamped (a clamp would drop coverage without saying
+// so). It counts this pass only, cold cache: converge iterations >= 2 re-review
+// only the batches a Fix pass touched, and the gap between this ceiling and the
+// cap is their buffer (block_planner.py --converge reserves more).
+const AGENT_CALL_CEILING = 900;
+const reviewCallsPerBatch = activeDimensions.reduce(
+  (sum, dim) => sum + new Set(resolveModelsForDimension(dim, models)).size * 2,
+  0,
+);
+const preReviewCalls = BLOCK_MODE ? 2 : 3; // Map + cost estimate (+ the fresh-run preflight)
+const downstreamCalls =
+  BLOCK_MODE && !FINALIZE_BLOCK ? 0 : 2 + VERIFY_CAP + (AUTOFIX ? FIX_CAP + 3 : 0) + 1; // Merge + enumerate + verify, Fix, Report
+const agentCallDemand =
+  preReviewCalls + reviewCallsPerBatch * iteration1ReviewBatchIds.length + downstreamCalls;
+log(
+  `Agent-call demand: ~${agentCallDemand} (cold cache) against a ${AGENT_CALL_CEILING}-call ceiling ` +
+    `(the Workflow tool's hard cap is 1000).`,
+);
+if (agentCallDemand > AGENT_CALL_CEILING) {
+  const largestFit = Math.floor(
+    (AGENT_CALL_CEILING - preReviewCalls - downstreamCalls) / reviewCallsPerBatch,
+  );
+  const fitHint = BLOCK_MODE
+    ? `This block's slice is too large: re-plan with block_planner.py and a smaller --safe-ceiling.`
+    : largestFit >= 1
+      ? `Re-run with args.budgetBatches <= ${largestFit}, which drops coverage, or keep full coverage with block mode.`
+      : `No args.budgetBatches fits at this tier with these caps; lower args.verifyCap/args.fixCap or use block mode.`;
+  return {
+    error:
+      `repo-sweep refuses to start Review: this run needs ~${agentCallDemand} agent() calls ` +
+      `(${iteration1ReviewBatchIds.length} batch(es) x ${reviewCallsPerBatch} calls per batch, plus ` +
+      `${preReviewCalls + downstreamCalls} for Map/Merge/Verify/Fix/Report), over the ` +
+      `${AGENT_CALL_CEILING}-call ceiling under the Workflow tool's 1000-call cap. ${fitHint} Block mode ` +
+      `splits the same plan across invocations: python3 ${SCRIPTS_DIR}/block_planner.py --plan ` +
+      `${PLAN_PATH} --effort-tier ${EFFORT}${crossModelActive ? " --cross-model" : ""}` +
+      `${CONVERGE ? " --converge" : ""} --run-id ${RUN_ID} --out <manifest.json>`,
+    agent_call_demand: agentCallDemand,
+    largest_budget_batches: BLOCK_MODE ? null : Math.max(0, largestFit),
+  };
+}
 
 if (BLOCK_MODE) {
   await runReviewPhase(FINDINGS_DIR, iteration1ReviewBatchIds);
@@ -872,8 +986,8 @@ async function runReviewPhase(findingsDir, idsToReview) {
     // Dedup at the dispatch site (not inside resolveModels()). resolveModels()
     // pads a caller-supplied args.models list shorter than the tier's
     // required model count by CYCLING through it, which can produce literal
-    // duplicate entries (e.g. args.models:['claude-sonnet-5'] at a 2-model
-    // tier yields ['claude-sonnet-5','claude-sonnet-5']). Without this dedup,
+    // duplicate entries (e.g. args.models:['claude-sonnet-5-5'] at a 2-model
+    // tier yields ['claude-sonnet-5-5','claude-sonnet-5-5']). Without this dedup,
     // a duplicated model string would fan out into two CONCURRENT thunks both
     // calling reviewBatch(dim, model, batchId) for the same (dim, model,
     // batchId) triple — both computing the identical shardPath and writing it
@@ -946,7 +1060,7 @@ async function runVerifyPhase(mergeReceipt) {
 
   if (!mergeReceipt || !mergeReceipt.survivors_count) {
     log("Verify: 0 survivors from Merge — nothing to verify.");
-    return { verifyResults, unverifiedBeyondCap };
+    return { verifyResults, unverifiedBeyondCap, unverifiedByError: [], unenumeratedCount: 0 };
   }
 
   const enumResult = await agent(
@@ -1020,7 +1134,36 @@ async function runVerifyPhase(mergeReceipt) {
     }),
   );
 
-  return { verifyResults, unverifiedBeyondCap };
+  // A verify agent that errored (null) or returned fewer verdicts than ids
+  // leaves survivors in none of confirmed/plausible/refuted. Uncounted, they
+  // would vanish from the open count and could let the loop claim CONVERGED
+  // with survivors nobody examined. They are open: unverified-by-error. The
+  // same holds for survivors the enumerate step never listed.
+  const verdictIds = new Set();
+  for (const vr of verifyResults) {
+    if (!vr) continue;
+    for (const v of vr.verdicts || []) {
+      if (v && ["CONFIRMED", "PLAUSIBLE", "REFUTED"].includes(v.verdict)) verdictIds.add(v.id);
+    }
+  }
+  const unverifiedByError = toVerify
+    .filter((f) => !verdictIds.has(f.id))
+    .map((f) => ({
+      id: f.id,
+      file: f.file,
+      severity: f.severity,
+      status: "unverified",
+      reason: "no verdict returned (the verify agent errored or omitted it) — counted open",
+    }));
+  const unenumeratedCount = Math.max(0, mergeReceipt.survivors_count - allSurvivorFindings.length);
+  if (unverifiedByError.length || unenumeratedCount) {
+    log(
+      `Verify: ${unverifiedByError.length} finding(s) got no verdict and ${unenumeratedCount} survivor(s) ` +
+        `were never enumerated — all counted open as unverified-by-error.`,
+    );
+  }
+
+  return { verifyResults, unverifiedBeyondCap, unverifiedByError, unenumeratedCount };
 }
 
 // ─── Phase 5: Fix (per-iteration) ──────────────────────────────────────────
@@ -1249,12 +1392,23 @@ while (iteration < MAX_ITERATIONS) {
       );
     }
   }
-  const mergeReceipt = await runMergePhase(FINDINGS_DIR, mergedPath);
+  // A Merge agent that THROWS (the agent-call cap, a session usage limit) must
+  // not abort the script uncaught: the caller still needs the findings dir.
+  let mergeReceipt = null;
+  let mergeError = "";
+  try {
+    mergeReceipt = await runMergePhase(FINDINGS_DIR, mergedPath);
+  } catch (e) {
+    mergeError = e && e.message ? e.message : String(e);
+  }
 
   if (!mergeReceipt || !mergeReceipt.artifact) {
     return {
+      findings_dir: FINDINGS_DIR,
       error:
-        `Merge phase failed at iteration ${iteration} — findings_merge.py did not return a usable receipt. ` +
+        `Merge phase failed at iteration ${iteration}` +
+        (mergeError ? ` (${mergeError})` : "") +
+        ` — findings_merge.py did not return a usable receipt. ` +
         `This does NOT mean the review work was lost — every completed review agent already wrote its ` +
         `shard to ${FINDINGS_DIR}/ before this failure. Before re-dispatching, check that directory and, ` +
         `if it has shards, run findings_merge.py over it BY HAND to recover them (uncapped, mark the ` +
@@ -1263,9 +1417,19 @@ while (iteration < MAX_ITERATIONS) {
     };
   }
 
-  const { verifyResults, unverifiedBeyondCap } = await runVerifyPhase(mergeReceipt);
+  const { verifyResults, unverifiedBeyondCap, unverifiedByError, unenumeratedCount } =
+    await runVerifyPhase(mergeReceipt);
 
-  const counts = { confirmed: 0, plausible: 0, refuted: 0, unverified: unverifiedBeyondCap.length };
+  // counts.unverified = beyond verifyCap + no verdict returned (an errored or
+  // short verify agent) + never enumerated. Every one of them is OPEN below.
+  const unverifiedByErrorCount = unverifiedByError.length + unenumeratedCount;
+  const counts = {
+    confirmed: 0,
+    plausible: 0,
+    refuted: 0,
+    unverified: unverifiedBeyondCap.length + unverifiedByErrorCount,
+    unverified_by_error: unverifiedByErrorCount,
+  };
   for (const vr of verifyResults) {
     if (!vr) continue;
     for (const v of vr.verdicts || []) {
@@ -1281,8 +1445,10 @@ while (iteration < MAX_ITERATIONS) {
   // "Open" P0-P3 findings after this pass: CONFIRMED findings that were NOT
   // successfully applied (not fixable_in_place, skipped_over_cap, or a fix
   // agent error) + PLAUSIBLE (a real risk that couldn't be fully confirmed)
-  // + unverified-beyond-verifyCap. REFUTED and successfully-applied CONFIRMED
-  // findings are resolved and do not count.
+  // + unverified (beyond verifyCap, or no verdict returned). REFUTED and
+  // successfully-applied CONFIRMED findings are resolved and do not count. A
+  // survivor with no verdict therefore keeps openAfterCount above 0, so the
+  // CONVERGED branch below can never fire while one exists.
   const openAfterCount =
     Math.max(0, counts.confirmed - appliedTotal) + counts.plausible + counts.unverified;
 
@@ -1291,6 +1457,8 @@ while (iteration < MAX_ITERATIONS) {
     findingsDir: FINDINGS_DIR,
     mergeReceipt,
     verifyResults,
+    unverifiedByErrorIds: unverifiedByError.map((f) => f.id),
+    unenumeratedCount,
     counts,
     fixResult,
     appliedTotal,
@@ -1389,6 +1557,11 @@ if (CONVERGE) {
       `P0-P3 finding(s) still open. Re-run with a higher convergeMaxIterations or resolve the ` +
       `remainder manually.`;
   }
+  if (!converged && finalCounts.unverified_by_error > 0) {
+    convergenceLine +=
+      ` ${finalCounts.unverified_by_error} of them got no verdict (a verify agent errored or omitted ` +
+      `it), so nobody has examined them yet.`;
+  }
 }
 
 const priorityLine = finalByPriority
@@ -1417,7 +1590,16 @@ const reportBody = [
   `- CONFIRMED: ${finalCounts.confirmed}`,
   `- PLAUSIBLE: ${finalCounts.plausible}`,
   `- REFUTED: ${finalCounts.refuted}`,
-  `- Unverified (beyond verifyCap=${VERIFY_CAP}): ${finalCounts.unverified}`,
+  `- Unverified: ${finalCounts.unverified} (beyond verifyCap=${VERIFY_CAP}: ` +
+    `${finalCounts.unverified - finalCounts.unverified_by_error}; no verdict returned: ` +
+    `${finalCounts.unverified_by_error})`,
+  finalCounts.unverified_by_error > 0
+    ? `- No verdict (verify agent errored or omitted it), counted open: ` +
+      `${lastResult.unverifiedByErrorIds.join(", ") || "(none with an id)"}` +
+      (lastResult.unenumeratedCount
+        ? `; plus ${lastResult.unenumeratedCount} survivor(s) the enumerate step never listed`
+        : "")
+    : null,
   priorityLine ? `- ${priorityLine}` : null,
   "",
   AUTOFIX
@@ -1460,6 +1642,7 @@ log(`Report written to ${reportMdPath}`);
 return {
   coverage,
   counts: finalCounts,
+  unverified_by_error: lastResult.unverifiedByErrorIds,
   by_priority: finalByPriority,
   findings_artifact: finalMergeReceipt.artifact,
   patch: AUTOFIX && finalFix && finalFix.fixPatchPath ? finalFix.fixPatchPath : null,

@@ -58,9 +58,11 @@ set -euo pipefail
 # below) and exit 2 is an already-blocking deny — neither is touched.
 _emitted=0
 _tmp_to_clean=""
+_seat_lock=""
 _on_exit() {
   local _ec=$?
   [ -n "$_tmp_to_clean" ] && rm -rf "$_tmp_to_clean" 2>/dev/null || true
+  [ -n "${_seat_lock:-}" ] && rm -f "$_seat_lock" 2>/dev/null || true
   if [ "$_emitted" != 1 ] && [ "$_ec" != 0 ] && [ "$_ec" != 2 ]; then
     printf '[Command review] aborted unexpectedly (exit %s); failing closed (deny).\n' "$_ec" >&2
     exit 2
@@ -78,9 +80,29 @@ if [ -f "$_emit_event_helper" ]; then
 fi
 command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
 
+# ── Private runtime dir helpers (seat-child locks, pre-tool records). Fail-safe:
+#    without the helper no lock can validate (the recursion guard is then never
+#    honoured, i.e. review runs) and no record is written (the PostToolUse check
+#    then warns) — both directions fail LOUD, never silent. ──────────────────────
+_rc_runtime_helper="$(dirname "${BASH_SOURCE[0]}")/_rc-runtime.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_runtime_helper" ] && . "$_rc_runtime_helper" 2>/dev/null || true
+command -v _rc_seat_child_ok >/dev/null 2>&1 || _rc_seat_child_ok() { return 1; }
+command -v _rc_runtime_subdir >/dev/null 2>&1 || _rc_runtime_subdir() { return 1; }
+command -v _rc_safe_id >/dev/null 2>&1 || _rc_safe_id() { printf '%s' "$1" | tr -cd 'A-Za-z0-9_-' | cut -c1-128; }
+
 # ── Recursion guard: a seat runs `claude -p` (which we mark THING_SEAT_ACTIVE);
-#    belt-and-suspenders so a tribunal call can never reconvene the tribunal. ──
-[ -n "${THING_SEAT_ACTIVE:-}" ] && exit 0
+#    belt-and-suspenders so a tribunal call can never reconvene the tribunal.
+#    AppSec hook-env (2026-10-18): THING_SEAT_ACTIVE ALONE never disables review —
+#    a repo's .claude/settings.json can plant it. The guard is honoured only when
+#    THING_SEAT_CHILD_NONCE names a live lock this user's orchestrator created for
+#    its seats (0600, owned by $UID, in the 0700 runtime dir, < 30 min old). ──
+if [ -n "${THING_SEAT_ACTIVE:-}" ]; then
+  if _rc_seat_child_ok "${THING_SEAT_CHILD_NONCE:-}"; then
+    exit 0
+  fi
+  echo "[Command review] THING_SEAT_ACTIVE is set without a valid seat-child lock; it does not disable review — reviewing this call." >&2
+fi
 
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 DECISION="${PLUGIN_ROOT}/scripts/thing-decision.py"
@@ -91,6 +113,18 @@ SEAT="${PLUGIN_ROOT}/scripts/thing-seat.sh"
 payload=""
 if [ ! -t 0 ]; then payload="$(cat)"; fi
 [ -z "$payload" ] && exit 0
+
+# ── Pre-tool review record (AppSec hook-env, D). Written FIRST, keyed by
+#    tool_use_id, before any short-circuit, so pretool-record-check.sh (PostToolUse,
+#    same matcher) can tell "review ran" from "this hook never started". Best-effort:
+#    a failure here never changes the verdict. ──────────────────────────────────────
+if command -v jq >/dev/null 2>&1; then
+  _rec_id="$(_rc_safe_id "$(printf '%s' "$payload" | jq -r '.tool_use_id // empty' 2>/dev/null || true)")"
+  if [ -n "$_rec_id" ]; then
+    _rec_dir="$(_rc_runtime_subdir pretool 2>/dev/null || true)"
+    [ -n "$_rec_dir" ] && { (umask 077 && printf '%s\n' "$$" >"$_rec_dir/$_rec_id") 2>/dev/null || true; }
+  fi
+fi
 
 # ── Emit a Claude Code PreToolUse verdict and exit. (The fail-closed _on_exit trap
 #    that reads _emitted is armed at the top of the script, before any setup.) ──────
@@ -134,6 +168,15 @@ cwd="$(printf '%s' "$payload" | jq -r '.cwd // empty')"
 # FIRST (preserves per-worktree isolation), then fall back to CLAUDE_PROJECT_DIR
 # (SessionStart / adapters), else keep the payload cwd.
 _payload_cwd="$cwd"
+# A RELATIVE payload cwd (the Copilot adapter supplies "." when both .cwd and
+# .workspaceRoot are absent) makes the walk-up below spin forever: `dirname .`
+# is `.`, a fixed point that is neither empty nor "/". Resolve a relative cwd to
+# absolute first, and break on a fixed point (belt-and-suspenders). [1b-1]
+case "$_payload_cwd" in
+  /*) : ;;
+  *) _payload_cwd="$(cd "$_payload_cwd" 2>/dev/null && pwd)" || _payload_cwd="$PWD" ;;
+esac
+[ -n "$_payload_cwd" ] || _payload_cwd="$PWD"
 root=""
 _d="$_payload_cwd"
 while [ -n "$_d" ] && [ "$_d" != "/" ]; do
@@ -141,7 +184,9 @@ while [ -n "$_d" ] && [ "$_d" != "/" ]; do
     root="$_d"
     break
   fi
-  _d="$(dirname "$_d")"
+  _p="$(dirname "$_d")"
+  [ "$_p" = "$_d" ] && break
+  _d="$_p"
 done
 if [ -z "$root" ] && [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR}/.ravenclaude" ]; then
   root="$CLAUDE_PROJECT_DIR"
@@ -435,17 +480,17 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
-           THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
+           THING_SEAT_ALLOW_MOCK="${THING_SEAT_ALLOW_MOCK:-}" THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
            THING_SEAT_MOCK_REVISED="${THING_SEAT_MOCK_REVISED:-}" \
-           _rc_timeout "${seat_timeout}" bash "$SEAT" 2>"$tmp/$role.err")" || rc=$?
+           _rc_timeout "${seat_timeout}" bash "$SEAT" ${_seat_live_arg:+"$_seat_live_arg"} ${_seat_nonce:+--seat-child "$_seat_nonce"} 2>"$tmp/$role.err")" || rc=$?
   else
     out="$(THING_SEAT_ACTIVE=1 THING_PAYLOAD="$reviewed" THING_PAYLOAD_SHAPE="$payload_shape" \
            THING_CATEGORY="$category" \
            THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
-           THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
-           _rc_timeout "${seat_timeout}" bash "$SEAT" 2>"$tmp/$role.err")" || rc=$?
+           THING_SEAT_ALLOW_MOCK="${THING_SEAT_ALLOW_MOCK:-}" THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
+           _rc_timeout "${seat_timeout}" bash "$SEAT" ${_seat_live_arg:+"$_seat_live_arg"} ${_seat_nonce:+--seat-child "$_seat_nonce"} 2>"$tmp/$role.err")" || rc=$?
   fi
   printf '%s' "$out" > "$tmp/$role.json"
   printf '%s' "$rc" > "$tmp/$role.rc"
@@ -586,10 +631,47 @@ else
   # fail-closed guard, reopening the FM2 fail-open hole on the panel path).
   _tmp_to_clean="$tmp"
 
+  # ── Mock-verdict source gate (AppSec #1370), BEFORE fan-out. Same check as
+  #    thing-seat.sh (the seat is the single source of truth: --mock-precheck).
+  #    A live hook payload (transcript_path) restricts mocks to deny/abstain; that
+  #    is passed to every seat as an ARG (an arg can't be planted via settings
+  #    `env`). Unmarked / project-planted mocks are stripped here so no seat —
+  #    including a later Thor — sees them; the seats then run for real. ─────────
+  _seat_live_arg=""
+  [ -n "$(printf '%s' "$payload" | jq -r '.transcript_path // empty' 2>/dev/null)" ] && _seat_live_arg="--live-session"
+  # Runs on EVERY convened panel, mock or not: a project-planted THING_SEAT_* key
+  # unsets ALL seat test hooks (incl. THING_SEAT_RESOLVED_OVERRIDE) for fan-out.
+  _mock_pre="$(bash "$SEAT" --mock-precheck ${_seat_live_arg:+"$_seat_live_arg"} 2>/dev/null || echo planted)"
+  case "$_mock_pre" in
+    none | honour | live-refused) : ;;  # live-refused: each seat abstains on its own
+    planted | planted-nomock)
+      echo "[Command review] THING_SEAT_* test hook planted via project settings (mock var planted via project settings); unsetting all THING_SEAT_* test hooks and convening the real panel." >&2
+      unset THING_SEAT_MOCK_VERDICT THING_SEAT_MOCK_REVISED THING_SEAT_RESOLVED_OVERRIDE THING_SEAT_ALLOW_MOCK ;;
+    *)
+      echo "[Command review] ignoring THING_SEAT_MOCK_VERDICT (${_mock_pre}); convening the real panel." >&2
+      unset THING_SEAT_MOCK_VERDICT THING_SEAT_MOCK_REVISED THING_SEAT_RESOLVED_OVERRIDE THING_SEAT_ALLOW_MOCK ;;
+  esac
+
+  # ── Seat-child lock (AppSec hook-env, C): the seats' nested `claude -p` inherits
+  #    THING_SEAT_ACTIVE=1 + THING_SEAT_CHILD_NONCE; the recursion guard above honours
+  #    it only while this lock exists. Removed by the EXIT trap. No runtime dir -> no
+  #    nonce: the nested session is then reviewed (seats run with --tools "", so it
+  #    makes no tool calls) rather than trusted. ────────────────────────────────────
+  # Re-find a native-installer claude for the seats (pinned PATH; passwd home only).
+  command -v claude >/dev/null 2>&1 || { command -v _rc_add_claude_to_path >/dev/null 2>&1 && _rc_add_claude_to_path 2>/dev/null; } || true
+  _claude_missing_note=""
+  command -v claude >/dev/null 2>&1 || _claude_missing_note=" \`claude\` was not found on the hardened hook PATH (nor in ~/.local/bin of your passwd home), so no seat could run."
+  _seat_nonce=""
+  if command -v _rc_new_nonce >/dev/null 2>&1; then
+    _seat_nonce="$(_rc_new_nonce)"
+    _seat_lock="$(_rc_seat_child_lock "${session_id:-}" "$_seat_nonce" 2>/dev/null || true)"
+    [ -n "$_seat_lock" ] || _seat_nonce=""
+  fi
+
   # ── Fan the convened seats out in PARALLEL, bounded by the panel deadline. ──
   pids=()
   for role in $convened; do
-    model="$(printf '%s' "$decision" | jq -r --arg r "$role" '.panel[$r].model // "claude-haiku-4-5-20251001"')"
+    model="$(printf '%s' "$decision" | jq -r --arg r "$role" '.panel[$r].model // "claude-haiku-5-5"')"
     # Peer-exclude: the OTHER convened seats' models. Passed to the seat's
     # model-fallback so a fallback never lands on a peer's model — preserving the
     # >=2-distinct-backbone diversity invariant BY CONSTRUCTION (no post-hoc
@@ -680,7 +762,10 @@ else
   # 1. Abstention gate: >=2 abstained, or the whole convened panel abstained.
   elif [ "$n_abstain" -ge 2 ] || { [ "$n_convened" -gt 0 ] && [ "$n_abstain" -eq "$n_convened" ]; }; then
     verdict="$posture"
-    reason="Command review: the panel abstained (timeout or error); ${posture_phrase} for ${category}."
+    reason="Command review: the panel abstained (timeout or error); ${posture_phrase} for ${category}.${_claude_missing_note:-}"
+    if [ -n "${_claude_missing_note:-}" ] && command -v _rc_tool_missing >/dev/null 2>&1; then
+      _rc_tool_missing claude thing-orchestrator.sh "the command-review panel abstained" "${session_id:-}" >/dev/null
+    fi
   # 2. Injection override (unilateral DENY).
   elif [ "$any_injection" = "true" ]; then
     verdict="deny"
@@ -708,7 +793,7 @@ else
                    --argjson cf "${SCONF[$(_ri "$role")]}" --argjson ci "${SCITED[$(_ri "$role")]}" --arg rs "${SREASON[$(_ri "$role")]}" \
                    '{seat:$r,verdict:$v,confidence:$cf,concerns_cited:$ci,reasoning:$rs}'
                done | jq -cs '.')"
-      thor_model="$(printf '%s' "$decision" | jq -r '.panel.thor.model // "claude-opus-4-8"')"
+      thor_model="$(printf '%s' "$decision" | jq -r '.panel.thor.model // "claude-opus-5-5"')"
       seats_run+=("thor")
       run_seat "thor" "$thor_model" "$tmp" "$peers"
       parse_seat "thor" "$tmp"

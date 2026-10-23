@@ -45,7 +45,7 @@ WT_FETCH="on"
 _receipt() {
   # $1=status $2=path $3=branch $4=slug $5=reason(optional)
   # $6=base(optional)  $7=behind(optional — commits the base is behind origin/main)
-  python3 -c '
+  python3 -I -c '
 import json, sys
 keys = ("status", "path", "branch", "slug", "reason", "base", "behind")
 vals = list(sys.argv[1:8])
@@ -57,7 +57,7 @@ print(json.dumps(dict(zip(keys, vals)), separators=(",", ":")))
 
 # Sanitize checkpoint label to [A-Za-z0-9 _.-] (AppSec F4).
 _sanitize_label() {
-  python3 -c '
+  python3 -I -c '
 import re, sys
 s = sys.argv[1] if len(sys.argv) > 1 else ""
 s = re.sub(r"[^A-Za-z0-9 _.-]", "", s)
@@ -610,7 +610,7 @@ cmd_self_test() {
     cd "$repo"
     echo "more" >> ".claude/worktrees/forge-alpha/plan.md"
     out="$(bash "$script_abs" checkpoint alpha 'lab"el\broken' 2>/dev/null)"
-    printf '%s' "$out" | python3 -c 'import sys,json; json.loads(sys.stdin.readline())' || exit 50
+    printf '%s' "$out" | python3 -I -c 'import sys,json; json.loads(sys.stdin.readline())' || exit 50
     printf '%s' "$out" | grep -q '"status":' || exit 51
   ) || _st_fail "JSON metachar label broke receipt ($?)"
 

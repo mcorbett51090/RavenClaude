@@ -94,6 +94,29 @@ else
 fi
 rm -f "$MUT"
 
+
+echo
+echo "── P1-4: git reset --hard is order-independent ──────────────────────────"
+deny_reset=(
+  "git reset HEAD~3 --hard"
+  "git reset --hard HEAD~3"
+  "git reset -q --hard HEAD"
+  "git -C /tmp reset --hard HEAD"
+)
+for c in "${deny_reset[@]}"; do
+  _gd "$c"
+  if [ "$GD_RC" -ne 0 ]; then pass "deny: $c"; else fail "deny expected non-0: $c"; fi
+done
+allow_reset=(
+  "git reset --soft HEAD~1"
+  "git reset HEAD"
+  "git reset --mixed HEAD~1"
+)
+for c in "${allow_reset[@]}"; do
+  _gd "$c"
+  if [ "$GD_RC" -eq 0 ]; then pass "allow: $c"; else fail "allow expected 0, got $GD_RC: $c"; fi
+done
+
 echo
 printf '  %d pass, %d fail\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1

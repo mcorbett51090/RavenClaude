@@ -27,6 +27,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import sys
@@ -102,6 +103,13 @@ class GitHubClient:
 
     def paginate(self, path: str, params: dict[str, str] | None = None) -> list[dict]:
         """Follow Link rel=next up to MAX_PAGES; return the concatenated items."""
+        return self.paginate_ex(path, params)[0]
+
+    def paginate_ex(
+        self, path: str, params: dict[str, str] | None = None
+    ) -> tuple[list[dict], bool]:
+        """Like paginate(), plus a `truncated` flag: True when the MAX_PAGES ceiling stopped
+        the walk while GitHub still advertised a next page (the result is incomplete)."""
         items: list[dict] = []
         page_params = dict(params or {})
         page_params.setdefault("per_page", "100")
@@ -118,7 +126,7 @@ class GitHubClient:
             next_url = _next_link(headers.get("link", ""))
             next_params = None  # the Link URL already carries the query string
             _respect_rate_limit(headers)
-        return items
+        return items, bool(next_url)
 
 
 def _next_link(link_header: str) -> str | None:
@@ -168,20 +176,34 @@ def classify_project(event: dict, projects: list[dict]) -> str | None:
 
 def collect_repo(
     client: GitHubClient, repo: str, since: datetime, until: datetime, team: set[str]
-) -> tuple[list[dict], str | None]:
-    """Collect commits + issues + PRs for one `owner/name` repo. Returns (events, error)."""
+) -> tuple[list[dict], str | None, list[str]]:
+    """Collect commits + issues + PRs for one `owner/name` repo.
+
+    Returns (events, error, truncated): `error` is a one-line failure (or None) and `truncated`
+    lists the endpoints ("commits", "issues") whose MAX_PAGES ceiling was hit, i.e. whose events
+    are incomplete. build_activity reports both in the artifact's `errors`.
+
+    GitHub logins are case-insensitive, so the roster match is too: an event whose actor
+    differs from the configured login only by case is kept, and its `actor` is rewritten to
+    the CONFIGURED spelling so every downstream renderer sees one identity per person."""
     events: list[dict] = []
+    team_ix = {login.casefold(): login for login in team}
+    truncated: list[str] = []
     try:
-        commits = client.paginate(
+        commits, cut = client.paginate_ex(
             f"/repos/{repo}/commits",
             {"since": iso(since), "until": iso(until)},
         )
+        if cut:
+            truncated.append("commits")
         for c in commits:
             actor = (c.get("author") or {}).get("login") or (
                 (c.get("commit", {}).get("author") or {}).get("name")
             )
-            if team and actor not in team:
-                continue
+            if team:
+                actor = team_ix.get((actor or "").casefold())
+                if actor is None:
+                    continue
             commit_info = c.get("commit", {})
             events.append(
                 {
@@ -201,17 +223,21 @@ def collect_repo(
         # The issues endpoint returns BOTH issues and PRs (PRs carry a
         # `pull_request` key), each attributed to `user.login` with timestamps
         # and labels — one call covers two event types.
-        issues = client.paginate(
+        issues, cut = client.paginate_ex(
             f"/repos/{repo}/issues",
             {"since": iso(since), "state": "all", "filter": "all"},
         )
+        if cut:
+            truncated.append("issues")
         for it in issues:
             updated = parse_iso(it.get("updated_at"))
             if updated and updated < since:
                 continue
             actor = (it.get("user") or {}).get("login")
-            if team and actor not in team:
-                continue
+            if team:
+                actor = team_ix.get((actor or "").casefold())
+                if actor is None:
+                    continue
             is_pr = "pull_request" in it
             events.append(
                 {
@@ -221,7 +247,9 @@ def collect_repo(
                     "title": (it.get("title") or "")[:140],
                     "url": it.get("html_url"),
                     "state": it.get("state"),
-                    "merged": bool((it.get("pull_request") or {}).get("merged_at"))
+                    # The merge TIMESTAMP (ISO string) or None, not a bool: the report must be able
+                    # to tell a merge inside the window from an old merge merely updated in it.
+                    "merged": ((it.get("pull_request") or {}).get("merged_at") or None)
                     if is_pr
                     else None,
                     "created_at": it.get("created_at"),
@@ -234,10 +262,15 @@ def collect_repo(
                 }
             )
     except urllib.error.HTTPError as exc:
-        return events, f"{repo}: HTTP {exc.code} ({exc.reason})"
+        return events, f"{repo}: HTTP {exc.code} ({exc.reason})", truncated
     except urllib.error.URLError as exc:
-        return events, f"{repo}: network error ({exc.reason})"
-    return events, None
+        return events, f"{repo}: network error ({exc.reason})", truncated
+    except (OSError, http.client.HTTPException, json.JSONDecodeError, TimeoutError) as exc:
+        # A truncated body (IncompleteRead), a reset connection, a read timeout past the
+        # urlopen call, or a non-JSON 200 are not URLError/HTTPError, so they used to escape
+        # and abort the WHOLE run. Fail soft per repo (house opinion #5), like the above.
+        return events, f"{repo}: transport error ({type(exc).__name__}: {exc})", truncated
+    return events, None, truncated
 
 
 def build_activity(config: dict, days: int | None, token: str | None) -> dict:
@@ -253,7 +286,9 @@ def build_activity(config: dict, days: int | None, token: str | None) -> dict:
     all_events: list[dict] = []
     errors: list[str] = []
     for repo in repos:
-        events, error = collect_repo(client, repo, since, until, team_logins)
+        events, error, truncated = collect_repo(client, repo, since, until, team_logins)
+        for kind in truncated:
+            errors.append(f"{repo}: truncated at {MAX_PAGES} pages ({kind})")
         if error:
             errors.append(error)
         all_events.extend(events)

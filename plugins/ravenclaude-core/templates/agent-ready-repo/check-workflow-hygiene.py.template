@@ -59,17 +59,26 @@ def check_workflow(path: Path) -> tuple[list[str], list[str]]:
     advisory: list[str] = []
     lines = path.read_text(encoding="utf-8").splitlines()
 
-    # ── Rule 1: a top-level `permissions:` key must exist. ──
+    # ── Rule 1: a top-level `permissions:` key must exist, and must not be write-all. ──
     top_keys = set()
+    perms_value = ""
     for ln in lines:
         if _indent(ln) == 0:
             m = TOPKEY_RE.match(ln)
             if m:
                 top_keys.add(m.group(1))
+                if m.group(1) == "permissions":
+                    perms_value = ln.split(":", 1)[1].split("#", 1)[0].strip().strip("'\"").strip()
     if "permissions" not in top_keys:
         hard.append(
             "no top-level `permissions:` — add `permissions: {}` (deny-all floor) "
             "or a read-only floor, then elevate per-job."
+        )
+    elif perms_value == "write-all":
+        hard.append(
+            "top-level `permissions: write-all` grants every scope write access — it is not "
+            "a floor. Use `permissions: {}` (deny-all) or a read-only floor, then elevate "
+            "per-job."
         )
 
     # ── Rule 2: every third-party `uses:` pinned to a 40-hex commit SHA. ──
@@ -79,7 +88,7 @@ def check_workflow(path: Path) -> tuple[list[str], list[str]]:
         m = USES_RE.search(ln)
         if not m:
             continue
-        ref = m.group(1)
+        ref = m.group(1).strip("'\"")  # `uses: "owner/act@v1"` — classify the value, not the quotes
         if ref.startswith("./"):
             continue  # local action — allowed
         name, _sep, gitref = ref.partition("@")
@@ -181,6 +190,55 @@ def _self_test() -> int:
             "jobs:\n  a:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
             lambda h, a: not h and any("Pending" in m for m in a),
             "paths filter on pull_request -> ADVISORY, not hard",
+        ),
+        (
+            "rule1-bad-write-all",
+            "name: x\non:\n  push:\npermissions: write-all\njobs:\n  a:\n    runs-on: ubuntu-latest\n"
+            "    steps:\n      - run: echo hi\n",
+            lambda h, a: any("write-all" in m for m in h),
+            "top-level permissions: write-all -> HARD",
+        ),
+        (
+            "rule1-bad-write-all-quoted-commented",
+            "name: x\non:\n  push:\npermissions: 'write-all'  # temporary\njobs:\n  a:\n"
+            "    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
+            lambda h, a: any("write-all" in m for m in h),
+            "quoted/commented write-all -> HARD",
+        ),
+        (
+            "rule1-good-read-all-and-job-elevation",
+            "name: x\non:\n  push:\npermissions: read-all\njobs:\n  a:\n    runs-on: ubuntu-latest\n"
+            "    permissions: write-all\n    steps:\n      - run: echo hi\n",
+            lambda h, a: not h,
+            "read-all floor (job-level elevation is out of scope) -> no hard",
+        ),
+        (
+            "rule1-good-top-level-contents-write",
+            "name: x\non:\n  push:\npermissions:\n  contents: write\njobs:\n  a:\n"
+            "    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
+            lambda h, a: not h,
+            "top-level contents: write is policy, not a finding -> no hard",
+        ),
+        (
+            "rule2-bad-quoted-unpinned",
+            "name: x\non:\n  push:\npermissions: {}\njobs:\n  a:\n    runs-on: ubuntu-latest\n"
+            '    steps:\n      - uses: "someorg/act@v1"\n',
+            lambda h, a: any("`someorg/act@v1`" in m and "40-hex" in m for m in h),
+            "quoted unpinned third-party uses -> HARD, reported without the quotes",
+        ),
+        (
+            "rule2-good-quoted-official-and-local",
+            "name: x\non:\n  push:\npermissions: {}\njobs:\n  a:\n    runs-on: ubuntu-latest\n"
+            "    steps:\n      - uses: 'actions/checkout@v4'\n      - uses: \"./.github/actions/x\"\n",
+            lambda h, a: not h,
+            "quoted official / local uses -> exempt, no false HARD",
+        ),
+        (
+            "rule2-good-quoted-pinned",
+            f"name: x\non:\n  push:\npermissions: {{}}\njobs:\n  a:\n    runs-on: ubuntu-latest\n"
+            f'    steps:\n      - uses: "someorg/act@{sha}"  # v1\n',
+            lambda h, a: not h,
+            "quoted SHA-pinned third-party uses -> no false HARD",
         ),
         (
             "rule3-bad-push-no-apptoken",

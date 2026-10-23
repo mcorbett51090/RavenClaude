@@ -11,7 +11,7 @@
 import type { APIRoute } from "astro";
 import cubejs from "@cubejs-client/core";
 import { getSession } from "@/lib/session";
-import { mintCubeToken, SigningKeyUnusableError } from "@/lib/mint-cube-token";
+import { mintCubeToken, serverEnv, SigningKeyUnusableError } from "@/lib/mint-cube-token";
 import { createRateLimiter } from "@/lib/rate-limiter";
 import { toCsvRow } from "@/lib/csv";
 
@@ -62,7 +62,7 @@ export const GET: APIRoute = async () => {
   }
 
   const cubeApi = cubejs(token, {
-    apiUrl: process.env.PUBLIC_CUBE_API_URL || "http://localhost:4000/cubejs-api/v1",
+    apiUrl: serverEnv("PUBLIC_CUBE_API_URL") || "http://localhost:4000/cubejs-api/v1",
   });
 
   const asOf = new Date().toISOString();

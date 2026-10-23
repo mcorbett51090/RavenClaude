@@ -6,13 +6,15 @@ kind: platform-fact
 order: 18
 summary: "A registrar holds the name, a DNS host answers the lookups, a CDN sits in front of the server. Knowing which is which is what tells you who to change, and where, to move a domain."
 see_also: [cloudflare-deployment-traps, build-time-vs-runtime-config, source-control-basics]
-last_verified: 2026-07-21
+last_verified: 2026-10-20
 refresh_when: "Cloudflare changes which record types can be proxied, what Universal SSL covers, or the default no-cache-for-HTML behaviour — or the registrar/DNS-host split stops being how domains work."
 sources:
   - label: "Cloudflare DNS — proxy status (proxied vs DNS-only)"
     url: "https://developers.cloudflare.com/dns/proxy-status/"
   - label: "Cloudflare DNS — DNS record types"
     url: "https://developers.cloudflare.com/dns/manage-dns-records/reference/dns-record-types/"
+  - label: "Cloudflare DNS — primary (full) setup overview"
+    url: "https://developers.cloudflare.com/dns/zone-setups/full-setup/"
   - label: "Cloudflare DNS — full setup, change your nameservers"
     url: "https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/"
   - label: "Cloudflare SSL — Universal SSL"
@@ -26,7 +28,7 @@ You own a domain and you want it to point somewhere new — a new host, a new si
 **Three roles. Learn to say which one you mean.**
 
 - **Registrar** — who you rent the *name* from (GoDaddy, Namecheap, Cloudflare Registrar). It holds exactly one thing that matters day to day: the list of **nameservers**. Nothing about your site's content lives here.
-- **DNS host** — the service that *answers the questions*: "what IP is example.com?", "where does its mail go?". Your records live here. Cloudflare's own setup guide draws the line: the registrar is where you "registered and own your domain"; the DNS provider is "the service managing your DNS records."
+- **DNS host** — the service that *answers the questions*: "what IP is example.com?", "where does its mail go?". Your records live here. Cloudflare's own setup guide draws the line: moving DNS involves "not only Cloudflare, but also your registrar and your previous DNS provider" — two different parties.
 - **CDN / proxy** — a network that sits *in front of* your server: terminates TLS, caches, filters. Entirely optional. Cloudflare can be all three at once, which is exactly why the three get merged.
 
 **Nameservers are the switch at the top.** An `NS` record "indicate[s] which server should be used for authoritative DNS." You set it **at the registrar**, and it decides which company gets asked everything else. Change it and every record moves at once. Cloudflare tells you to "wait up to 24 hours while your registrar updates your nameservers" — that lag is why the nameserver change is the one you plan, and the record change is the one you do casually.
@@ -40,7 +42,7 @@ You own a domain and you want it to point somewhere new — a new host, a new si
 
 **Proxied vs DNS-only is a real fork, not a display setting.** Proxied means "Cloudflare sits between your visitors and your server — optimizing, caching, and protecting traffic along the way": visitors resolve to Cloudflare's anycast IPs, never your origin. DNS-only records "respond with your server's actual IP address and do not route HTTP/HTTPS traffic through its network." Only address-resolving records qualify — "Other record types (such as MX or TXT) are always DNS-only." The part that bites: DDoS protection, caching, and "WAF rules, caching, and redirect rules" apply **only to proxied traffic**. A record you flipped to DNS-only while debugging is a record with no cache, no WAF, and your origin IP published.
 
-**SSL is automatic, and it is a property of the edge.** Cloudflare "issues — and renews — free, unshared, publicly trusted SSL certificates to all domains added to and activated on Cloudflare." On a full setup that covers the root domain and first-level subdomains; deeper names need more certificate. Because the edge presents it, the automatic certificate is for **proxied** hostnames — turn the proxy off and you are back to whatever certificate your origin holds.
+**SSL is automatic, and it is a property of the edge.** Cloudflare "issues — and renews — free, unshared, publicly trusted SSL certificates to all domains added to and activated on Cloudflare." On a full setup that covers the root domain and first-level subdomains; deeper names need Total TLS or an advanced certificate. Because the edge presents it, the automatic certificate is for **proxied** hostnames — turn the proxy off and you are back to whatever certificate your origin holds.
 
 **Caching defaults surprise people in one specific direction.** "The Cloudflare CDN does not cache HTML or JSON by default." It caches by file extension — CSS, JS, images, fonts, PDFs. So your *assets* are cached at the edge and your *pages* are not, unless you asked. Cloudflare skips caching when `Cache-Control` is `private`, `no-store`, `no-cache`, or `max-age=0`, and caches when it is `public` with `max-age` greater than 0. Practical consequence: "I deployed and still see the old page" is usually your **browser**, not the CDN.
 

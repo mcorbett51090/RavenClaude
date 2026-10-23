@@ -266,11 +266,41 @@ def main() -> int:
         _write_decision("reject", None, None, sec_reason)
         return 0
 
+    # --- Post-strip secret/PII gate (closes the injection-span reconstruction bypass). ---
+    # The gate above scans _normalize_intake output, but the staged fields are built from
+    # _strip_injection (that SAME normalize PLUS removal of every INJECTION_PATTERN). A
+    # secret split by an injection-shaped span (ghp_<system-reminder>x</system-reminder>
+    # + the rest) leaves SECRET_RE unmatched on the normalized text, yet _strip_injection
+    # deletes the span and reassembles the intact secret into the quarantine file. So we
+    # strip FIRST and scan the stripped text of every field too. Strictly additive: this
+    # can only reject more, never stage more (2026-09-30 / 2026-10-06 reviews, #1268/#1288).
+    stripped_combined = "\n".join(
+        _strip_injection(fields.get(f, ""))
+        for f in (
+            "scenario_title",
+            "plugin",
+            "product",
+            "problem",
+            "resolution",
+            "scope_guess",
+            "confidence",
+        )
+    )
+    post_reason = _has_secret_or_pii(stripped_combined)
+    if post_reason:
+        _write_decision("reject", None, None, post_reason)
+        return 0
+
     # --- Normalize + cap (the form caps these; we re-cap as defense in depth). ---
     title = _strip_injection(fields["scenario_title"]).strip()[:MAX_TITLE]
     product = _strip_injection(fields["product"]).strip()[:MAX_PRODUCT]
     problem = _strip_injection(fields["problem"]).strip()[:MAX_FREETEXT]
     resolution = _strip_injection(fields["resolution"]).strip()[:MAX_FREETEXT]
+    # Re-gate the EXACT capped text that will be written (defense in depth).
+    staged_reason = _has_secret_or_pii("\n".join((title, product, problem, resolution)))
+    if staged_reason:
+        _write_decision("reject", None, None, staged_reason)
+        return 0
 
     plugin = fields["plugin"].strip()
     if plugin in ("not-sure / other", ""):

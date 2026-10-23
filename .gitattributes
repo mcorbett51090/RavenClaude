@@ -4,6 +4,10 @@
 # CRLF in the working tree while the emitter still produces LF, so the byte-diff can never match.
 *.mmd text eol=lf
 *.svg text eol=lf
+# The packed diagram SVGs (scripts/visual_pack.py): generated, one member per line, LF so the
+# byte-diff freshness gates agree on every OS.
+plugins/ravenclaude-core/knowledge/tree-visuals/pack-*.js text eol=lf linguist-generated=true
+plugins/ravenclaude-core/knowledge/concepts/visuals/visuals.pack.json text eol=lf linguist-generated=true
 *.txt text eol=lf
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -184,7 +184,7 @@ Tracker reviewed monthly by 2nd line; quarterly by committee. Findings overdue t
 - Skill: [`../kyc-edd-review/SKILL.md`](../kyc-edd-review/SKILL.md)
 - Skill: [`../sanctions-hit-disposition/SKILL.md`](../sanctions-hit-disposition/SKILL.md)
 - Skill: [`../examination-readiness/SKILL.md`](../examination-readiness/SKILL.md)
-- Cross-plugin: `finance` plugin `skills/soc-control-walkthrough.md` (for SOC1 / SOC2 / ICFR-style work)
+- Cross-plugin: `finance` plugin `skills/soc-control-walkthrough/SKILL.md` (for SOC1 / SOC2 / ICFR-style work)
 - Template: [`../../templates/control-narrative.md`](../../templates/control-narrative.md)
 - Template: [`../../templates/examination-response-tracker.md`](../../templates/examination-response-tracker.md)
 - Agent: [`../../agents/risk-and-controls-specialist.md`](../../agents/risk-and-controls-specialist.md)

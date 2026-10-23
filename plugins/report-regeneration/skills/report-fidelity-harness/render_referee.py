@@ -233,6 +233,7 @@ def _render_once(browser, html_path: Path, screenshot_path: str | None, timeout_
     page_errors: list = []
     page = browser.new_page()
     tmp_shot: str | None = None
+    shot: str | None = None
     try:
         page.on("console", lambda m: console_errors.append(m.text) if m.type == "error" else None)
         page.on("pageerror", lambda e: page_errors.append(str(e)))
@@ -243,12 +244,18 @@ def _render_once(browser, html_path: Path, screenshot_path: str | None, timeout_
             page.screenshot(path=screenshot_path, full_page=True)
             shot = screenshot_path
         else:
+            # B-22: a scratch capture of the (client-sensitive) report is deleted below; only an
+            # explicitly requested --screenshot is kept, so no screenshot_path is reported for it.
             fd, tmp_shot = tempfile.mkstemp(suffix=".png", prefix="render-referee-")
             os.close(fd)
             page.screenshot(path=tmp_shot, full_page=True)
-            shot = tmp_shot
     finally:
         page.close()
+        if tmp_shot is not None:
+            try:
+                os.unlink(tmp_shot)
+            except OSError:
+                pass
     return {
         "console_errors": console_errors + [f"uncaught exception: {e}" for e in page_errors],
         "layout_issues": layout_issues,

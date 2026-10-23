@@ -12,11 +12,11 @@ covers:
   - plugins/ravenclaude-core/hooks/handoff-tax-meter.sh
   - plugins/ravenclaude-core/scripts/handoff-tax-meter.py
   - plugins/ravenclaude-core/hooks/tests/test-gate285-handoff-tax-meter.sh
-covers_digest: "sha256:36c351e47c58a66a25a558b4a6dbfb41fbf79eb15dd09edc9281e63bc47ff0a5"
+covers_digest: "sha256:c8021dec3a012eddad53af6c96c42319c2741433b08d74bc9efa0edabf3f46d2"
 nuance: "`frontier_readonly` fires on `tool_response.resolvedModel` × the basename of `tool_input.subagent_type` (`explore` / `scout`), never on the agent file's `model:` — so `scout` dispatched with a per-call `model: opus` override is flagged while `scout.md` still reads `haiku`, and `architect` on opus is not."
 nuance_evidence:
   measured: 2026-09-14
-  control: "same resolvedModel (claude-opus-4-8), three subagent_types: `Explore` -> SIGNAL frontier_readonly, `ravenclaude-core:scout` -> SIGNAL frontier_readonly, `architect` -> OK; the only input that changed between the flagged and unflagged runs was the role"
+  control: "same resolvedModel (an opus-family id), three subagent_types: `Explore` -> SIGNAL frontier_readonly, `ravenclaude-core:scout` -> SIGNAL frontier_readonly, `architect` -> OK; the only input that changed between the flagged and unflagged runs was the role"
   falsifier: "an `architect` dispatch on an opus id emitting frontier_readonly, or a `scout` dispatch on an opus id staying silent"
   probe: "plugins/ravenclaude-core/scripts/handoff-tax-meter.py"
 nuance_source: plugins/ravenclaude-core/scripts/handoff-tax-meter.py:196-223
@@ -41,7 +41,7 @@ never trip `frontier_readonly` — the frontmatter is the tier, and the gate on 
 
 ## The discriminator
 
-control: with `resolvedModel` held at `claude-opus-4-8` across three self-test payloads, `Explore`
+control: with `resolvedModel` held at an opus-family id across three self-test payloads, `Explore`
 and `ravenclaude-core:scout` both returned `SIGNAL frontier_readonly` while `architect` returned
 `OK` — the role was the only input that changed between the flagged and the unflagged runs.
 Measured 2026-09-14: the flag is computed from the `PostToolUse(Agent)` payload alone —

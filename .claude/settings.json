@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "model": "claude-opus-4-8",
+  "model": "claude-opus-5-5",
   "effortLevel": "xhigh",
   "permissions": {
     "allow": [
@@ -36,10 +36,6 @@
     ],
     "ask": [],
     "defaultMode": "default"
-  },
-  "env": {
-    "RAVENCLAUDE_TEAM_MODE": "1",
-    "RAVENCLAUDE_WORKTREE_ROOT": ".claude/worktrees"
   },
   "hooks": {
     "PostToolUse": [
@@ -475,6 +471,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin RC_INHERITED_BASH_ENV=\"${BASH_ENV-}\" RC_INHERITED_LD_PRELOAD=\"${LD_PRELOAD-}\" RC_INHERITED_PATH=\"${PATH-}\" /bin/bash --noprofile --norc \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/env-integrity-guard.sh\" session",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json SessionStart entry). AppSec hook-env guard, SessionStart half: refuses to continue in a repo whose .claude/settings*.json `env` block plants execution-control keys (PATH, BASH_ENV, LD_*/DYLD_*, NODE_OPTIONS, PYTHON*, RAVENCLAUDE_*/THING_* ...). Mirrored here since this repo's own settings no longer carry an `env` block (RAVENCLAUDE_WORKTREE_ROOT/RAVENCLAUDE_TEAM_MODE moved out, decision 1), so the guard is strict for maintainers too. Hardened launch line, same as hooks.json."
+          },
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/reapply-posture.sh\"",
             "timeout": 10,
             "comment": "Marketplace-dev hook. Regenerates the comfort-posture project-layer rules from .ravenclaude/comfort-posture.yaml at session start. No-ops in this repo because it has no .ravenclaude/comfort-posture.yaml. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is idempotent and no-ops when the posture file is absent."
@@ -514,6 +516,12 @@
             "command": "\"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/dashboard-autostart.sh\"",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Dashboard autostart: reads `dashboard_autostart: off|serve|open` from .ravenclaude/comfort-posture.yaml and no-ops after one grep when unset (absent => OFF). Probes 127.0.0.1:<port>/__csrf and stands down if a dashboard is already live, so concurrent sessions never spawn a second server or a second tab. Fail-safe; always exits 0."
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/dashboard-prompt.sh\"",
+            "timeout": 5,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Dashboard prompt: speaks only when the project has no .ravenclaude/comfort-posture.yaml, so it is silent in a configured repo. One fixed-text line (systemMessage + additionalContext) pointing at /dashboard and the opt-in dashboard_autostart knob. Writes nothing; fail-safe, always exits 0."
           },
           {
             "type": "command",

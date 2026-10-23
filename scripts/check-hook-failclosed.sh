@@ -139,7 +139,15 @@ printf '%s\n' "$listing" | while IFS= read -r cmd; do
   # the literal `"` characters — strip them before the file-exists check, or
   # every hook is skipped and the audit reports "measured nothing".
   set -- $cmd
-  case "$1" in bash|sh) shift ;; esac
+  # The hardened launch line (scripts/check-hook-launch-line.py) puts
+  # `/usr/bin/env -u ... PATH=... /bin/bash --noprofile --norc` (and, for the
+  # env guard, RC_INHERITED_*= assignments) before the script: drop every
+  # token up to the first one naming the plugin root.
+  while [ "$#" -gt 0 ]; do
+    case "$1" in *CLAUDE_PLUGIN_ROOT*) break ;; esac
+    shift
+  done
+  [ "$#" -gt 0 ] || continue
   script="$1"; shift || true
   script="${script#\"}"; script="${script%\"}"
   script="$(printf '%s' "$script" | sed 's|\${CLAUDE_PLUGIN_ROOT}|'"$REPO/plugins/ravenclaude-core"'|; s|\$CLAUDE_PLUGIN_ROOT|'"$REPO/plugins/ravenclaude-core"'|')"

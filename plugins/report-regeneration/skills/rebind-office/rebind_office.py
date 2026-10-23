@@ -107,6 +107,7 @@ except Exception:  # pragma: no cover
 
 try:
     import jinja2  # optional acceleration only — every stdlib-only template still works
+    import jinja2.sandbox  # B-1: the ONLY environment a template is ever rendered in
 except ImportError:  # pragma: no cover - exercised whenever jinja2 isn't installed
     jinja2 = None
 
@@ -197,7 +198,11 @@ def render_template(template_text: str, data: Any) -> str:
     ALWAYS work via stdlib string.Template (no third-party package). If the template text ALSO
     uses native Jinja control syntax ({{ }} / {% %}), jinja2 is imported gracefully to render
     that richer subset; its absence in THAT case is a loud RebindOfficeError, never a silent
-    stdlib mis-render of control-flow syntax."""
+    stdlib mis-render of control-flow syntax.
+
+    B-1: the template text comes from (untrusted) new-data, so Jinja renders ONLY in a
+    SandboxedEnvironment — an attribute-walk payload raises SecurityError (a TemplateError, so a
+    RebindOfficeError) instead of executing. Substituted values are never re-rendered."""
     needs_jinja = ("{{" in template_text) or ("{%" in template_text)
     if needs_jinja:
         if jinja2 is None:
@@ -205,7 +210,7 @@ def render_template(template_text: str, data: Any) -> str:
                 "template uses Jinja control syntax ({{ }} / {% %}) but jinja2 is not installed "
                 "— install jinja2, or rewrite the template using only ${dotted.path} placeholders"
             )
-        env = jinja2.Environment(autoescape=False, undefined=jinja2.StrictUndefined)
+        env = jinja2.sandbox.SandboxedEnvironment(autoescape=False, undefined=jinja2.StrictUndefined)
         try:
             return env.from_string(template_text).render(**data)
         except jinja2.exceptions.TemplateError as exc:
@@ -409,10 +414,33 @@ def _needs_review_marker(local_name: str, confidence: Any, note: str) -> bytes:
     return run
 
 
+# B-10: the unwalked OOXML wrappers infer-office surfaces as needs-review nodes (mirrors
+# infer_office._WRAPPER_LOCALS).
+_WRAPPER_LOCALS = frozenset(["hyperlink", "sdt", "sdtContent", "ins", "smartTag", "fldSimple", "customXml"])
+
+
+def _wrapper_marker_offset(doc: bytes, node: Any) -> int:
+    """B-10: a wrapper's marker run goes INSIDE the wrapper, so no sibling index outside it shifts
+    and the harness masks it with the wrapper's subtree: at the end of the wrapper's last paragraph
+    when it holds block content (a block-level sdt/customXml), else at the end of its run content
+    (w:sdtContent for an inline content control)."""
+    prefix = (node.tag.split(":", 1)[0] + ":").encode("utf-8") if ":" in node.tag else b""
+    p_close = doc.rfind(b"</" + prefix + b"p>", node.inner_start, node.inner_end)
+    if p_close != -1:
+        return p_close
+    if node.local_name == "sdt":
+        content_close = doc.rfind(b"</" + prefix + b"sdtContent>", node.inner_start, node.inner_end)
+        if content_close == -1:
+            raise RebindOfficeError("needs-review marker: <sdt> has no sdtContent to mark")
+        return content_close
+    return node.inner_end
+
+
 def flag_needs_review(doc: bytes, anchor: Any, confidence: Any, note: str) -> bytes:
     """Insert a visible needs-review marker adjacent to the anchored node, leaving the node's
     own content byte-for-byte untouched. A run gets a sibling marker run immediately after it;
-    a paragraph/cell gets the marker appended as its last child."""
+    a paragraph/cell gets the marker appended as its last child; an unwalked wrapper (B-10) gets
+    a marker run inside it."""
     node = _resolve_node(doc, anchor)
     local = node.local_name
     marker = _needs_review_marker(local, confidence, note)
@@ -420,6 +448,8 @@ def flag_needs_review(doc: bytes, anchor: Any, confidence: Any, note: str) -> by
         insert_at = node.outer_end
     elif local in ("p", "tc"):
         insert_at = node.inner_end  # append inside the paragraph/cell
+    elif local in _WRAPPER_LOCALS:
+        insert_at = _wrapper_marker_offset(doc, node)
     else:
         raise RebindOfficeError(
             f"needs-review marker is not supported for a <{local}> node "

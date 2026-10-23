@@ -185,6 +185,14 @@ also what a normal run consults first to decide whether `--full` at the requeste
 before dispatching a single review agent. When `--converge` is set, the Review→Merge→Verify→Fix span
 loops (see [§ Convergence loop](#convergence-loop---converge) above) instead of running once.
 
+**Every `Workflow` invocation passes a fresh `args.runId`.** Mint it in a shell right before dispatch
+(`date -u +repo-sweep-%Y%m%dT%H%M%SZ`) and pass it with the rest of the args, for example
+`{effort: "high", runId: "repo-sweep-20261020T081500Z", autofix: true}`. The workflow has no clock, so it
+cannot mint one itself: it refuses to start without `args.runId`. In non-block mode it also refuses a
+`runId` whose `.ravenclaude/runs/<runId>/findings/` dir already holds shards, because Merge would read
+an earlier run's shards as this run's findings. Block mode (below) shares one `runId` across its
+invocations on purpose and skips that check.
+
 ## Recovering from a mid-run dispatch failure
 
 **A failed Workflow run is not necessarily a lost run.** Every review agent writes its findings
@@ -224,7 +232,9 @@ The recovery procedure, in order:
    coverage instead of splitting it across invocations. A session-usage-limit failure means the
    *scope was probably fine* and the wall was external (a subscription-tier limit with its own reset
    time) — recovering the completed shards and either stopping there or resuming later (once the
-   limit resets) is usually the right move, not re-sizing the run down.
+   limit resets) is usually the right move, not re-sizing the run down. To resume into the **same**
+   findings dir, dispatch the remaining batches in block mode under the same `runId` (a non-block
+   re-dispatch under that `runId` is refused, because its findings dir is no longer empty).
 
 This is not a new pipeline phase and needs no new flag — it is a manual fallback for the one shape
 of failure the Workflow tool's own error surface doesn't help with (a top-level `{"error": ...}`

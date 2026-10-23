@@ -41,6 +41,7 @@ import re
 import sys
 from pathlib import Path
 
+import visual_pack as vp
 from _host_scope import (
     render_filter_strip as _render_host_scope_filter,
 )
@@ -1047,10 +1048,10 @@ _PIPELINE_LANES = [
                 "detail": {
                     "steps": [
                         "Runs right after a file is saved.",
-                        "Runs the formatter for that kind of file.",
+                        "Runs the formatter your project has set up for that kind of file.",
                         "Saves the tidied version.",
                     ],
-                    "trip": "Skips files it doesn't have a formatter for — never blocks.",
+                    "trip": "Does nothing when your project has not set up a formatter, even if one is installed — never blocks.",
                     "set": "Built in.",
                 },
             },
@@ -1226,6 +1227,12 @@ _PIPELINE_STAGE_HOOKS = {
 # reason) — so a newly-registered hook lands in NEITHER list and fails the build,
 # which is exactly what would have caught the missing `delegation-nudge`.
 _PIPELINE_EXCLUDED_HOOKS = {
+    "env-integrity-guard.sh": "always-on integrity floor (AppSec hook-env): denies every tool call "
+    "while project settings plant execution-control env. No comfort-posture knob turns it off, so "
+    "there is no stage to configure; it is a precondition of every lane, not a lane",
+    "pretool-record-check.sh": "PostToolUse recorder half of the Thing stage: warns when "
+    "thing-orchestrator.sh left no per-call record (the review hook never started). Never denies; "
+    "surfaced through the Thing stage, not its own card",
     "workaround-exhaustion.sh": "blocked-exhaustion gate (PreToolUse AskUserQuestion + Stop) governed by the "
     "`workaround_exhaustion:` comfort-posture knob -- absent => off, `warn` advisory, "
     "`block` denies a hand-back QUESTION or blocks a hand-back TURN END until the "
@@ -1315,6 +1322,12 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "when seed leftovers match. Never writes posture, never denies, never inspects a "
     "tool call — same class as thing-denial-kb-recall.sh, so deliberately NOT a "
     "Pipeline stage card",
+    "dashboard-prompt.sh": "SessionStart discoverability prompt. Speaks only when the "
+    "project has no .ravenclaude/comfort-posture.yaml: one fixed-text line (systemMessage "
+    "for the person + additionalContext for the agent) pointing at /dashboard and the "
+    "opt-in dashboard_autostart knob. Writes nothing, starts nothing, never blocks; silent "
+    "once the posture file exists. An onboarding pointer, not a safety-floor guardrail — "
+    "same class as alias-deprecation-advisory.sh — so deliberately NOT a Pipeline stage card",
     "emit-permission-denied.sh": "PermissionDenied substrate (ENH-006). After auto mode "
     "(or the permission system) denies a tool call, appends ONE derived deny line to "
     "hook-events.jsonl via _emit-event.sh so Heimdall and workaround-exhaustion.sh can "
@@ -1416,7 +1429,7 @@ _PIPE_DTREE_HOOK_META = {
         "title": "Auto-tidy",
         "outcomes": ["EDIT"],
         "strength": "always",
-        "note": "Formats after save — never blocks.",
+        "note": "Formats after save with the formatter the project declares — never blocks.",
     },
     "guard-cause-closure.sh": {
         "title": "Cause closure guard",
@@ -2495,10 +2508,9 @@ _CONCEPT_ICONS = {
 
 
 def _inline_concept_svg(plugin_dir: Path, rel: str | None) -> str:
-    if not rel:
-        return ""
-    p = plugin_dir / rel
-    return p.read_text(encoding="utf-8").strip() if p.is_file() else ""
+    """The pre-rendered concept SVG for a `concepts.json` path. The path is a stable KEY into
+    knowledge/concepts/visuals/visuals.pack.json (scripts/visual_pack.py), not a file on disk."""
+    return vp.concept_svg(plugin_dir, rel or "")
 
 
 # Named interactive widgets a concept can embed via its `widget:` frontmatter.
@@ -3271,24 +3283,20 @@ def _best_practices_inventory() -> list[dict]:
     return out
 
 
-# Pre-rendered decision-tree SVGs (scripts/render-trees.py). Loaded lazily + cached
-# so the generator stays fast when the dir is absent (graceful: no diagram, just
-# the source link). Path mirrors render-trees.py VISUALS_DIR.
+# Pre-rendered decision-tree SVGs (scripts/render-trees.py), committed as packed shards
+# (knowledge/tree-visuals/pack-NN.js, scripts/visual_pack.py). The page never embeds them: a
+# diagram's <details> loads its shard on first open. Only the manifest is read here, so the
+# generator stays fast and degrades gracefully (no diagram, just the source link) for a tree
+# that has not been rendered yet. Path mirrors render-trees.py VISUALS_DIR.
 TREE_VISUALS_DIR = PLUGINS_DIR / "ravenclaude-core" / "knowledge" / "tree-visuals"
-_TREE_SVG_CACHE: dict[str, str] = {}
+_TREE_MANIFEST_CACHE: dict = {}
 
 
-def _load_tree_svg(tree_id: str) -> str:
-    """Return the committed, themed SVG for a tree id, or '' if not rendered yet."""
-    if tree_id in _TREE_SVG_CACHE:
-        return _TREE_SVG_CACHE[tree_id]
-    svg_path = TREE_VISUALS_DIR / f"{tree_id}.svg"
-    try:
-        svg = svg_path.read_text(encoding="utf-8")
-    except OSError:
-        svg = ""
-    _TREE_SVG_CACHE[tree_id] = svg
-    return svg
+def _tree_shard(tree_id: str) -> str | None:
+    """`pack-07` for a tree whose diagram is rendered and packed, or None."""
+    if "m" not in _TREE_MANIFEST_CACHE:
+        _TREE_MANIFEST_CACHE["m"] = vp.read_tree_manifest(TREE_VISUALS_DIR)
+    return vp.tree_shard_for(_TREE_MANIFEST_CACHE["m"], tree_id)
 
 
 def _guide_search_blob(*parts: str) -> str:
@@ -3313,7 +3321,7 @@ def _render_trees_tab(include_trees: bool = True) -> str:
     into index.html, `include_trees=False`: the trees were MOVED onto each plugin's
     detail page (index.html's __openPlugin pulls them from the hidden #dt-store),
     so the folded Guidance tab shows best-practices only and points at the plugin
-    pages. Either way `_decision_trees_inventory` / `_load_tree_svg` stay the source
+    pages. Either way `_decision_trees_inventory` / `_tree_shard` stay the source
     of truth."""
     trees = _decision_trees_inventory() if include_trees else []
     practices = _best_practices_inventory()
@@ -3360,20 +3368,21 @@ def _render_trees_tab(include_trees: bool = True) -> str:
                 )
             )
             when = f'<p class="guide-when">{html.escape(t["when"])}</p>' if t["when"] else ""
-            # Lazy-load the pre-rendered SVG as an EXTERNAL file (loading="lazy" +
-            # collapsed <details>) instead of inlining its ~20KB of markup. With
-            # 600+ trees, inlining doubled dashboard.html (~13MB→27MB); referencing
-            # the committed file keeps the page light and only fetches a diagram
-            # when its <details> is actually opened. The SVG self-themes via the
-            # render-trees fallback palette (page CSS vars don't reach an <img>).
-            # Path is relative to dashboard.html (plugins/ravenclaude-core/).
-            if (TREE_VISUALS_DIR / f"{t['id']}.svg").is_file():
-                rel = f"knowledge/tree-visuals/{html.escape(t['id'])}.svg"
+            # Lazy-load the pre-rendered SVG from its packed SHARD (collapsed <details>) instead
+            # of inlining its ~20KB of markup. With 600+ trees, inlining doubled dashboard.html
+            # (~13MB→27MB); the shard keeps the page light and is only fetched when a diagram's
+            # <details> is first opened (visual_pack.CLIENT_JS gives the <img> its data: URI).
+            # The SVG self-themes via the render-trees fallback palette (page CSS vars don't
+            # reach an <img>). data-pack is just the shard name; the loader prefixes
+            # window.__rcTreeBase (default knowledge/tree-visuals/, relative to dashboard.html).
+            shard = _tree_shard(t["id"])
+            if shard:
                 diagram = (
                     '<details class="guide-tree-diagram">'
                     '<summary class="guide-tree-summary">Diagram</summary>'
-                    f'<div class="guide-tree-svg"><img loading="lazy" decoding="async" '
-                    f'src="{rel}" alt="{html.escape(t["title"])} decision tree" class="guide-tree-img"></div>'
+                    f'<div class="guide-tree-svg"><img decoding="async" '
+                    f'data-tree="{html.escape(t["id"])}" data-pack="{shard}" '
+                    f'alt="{html.escape(t["title"])} decision tree" class="guide-tree-img"></div>'
                     "</details>"
                 )
             else:
@@ -3760,17 +3769,17 @@ def _render_command_review_block() -> str:
 
 # Per-seat model choices offered by the dashboard's command-review panel section.
 _THING_MODEL_CHOICES = [
-    ("claude-opus-4-8", "Opus 4.8 — most capable"),
-    ("claude-sonnet-5", "Sonnet 5 — balanced"),
-    ("claude-haiku-4-5-20251001", "Haiku 4.5 — fast / cheap"),
-    ("claude-fable-5", "Fable 5 — fast reasoning"),
+    ("claude-opus-5-5", "Opus 5.5 — most capable"),
+    ("claude-sonnet-5-5", "Sonnet 5.5 — balanced"),
+    ("claude-haiku-5-5", "Haiku 5.5 — fast / cheap"),
+    ("claude-fable-5-1", "Fable 5.1 — hardest tail"),
 ]
 # (seat key, display label, default model) — mirrors thing-decision.py defaults.
 _THING_SEAT_META = [
-    ("forseti", "Forseti — Security", "claude-opus-4-8"),
-    ("mimir", "Mímir — Correctness", "claude-haiku-4-5-20251001"),
-    ("heimdall", "Heimdall — Injection watch", "claude-haiku-4-5-20251001"),
-    ("thor", "Thor — Tie-breaker", "claude-opus-4-8"),
+    ("forseti", "Forseti — Security", "claude-opus-5-5"),
+    ("mimir", "Mímir — Correctness", "claude-haiku-5-5"),
+    ("heimdall", "Heimdall — Injection watch", "claude-haiku-5-5"),
+    ("thor", "Thor — Tie-breaker", "claude-opus-5-5"),
 ]
 
 # gate_floor headline control — enum medium | high | extreme, default high.
@@ -9254,10 +9263,10 @@ _JS = r"""
      * false = all per-category reviews are paused (thing values preserved, not cleared).
      * Absent in storage / YAML ⇒ true (enabled). We only persist/emit when false. */
     enabled: true,
-    forseti: "claude-opus-4-8",
-    mimir: "claude-haiku-4-5-20251001",
-    heimdall: "claude-haiku-4-5-20251001",
-    thor: "claude-opus-4-8",
+    forseti: "claude-opus-5-5",
+    mimir: "claude-haiku-5-5",
+    heimdall: "claude-haiku-5-5",
+    thor: "claude-opus-5-5",
     confidence_threshold: 0.5,
     gate_floor: "high",
     /* Dev-repo lockout fix (v0.60.0): when true (and the gh-owner + marketplace.json
@@ -9266,7 +9275,7 @@ _JS = r"""
     dev_repo_exempt: false,
   });
   const CR_SEATS = ["forseti", "mimir", "heimdall", "thor"];
-  const CR_MODELS = ["claude-opus-4-8", "claude-sonnet-5", "claude-haiku-4-5-20251001", "claude-fable-5"];
+  const CR_MODELS = ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5", "claude-fable-5-1"];
 
   /* gate_floor headline control — enum medium | high | extreme, default high. */
   const GATE_FLOORS = ["medium", "high", "extreme"];
@@ -15715,10 +15724,10 @@ function wireHostScopeFilter(root) {
   // Claude 4.7+/5-family tokenize ~30% heavier (4.2), hence the split. Verify with the
   // count_tokens API for billing-critical use; the number never gates any action.
   var PB_MODELS = [
-    { id: "claude-opus-4-8", label: "Opus (opus 4 8)", divisor: 3.6, hint: "Current catalog Opus. Prefer explicit output shape over stacked CRITICAL/MUST (5.2)." },
-    { id: "claude-sonnet-5", label: "Sonnet (sonnet 5)", divisor: 3.6, hint: "Current catalog Sonnet. Be explicit about the output you want, not emphatic about it." },
-    { id: "claude-haiku-4-5-20251001", label: "Haiku (haiku 4 5 20251001)", divisor: 4.0, hint: "Older tokenizer generation (pre-4.7 family). Smaller models can benefit from more explicit, decomposed instructions — heuristic (5.3)." },
-    { id: "claude-fable-5", label: "Fable (fable 5)", divisor: 3.6, hint: "Current catalog Fable; thinking depth is the effort parameter, not a prompt phrase (5.4)." },
+    { id: "claude-opus-5-5", label: "Opus 5.5", divisor: 3.6, hint: "Current catalog Opus. Prefer explicit output shape over stacked CRITICAL/MUST (5.2)." },
+    { id: "claude-sonnet-5-5", label: "Sonnet 5.5", divisor: 3.6, hint: "Current catalog Sonnet. Be explicit about the output you want, not emphatic about it." },
+    { id: "claude-haiku-5-5", label: "Haiku 5.5", divisor: 4.0, hint: "Divisor 4.0 is the prior Haiku chars-per-token heuristic, unverified for Haiku 5.5. Smaller models can benefit from more explicit, decomposed instructions — heuristic (5.3)." },
+    { id: "claude-fable-5-1", label: "Fable 5.1", divisor: 3.6, hint: "Current catalog Fable 5.1. Use it only after Opus at xhigh demonstrably fails. Thinking depth is the effort parameter, not a prompt phrase (5.4)." },
   ];
   var PB_BAND = 0.20; // +/-20% band (claim 4.5); widened on code/CJK content
 
@@ -15727,7 +15736,7 @@ function wireHostScopeFilter(root) {
   function pbEx() { return { input: "", output: "", reasoning: "" }; }
   function pbDefault() {
     return {
-      mode: "task", model: "claude-opus-4-8", reasoning: false, template: null,
+      mode: "task", model: "claude-opus-5-5", reasoning: false, template: null,
       task:    { directive: "", context: "", dataTag: "input", data: "", constraints: "", outputFormat: "", success: "" },
       system:  { role: "", rules: [""], tone: "", boundaries: "", outputPolicy: "" },
       fewshot: { directive: "", outputFormat: "", examples: [pbEx(), pbEx(), pbEx()] }
@@ -16038,7 +16047,7 @@ function wireHostScopeFilter(root) {
     (function () { var o = s[mode]; for (var k in o) { if (typeof o[k] === "string" && pbIsPrefill(o[k])) prefill = true; } })();
     if (prefill) { penalty += 20; issues.unshift({ sev: "bad", label: "Looks like response prefilling", why: "Prefilled assistant turns return a 400 error on Claude 4.6+ — use a Structured-output block instead (1.9).", key: null, claim: "1.9" }); }
     for (var i = 0; i < PB_FOLKLORE.length; i++) { if (PB_FOLKLORE[i].test(all)) { issues.push({ sev: "tip", label: "“Magic phrase” detected", why: "Folklore like “you are an expert” / “I'll tip $200” doesn't survive an A/B test on current models — it earns no credit (R.2).", key: null }); break; } }
-    if (mode === "task" && s.model === "claude-opus-4-8" && s.task.success.trim()) issues.push({ sev: "tip", label: "Self-check may be redundant on Opus 5", why: "Opus 5 self-verifies — an explicit success-check can over-trigger (5.2).", key: "success" });
+    if (mode === "task" && s.model === "claude-opus-5-5" && s.task.success.trim()) issues.push({ sev: "tip", label: "Self-check may be redundant on Opus 5", why: "Opus 5 self-verifies — an explicit success-check can over-trigger (5.2).", key: "success" });
     if (assembled.length / (pbModel(s.model).divisor) > 20000) issues.push({ sev: "tip", label: "Long prompt — consider data-first order", why: "Above ~20k tokens, putting long data at the top and the query at the end can improve quality up to ~30% (1.7).", key: null });
 
     score = Math.max(0, Math.min(100, Math.round(score - penalty)));
@@ -16281,7 +16290,7 @@ function wireHostScopeFilter(root) {
     });
     if (!def.system.rules.length) def.system.rules = [""];
     if (!def.fewshot.examples.length) def.fewshot.examples = [pbEx(), pbEx(), pbEx()];
-    if (pbModel(def.model).id !== def.model) def.model = "claude-opus-4-8";
+    if (pbModel(def.model).id !== def.model) def.model = "claude-opus-5-5";
     return def;
   }
 
@@ -16705,6 +16714,11 @@ function wireHostScopeFilter(root) {
 
 })();
 """.strip()
+# The decision-tree loader (scripts/visual_pack.py) is its own small IIFE at the START of the dashboard script.
+# It must NOT sit just before the dashboard IIFE's final close: render_fragment() injects `window.__dashApp`
+# there, and check-shell-router.mjs treats a `})();` immediately followed by that exposure as the stranded-
+# after-the-close bug. At the start, the injection and the router check are untouched.
+_JS = vp.CLIENT_JS.strip() + "\n" + _JS
 
 
 # Raven Power brand mark — the real raven-mark-dark.png from the

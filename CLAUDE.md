@@ -131,6 +131,17 @@ The matching CI workflow `.github/workflows/validate-layout.yml` is the cross-to
 
 Why both: Claude Code issue [#23478](https://github.com/anthropics/claude-code/issues/23478) confirms that path-scoped rule files (`paths:` frontmatter) load only on Read, not on Write. They cannot prevent off-pattern file *creation*. The hook (in-loop, Claude-only) plus the CI (universal backstop) is the supported enforcement pattern in 2026.
 
+## Directory limits — check before you add files (added 2026-10-14)
+
+The Claude plugin Directory has size limits this repo can break just by growing. The human-facing table, the source and the unverified readings are in [`README.md`](README.md) § "Claude plugin Directory limits"; this section is the rule for an agent. Gate 302 and Gate 301 run inside `scripts/audit-gates.sh`, so any tool's pre-PR check covers them. This is where Claude Code is told to look first.
+
+- **Before generating or adding many files, or any large artifact, run** `python3 scripts/check-repo-file-budget.py --report`. It prints files, folders, unpacked size and archive size against every limit. Gate 302 fails the build at 9,990 tracked files; folders and sizes are reported, not gated.
+- **When Gate 302 fails, pack; don't raise.** Pack generated per-file artifacts into a few files (the pattern is `scripts/visual_pack.py`: 1,019 SVGs became 41 files, every member sha256-checked before the originals were removed), or prune dead files. Raising `FAIL_AT` needs a reason written in the PR.
+- **Packing trades file count for file size.** The packs are non-image files over 256 KiB, which would be a reviewer hold for the full plugin. They are safe only because the edition's manifest denies their directories (Gate 301). A new pack outside those directories needs the same treatment.
+- **Re-read the official page before trusting a number written here:** <https://claude.com/docs/plugins/pre-submission-checklist>. A web-search summary of it once said it gives no file count; the page itself does. Cite the page, not a summary of it.
+- **State the unverified readings plainly.** Whether the portal counts files and folders together (the monorepo is 12,949 on that reading), and whether `text eol=lf` in `.gitattributes` counts as a content-rewriting attribute, are not settled. Never write either as fact.
+- **The submission path is the directory edition in its own repo** (`docs/directory-edition/`), not the monorepo.
+
 ## Slash commands shipped by the plugin
 
 `ravenclaude-core` ships its slash commands from `plugins/ravenclaude-core/commands/` — that

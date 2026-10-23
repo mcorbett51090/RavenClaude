@@ -212,7 +212,7 @@ model_tier_surfaces:
 # near-no-op for the full panel by design. Not over-claimed.
 model_fallback:
   enabled: true
-  ladder: [claude-haiku-4-5-20251001, claude-sonnet-5, claude-opus-4-8, claude-fable-5]
+  ladder: [claude-haiku-5-5, claude-sonnet-5-5, claude-opus-5-5, claude-fable-5-1]
   max_retries: 2 # fallback attempts after the primary (hard cap 3)
   on_exhausted: fail-safe # caller's existing abstain path; never silently wrong
 

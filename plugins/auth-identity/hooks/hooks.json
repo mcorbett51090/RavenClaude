@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-auth-identity-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/hooks/check-auth-identity-anti-patterns.sh\" \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Advisory: flags 6 mechanically-detectable end-user-auth/identity anti-patterns (token-in-localStorage, Implicit flow, wildcard redirect_uri, unverified JWT decode, hardcoded secret, cookie without HttpOnly). Heuristic, not a security review. Set AUTH_STRICT=1 to make it blocking."
           }
         ]

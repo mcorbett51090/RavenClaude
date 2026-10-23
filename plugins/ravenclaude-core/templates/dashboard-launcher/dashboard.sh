@@ -8,14 +8,15 @@
 # Save & apply writes .ravenclaude/comfort-posture.yaml and updates .claude/settings.json.
 #
 # Like the marketplace's own open-dashboard.sh, this:
-#   1. kills any dashboard server already running,
+#   1. stops THIS repo's dashboard server if one is running (another project's
+#      dashboard is never touched),
 #   2. starts a fresh one (background, survives this script),
 #   3. resolves the right URL for THIS environment (Codespace-forwarded or localhost),
 #   4. opens it in your browser, and prints the URL.
 # The URL is computed at launch, so there is never a baked-in link to go stale.
 #
 # Usage:  bash .ravenclaude/dashboard.sh [PORT]   (default 8000)
-# Stop:   run it again to restart, or:  pkill -f serve-dashboards.py
+# Stop:   run it again to restart; the last line it prints is the scoped stop command.
 set -euo pipefail
 
 PORT="${1:-8000}"
@@ -35,8 +36,13 @@ if [ ! -f "$SERVER" ]; then
   exit 1
 fi
 
-# 1. Kill any server already bound to this dashboard (ignore "no match").
-pkill -f "serve-dashboards.py" 2>/dev/null || true
+# 1. Stop THIS repo's server, matched on its --project-root (any port). A bare
+#    `pkill -f serve-dashboards.py` would kill every project's dashboard (and any
+#    editor open on that file). REPO_ROOT is regex-escaped, and "( |$)" stops
+#    /x/repo from also matching /x/repo-other. Ignore "no match".
+ROOT_RE="$(printf '%s' "$REPO_ROOT" | sed 's/[][\.*^$+?(){}|]/\\&/g')"
+KILL_PATTERN="serve-dashboards\\.py.*--project-root ${ROOT_RE}( |\$)"
+pkill -f "$KILL_PATTERN" 2>/dev/null || true
 sleep 1
 
 # 2. Start fresh in the background, scoped to THIS repo, fully detached so it outlives us.
@@ -65,4 +71,4 @@ fi
 echo "Dashboard for: $REPO_ROOT"
 echo "Dashboard URL: $URL"
 echo "(Codespace: if the tab doesn't open, use the Ports panel -> port ${PORT} -> Open in Browser.)"
-echo "(server log: $LOG — run this again to restart, or 'pkill -f serve-dashboards.py' to stop.)"
+echo "(server log: $LOG — run this again to restart, or stop it with: pkill -f $(printf '%q' "$KILL_PATTERN"))"

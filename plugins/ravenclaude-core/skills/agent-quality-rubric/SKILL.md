@@ -170,7 +170,7 @@ When a PR's purpose is to lift an agent's rubric score, the PR description shoul
 
 ### Verification
 
-- [ ] `python3 -m json.tool` passes on any JSON examples in the agent file
+- [ ] `python3 -I -m json.tool` passes on any JSON examples in the agent file (`-I`: a `json.py` in the current directory is not imported)
 - [ ] Repo-guide preview renders the agent's per-agent card without warnings
 - [ ] At least one downstream agent's escalation table now points to this agent (if applicable)
 - [ ] Plugin's CLAUDE.md skill/agent index updated if scope changed

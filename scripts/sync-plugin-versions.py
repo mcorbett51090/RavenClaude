@@ -252,7 +252,12 @@ def plan_and_apply(
     if write and drift:
         # "\n".join over a "\n".split round-trips byte-for-byte, trailing newline
         # included, so nothing but the substituted literals can change.
-        mp_path.write_text("\n".join(lines), encoding="utf-8")
+        # write_bytes, not write_text: write_text's default newline=None translates
+        # every \n -> \r\n on Windows, which would rewrite all ~252KB of the file and
+        # break the byte-stability invariant documented at the top of this module (and
+        # then fail the whole-tree prettier gate). Matches the LF-preserving write in
+        # generate-dashboards.py / generate-copilot-plugin.py.
+        mp_path.write_bytes("\n".join(lines).encode("utf-8"))
     return drift, []
 
 

@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-9 recon_diff exits 2 on malformed CSV rows and accepts BOM files
+
 ## [0.3.4] — 2026-09-10
 
 ### Fixed

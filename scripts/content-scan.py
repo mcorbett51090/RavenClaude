@@ -48,6 +48,7 @@ Stdlib-only. Exits non-zero on missing key / API failure so CI fails loudly.
 from __future__ import annotations
 
 import argparse
+import http.client
 import ipaddress
 import json
 import os
@@ -151,6 +152,39 @@ _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
 
 
+_NAT64 = ipaddress.ip_network("64:ff9b::/96")
+
+
+def _ip_is_public(ip) -> bool:
+    """True only for a globally routable address. IPv6 forms that EMBED an IPv4 target are
+    unwrapped first (IPv4-mapped ::ffff:a.b.c.d, 6to4 2002::/16, Teredo 2001::/32, NAT64
+    64:ff9b::/96) and every embedded address must itself be public. `is_global` is the
+    deciding test: unlike is_private/is_loopback/is_link_local/is_reserved it also rejects
+    100.64.0.0/10 (shared address space, incl. the Alibaba Cloud metadata IP 100.100.100.200).
+    The older flags are kept as well, so this can only be stricter."""
+    if isinstance(ip, ipaddress.IPv6Address):
+        embedded = []
+        if ip.ipv4_mapped is not None:
+            embedded.append(ip.ipv4_mapped)
+        if ip.sixtofour is not None:
+            embedded.append(ip.sixtofour)
+        if ip.teredo is not None:
+            embedded.extend(ip.teredo)
+        if ip in _NAT64:
+            embedded.append(ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF))
+        if any(not _ip_is_public(e) for e in embedded):
+            return False
+    return (
+        ip.is_global
+        and not ip.is_private
+        and not ip.is_loopback
+        and not ip.is_link_local
+        and not ip.is_reserved
+        and not ip.is_multicast
+        and not ip.is_unspecified
+    )
+
+
 def _host_is_public(url: str) -> bool:
     """True only if the URL's host resolves ENTIRELY to public IPs. The host-side
     SSRF boundary on top of the scheme check: a hostile search result must not be
@@ -174,14 +208,7 @@ def _host_is_public(url: str) -> bool:
             ip = ipaddress.ip_address(info[4][0])
         except ValueError:
             return False
-        if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_reserved
-            or ip.is_multicast
-            or ip.is_unspecified
-        ):
+        if not _ip_is_public(ip):
             return False
     return True
 
@@ -242,7 +269,13 @@ def fetch_body_excerpt(url: str) -> str:
             if "html" not in ctype and "text" not in ctype:
                 return ""
             raw = resp.read(400_000).decode(errors="replace")
-    except (urllib.error.URLError, urllib.error.HTTPError, ValueError):
+    except (OSError, http.client.HTTPException, ValueError):
+        # The docstring promises "'' on any error", but the previous tuple
+        # (URLError, HTTPError, ValueError) missed a mid-body ConnectionResetError
+        # and socket read-timeout — both OSError, not URLError — so one flaky host
+        # aborted the whole scan and lost the not-yet-written digest. OSError
+        # subsumes URLError/HTTPError (both are OSError subclasses); HTTPException
+        # covers IncompleteRead/BadStatusLine from resp.read().
         return ""
     # Strip script/style, then tags, then collapse whitespace. Crude but stdlib.
     raw = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", raw, flags=re.S | re.I)
@@ -302,6 +335,34 @@ def main() -> None:
         print(digest)
 
 
+_MD_UNSAFE = re.compile(r"([\\\[\]()<>`|])")
+_MD_LINE_START = re.compile(r"^([#*+\-=])")
+
+
+def _md_text(text: object, cap: int = 200) -> str:
+    """Untrusted text -> inert single-line markdown. Search-result titles, hosts, ages and
+    page excerpts are attacker-controlled and the digest is committed under docs/research,
+    where `check-md-links.py` scans it and agents read it back as markdown. Control chars
+    and newlines collapse to one space, the text is capped, and [ ] ( ) < > ` | and the
+    backslash are escaped, so it can never open a link, an HTML tag, a code span or a
+    table cell; a leading # * + - = (heading / list / rule) is escaped too."""
+    t = "".join(ch if ch.isprintable() else " " for ch in str(text or ""))
+    t = _WS_RE.sub(" ", t).strip()[:cap]
+    return _MD_LINE_START.sub(r"\\\1", _MD_UNSAFE.sub(r"\\\1", t))
+
+
+def _md_url(url: object) -> str | None:
+    """A link destination that cannot break out of `[text](...)`, or None when the URL must
+    not be linked at all (anything that is not http/https, or unparseable)."""
+    u = str(url or "").strip()
+    try:
+        if urllib.parse.urlparse(u).scheme not in ("http", "https"):
+            return None
+    except ValueError:
+        return None
+    return urllib.parse.quote(u, safe=":/?#@!$&*+,;=%-._~[]")
+
+
 def _render_digest(results: list[dict], args) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%MZ")
     lines = [
@@ -317,19 +378,24 @@ def _render_digest(results: list[dict], args) -> str:
         "| --- | --- | --- |",
     ]
     for r in results:
-        tag = "discovery" if _is_never_fetch(r["url"]) else r["host"]
-        title = r["title"].replace("|", "\\|")[:110]
-        lines.append(f"| {tag} | {title} | [link]({r['url']}) |")
+        tag = "discovery" if _is_never_fetch(r["url"]) else _md_text(r["host"], 80)
+        title = _md_text(r["title"], 110)
+        dest = _md_url(r["url"])
+        link = f"[link]({dest})" if dest else "(no link)"
+        lines.append(f"| {tag} | {title} | {link} |")
     # Per-article notes for open-web bodies we excerpted.
     excerpted = [r for r in results if r.get("body_excerpt")]
     if excerpted:
         lines += ["", "## Open-web excerpts", ""]
         for r in excerpted:
+            dest = _md_url(r["url"])
+            title = _md_text(r["title"], 120)
+            body = r["body_excerpt"]
             lines += [
-                f"### [{r['title'][:120]}]({r['url']})",
-                f"_{r['host']}_ · {r.get('age', '')}",
+                f"### [{title}]({dest})" if dest else f"### {title}",
+                f"_{_md_text(r['host'], 80)}_ · {_md_text(r.get('age', ''), 40)}",
                 "",
-                r["body_excerpt"][:1200] + ("…" if len(r["body_excerpt"]) > 1200 else ""),
+                _md_text(body, 1200) + ("…" if len(body) > 1200 else ""),
                 "",
             ]
     lines.append("")

@@ -101,6 +101,21 @@
         "harness-spectate inventory entry (PR #1290 Gate 242/240/294, 2026-10-09)",
         33100,
         "PR #1290 Harness Spectate v0.1 adds inventory concept harness-spectate covering spectate_store.py, spectate_demo.py, spectate schema/capabilities, and check-spectate.py (Gate 294). Regenerating dashboard.html for Learn-tab parity measured island payload at 33,037 (over prior 33,000 by 37; largest panel learn-payload at 25,702) and 10,938,004 bytes (over prior 10,930,000 by 8,004). Same no-diagrams-for-inventory-entries shape as every prior wave — pure content-size raise, not a DOM control. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "project-settings-env-reaches-hooks inventory entry (AppSec hook-env, core 0.355.9, Gates 304/305, 2026-10-18)",
+        33150,
+        "The hook-env hardening (core 0.355.9) adds inventory concept project-settings-env-reaches-hooks covering env-integrity-guard.sh, _rc-runtime.sh, pretool-record-check.sh and check-hook-launch-line.py, to satisfy check-inception-coverage for the new hooks. Measured island payload 33,142 (over prior 33,100 by 42; largest panel learn-payload at 25,807). Same no-diagrams-for-inventory-entries shape as every prior wave; the Pipeline tab is unchanged because both hooks are listed in _PIPELINE_EXCLUDED_HOOKS with a reason. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "subagent-ttl-advisor inventory entry (core 0.358.0, Gate 242 inception fix)",
+        33200,
+        "core 0.358.0 adds scripts/subagent-ttl-advisor.py (rc ttl-advice) and inventory concept subagent-ttl-advisor-in-window-gaps covering it, required by Gate 242. Regenerated dashboard.html measures 33,170 island payload elements, over the prior 33,150 ceiling by 20. Inventory entry ships no mermaid block. Pure content-size raise, not a DOM control. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "platform-fact re-verification + 2026-10-20 review (core 0.358.5, PR #1389)",
+        33210,
+        "Owner-approved on PR #1389. The four concepts only this PR re-verified (hook-lifecycle, permission-layers, permission-modes, session-start-context) added 30 island elements over main (33,175). Offsets taken first, all in this PR: duplicate same-URL sources merged in three concepts and a broken empty code span in runaway-brake fixed (-4 elements); a fourth merge was dropped to stay inside the 20-concept render cap. Measured 33,201, over the prior 33,200 by 1. No byte raise: the v5 theme block (render-concepts.py :is() grouping, computed styles proven identical in Chromium) cut dashboard.html to 10,927,528 bytes, 82,472 under its ceiling. Appended, never edited."
       ]
     ],
     "index.html": [
@@ -309,6 +324,16 @@
         "wallet-passes skill + inventory concept (core 0.345.0, PR #1337)",
         10993000,
         "PR #1337 adds wallet-passes skill (4 files) plus inventory concept wallet-passes-apple-has-no-slot-char-max. Regenerating dashboard.html after the concept + skill-index + covers_digest restamps measures 10,992,204 bytes > prior 10,990,000 by 2,204 (0.00 MB). Island payload 33,070 <= 33,100 unchanged under ceiling. Pure content-size raise. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "headless-usage sidecar inventory entry (core 0.353.0)",
+        11000000,
+        "core 0.353.0 adds inventory concept headless-usage-sidecar-not-verdict covering scripts/headless-usage.py, plus a cosmetic covers_digest restamp of prompt-optimizer-tier0-heuristic-limit. dashboard.html 10,998,237 bytes > prior 10,993,000 by 5,237 (0.00 MB). Island payload 33,097 <= 33,100 unchanged under ceiling. Same no-diagrams-for-inventory-entries shape. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "subagent-ttl-advisor inventory entry (core 0.358.0, Gate 242 inception fix)",
+        11010000,
+        "Same core 0.358.0 change: the new inventory concept plus the headless-claude-calls Subagent cache TTL section regenerate dashboard.html to 11,004,798 bytes, over the prior 11,000,000 ceiling by 4,798 (0.00 MB). index.html stays under its ceiling. Pure content-size raise. Re-measured on this branch head; appended, never edited."
       ]
     ],
     "index.html": [
@@ -420,5 +445,5 @@
       ]
     ]
   },
-  "measured_against": "4f36cf8ce22c71382dc289823944acb2c35e670c"
+  "measured_against": "b9d66a367b4ff64bf96575d1bca114507f1df167"
 }

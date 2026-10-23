@@ -460,6 +460,10 @@ When an agent surfaces a problem, route by the *type* of problem, not by which a
   an absent number is honest; a guessed one is the metric this whole step exists to replace. A run
   whose frontier share is above what the Step 4.25 table would predict is the retrospective's first
   question, not a footnote.
+- **One cache line, from the same ledger.** Run `bash plugins/ravenclaude-core/bin/rc ttl-advice`.
+  If it lists an agent, name it as a candidate for `experimental.cacheTtl: 1h` for the owner to
+  apply ([`knowledge/headless-claude-calls.md`](../../knowledge/headless-claude-calls.md), section
+  "Subagent cache TTL"). If it reports no ledgers or no qualifying agent, say so in one clause.
 
 ---
 

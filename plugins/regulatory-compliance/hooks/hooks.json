@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scrub-confidential-pre-write.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/hooks/scrub-confidential-pre-write.sh\" \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Scan compliance-conventional files for PII patterns (SSN, EIN, IBAN, PAN, Bermuda TIN, wire instructions) before write completes. Advisory by default; flip exit 0 to exit 2 in the script to block writes entirely for SAR/STR drafting."
           }
         ]

@@ -244,7 +244,7 @@ if [ -z "$pd_model" ]; then
   # Fail-safe default if the tier-map script/file is unreadable for any reason --
   # matches substrate-tier-map.json's own claude.balanced entry verbatim, so this
   # is a documented fallback of the resolved value, not an invented one.
-  pd_model="claude-sonnet-5"
+  pd_model="claude-sonnet-5-5"
   [ -n "${PROMPT_OPTIMIZER_DEBUG:-}" ] && printf 'prompt-optimizer-dispatch: TIER_RESOLVE_FALLBACK model=%s\n' "$pd_model" >&2
 fi
 
@@ -400,8 +400,13 @@ pd_raw="$(cd "$pd_scratch" && _rc_timeout "$pd_timeout_s" claude -p \
   ${pd_bare_args[@]+"${pd_bare_args[@]}"} \
   --output-format json \
   --model "$pd_model" \
+  --strict-mcp-config \
   --tools="" \
   "$pd_instruction" </dev/null 2>/dev/null || true)"
+_hu="$(dirname "$0")/headless-usage.py"
+if [ -f "$_hu" ]; then
+  printf '%s' "$pd_raw" | python3 "$_hu" record --site prompt-optimizer-dispatch --model "$pd_model" >/dev/null 2>&1 || true
+fi
 
 if [ -z "$pd_raw" ]; then
   [ -n "${PROMPT_OPTIMIZER_DEBUG:-}" ] && printf 'prompt-optimizer-dispatch: FAILOPEN reason=empty_or_timeout\n' >&2

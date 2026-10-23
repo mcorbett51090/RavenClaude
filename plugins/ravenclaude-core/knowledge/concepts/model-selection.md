@@ -6,18 +6,18 @@ kind: platform-fact
 order: 6
 summary: "Bigger isn't always better. Match the model to the job — a fast, cheap model for routine steps, a frontier model for hard reasoning — and use the strong one to supervise the cheap ones."
 see_also: [agent-harness-loop, subagents]
-last_verified: 2026-08-24
+last_verified: 2026-10-20
 refresh_when: "The Claude model line-up (Opus / Sonnet / Haiku tiers) or the default-model guidance for agents changes."
 sources:
   - label: "Models overview — Claude API"
-    url: "https://docs.claude.com/en/docs/about-claude/models"
+    url: "https://platform.claude.com/docs/en/models/overview"
   - label: "Choosing a model — Claude Code"
     url: "https://code.claude.com/docs/en/model-config"
 ---
 
-An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the three tiers exist precisely so you can match the model to the work:
+An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the model tiers exist precisely so you can match the model to the work (this page teaches the three everyday tiers; Anthropic's line-up now also has a Fable tier above Opus for the most demanding long-horizon work):
 
-- **Frontier (e.g. Opus)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and most expensive per token. Reach for it when the task genuinely needs it.
+- **Frontier (e.g. Opus; Fable for the most demanding long-horizon work)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and pricier per token than the tiers below. Reach for it when the task genuinely needs it.
 - **Balanced (e.g. Sonnet)** — the everyday workhorse: strong reasoning at much lower cost and latency. The sensible default for most agent work.
 - **Fast (e.g. Haiku)** — quick, cheap, great for classification, routing, summarizing, and high-volume routine steps where frontier-grade reasoning is overkill.
 

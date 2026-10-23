@@ -114,7 +114,7 @@ GATE_SH = SCRIPT_DIR / "prompt-optimizer-gate.sh"
 TIER_MAP_SCRIPT = SCRIPT_DIR / "load-substrate-tier-map.py"
 GOLDEN_SET_DEFAULT = PLUGIN_ROOT / "skills" / "prompt-optimizer" / "eval" / "golden-set.jsonl"
 
-DEFAULT_JUDGE_FALLBACK = "claude-opus-4-8"  # substrate-tier-map.json claude.top, verbatim fallback
+DEFAULT_JUDGE_FALLBACK = "claude-opus-5-5"  # substrate-tier-map.json claude.top, verbatim fallback
 DEFAULT_PER_ENTRY_TIMEOUT_S = 90
 DEFAULT_JUDGE_TIMEOUT_S = 60
 
@@ -234,6 +234,22 @@ JUDGE_INSTRUCTION_TEMPLATE = (
 )
 
 
+def _record_headless_usage(site: str, model: str, envelope: str) -> None:
+    """Fail-open usage sidecar. A logging error must not change the judge result."""
+    script = Path(__file__).resolve().parent / "headless-usage.py"
+    try:
+        subprocess.run(
+            [sys.executable, str(script), "record", "--site", site, "--model", model],
+            input=envelope or "",
+            text=True,
+            capture_output=True,
+            timeout=5,
+            check=False,
+        )
+    except Exception:
+        return
+
+
 def run_judge(
     prompt: str,
     notes: str,
@@ -249,7 +265,18 @@ def run_judge(
     bare_args = []
     if os.environ.get("PROMPT_OPTIMIZER_BARE") == "1" or os.environ.get("ANTHROPIC_API_KEY"):
         bare_args = ["--bare"]
-    cmd = ["claude", "-p", *bare_args, "--output-format", "json", "--model", judge_model, "--tools=", instruction]
+    cmd = [
+        "claude",
+        "-p",
+        *bare_args,
+        "--output-format",
+        "json",
+        "--model",
+        judge_model,
+        "--strict-mcp-config",
+        "--tools=",
+        instruction,
+    ]
     try:
         with tempfile.TemporaryDirectory() as scratch:
             proc = subprocess.run(
@@ -262,6 +289,8 @@ def run_judge(
             )
     except (subprocess.TimeoutExpired, FileNotFoundError):
         return None
+    if proc.stdout:
+        _record_headless_usage("prompt-optimizer-judge-soak", judge_model, proc.stdout)
     if not proc.stdout:
         return None
     try:

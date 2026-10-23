@@ -3,6 +3,12 @@
 All notable changes to the `tableau` plugin. Versioning is semver; the authoritative version is
 the `version` field in `.claude-plugin/plugin.json` (mirrored in `marketplace.json`).
 
+## 0.4.4 — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-16 flag-tableau-anti-patterns.sh no longer dies with a bash syntax error on files with no <datasource
+
 ## 0.4.2 — 2026-09-01
 
 Cross-linked `tableau-viz-engineer.md` to `data-platform`'s new

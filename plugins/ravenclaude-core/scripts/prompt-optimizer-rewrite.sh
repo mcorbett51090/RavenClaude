@@ -186,7 +186,7 @@ if [ -z "$pr_model" ]; then
   # Fail-safe default if the tier-map script/file is unreadable for any reason --
   # matches substrate-tier-map.json's own claude.fast entry verbatim, so this is
   # a documented fallback of the resolved value, not an invented one.
-  pr_model="claude-haiku-4-5-20251001"
+  pr_model="claude-haiku-5-5"
   [ -n "${PROMPT_OPTIMIZER_DEBUG:-}" ] && printf 'prompt-optimizer-rewrite: TIER_RESOLVE_FALLBACK model=%s\n' "$pr_model" >&2
 fi
 
@@ -239,6 +239,7 @@ if [ -n "$pr_scratch" ]; then
     ${pr_bare_args[@]+"${pr_bare_args[@]}"} \
     --output-format json \
     --model "$pr_model" \
+    --strict-mcp-config \
     --tools="" \
     "$pr_instruction" </dev/null 2>/dev/null || true)"
 else
@@ -246,8 +247,13 @@ else
     ${pr_bare_args[@]+"${pr_bare_args[@]}"} \
     --output-format json \
     --model "$pr_model" \
+    --strict-mcp-config \
     --tools="" \
     "$pr_instruction" </dev/null 2>/dev/null || true)"
+fi
+_hu="$(dirname "$0")/headless-usage.py"
+if [ -f "$_hu" ]; then
+  printf '%s' "$pr_raw" | python3 "$_hu" record --site prompt-optimizer-rewrite --model "$pr_model" >/dev/null 2>&1 || true
 fi
 
 if [ -z "$pr_raw" ]; then

@@ -43,7 +43,7 @@ _note() {
 _abs() {
   # $1 = path; print realpath. python3 first (this repo requires it); else cd.
   if command -v python3 >/dev/null 2>&1; then
-    python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$1" 2>/dev/null && return 0
+    python3 -I -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$1" 2>/dev/null && return 0
   fi
   (cd "$1" 2>/dev/null && pwd)
 }

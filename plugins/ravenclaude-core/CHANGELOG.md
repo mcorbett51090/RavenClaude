@@ -2,6 +2,301 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.358.6 — 2026-10-20
+
+### Fixed
+- **The seven Foundations concepts are re-verified ahead of their 2026-11-23 expiry.** The concepts are `agent-harness-loop`, `context-window`, `mcp`, `model-selection`, `source-control-basics`, `subagents` and `tool-use`. A 90-day staleness gate would have blocked every PR from that date. Each `sources:` URL was re-fetched, and the surprising claims were checked against the raw pages. Corrections:
+  - `context-window`: a token is now roughly ½ to ¾ of a word, depending on the tokenizer. The models page: "1M tokens is roughly 555k words … on the current tokenizer"; earlier models fit about 750k.
+  - `mcp`: the remote transport is Streamable HTTP. "The SSE (Server-Sent Events) transport is deprecated."
+  - `model-selection`: a Fable tier now sits above Opus ("for demanding reasoning and long-horizon agentic work"), so Opus is no longer the most expensive tier.
+  - `tool-use`: server tools such as web search "run on Anthropic's infrastructure, with no handler code in your application". Only client tools run in your harness.
+  - `source-control-basics`: `guard-destructive.sh` blocks `git branch -D` on any branch and any force-push, not only on protected branches or `main`. `archive-branch.sh` is for abandoned or unmerged branches, because a merged branch needs no archive tag. That diagram label is corrected and re-rendered.
+  - Three moved `docs.claude.com` sources point at their current `platform.claude.com` pages. `agent-harness-loop` gains two sources that can be checked: its x.com source returns HTTP 402, so the Agent SDK loop page and the LangChain post carrying the quoted saying are added.
+- `last-mile-completion` listed one source URL twice. The pair is merged into one link that keeps both labels. This merge was held out of 0.358.5 by the 20-concept render cap.
+
+## 0.358.5 — 2026-10-20
+
+### Changed
+- **`dashboard.html` is 87 KB smaller (11,015,132 → 10,927,528 bytes).** Every concept diagram inlines its own theme `<style>` block, so that block's size multiplies by the 220 diagrams in the Learn tab. `render-concepts.py`'s `_theme_style` now groups same-type selectors with `:is()` (NORMALIZER_VERSION 4 → 5), and the id prefix repeats 19 times per block instead of 36. Only same-type arguments are grouped, so every element's specificity is unchanged. The committed SVGs were migrated by swapping the block in place, with no re-render. Chromium then compared computed styles before and after: 25,083 elements and 861 hover states, with zero differences. A planted colour change showed the comparison can fail.
+- Three concepts listed the same source URL twice, so each pair is merged into one link that keeps both labels (`source-control-basics`, `runes-ready-queue-oath-hook-longship`, `thing-hardening-edit-registry`).
+
+### Fixed
+- `runaway-brake`: the metacharacter list showed a stray backtick, an empty code box and two more backticks. The dashboard's markdown renderer has no double-backtick code spans, so the backtick is now written out in words.
+- **Ten platform-fact concepts re-verified against their live sources (CI time bomb).** On 2026-10-20 six concepts stamped `last_verified: 2026-07-21` crossed the 90-day platform-fact window, so `concepts.py --check` failed, and with it the real-corpus rows of Gates 237 and 239, which run on every PR. Four more (stamped 2026-07-28) would have done the same on 2026-10-27. Every `sources:` URL was fetched again and each claim checked; corrections where the vendor docs have moved:
+  - `cloudflare-what-runs-your-site`: the Worker size limit is now 64 MiB uncompressed on both plans ("There is no compressed size limit"), plus a 1 s startup limit. Compatibility dates on or after 2026-08-04 enable `nodejs_compat` by default. "Serving assets on a path" is a Workers capability, not a Pages-only one.
+  - `cloudflare-who-gets-in`: the Free plan gets the Free Managed Ruleset. It does not lack managed rules altogether.
+  - `cloudflare-where-data-lives`: the R2 Class A to Class B price ratio is 12.5×, and two quotes are re-sourced to the pages that carry them.
+  - `cloudflare-how-users-find-you`: two quotes that appear on no current DNS page are replaced with verbatim text from the DNS concepts page.
+  - `oauth-scope-cost`: sensitive-scope review is now "typically … 3-5 business days". Non-sensitive scopes "only require basic OAuth App Verification". Two diagram labels were updated to match.
+  - `hook-lifecycle`: `onFailure: "block"` (v2.1.295+) lets a `command` or `http` hook fail closed. Exit 0 takes no decision of its own.
+  - `permission-layers`: an absolute path in a rule is `//path`. A single `/` anchors at the settings source.
+  - `permission-modes`: `auto` is no longer a research preview. A project-level `defaultMode: "auto"` is ignored. The `plan` and `dontAsk` wording now matches the docs.
+  - `session-start-context`: the first response waits for SessionStart hooks to finish. The overflow rule is a 2,000-character preview.
+  - `subscription-billing-model`: no body change.
+
+  Only the two changed diagrams (`hook-lifecycle`, `oauth-scope-cost`) were re-rendered, so every other SVG in the pack stays byte-identical. `concepts.json`, `dashboard.html`, `index.html` and `docs/concepts.md` were regenerated.
+
+### Fixed (2026-10-20 autonomous repo review)
+
+Each fix was reproduced on the unmodified code first and carries a regression test that fails with the fix reverted. Most tests live in `scripts/check-review-2026-10-20-core.py`. Full write-up: `docs/reviews/2026-10-20-repo-review.md`.
+
+- D-2 workflow-hygiene Rule 1 fails `permissions: write-all`; quoted `uses:` classified correctly
+- C-1 repo-sweep requires a unique runId and refuses a reused findings dir
+- C-2 repo-sweep refuses a run whose agent() demand exceeds the cap
+- C-11 per-repo dashboard launcher stops only this repo's server
+- C-3 survivors with no verify verdict stay open, no false CONVERGED
+- C-7 monitors read new logs from line 1 and scope to the session
+- C-8 rc probe dns reads a dead resolver as INCONCLUSIVE, not a negative
+- C-9 an unbound hard-gate signal fails closed instead of going to the judge
+- C-13 keep_best ranks gate-green iterations first; a red emit escalates
+- C-14 setup-terminal-indicators writes through a symlinked ~/.bashrc
+- C-15 nested ._* AppleDouble files are excluded by pack and flagged by ZP07
+- C-16 mermaid_label strips structure before escaping, so entities keep their `;`
+- C-17 dv and pbir linters exit 2 on deeply nested JSON instead of crashing: an explicit, iterative 200-level depth cap, so the verdict is the same on Python 3.11, 3.12 and 3.13 (3.12+ parses far deeper JSON than 3.11, which made the first version of this fix pass locally and fail in CI)
+- C-18 fix_summary records malformed applied entries and marks a failed git diff
+- C-19 monitors resolve the newest log with one stat pass, not one per run dir
+- C-4 rc-deep-research caps the kill threshold at the vote count; Synthesize never throws
+- Concept restamps (cosmetic; the claims are unchanged): eight inventory entries whose covered files these fixes edited. The `run-state-monitor` concept and knowledge file now describe C-7's log selection.
+
+## 0.358.4 — 2026-10-18
+
+### Changed
+- **`wallet-passes`: straight to Wallet is measured on a real iPhone.** On 2026-10-18 the owner opened a card URL ending `#add-to-wallet` directly in Safari, on RavenPower's preview (`preview.ravenpower-sites.pages.dev/connect`) and on production (`www.ravenpower.net/connect`). Wallet's pass sheet (Add / review) appeared with no tap. So iOS Safari does present the Add-to-Wallet sheet for a script-initiated `location.assign()` to a `.pkpass` about 150 ms after page load, without user activation. `references/verify.md` **#38** is now partly resolved, and `references/tap-to-share.md` § Straight to Wallet records the result as MEAS in place of the UNVER statement, keeping the fallback (where it does not fire, the person lands on the card). Still open under #38: the iOS version, the Camera QR and NFC-tag entry points themselves (the test opened the URL directly in Safari), and a non-Safari default browser. The SKILL.md map says the same in one line.
+
+## 0.358.3 — 2026-10-18
+
+### Fixed (marketplace tooling, not shipped in the plugin)
+- **`scripts/inventory-sweep.py` reported three false self-test failures wherever git config is passed through the environment.** Before running a script's `--must-fail` check, the sweep drops environment variables with secret-shaped names. `KEY` matched `GIT_CONFIG_KEY_0..n` but not `GIT_CONFIG_COUNT`, so git refused to start ("missing config key GIT_CONFIG_KEY_0") and every git call in the child failed. `_base_ref.py`, `check-ratchet-freshness.py` and `inventory-census.py` returned 1, 0 and 1 instead of their declared 3. CI does not set these variables and stayed green; a container that does set them failed locally. The whole `GIT_CONFIG_COUNT` / `KEY_n` / `VALUE_n` / `PARAMETERS` group is now dropped together. That also stops `GIT_CONFIG_VALUE_n` being passed on, since a value can carry a credential under a name the pattern cannot see. The sweep's `--must-fail` gained a check that runs git under the reduced environment, with a control proving the old half-dropped shape breaks git. A mutant with the old filter exits 0. Restamped `probing-a-script-runs-it`, `census-must-be-independent` and `must-fail-conventions-diverge` as cosmetic; their claims are unchanged.
+
+## 0.358.2 — 2026-10-18
+
+### Changed
+- **`/wrap` and spawn-team's close-out run `rc ttl-advice`.** Both already read the dispatch ledger through `rc dispatch-summary`. They now also run the cache TTL advisor on the same ledgers and name any agent it lists as a candidate for `experimental.cacheTtl: 1h`, for the owner to apply. The advice therefore shows up where the ledgers are, on the owner's machine, without a separate step.
+
+### Fixed (marketplace tooling, not shipped in the plugin)
+- **`scripts/check-covers-completeness.py` failed locally after any suite run.** It flagged every existing path a concept's nuance names. The suite's live nuance-judge calls write the gitignored `.ravenclaude/runs/headless-usage.jsonl`, and a concept's nuance names that path, so `--check` exited 1 locally and passed in CI. A git-ignored path is now skipped: covers[] cannot watch it, because the digest is computed over committed files. A tracked file under an ignore pattern is still flagged. A new `--self-test` (6 fixtures, in a throwaway git repo) runs in Gate 237 in both the `--check 237` arm and the main sequence. A mutant that treats every path as ignored fails 3 of the 6.
+- **The directory edition's file list now includes `knowledge/headless-claude-calls.md`.** `/wrap` now links to it, so the builder pulls it into the edition, and Gate 301 failed until the committed list was regenerated.
+
+### Docs
+- **`docs/decisions/2026-10-18-decide-mock-guard-host-env-residual.md`** records why the medium finding from the #1377 security review is accepted rather than fixed, and the three conditions that would reopen it.
+
+## 0.358.1 — 2026-10-18
+
+### Added
+- **`wallet-passes`: straight to Wallet from the QR and the tag.** `references/tap-to-share.md` gains § Straight to Wallet from the QR and the tag, the pattern built on 2026-10-18 in RavenPower-Website #685, ravenpower-app #18 and RavenPower-website-factory #102. The pass's QR and the NFC tag carry the card URL plus `#add-to-wallet`. The card page removes the fragment with `history.replaceState` and about 150 ms after paint opens this phone's Wallet link, with the card page left underneath. The section records why a fragment works better than a query parameter and the fail-closed rules from the security review: no auto-open unless `replaceState` succeeded, and only to a same-site path or an `https://` URL. It also records three measured limits. The Google Save JWT measured 1,791 of 1,800 characters, so the Google pass's QR stays unmarked. Changing the Apple barcode sends a silent Wallet push to every holder. An NTAG213 holds a 137-byte URI payload. `references/verify.md` adds **#38**: whether iOS shows the Add-to-Wallet sheet with no tap. The SKILL.md map gains a one-line pointer, and the ledger count is now 38.
+
+### Fixed
+- **`format-on-write.sh` formats only with a formatter the project declares.** It ran `prettier --write` on every `.ts`, `.md`, `.json` and similar edit whenever prettier was on PATH, and `ruff format` plus `ruff check --fix` on every `.py` whenever ruff was. In a consumer repo with no prettier config and a global prettier, it rewrote a whole TypeScript file into a style the repo does not use (double quotes, re-wrapped lines; observed 2026-10-18). Prettier now runs only when a `.prettierrc*` or `prettier.config.*` file, or a `package.json` that names `"prettier"`, is in the edited file's directory or an ancestor up to the project root. Biome needs `biome.json` or `biome.jsonc`, ruff needs `ruff.toml`, `.ruff.toml` or `[tool.ruff]`, and black needs `[tool.black]`. For a file outside the project, the walk stops at that checkout's `.git`. Nothing declared means a silent no-op; declared but not installed still warns once per session. gofmt, rustfmt and shfmt are unchanged. **Consumer impact:** a project that relied on an installed formatter with no config file is no longer auto-formatted. Add the config file to get it back; an empty `.prettierrc` gives prettier's defaults.
+- **Docs that described the old behaviour** now say a formatter runs only when declared: the dashboard's Auto-tidy card (`scripts/generate-dashboards.py`), `docs/best-practices/hook-authoring.md` and the `agent-ready-repo` CLAUDE.md template.
+
+### Testing
+- **Gate 305 (`hooks/tests/test-hook-env-hardening.sh`) adds cases 15c–15k.** Fake prettier, biome, ruff and black sit first on the hook's PATH and record each call. With no config nothing runs. A root `.prettierrc`, a subpackage `.prettierrc.yaml` above the file, and `package.json` devDependencies each run prettier, and a sibling package with no config does not. `biome.json` runs biome. Python covers undeclared, `[tool.ruff]` and `[tool.black]`. A file in another checkout uses that checkout's config, not the project's. Six hook mutants, including the pre-fix hook, are each caught.
+
+## 0.358.0 — 2026-10-18
+
+### Added
+- **`rc ttl-advice`** (`scripts/subagent-ttl-advisor.py`, read-only). It reads the handoff-tax meter's `.ravenclaude/runs/<session>/dispatch-ledger.jsonl` files and, per agent type, counts same-session re-dispatches 5–60 minutes apart. An agent is listed when it has at least 5 dispatches and averages at least 0.65 in-window re-dispatches per 1-hour cache write: the break-even for `experimental.cacheTtl: 1h` (a 1-hour write costs 2.0x against 1.25x, and each in-window read saves 1.15x). Output is agent type names and numbers only. `--json` and `--min-dispatches N` are supported. With no ledgers it says so and exits 0. Run against this checkout: 0 dispatch rows, no ledgers.
+- **`knowledge/headless-claude-calls.md` § Subagent cache TTL**: the 5-minute subagent default, the per-agent key, the break-even, the advisor, and what happens to the key on Copilot and Codex (dropped by both projections, read from source). No shipped agent sets the key.
+- **Gate 307** now also runs the advisor's self-test (18 checks) and a `--must-fail` mutant that recommends a 1-hour TTL for every agent with enough data, which must be caught (exit 3).
+
+## 0.357.1 — 2026-10-18
+
+### Fixed
+- **The decision-review engine's test hooks could be planted by a cloned repo.** `THING_DECIDE_MOCK_VERDICT` short-circuits every seat in `thing-decide.py`. Claude Code exports a project's `.claude/settings.json` `env` block into every hook, so a repo that planted `THING_DECIDE_MOCK_VERDICT=yes` would make every routed yes/no resolve "yes" under `decision_review: binding`. High-blast decisions still deferred. The engine now applies the same guard `thing-seat.sh` uses (`_mock_gate`):
+  - a mock needs the harness marker `THING_DECIDE_ALLOW_MOCK=1`;
+  - any `THING_DECIDE_*` key, in any letter case, in a project-scope settings file unsets all of these hooks. The files checked are `.claude/settings.json` and `settings.local.json` under `$CLAUDE_PROJECT_DIR` and the `--root` dir, and in each parent up to the git top level. An unreadable, empty or non-object `env`, or a file that repeats a JSON key, counts as planted;
+  - under a live session (`CLAUDECODE`, or `THING_DECIDE_LIVE_SESSION=1`, which `route-decision-review.sh` now sets when its payload carries `transcript_path`) only a defer-producing verdict mock is allowed. Any other value makes every seat abstain, and the eval mock is dropped.
+  - The result JSON gains `mock_gate` whenever the guard did something.
+- **The 0.356.0 entry said the seat change "needs security review".** The review is done: CLEAR, recorded on #1374.
+
+### Changed
+- Harness callers of the decide mocks (Gates 17 and 31, `test-phase0-emit-and-scrub.sh`, `test-gate20-adapter-diagnostics.sh`, `test-gate91-tribunal-shadow.py`, `test-heimdall-abstain-injection.py`) set the marker and drop the caller's session markers.
+- **Gate 303 gains its decide half** (`hooks/tests/test-decide-mock-source.py`, 26 checks). A stub `claude` always votes "no", so an honoured mock ("yes"), a real seat ("no") and an abstain ("defer") are three distinct results. It also checks `binding`, the duplicate-key, letter-case and parent-directory plants, and the route hook end to end: without `transcript_path` a harness yes is a binding deny, with it the prompt is allowed. Teeth: with the plant check neutered, the planted attack resolves "yes".
+
+## 0.357.0 — 2026-10-18
+
+### Added
+- **Per-site cache hit rate in `rc cache-report`.** After the totals, each call site prints `site <name>: <rows>, hit_rate <rate>` (`n/a` when the site has no input tokens to divide by). The `--json` form gains `site_hit_rate`. Existing `by_site` counts are unchanged.
+- **The inventory nuance judge records its usage.** `scripts/inventory-nuance-judge.py` now asks for `--output-format json`, takes the verdict from the envelope's `result`, and appends a derived row (site `inventory-nuance-judge`) via `headless-usage.py`. Recording is fail-open and never changes a verdict. Live probe: verdict `nuance`, one row with token counts only.
+- **Gate 307** runs `headless-usage.py --self-test` (no prompt or result text stored, a present `0` kept, absent fields omitted, overall and per-site hit rate) and a new `--must-fail` mutant that also stores result text and must be caught (exit 3, declared via `--must-fail-convention`).
+
+## 0.356.0 — 2026-10-18
+
+### Changed
+- **`thing-decide.py` seats run without tools** (security review: CLEAR, #1374). Both `claude -p` calls (the decision seat and the dispatch-evaluator shadow) now pass `--strict-mcp-config --tools ""`, the same shape `thing-seat.sh` already uses. The seats only return a verdict JSON. A live probe of the new seat shape used about 4,825 input tokens; the default shape measured about 213K (analysis.md E8). This also removes tool access from a call that reads untrusted decision text.
+- **`scripts/inventory-nuance-judge.py`** (repo-root tooling) runs `claude -p --strict-mcp-config --tools=` from a temp directory, so this repo's `CLAUDE.md`, project hooks and project MCP config no longer load into the judge. The model is unchanged (CLI default).
+
+### Added
+- **Gate 306** (`scripts/check-headless-call-shape.py`). Every `claude -p` site in `plugins/`, `scripts/` and `.claude/workflows/` must pass `--strict-mcp-config` or be listed with a reason and a site count in `tests/fixtures/headless-call-shape-exemptions.json`. It also fails the variadic `--tools "" <positional>` trap. A changed site count, a short reason or a stale entry fails. A positive control fails the gate if discovery stops finding the known sites, and `--must-fail` strips the flag from `thing-seat.sh` and must be caught. Seven files are exempt today: the three `--bare` dispatch-evaluator shell-outs, the evaluator hook (also `--bare`), the host canary, a live nested-dispatch test, and a fixture string.
+
+## 0.355.11 — 2026-10-18
+
+### Fixed
+- **False "1-hour verify cache" claims.** Both `rc-deep-research.js` copies and `adaptive-run-classifier/SKILL.md` said the verify phases get a 1-hour cache through `cache_control` on the workflow `agent()` call. `agent()` has no `cache_control` or `thinking` option (the workflow-authoring reference lists `label`, `phase`, `schema`, `model`, `effort`, `isolation`, `agentType`), so the key is almost certainly ignored. Workflow agents get Claude Code's own 5-minute subagent TTL unless `CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL` / `subagentPromptCacheTtl` overrides it. Comments and the skill now say so. Code is unchanged.
+- **Stale "below Haiku 4.5's 4,096-token minimum" reasons** for not caching the run classifier and the dispatch evaluator. The fast tier is Haiku 5.5 now. The comments (both workflow copies and `agent-dispatch-evaluator/reference/evaluate-dispatch.js`) now give the reason that still holds: `agent()` has no cache option, and `claude -p` is cached by Claude Code itself.
+- **`knowledge/headless-claude-calls.md`** row for the workflow copies updated to match.
+- **`docs/research/2026-06-04-claude-features-gap-analysis/gap-analysis.md` §B3** gains a second dated correction: the call shape (`--tools ""` loading about 211,798 tokens of MCP definitions against about 3,470 with `--strict-mcp-config`) was a real lever, so "no correct code change" was wrong.
+
+## 0.355.10 — 2026-10-18
+
+### Fixed
+- **`wallet-passes`: NameDrop never carries the card link (correction).** `references/tap-to-share.md` ranked-paths row 9 told owners to put the card URL in their Contacts *My Card* so it would travel by NameDrop. It does not. Apple's [Personal Safety guide](https://support.apple.com/guide/personal-safety/secure-namedrop-ips97e16d3b1/web) (read 2026-10-18): "NameDrop shares only your name, the phone number or email address you choose, and Contact Poster information" and "It doesn't share other information in your Contact Card". The row now says NameDrop swaps contact details only, never the pass or the card link, and that adding the URL to *My Card* does nothing. No other file claimed the URL travels.
+
+## 0.355.9 — 2026-10-18
+
+### Security
+- **Every hook command now uses a hardened launch line.** Claude Code exports the `env` block of a project's `.claude/settings.json` (and `settings.local.json`) into every hook and runs each command as `/bin/sh -c`. On 2.1.260 a planted `BASH_ENV` ran inside every bash hook, and a planted `PATH` decided which `jq` and `bash` the hooks used. Every command in every `plugins/*/hooks/hooks.json` (206 commands in 118 manifests) now starts `/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc "${CLAUDE_PLUGIN_ROOT}/…"`. Python hooks use `/usr/bin/python3 -I` instead of bash. `scripts/check-hook-launch-line.py` enforces this as **Gate 304** (`security` suite), and its `--fix` option rewrites a manifest. The directory edition's posture gate uses the same launch line.
+- **New `hooks/env-integrity-guard.sh` quarantines a repo that plants execution-control env.** It is the first PreToolUse group (matcher `*`) and the first SessionStart hook. If either project settings file sets `PATH`, `BASH_ENV`, `ENV`, `SHELLOPTS`, `BASHOPTS`, `IFS`, `LD_*`, `DYLD_*`, `PYTHONPATH`, `PYTHONSTARTUP`, `NODE_OPTIONS`, `PERL5OPT`, `RUBYOPT`, `GIT_SSH_COMMAND`, `GIT_CONFIG_*`, `THING_SEAT_*` or `RAVENCLAUDE_*` in `.env`, every tool call is denied with the reason `project settings plant execution-control env (<keys>); this repo is quarantined`. A settings file that is empty, unreadable or not valid JSON, or whose `env` is not an object, is denied as well. The guard also checks the inherited environment at runtime and denies when `BASH_ENV` or `LD_PRELOAD` is set or `PATH` lacks `/usr/bin`. A real `LD_PRELOAD` or `DYLD_INSERT_LIBRARIES` library is loaded before any plugin code runs, so it cannot be stopped; the guard can only refuse to go on. Claude Code runs matching hooks in parallel, so "first" describes placement in the file, not execution order. Any one deny blocks the call.
+- **`THING_SEAT_ACTIVE` alone no longer disables command review.** Before it calls the seats, `thing-orchestrator.sh` creates a mode-0600 lock at `${XDG_RUNTIME_DIR:-/tmp}/ravenclaude-$UID/<session>.<nonce>` and passes `--seat-child <nonce>` to each seat. The recursion guard skips review only when that nonce matches a lock owned by `$UID`, with mode 600, that is less than 30 minutes old. The lock is removed when the orchestrator exits.
+- **A tool call that skipped pre-tool review now raises a warning.** The orchestrator writes a per-call record keyed by `tool_use_id`. If that record is missing, the new PostToolUse hook `hooks/pretool-record-check.sh` shows a systemMessage, prints a stderr line and appends to `<runtime>/review-gap.log`, each saying `pre-tool review did not run`. A missing record means the review hook never started.
+
+### Fixed
+- **Every hook that calls `claude` still finds it under the pinned PATH.** The native installer puts `claude` in `~/.local/bin`, which the pinned PATH does not include. `thing-seat.sh`, `thing-orchestrator.sh`, `prompt-optimizer-gate.sh`, `agent-dispatch-evaluator.sh` and `thing-decide.py` now look in `~/.local/bin` and `~/.claude/local` under the home directory from the passwd entry, never `$HOME`, and skip a candidate inside the project. Before this, the last three skipped their step without a word.
+- **A missing tool is now reported instead of skipped silently.** When `claude` cannot be found, each of those hooks prints a stderr warning, appends a line to `${XDG_RUNTIME_DIR:-/tmp}/ravenclaude-$UID/missing-tools.log`, and shows a systemMessage once per session where its event allows one. The command-review and decision-review panels add "`claude` was not found" to their abstain reason. `format-on-write.sh` does the same when the project declares a formatter that is not installed (prettier or biome, ruff or black, gofmt, rustfmt), and stays silent when the project declares none. `caveman-route-hook.sh` warns when `caveman_routing: live` is set but `node` is missing, because the mode switch is then not applied. No hook depends on `gh`.
+- **`RC_CLAUDE_HOME_LOOKUP=0` turns the passwd-home lookup off.** `scripts/audit-gates.sh` exports it, so a gate that removes `claude` from PATH cannot reach a real one in the home directory. A planted value can only make `claude` look missing, which is reported.
+
+### Changed
+- **This repo's `.claude/settings.json` no longer has an `env` block.** `RAVENCLAUDE_TEAM_MODE` was set there but nothing read it. `RAVENCLAUDE_WORKTREE_ROOT` was set to `.claude/worktrees`, which is already the root `bin/rcwt` picks, because the repo tracks `.claude/worktrees/.gitkeep`. The guard stays strict, with no allowlist, so it now runs in the dev mirror at SessionStart and `check-sessionstart-matcher-regression.py` checks it for parity like every other hook. To override the worktree root, set `RAVENCLAUDE_WORKTREE_ROOT` in your shell profile or in the `env` block of `~/.claude/settings.json`, never in project settings. A relative value now resolves from the repo top level, not the current directory.
+
+### Testing
+- **`hooks/tests/test-hook-env-hardening.sh` (Gate 305, `security` suite) covers the hardening.** It runs the real `hooks.json` commands the way Claude Code does, through `env` plus the planted keys and `/bin/sh -c`, in scratch repos. It uses harmless markers and a stub `claude`. The cases cover a planted PATH with a fake `jq` and `bash`, `BASH_ENV`, `LD_PRELOAD` and `THING_SEAT_ACTIVE`; the same keys in `settings.local.json`; malformed, empty and unreadable settings, including the case where `jq` is missing; benign keys; inherited runtime env; the static launch-line check; the seat-child lock in both directions; and the missing-record warning. On macOS it runs through the `macos-latest` gate-audit shards. Cases 13 to 17 plant a `$HOME` whose `claude` leaves a marker and check that the bash and Python resolvers and every real hook ignore it. They also check the warning, the log line and the once-per-session systemMessage for a missing `claude`, `prettier` or `node`, and that this repo's settings pass the guard. Eleven mutants of the new code are all caught. Gate 264's claude-missing case now accepts that systemMessage, but still no prompt-derived output.
+
+- **Learn tab: new inventory concept `project-settings-env-reaches-hooks`.** It records the measured mechanism (project `env` reaches every hook through `sh -c`), the probe, and the falsifier, and covers the new hooks for the inception gate. The dashboard island-payload budget is raised by one row to 33,150, measured at 33,142.
+
+## 0.355.8 — 2026-10-18
+
+### Security
+- **`scripts/thing-seat.sh`: a mock verdict is honoured only from a trusted source.** A cloned repo could plant `THING_SEAT_MOCK_VERDICT` through the `env` block of its `.claude/settings.json` and get a canned tribunal verdict. The seat now honours the mock only when all of these hold: the parent harness sets `THING_SEAT_ALLOW_MOCK=1`; neither project-scope settings file (`.claude/settings.json`, `.claude/settings.local.json` under `$CLAUDE_PROJECT_DIR`, else the git toplevel of cwd) has any `THING_SEAT_*` key in `.env` (a file that will not parse counts as planted); and, under a live session (`CLAUDECODE` set, or a hook payload carrying `transcript_path`), the mock is a deny or abstain one. A planted or unmarked mock is ignored and the real seat runs, logging `mock var planted via project settings`. An allow or EDIT mock under a live session abstains. No CI env flag is treated as a trust signal. `thing-orchestrator.sh` runs the same check before fan-out (`thing-seat.sh --mock-precheck`) and passes `--live-session` to each seat. `scripts/audit-gates.sh` and `scripts/thing-golden-eval.py` set the marker. `test-mock-verdict-source.sh` covers the matrix with a stub `claude` and is wired in as **Gate 303** (`--check 303`, `tribunal` suite).
+- **Any planted `THING_SEAT_*` key now unsets every seat test hook.** The project-settings check runs on every seat and every convened panel, even with no mock set. When it finds a `THING_SEAT_*` key, `THING_SEAT_MOCK_VERDICT`, `THING_SEAT_MOCK_REVISED`, `THING_SEAT_RESOLVED_OVERRIDE` and `THING_SEAT_ALLOW_MOCK` are all unset in the seat and, before fan-out, in the orchestrator. A planted `RESOLVED_OVERRIDE` could otherwise hide a real model-diversity collapse.
+
+### Testing
+- **`scripts/audit-gates.sh` unsets `CLAUDECODE` for its own child processes.** Under a live session the seat lets a mock produce only deny or abstain, so running the audit from inside Claude Code made every allow/EDIT mock gate abstain and fail. The harness is never a live session. Real hooks are unaffected: the orchestrator still passes `--live-session` when the hook payload carries `transcript_path`, and Claude Code sets `CLAUDECODE` for every real hook process.
+
+## 0.355.7 — 2026-10-18
+
+### Security
+- **`hooks/guard-destructive.sh`: `git reset --hard` is now denied in any flag order (P1-4).** The single contiguous deny pattern missed `git reset HEAD~3 --hard` and `git reset -q --hard HEAD`. A structural check, `_is_dangerous_git_reset_hard`, now denies `--hard` anywhere in a `git … reset` segment (global `-C`/`-c` flags allowed before it), the same way `_is_dangerous_git_clean` handles its force flag. `-h` is help, not hard. `test-guard-destructive-shf6.sh` gains the reordered cases.
+
+## 0.355.6 — 2026-10-18
+
+### Security
+- **`hooks/guard-destructive.sh`: a heredoc fed to an interpreter through a wrapper or a pipe skipped every deny pattern.** The interpreter-heredoc check looked only at the simple command's first word, so `sudo bash <<'EOF'`, `nohup`/`timeout`/`exec`/`doas`/`nice … sh <<X` and `cat <<'EOF' | bash` were blanked as inert data. Any interpreter word in the heredoc's simple command, or in a later pipeline stage, now keeps the body scanned. New `test-guard-heredoc-interpreter.sh` (14 deny, 4 allow, 1 mutation).
+
+## 0.355.5 — 2026-10-18
+
+Salvages the still-open fixes from #1288, #1268, #1267 and #1270 onto current main.
+
+### Security
+- **Scenario intake: a secret split by an injection tag could be rebuilt into the staged file (P1).** `scripts/process-scenario-submission.py` scanned for secrets/PII on the normalized text, *before* `_strip_injection`, but staged the text *after* stripping, so `ghp_AAA…<system-reminder>…</system-reminder>…BBB` passed the scan and was written whole. The intake now also strips injection tags first and scans the stripped text of every field, then re-scans the exact capped text it writes. These checks only add rejections; they never let more text through.
+
+### Fixed
+- **Gate 170 (`check-codex-agent-sandbox.py`) used the generator it audits as its oracle (P1).** It now works out the least-privilege `sandbox_mode` independently, so loosening `sandbox_for` and regenerating can no longer pass.
+- **`emit-codex-config.py` root-key anchor ignored `[[array-of-tables]]` (P1).** `sandbox_mode`/`approval_policy` could land under a leading `[[hooks.pre]]` instead of at the root.
+- **`check-inception-coverage.py` missed renames into a gated root.** It now uses `--diff-filter=ACR`, matching `check-layout.py`.
+- **`content-scan.py`**: a mid-body reset or timeout no longer aborts the whole scan.
+- **`review-ledger.py`**: a detached HEAD now keys as `detached` instead of the literal `HEAD`.
+- **`hooks/enforce-layout.sh`**: `$project_root` is quoted in the prefix strip, so a glob or bracket in the project path no longer denies every write.
+- **`scripts/cleanup-branches.sh`**: the merged-ness proof uses `refs/heads/$b`, so a tag with the same name can't shadow the branch.
+- **Docs**: dead section anchors and wrong-file references fixed in `CLAUDE.md`, `knowledge/subagent-isolation-and-tooling.md` and `agents/source-control-coordinator.md`.
+
+## 0.355.4 — 2026-10-18
+
+### Changed
+- **`skills/skill-index/SKILL.md` regenerated** for the grok-bot-delegation 0.3.0 / grok-bot-creation 0.2.0 Bot Architect fleet skills (#1356): seven new delegation skills indexed and three reconciled descriptions refreshed. Generated content only.
+
+## 0.355.3 — 2026-10-18
+
+### Fixed
+- **Four CI/tooling scripts hardened (2026-09-28 autonomous review, #1265).** `check-dashboard-server-parity.py`, `generate-index-dashboard.py`, `inventory-sweep.py` and `sync-plugin-versions.py` get the review's correctness fixes; the covering concepts are re-stamped. Version bump only carries the regenerated core artifacts.
+
+## 0.355.2 — 2026-10-18
+
+### Fixed
+
+- **`/repo-review` engine — 13 correctness fixes to the chunk/merge/estimate/cache tooling** (found by
+  the repo-review skill reviewing its own engine during a whole-repo sweep). All in
+  `skills/repo-review/scripts/`; each fix ships with a must-pass teeth assertion in that script's
+  `--self-test` (Gate 258/260 stay green). Behavior-changing / security-control findings from the same
+  sweep were deliberately routed to a design-input doc, not auto-fixed.
+  - **`findings_merge.py`** — a single torn/unreadable shard no longer aborts the whole merge (it is
+    skipped, recorded in `stats.shards_unreadable`, and every good shard survives — restoring the
+    documented hand-recovery path); non-array / bad-name shards and non-dict findings are now counted in
+    `stats` instead of vanishing silently; mixed int/str finding ids no longer crash the sort; a new
+    `by_priority_all` counts every survivor (capped + over-cap) so an over-cap P0 is never invisible to a
+    convergence stop-condition.
+  - **`repo_map.py`** — `.mjs`/`.cjs`/`.mts`/`.cts`/`.ps1` and extensionless shebang scripts are now
+    classified as source (they were silently excluded while coverage reported "full"); `--since` splits
+    the diff on NUL so a non-ASCII changed filename is not dropped, and an unresolvable `--since` ref now
+    fails loudly (exit 2) instead of silently widening the sweep to the whole repo; equal-risk batches
+    tie-break numerically so `b100` no longer sorts before `b11`.
+  - **`fix_summary.py`** — a torn/non-object fix receipt is skipped with a warning instead of crashing
+    the summary after the tree was already edited; markdown table cells escape `|`/newlines so a pipe in
+    a receipt field can't corrupt the row.
+  - **`review_cache.py`** — `store --findings-file` reads + shape-validates inside the exit-2 contract (a
+    missing/invalid/non-list file is a clean error, not an uncaught traceback or a silently-stored dict).
+  - **`estimate_cost.py`** — the redundant `batches_affordable` branch collapsed to `max(0, min(b,
+    planned))`; new `total_exceeds_budget` / `total_exceeds_hard_cap` flags surface a cap-overrun (e.g. a
+    large `--verify-cap`) that was previously emitted without any signal.
+
+## 0.355.1 — 2026-10-18
+
+### Fixed
+- **Spectate steer RMW is single-winner.** `consume_steer_decision` / `apply_steer` / `consume_steer_interrupt` / `consume_steer_note` flock a per-session `spectate-steer.lock` across the read-modify-write. One browser Approve can no longer grant two concurrent PermissionRequest waits, and a concurrent Pause can no longer clobber an armed Interrupt. Gate 296 S11/S12.
+<!-- premise-ok: concurrent-consume-repro -->
+
+## 0.355.0 — 2026-10-18
+
+### Changed
+- **The generated diagram SVGs are committed as packs, not as 1,019 files.** The Claude Code Directory stops validating a repository that has 10,000 or more files and folders, and this one held 10,883 files (plus about 3,000 folders, reported but not gated — see `check-repo-file-budget.py --report`); the 799 decision-tree SVGs (`knowledge/tree-visuals/<id>.svg`) became 40 shards (`knowledge/tree-visuals/pack-NN.js`, grouped by owning plugin) and the 220 concept SVGs (`knowledge/concepts/visuals/*.svg`) became one `visuals.pack.json`. Nothing is lost: every packed member was checked byte-identical (sha256) to its file, `dashboard.html` is the old file plus the new `<img>` attributes and the loader (proved by transforming the old file and comparing), and 9 diagrams rendered in headless Chromium are pixel-identical before and after. `scripts/visual_pack.py` is the single reader/writer; `render-trees.py`, `render-concepts.py`, both dashboard generators and the audit gates use it.
+- The Guidance tab and each plugin page now load a diagram's shard the first time its `<details>` is opened (one `<script>`, works on `file://`), then show it from a `data:` URI. Opening a plugin group does not load the diagrams nested inside it.
+
+### Added
+- **Gate 302 `scripts/check-repo-file-budget.py`**: fails at 9,990 tracked files, warns at 9,950, with a must-fail half (`--simulate-extra`). Without it the count drifts back over the Directory limit one PR at a time. It counts files only; `--report` also prints folders, unpacked size and GitHub-archive size against every Directory limit (informational, never fails).
+- Gates for the packs: `visual_pack.py --self-test` (formats, shard stability, the page-side loader driven under node) and `--verify` (tree packs vs. their manifest, with a must-fail half that removes a member).
+
+### Fixed
+- **The portal's Guidance tab diagrams never loaded.** `index.html` rendered them from a path relative to `dashboard.html`, so every one 404'd (0 of 6 sampled loaded). The page now sets `window.__rcTreeBase`, and the same 6 load.
+
+### Migration
+- Anything that read `knowledge/tree-visuals/<id>.svg` or `knowledge/concepts/visuals/<name>.svg` as files must read the packs through `scripts/visual_pack.py` (`read_tree_svgs`, `read_concept_pack`). `concepts.json` keeps its `svg` strings; they are now keys into the concept pack.
+- Diagrams in `dashboard.html` / `index.html` now need JavaScript to appear (they were a plain lazy `<img>`). A saved copy of an old `dashboard.html` points at `.svg` files that no longer exist; regenerate the dashboards together with the packs.
+- The portal's per-plugin "knowledge" count is unchanged: the packed members are counted, not the pack files.
+
+## 0.354.0 — 2026-10-18
+
+### Added
+- **`scripts/dashboard-prompt.sh`: a SessionStart prompt for projects with no comfort posture.** A person with no `.ravenclaude/comfort-posture.yaml` was told nothing about the dashboard (`dashboard-autostart.sh` exits at its first test unless that file exists, and the session banner names dashboard tabs but never says "run /dashboard"). The new hook speaks only in that unconfigured state: one fixed-text line through `systemMessage` (what the person sees) and `additionalContext` (so the agent can answer "how do I open the dashboard"), naming `/dashboard` (or `rc dashboard` in any terminal) and the opt-in `dashboard_autostart` knob. It writes nothing, starts nothing, never blocks, and goes silent once the posture file exists; `RC_DASHBOARD_PROMPT=off` silences it. Autostart was deliberately **not** made the default (an undisclosed background server and browser tab per session). Wording switches on whether `bin/rc` ships beside the script, so one unmodified file also serves an edition without `bin/`. Wired in `hooks.json` and the dev-mirror; all four cross-host projectors derive it with no per-host skip. New Gate 300 (`test-gate300-dashboard-prompt.sh`, 17 assertions incl. two teeth mutants).
+
+### Fixed
+- **Python snippets in hooks and scripts now run isolated (`python3 -I -c`).** `python3 -c`, `-m` and `-` put the *current directory* first on `sys.path`, so a hook that ran one from a project root imported that project's own `json.py`, `shlex.py` or `re.py` — a cloned repository could run code inside a hook. Reproduced with a planted `shlex.py` (fired from the project directory, did not fire from elsewhere). Fixed in `hooks/enforce-git-protocol.sh`, `hooks/_advise.sh` (used by `remind-tests`, `claim-grounding-lint`, `delegation-nudge`, `guard-recursive-spawn`), `scripts/forge-worktree.sh`, `scripts/forge-publish-session-plan.sh`, `scripts/resolve-plugin-root.sh`, and three instruction lines in `agent-quality-rubric`, `declarative-visualization` and `rules/agent-collaboration.md`. 203 other `python3 -c`/`-m` sites remain in the source plugin's hooks and scripts (64 outside test files; counted with `grep` on 2026-10-13) and are not changed here — the full plugin's hooks that carry them have the same exposure in a hostile project, a follow-up for the owner; the directory edition's builder refuses any it would ship that lack `-I`.
+- **`dashboard-prompt.sh` knows about the directory edition's trust list.** When `hooks/posture-gate.sh` sits next to it and the project has a posture file that is not trusted, it says so once, in fixed words. The full plugin has no gate file and is unchanged. It also tells a person when a *trusted* project's posture, `.repo-layout.json` or `.ravenclaude/task-scope.json` has changed since they trusted it (the directory edition binds trust to those files' content).
+- **`hooks/remind-tests.sh` runs git at the project root, with fsmonitor and hooks switched off.** (Not a complete defence: git still runs the filter drivers a repository's own `.git/config` names, which is why the directory edition does not ship this hook.) It ran `git -C <payload cwd> status`; that cwd is wherever the session last moved, which can be a vendored directory that is itself a git repository whose `.git/config` sets `core.fsmonitor` (a command `git status` runs). It now uses `CLAUDE_PROJECT_DIR` (falling back to the payload cwd on a host that sets none), passes `-c core.fsmonitor=false -c core.hooksPath=/dev/null -c safe.bareRepository=explicit`, sets `GIT_OPTIONAL_LOCKS=0` so it does not refresh the index, and writes its once-per-session marker under the project root. Reproduced before the change (a planted command ran), gone after.
+- **`/repo-review`'s git calls** (`repo_map.py`, `fix_summary.py`) also pass `core.fsmonitor=false` and `core.hooksPath=/dev/null`, and `git diff` adds `--no-ext-diff --no-textconv`: the repository under review may be one the reader does not trust.
+- **`templates/agent-ready-repo/validate-layout.yml.template`** gains `permissions: contents: read`; both it and `validate-quality.yml.template` pin `actions/checkout` to the commit SHA the sibling templates already use. These are scaffolded into other people's repositories.
+
+### Migration
+- Consumer-visible and advisory: a project with **no** `.ravenclaude/comfort-posture.yaml` now shows one line at session start. Nothing is blocked or written. Create that file (or set `RC_DASHBOARD_PROMPT=off`) to silence it.
+
+## 0.353.0 — 2026-10-18
+
+### Changed
+- **Model catalog pins** (`knowledge/model-catalog.json`). Current ids are Opus 5.5 (`claude-opus-5-5`), Sonnet 5.5 (`claude-sonnet-5-5`), Haiku 5.5 (`claude-haiku-5-5`), and Fable 5.1 (`claude-fable-5-1`). The previous pins moved to `stale`. Haiku 5.5's catalog context window is 1,000,000; an unresolved haiku-shaped id, including the retired dated Haiku 4.5 pin, still uses the 200,000 heuristic. Fable 5.1 is the quality-escalation pin only after Opus at xhigh demonstrably fails. Legacy `claude-fable-5` is not a pin.
+- **Headless call shape.** JSON-only `claude -p` sites that already passed `--tools ""` and do not need MCP now also pass `--strict-mcp-config` (`thing-seat.sh`, `claude-orchestrate.sh`, the prompt-optimizer gate/rewrite/dispatch/judge-soak scripts, and `judge.sh`). `--bare` sites were left alone. `thing-decide.py` was left on the full tool set. `--safe-mode` was not adopted.
+- **`agent-dispatch-evaluator/SKILL.md`.** The claim that Phase 5 asserts `cache_creation_input_tokens` is 0 was false. The skill now matches the recorder: the probe appends derived usage when the envelope reports it, and it does not assert that count is 0.
+
+### Added
+- **`scripts/headless-usage.py`** and **`rc cache-report`**. Headless JSON envelopes record `usage` and `total_cost_usd` to `.ravenclaude/runs/headless-usage.jsonl`. Absent fields are omitted. Prompt and result text are not logged. `total_cost_usd` is a client-side estimate; subscription accounting is unverified.
+- **`knowledge/headless-claude-calls.md`.** Call-shape, effort, cache prefix, batches, and the Console checklist for this plugin's own `claude -p` sites.
+- **Inventory entry** `headless-usage-sidecar-not-verdict`. The usage row is a sidecar file. The seat still prints its own verdict.
+
+## 0.352.3 — 2026-10-18
+
+### Fixed
+- **Host-hook projectors emitted shell-syntax-invalid commands (P0).** Since #1316 double-quoted the script path in `hooks.json`, `_extra_args` left a stray closing quote on every emitted Copilot/Cursor/Gemini/Codex hook command (`bash -n` rejected copilot 67/67, cursor 50/50, gemini 40/40, codex 15/36), silently disarming guardrails on fail-open lanes and blocking every matched tool call on fail-closed ones. Fixed the split in all four generators, added a `bash -n` command-syntax floor to each `--check`, and repaired the hollow Gate 158/160/165 teeth (a `$TMP`-located mutant died with `FileNotFoundError` before the mutation ran) that let it ship.
+- **A commented `# context_handoff:` block shadowed the real one (P1).** `context-usage-meter.py`'s `read_posture` matched a commented key as the block start, so the handoff nudge read `mode: off` and stayed inert whenever a real block followed a commented one. Dropped the leading-`#` match; default the block to empty when absent.
+- **The project-root walk-up loop hung on a relative cwd (P1).** `runaway-brake.sh`, `dod-gate.sh`, `guard-probe-validity.sh` and `thing-orchestrator.sh` spun forever when the payload cwd was relative (e.g. `.`, which the Copilot adapter can emit — `copilot-hook-adapter.sh:162` falls back to `"."`). Resolve a relative cwd to absolute and break on a fixed point.
+- **`routine-reserve.py` crashed on a malformed sample (P2).** A non-numeric `t` in a sample crashed `compute` and left the warn/guard hooks serving a stale `reserve.json`; coerce `t` in a try at the load boundary and drop the record.
+
 ## 0.352.2 — 2026-10-14
 
 ### Added

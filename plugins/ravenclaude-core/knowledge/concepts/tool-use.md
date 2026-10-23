@@ -6,18 +6,18 @@ kind: platform-fact
 order: 2
 summary: "A model can't act on its own — it asks for a tool by name, the harness runs it, and the result comes back as the next message. That request/result loop is every agent action."
 see_also: [agent-harness-loop, permission-layers]
-last_verified: 2026-08-24
+last_verified: 2026-10-20
 refresh_when: "Anthropic changes the tool-use request/result message shape, the tool_choice options, or the parallel-tool-call behavior."
 sources:
   - label: "Tool use (function calling) — Claude API"
-    url: "https://docs.claude.com/en/docs/build-with-claude/tool-use"
+    url: "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"
   - label: "Agent SDK — tools & permissions"
     url: "https://code.claude.com/docs/en/agent-sdk"
 ---
 
 A language model only produces **text**. It can't read a file, run a command, or call an API by itself. **Tool use** (also called *function calling*) is the bridge: you describe the available tools — each with a name, a description, and a JSON schema for its inputs — and the model, instead of answering in prose, emits a structured **tool-use request** naming one tool and the arguments to call it with.
 
-The model never runs anything. The **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.
+The model never runs anything. For client tools — the usual case — the **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. (Server tools such as web search run on Anthropic's infrastructure instead, with no handler code in your harness.) The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.
 
 Three details that bite:
 

@@ -77,7 +77,7 @@ The templates under [`spec-patterns/`](spec-patterns/) are the six most common
 surface-agnostic chart types. Each:
 
 - Uses `data: {"name": "source"}` + a `values` dummy for local test.
-- Is valid JSON (passes `python3 -m json.tool`).
+- Is valid JSON (passes `python3 -I -m json.tool`).
 - Passes `lint.py` with exit 0.
 - Includes a `description` field stating its intent.
 

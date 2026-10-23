@@ -54,7 +54,7 @@ RC_ADVISE_CAP="${RC_ADVISE_CAP:-9000}"
 
 rc_advise_emit() {                     # rc_advise_emit <EventName> <message>
   [ -n "${2:-}" ] || return 0
-  RC_ADV_EVENT="$1" RC_ADV_MSG="$2" RC_ADV_CAP="$RC_ADVISE_CAP" python3 -c '
+  RC_ADV_EVENT="$1" RC_ADV_MSG="$2" RC_ADV_CAP="$RC_ADVISE_CAP" python3 -I -c '
 import json, os
 ev   = os.environ["RC_ADV_EVENT"]
 msg  = os.environ["RC_ADV_MSG"]
@@ -113,7 +113,7 @@ rc_advise_flush() {
 if [ "${1:-}" = "--self-test" ]; then
   _fail=0
   _out="$(rc_advise_emit PostToolUse "hello world")"
-  printf '%s' "$_out" | python3 -c '
+  printf '%s' "$_out" | python3 -I -c '
 import json,sys
 d=json.load(sys.stdin)["hookSpecificOutput"]
 assert d["hookEventName"]=="PostToolUse", "event not echoed"
@@ -121,8 +121,8 @@ assert "hello world" in d["additionalContext"], "message lost"
 assert "RavenClaude guard notice" in d["additionalContext"], "banner missing"
 print("  OK   well-formed envelope, banner present, message intact")
 ' || _fail=1
-  _big="$(python3 -c 'print("x"*20000)')"
-  RC_ADVISE_CAP=100 rc_advise_emit PostToolUse "$_big" | python3 -c '
+  _big="$(python3 -I -c 'print("x"*20000)')"
+  RC_ADVISE_CAP=100 rc_advise_emit PostToolUse "$_big" | python3 -I -c '
 import json,sys
 c=json.load(sys.stdin)["hookSpecificOutput"]["additionalContext"]
 assert "TRUNCATED" in c, "⛔ truncation was SILENT"

@@ -26,6 +26,21 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
+# Hook-env: hooks re-find a native-installer `claude` in the PASSWD home's
+# ~/.local/bin when PATH has none. Gates that strip claude from PATH to test the
+# "claude missing" branch must not reach a real one there: turn the lookup off for
+# every gate (tests that exercise the lookup itself unset this explicitly).
+export RC_CLAUDE_HOME_LOOKUP=0
+
+# ── Live-session marker is NOT inherited by this harness's children (#1370) ──
+# thing-seat.sh treats CLAUDECODE as a live session and lets a THING_SEAT_MOCK_VERDICT
+# produce only deny/abstain (an allow/EDIT mock abstains). Run from inside a Claude
+# Code session, every mock-driven tribunal gate would then abstain and fail. This
+# harness is never a live session, so it unsets CLAUDECODE for ALL its own child
+# invocations. Real hooks are unaffected: the orchestrator still passes
+# --live-session to its seats whenever the hook payload carries transcript_path,
+# and Claude Code sets CLAUDECODE afresh for every real hook process.
+unset CLAUDECODE
 
 # ── Shared: pinned actionlint resolver (Gate 10 + Gate 188) ──────────────────
 # ONE resolver, reused — do NOT re-solve. Called by Gate 10 AND Gate 188 (and
@@ -378,8 +393,10 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # suite of its own; renumbered from 282 at THIS merge — origin/main
       # independently claimed 282 for claude-launch-safeguard while this
       # branch was unmerged, same "no better-fit suite" reasoning as
-      # 173/175/193/194/267-281 above).
-      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289"
+      # 173/175/193/194/267-281 above). 306 (headless claude -p call shape — a
+      # repo-wide call-site lint, no better fit than core), 307 (the headless
+      # usage recorder's self-test + teeth — same generic-self-test family).
+      echo "1 2 8 18 46 47 92 129 173 175 193 194 195 226 267 268 269 270 271 272 273 274 275 276 277 278 279 280 281 282 283 284 287 288 289 301 302 306 307 317"
       ;;
     security)
       # Gaps: 24 (Track B Engine Foundation — defines DECP, consumed by
@@ -387,7 +404,10 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # boundary), 48 (WebFetch sanitizer), 50/54 (Phase-0 emit+scrub /
       # R-PRIV never-capture — the run-context-capture pipeline's own
       # secret-scrub floor).
-      echo "7 24 25 48 50 54 98 101 127 142 143 156 159 169 170 199 203 209"
+      # 304/305: AppSec hook-env hardening — the static launch-line gate and the
+      # behavioural test (planted PATH/BASH_ENV/LD_PRELOAD/THING_SEAT_*, guard B,
+      # seat-child lock C, missing pre-tool record D).
+      echo "7 24 25 48 50 54 98 101 127 142 143 156 159 169 170 199 203 209 304 305"
       ;;
     ratchet)
       echo "132 237 238 239 240 241 242 243"
@@ -407,7 +427,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # nudge), 216/228/229 (worktree/session/update hygiene cluster), 217
       # (managed-solution-import — same plugins/power-platform/hooks/tests/
       # home as 124/125).
-      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 53c 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293 295 296 297 298 299"
+      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 53c 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293 295 296 297 298 299 300"
       ;;
     portal)
       # Gap: 27 (consumer-dashboard repo-scoped guard — serve-dashboards.py,
@@ -434,8 +454,9 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # Gate 14 is already in), 102 (claude-orchestrate.sh — the script that
       # spawns `claude -p` for panel seats; tribunal infrastructure, not a
       # generic hook), 196 (every regex in the Thing's own concern/
-      # denial-resolution catalogs compiles).
-      echo "14 15 17 21 22 28 31 33 60 102 137 177 179 190 196 197"
+      # denial-resolution catalogs compiles), 303 (THING_SEAT_* mock-verdict
+      # source gate — the tribunal seat's own test-hook trust boundary).
+      echo "14 15 17 21 22 28 31 33 60 102 137 177 179 190 196 197 303"
       ;;
     hosts)
       # Gaps: 26 (Codespace auto-setup — a host environment), 80 (the
@@ -1214,6 +1235,7 @@ PY
       rc=0
       bash plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh || rc=$?
       python3 scripts/check-covers-completeness.py --check || rc=$?
+      python3 scripts/check-covers-completeness.py --self-test || rc=$?
       rc_mustfail python3 scripts/check-covers-completeness.py || rc=$?
       exit $rc
       ;;
@@ -2084,9 +2106,61 @@ PY
       rc_mustfail python3 scripts/check-hook-root-quoted.py || exit $?
       exit 0
       ;;
+    300)
+      echo "── Gate 300: dashboard-prompt.sh (unconfigured-project dashboard prompt; per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate300-dashboard-prompt.sh
+      exit $?
+      ;;
+    301)
+      echo "── Gate 301: directory edition of ravenclaude-core (per-gate run) ──"
+      python3 scripts/check-directory-edition.py
+      exit $?
+      ;;
+    302)
+      echo "── Gate 302: repo file budget (Claude Code Directory 10,000-file limit; per-gate run) ──"
+      python3 scripts/check-repo-file-budget.py
+      exit $?
+      ;;
+    303)
+      echo "── Gate 303: mock-verdict source gate (marker + project-settings plant + live-session; per-gate run) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh || rc=$?
+      python3 plugins/ravenclaude-core/hooks/tests/test-decide-mock-source.py || rc=$?
+      exit $rc
+      ;;
+    304)
+      echo "── Gate 304: hardened hook launch line (every hooks.json command; per-gate run) ──"
+      rc=0
+      python3 scripts/check-hook-launch-line.py --check || rc=$?
+      python3 scripts/check-hook-launch-line.py --self-test || rc=$?
+      rc_mustfail python3 scripts/check-hook-launch-line.py || rc=$?
+      exit $rc
+      ;;
+    305)
+      echo "── Gate 305: hook env hardening (planted env, env-integrity guard, seat-child lock, pre-tool record; per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh
+      exit $?
+      ;;
+    306)
+      echo "── Gate 306: headless claude -p call shape (--strict-mcp-config or a reasoned exemption; per-gate run) ──"
+      rc=0
+      python3 scripts/check-headless-call-shape.py || rc=$?
+      python3 scripts/check-headless-call-shape.py --self-test || rc=$?
+      rc_mustfail python3 scripts/check-headless-call-shape.py || rc=$?
+      exit $rc
+      ;;
+    307)
+      echo "── Gate 307: headless usage recorder (derived values only, per-site hit rate; per-gate run) ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/headless-usage.py --self-test || rc=$?
+      rc_mustfail python3 plugins/ravenclaude-core/scripts/headless-usage.py || rc=$?
+      python3 plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py --self-test || rc=$?
+      rc_mustfail python3 plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2914,7 +2988,7 @@ thing_run() { # $1=mock-verdict $2=command -> prints the full hookSpecificOutput
   rm -rf "$SAGA"  # one Sága file per call, so `ls -t` ties never matter
   jq -cn --arg c "$2" --arg cwd "$G14" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit"}' \
-    | THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH14" 2>/dev/null
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH14" 2>/dev/null
 }
 thing_decision() { # $1=mock-verdict $2=command -> prints permissionDecision (or "none")
   local d
@@ -3051,7 +3125,7 @@ EOF
 t4_decision() { # $1=command -> permissionDecision (mock=allow, so a screen miss -> allow)
   jq -cn --arg c "$1" --arg cwd "$G15" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit"}' \
-    | THING_SEAT_MOCK_VERDICT=allow bash "$ORCH14" 2>/dev/null \
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT=allow bash "$ORCH14" 2>/dev/null \
     | jq -r '.hookSpecificOutput.permissionDecision // "none"'
 }
 # (a) curated injection payloads -> deny. Each leads with a shell_readonly command
@@ -3243,7 +3317,7 @@ printf 'schema_version: 5\ndecision_review: binding\n' > "$G17B/.ravenclaude/com
 printf 'schema_version: 5\n' > "$G17O/.ravenclaude/comfort-posture.yaml"
 decide_field() { # $1=mock $2=root $3=high_blast $4=field -> prints field value
   printf '{"question":"q?","context":"x","high_blast":%s}' "$3" \
-    | THING_DECIDE_MOCK_VERDICT="$1" python3 "$DECIDE17" --root "$2" decide 2>/dev/null \
+    | THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT="$1" python3 "$DECIDE17" --root "$2" decide 2>/dev/null \
     | jq -r ".$4 // empty"
 }
 # off mode (default) -> defer: nothing is auto-decided unless opted in
@@ -4081,7 +4155,7 @@ ORCH=plugins/ravenclaude-core/hooks/thing-orchestrator.sh
 t15_run() {  # $1=mock $2=cmd -> full hookSpecificOutput JSON (keeps the Sága)
   jq -cn --arg c "$2" --arg cwd "$G22" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit15"}' \
-    | THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH" 2>/dev/null
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH" 2>/dev/null
 }
 t15_dec() { t15_run "$1" "$2" | jq -r '.hookSpecificOutput.permissionDecision // "none"'; }
 t15_seatcount() { jq -r '.seats | length' "$(ls -t "$SAGA22"/*.json 2>/dev/null | head -1)" 2>/dev/null || echo "x"; }
@@ -4185,8 +4259,12 @@ cp -p "$TMP/plugins_ravenclaude-core_knowledge_concepts_visuals_.render-manifest
 # JSON read + file existence, no Chromium). Guards the stepper's build contract.
 rc=0; python3 - <<'PY' || rc=1
 import json, os, sys
+from pathlib import Path
+sys.path.insert(0, "scripts")
+import visual_pack as vp
 reg = json.load(open("plugins/ravenclaude-core/concepts.json"))
 vis = "plugins/ravenclaude-core/knowledge/concepts/visuals"
+packed = vp.read_concept_pack(Path(vis))  # the committed SVGs live in visuals.pack.json, not as 220 files
 stepped = [c for c in reg["concepts"] if c.get("steps")]
 if not stepped:
     sys.exit("no concept declares steps — expected at least the agent-harness-loop demonstrator")
@@ -4195,8 +4273,8 @@ for c in stepped:
         want = f"{vis}/{c['id']}.step-{i}.svg"
         if s["svg"] != f"knowledge/concepts/visuals/{c['id']}.step-{i}.svg":
             sys.exit(f"{c['id']}: steps[{i-1}].svg path wrong: {s['svg']}")
-        if not os.path.isfile(want):
-            sys.exit(f"{c['id']}: missing committed step SVG {want}")
+        if os.path.basename(want) not in packed:
+            sys.exit(f"{c['id']}: missing step SVG {os.path.basename(want)} in {vp.CONCEPT_PACK_NAME}")
 PY
 gate "stepper SVGs (each declared step has a committed .step-N.svg)" must_pass "$rc"
 
@@ -4219,6 +4297,30 @@ cp -p "$TMP/plugins_ravenclaude-core_knowledge_tree-visuals_.render-manifest.jso
 # NOTE: "clean tree must_pass" removed for the same reason as render-concepts above
 # — decision-tree SVGs self-heal post-merge (mermaid-cli render). The must_fail
 # detector above stays. See docs/best-practices/ci-gate-audit.md § "Self-healing artifacts".
+
+# visual_pack.py: the 1,019 per-file diagram SVGs are committed as 40 tree shards + 1 concept pack so the
+# repo stays under the Claude Code Directory's 10,000-file limit. These gates prove nothing was lost or
+# half-written: the pack formats and the page-side loader (driven under node), and the tree packs vs their
+# manifest — clean must pass, a shard with a member removed must fail.
+rc=0; python3 scripts/visual_pack.py --self-test >/dev/null 2>&1 || rc=$?
+gate "visual_pack self-test (formats, shard stability, loader JS)" must_pass "$rc"
+rc=0; python3 scripts/visual_pack.py --verify >/dev/null 2>&1 || rc=$?
+gate "tree packs match their manifest (clean tree)" must_pass "$rc"
+PACK1=plugins/ravenclaude-core/knowledge/tree-visuals/pack-01.js
+backup "$PACK1"
+python3 - <<'PY'
+import sys
+from pathlib import Path
+sys.path.insert(0, "scripts")
+import visual_pack as vp
+p = Path("plugins/ravenclaude-core/knowledge/tree-visuals/pack-01.js")
+m = vp.load_tree_shard(p.read_text(encoding="utf-8"))
+m.pop(sorted(m)[0])
+p.write_text(vp.dump_tree_shard(m), encoding="utf-8")
+PY
+rc=0; python3 scripts/visual_pack.py --verify >/dev/null 2>&1 || rc=$?
+gate "tree packs match their manifest (a member removed)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_knowledge_tree-visuals_pack-01.js.bak" "$PACK1"
 
 # generate-concepts-doc.py: a stale committed docs/concepts.md.
 backup docs/concepts.md
@@ -4270,7 +4372,7 @@ tb_dec() { # proj tool_name tool_input_json -> permissionDecision ("none" if no 
   local out
   out="$(jq -cn --arg tn "$2" --argjson ti "$3" --arg cwd "$1" \
     '{tool_name:$tn,tool_input:$ti,cwd:$cwd,session_id:"audit24"}' \
-    | THING_SEAT_MOCK_VERDICT="${4:-allow}" bash "$ORCH24" 2>/dev/null)"
+    | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="${4:-allow}" bash "$ORCH24" 2>/dev/null)"
   [ -z "$out" ] && { echo none; return; }
   printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // "none"'
 }
@@ -4322,7 +4424,7 @@ gate "tb: seat EDIT on a file shape coerced to DENY (#g)" must_pass "$rc"
 oversize_v="$(python3 -c "
 import json,sys
 sys.stdout.write(json.dumps({'tool_name':'Write','tool_input':{'file_path':'$G24F/src/big.txt','content':'x'*1100000},'cwd':'$G24F','session_id':'a24'}))" \
-  | THING_SEAT_MOCK_VERDICT=allow bash "$ORCH24" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecision // "none"')"
+  | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT=allow bash "$ORCH24" 2>/dev/null | jq -r '.hookSpecificOutput.permissionDecision // "none"')"
 rc=0; [ "$oversize_v" = "deny" ] || rc=1
 gate "tb: oversize (>1 MiB) payload fails closed -> deny (#c)" must_pass "$rc"
 # (j) cache non-collision: two distinct file paths yield distinct cache identities
@@ -4661,7 +4763,7 @@ printf '#!/usr/bin/env bash\nprintf "%%s\\n" "wrong/repo"\n' > "$G28DBAD/gh"; ch
 _orch28d() { # $1=stub_dir $2=command $3=mock-verdict -> permissionDecision
   jq -cn --arg c "$2" --arg cwd "$G28D" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"audit"}' \
-    | PATH="$1:$PATH" THING_SEAT_MOCK_VERDICT="$3" bash "$ORCH14" 2>/dev/null \
+    | PATH="$1:$PATH" THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$3" bash "$ORCH14" 2>/dev/null \
     | jq -r '.hookSpecificOutput.permissionDecision // "none"'
 }
 # force-push built by concatenation so the literal never reaches a live shell / hook
@@ -4925,12 +5027,12 @@ gate "route-decision-review (off -> allow)" must_pass "$rc"
 
 # binding + eligible yes/no + binding verdict -> deny (auto-resolve, no human ask).
 printf 'schema_version: 5\ndecision_review: binding\n' > "$DRROOT/.ravenclaude/comfort-posture.yaml"
-out="$(printf '%s' "$DR_ELIG" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
+out="$(printf '%s' "$DR_ELIG" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
 rc=0; [[ "$(_dr_decision "$out")" == "deny" ]] || rc=1
 gate "route-decision-review (binding yes/no -> auto-resolve/deny)" must_pass "$rc"
 
 # binding + multi-select -> allow (ineligible; the human answers).
-out="$(printf '%s' "$DR_MULTI" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
+out="$(printf '%s' "$DR_MULTI" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
 rc=0; [[ "$(_dr_decision "$out")" == "allow" ]] || rc=1
 gate "route-decision-review (multi-select -> allow)" must_pass "$rc"
 
@@ -4939,7 +5041,7 @@ gate "route-decision-review (multi-select -> allow)" must_pass "$rc"
 # semantics, not index: a positional map (pick=opt0) would tell the agent to
 # choose "No" on a yes verdict. The deny reason must name the "Yes" option.
 DR_REV='{"tool_name":"AskUserQuestion","cwd":"'"$DRROOT"'","tool_input":{"questions":[{"question":"Should we use tabs for indentation?","multiSelect":false,"options":[{"label":"No"},{"label":"Yes"}]}]}}'
-out="$(printf '%s' "$DR_REV" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
+out="$(printf '%s' "$DR_REV" | CLAUDE_PROJECT_DIR="$DRROOT" CLAUDE_PLUGIN_ROOT="$DRPR" THING_DECIDE_ALLOW_MOCK=1 THING_DECIDE_MOCK_VERDICT=yes bash "$DRR" 2>/dev/null || true)"
 rc=0
 [[ "$(_dr_decision "$out")" == "deny" ]] || rc=1
 # the rendered reason must instruct "choose the \"Yes\" option", never "No"
@@ -6969,6 +7071,156 @@ echo "── Gate 299: Explore agent override (read-only haiku + agent count) �
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate299-explore-agent-override.sh >/dev/null 2>&1 || rc=$?
 gate "explore-agent-override: read-only haiku Explore, 18-agent roster, projections, teeth" must_pass "$rc"
 
+echo "── Gate 300: dashboard-prompt.sh (unconfigured-project dashboard prompt) ──"
+# A new user was never told the dashboard exists: dashboard-autostart.sh stops at its
+# first line unless a posture file already exists, and the session banner names
+# dashboard TABS but never says "run /dashboard". dashboard-prompt.sh speaks ONLY
+# when .ravenclaude/comfort-posture.yaml is absent — one fixed-text line through
+# systemMessage (the person) and additionalContext (the agent), writing nothing and
+# starting nothing. Autostart was rejected as an undisclosed background server per
+# session. The test drives the REAL script: P1 prompt (both channels), P2 silent when
+# configured, P3 off-switch, P4 writes nothing, P5 edition wording (no bin/rc), P6
+# fail-safe, P7 no-egress of payload/env, P8 registered in hooks.json AND the dev-mirror,
+# and two teeth mutants (posture gate removed -> speaks when configured; stdin echo ->
+# caught by the P7 check).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate300-dashboard-prompt.sh >/dev/null 2>&1 || rc=$?
+gate "dashboard-prompt: prompt when unconfigured, silent when configured, writes nothing, no egress, registered, teeth" must_pass "$rc"
+
+echo "── Gate 301: directory edition of ravenclaude-core (Anthropic Directory submission) ──"
+# The Directory edition is a SMALLER build of the source plugin for strangers: it ships only agents,
+# skills, commands and hooks that docs/directory-edition/ravenclaude-core/manifest.json allow-lists with
+# a reason, and wraps every hook (except the one setup prompt) in hooks/posture-gate.sh so it does nothing
+# until a posture file exists. This gate builds it and refuses it unless its README and PRIVACY.md claims
+# hold: deterministic build, limits (<=512 files, no file over 256 KiB non-image, none over 5 MiB, no
+# symlinks), no bin/ monitors/ CLAUDE.md dashboard.html or `experimental`, README lists exactly the shipped
+# hooks, every network primitive in an executable classified, no secret-shaped string, and every shipped
+# hook MEASURED (scripts/directory-edition-hook-audit.py) inert with no posture file and safe under a
+# hostile one (no posture string executed, no claude, no network, no allow/updatedInput output, writes only
+# under .ravenclaude/, only allow-listed programs). Must-fail halves: an always-on hook behind the real
+# shim is inert and behind a shim without the posture test is not; real guard-destructive.sh is not
+# inert and real dod-gate.sh is not hostile-safe (it runs a command read from the posture file), so the
+# audit's payloads and seeds provably reach real triggers. `claude plugin validate --strict` and the
+# strace syscall lane run when their tools exist and are reported NOT RUN otherwise (not a pass);
+# RC_EDITION_REQUIRE_STRACE=1 makes strace's absence a failure.
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; DE_OUT="$(python3 scripts/check-directory-edition.py 2>&1)" || rc=$?
+  if [[ "$rc" -ne 0 ]]; then echo "$DE_OUT"; fi
+  gate "directory-edition: build, limits, structure, README parity, network, secrets, every hook inert + hostile-safe, must-fail halves" must_pass "$rc"
+else
+  _skip_or_fail "Gate 301 (directory-edition)" python3
+fi
+
+echo "── Gate 302: repo file budget (Claude Code Directory 10,000-file limit) ──"
+# The Directory stops validating a repo at 10,000 files, and this repo was at 10,883 until the 1,019 generated
+# diagram SVGs were packed (scripts/visual_pack.py). This gate keeps the count under FAIL_AT (9,990) so it
+# cannot drift back over one PR at a time: it must pass on the real tree and must FAIL when the count is pushed
+# over (--simulate-extra), and its own self-test covers the boundaries and the not-a-git-repo case (exit 2 =
+# NOT RUN, never a pass).
+if command -v python3 >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-repo-file-budget.py >/dev/null 2>&1 || rc=$?
+  gate "repo-file-budget: tracked files under the Directory's 10,000-file limit (clean tree)" must_pass "$rc"
+  rc=0; python3 scripts/check-repo-file-budget.py --simulate-extra 100000 >/dev/null 2>&1 || rc=$?
+  gate "repo-file-budget: fails when the count is pushed over (simulated files)" must_fail "$rc"
+  rc=0; python3 scripts/check-repo-file-budget.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "repo-file-budget: self-test (boundaries, teeth, not-a-git-repo is NOT RUN)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 302 (repo-file-budget)" python3 git
+fi
+
+echo "── Gate 303: mock-verdict source gate (THING_SEAT_* + THING_DECIDE_* test hooks; AppSec #1370) ──"
+# A cloned repo can plant THING_SEAT_* test hooks through the `env` block of its
+# .claude/settings.json (Claude Code exports it into every hook). thing-seat.sh, and
+# the orchestrator before fan-out, honour a mock only with THING_SEAT_ALLOW_MOCK=1,
+# no THING_SEAT_* key in the project-scope settings files (unparseable = planted),
+# and — under a live session — only a deny/abstain mock; any planted key unsets ALL
+# seat test hooks incl. RESOLVED_OVERRIDE. The test drives the real seat and
+# orchestrator against a stub `claude` (no live model) and carries its own
+# controls (clean project, unrelated env keys, harness override honoured).
+# Registered in the --check dispatcher, this main sequence, the Supported: string
+# and the `tribunal` suite. GREP THE SUITE OUTPUT FOR "Gate 303".
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-mock-verdict-source.sh >/dev/null 2>&1 || rc=$?
+gate "mock-verdict source: marker required, project plant ignored (fail closed), live session deny/abstain only" must_pass "$rc"
+# Decide half (THING_DECIDE_* hooks in thing-decide.py): the same marker / plant /
+# live-session rules, with a stub `claude` that always votes "no" so honoured mock,
+# real seat and abstain are three distinct verdicts. Carries its own teeth (the
+# planted attack resolves "yes" once the plant check is neutered).
+rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-decide-mock-source.py >/dev/null 2>&1 || rc=$?
+gate "decide mock source: marker required, project/--root plant ignored (fail closed), live session defer-only" must_pass "$rc"
+
+echo "── Gate 304: hardened hook launch line (AppSec hook-env) ──"
+# Claude Code exports a project's .claude/settings.json `env` block into every hook
+# and runs each command as `/bin/sh -c`. Every hooks.json command across
+# plugins/*/hooks/ must therefore start
+#   /usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD
+#   -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH
+#   -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin
+#   /bin/bash --noprofile --norc "${CLAUDE_PLUGIN_ROOT}/<script>"   (python: /usr/bin/python3 -I)
+# so a planted BASH_ENV / PATH / LD_PRELOAD never reaches our processes.
+# GREP THE SUITE OUTPUT FOR "Gate 304".
+rc=0; python3 scripts/check-hook-launch-line.py --check >/dev/null 2>&1 || rc=$?
+gate "hook-launch-line: every hooks.json command uses the hardened launch line" must_pass "$rc"
+rc=0; python3 scripts/check-hook-launch-line.py --self-test >/dev/null 2>&1 || rc=$?
+gate "hook-launch-line: self-test (prefix, interpreter, quoting, inherit-only-on-the-guard, no ; | \$( )" must_pass "$rc"
+rc=0; rc_mustfail python3 scripts/check-hook-launch-line.py || rc=$?
+gate "hook-launch-line: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+
+echo "── Gate 305: hook env hardening (AppSec hook-env) ──"
+# Drives the REAL hooks.json commands as Claude Code does (env + planted keys,
+# /bin/sh -c) in scratch repos with harmless markers and a stub claude: planted
+# PATH (fake jq/bash) / BASH_ENV / LD_PRELOAD / THING_SEAT_ACTIVE are denied by
+# env-integrity-guard.sh and never reach our processes; settings.local.json; malformed
+# / empty / unreadable settings fail closed; benign keys pass; inherited BASH_ENV /
+# LD_PRELOAD / PATH-without-/usr/bin are runtime-denied; THING_SEAT_ACTIVE alone never
+# disables review (only a 0600 seat-child lock + nonce does); a missing pre-tool
+# record is warned about. GREP THE SUITE OUTPUT FOR "Gate 305".
+if command -v jq >/dev/null 2>&1; then
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh >/dev/null 2>&1 || rc=$?
+  gate "hook-env hardening: planted env denied + never reaches hooks, lock-gated recursion guard, review-gap warning" must_pass "$rc"
+else
+  _skip_or_fail "Gate 305 (hook-env hardening)" jq
+fi
+
+echo "── Gate 306: headless claude -p call shape ──"
+# Every code site that runs `claude -p` passes --strict-mcp-config (keeps MCP tool
+# definitions out of the request prefix: ~211,798 vs ~3,470 input tokens measured in
+# docs/plans/2026-10-14-prompt-caching/analysis.md E9) or carries a reasoned
+# exemption in tests/fixtures/headless-call-shape-exemptions.json. Also rejects the
+# variadic `--tools "" <positional>` trap. A positive control fails the gate if
+# discovery stops finding the known sites. GREP THE SUITE OUTPUT FOR "Gate 306".
+if command -v python3 >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-headless-call-shape.py >/dev/null 2>&1 || rc=$?
+  gate "headless-call-shape: every claude -p site is lean or exempt with a reason" must_pass "$rc"
+  rc=0; python3 scripts/check-headless-call-shape.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "headless-call-shape: self-test (discovery, variadic trap, exemption staleness, positive control)" must_pass "$rc"
+  rc=0; rc_mustfail python3 scripts/check-headless-call-shape.py || rc=$?
+  gate "headless-call-shape: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 306 (headless-call-shape)" python3 git
+fi
+
+echo "── Gate 307: headless usage recorder (rc cache-report) ──"
+# plugins/ravenclaude-core/scripts/headless-usage.py records one DERIVED row per
+# headless claude -p envelope (token counts, cache split, cost estimate, stop
+# reason) and never the prompt or the model's result text. Its self-test pins that,
+# plus "a present 0 is kept, an absent field is omitted" and the overall and
+# per-site hit rate. --must-fail plants a recorder that also stores result text and
+# must be caught (exit 3). GREP THE SUITE OUTPUT FOR "Gate 307".
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 plugins/ravenclaude-core/scripts/headless-usage.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "headless-usage: self-test (no prompt/result text, present 0 kept, gaps omitted, per-site hit rate)" must_pass "$rc"
+  rc=0; rc_mustfail python3 plugins/ravenclaude-core/scripts/headless-usage.py || rc=$?
+  gate "headless-usage: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+  # subagent-ttl-advisor.py (rc ttl-advice) reads the dispatch ledgers and lists
+  # agents whose 5-60 minute re-dispatches beat the 1-hour cache-write break-even.
+  # --must-fail plants an advisor that ignores the break-even and must be caught.
+  rc=0; python3 plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "subagent-ttl-advisor: self-test (in-window gaps, break-even, names and numbers only)" must_pass "$rc"
+  rc=0; rc_mustfail python3 plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py || rc=$?
+  gate "subagent-ttl-advisor: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 307 (headless-usage)" python3
+fi
+
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"
 # knowledge/model-tier-delegation.md says delegation saves MONEY only when the
@@ -7680,7 +7932,12 @@ gate "copilot-hooks: every canonical hook wired or explicitly skipped" must_pass
 # must_fail: emptying the skip map must be CAUGHT, not silently tolerated. This is
 # the teeth for "explicitly skipped" — without it, the accounting could be
 # satisfied by a skip map that swallows anything.
-CPH_MUT="$TMP/generate-copilot-hooks-mutant.py"
+# The mutant MUST be repo-relative, NOT under $TMP: the generator resolves its
+# manifest via `_REPO = Path(__file__).parent.parent`, so a $TMP-located mutant
+# dies with FileNotFoundError at build() BEFORE --check runs, and this must_fail
+# would then pass for the WRONG reason (confirmed hollow 2026-10-14). scripts/.
+# keeps _REPO at the repo root, matching the aider mutant below; rm -f cleans up.
+CPH_MUT="scripts/.generate-copilot-hooks-mutant.py"
 python3 - "$CPH_MUT" <<'PYX'
 import re, sys, pathlib
 src = pathlib.Path("scripts/generate-copilot-hooks.py").read_text()
@@ -7689,7 +7946,20 @@ out = re.sub(r"_SKIP = \{.*?\n\}", "_SKIP = {}", src, count=1, flags=re.S)
 pathlib.Path(sys.argv[1]).write_text(out)
 PYX
 rc=0; python3 "$CPH_MUT" --check >/dev/null 2>&1 || rc=$?
+rm -f "$CPH_MUT"
 gate "copilot-hooks teeth: an emptied skip map is caught" must_fail "$rc"
+
+# Command-syntax floor teeth: appending a stray quote to _extra_args makes every
+# emitted command end in an unterminated quote (the exact PR #1316 regression);
+# --check's bash -n round-trip must catch it. chr(34) avoids embedding a literal
+# quote in the sed replacement. A no-match (anchor drift) leaves the copy
+# unchanged, --check then passes, and must_fail fails LOUD — never hollow.
+CPH_MUT2="scripts/.generate-copilot-hooks-cmdsyntax-mutant.py"
+sed 's|return tail.replace(_ARGV_TOKEN, "").strip()|return tail.replace(_ARGV_TOKEN, "").strip() + chr(34)|' \
+  scripts/generate-copilot-hooks.py >"$CPH_MUT2"
+rc=0; python3 "$CPH_MUT2" --check >/dev/null 2>&1 || rc=$?
+rm -f "$CPH_MUT2"
+gate "copilot-hooks teeth: a stray-quote _extra_args regression is caught by bash -n" must_fail "$rc"
 
 echo
 echo "── Gate 159: Cursor hook adapter — deny is unbreakable on a fail-OPEN host ─"
@@ -7710,7 +7980,9 @@ echo "── Gate 160: Cursor hook projection — accounting + enforcement floor
 rc=0; python3 scripts/generate-cursor-hooks.py --check >/dev/null 2>&1 || rc=$?
 gate "cursor-hooks: every canonical hook wired or explicitly skipped, + enforcement present" must_pass "$rc"
 
-CUR_MUT="$TMP/generate-cursor-hooks-mutant.py"
+# Repo-relative mutant (see the copilot note above): a $TMP copy dies with
+# FileNotFoundError at build() before --check runs, making this teeth hollow.
+CUR_MUT="scripts/.generate-cursor-hooks-mutant.py"
 python3 - "$CUR_MUT" <<'PYX'
 import re, sys, pathlib
 src = pathlib.Path("scripts/generate-cursor-hooks.py").read_text()
@@ -7720,6 +7992,7 @@ out = src.replace('if "Bash" not in matcher:', 'if True:')
 pathlib.Path(sys.argv[1]).write_text(out)
 PYX
 rc=0; python3 "$CUR_MUT" --check >/dev/null 2>&1 || rc=$?
+rm -f "$CUR_MUT"
 gate "cursor-hooks teeth: a lane that enforces NOTHING is caught" must_fail "$rc"
 
 echo
@@ -7823,7 +8096,9 @@ echo "── Gate 165: Gemini hook projection — accounting + enforcement floor
 rc=0; python3 scripts/generate-gemini-hooks.py --check >/dev/null 2>&1 || rc=$?
 gate "gemini-hooks: all hooks accounted for, matchers translated, enforcement present" must_pass "$rc"
 
-GEM_MUT="$TMP/generate-gemini-hooks-mutant.py"
+# Repo-relative mutant (see the copilot note above): a $TMP copy dies with
+# FileNotFoundError at build() before --check runs, making this teeth hollow.
+GEM_MUT="scripts/.generate-gemini-hooks-mutant.py"
 python3 - "$GEM_MUT" <<'PYX'
 import sys, pathlib
 src = pathlib.Path("scripts/generate-gemini-hooks.py").read_text()
@@ -7834,6 +8109,7 @@ out = src.replace("                gem_event, mode = _EVENT[event]",
 pathlib.Path(sys.argv[1]).write_text(out)
 PYX
 rc=0; python3 "$GEM_MUT" --check >/dev/null 2>&1 || rc=$?
+rm -f "$GEM_MUT"
 gate "gemini-hooks teeth: a lane that enforces NOTHING is caught" must_fail "$rc"
 
 echo "── Gate 166: Copilot agent tools — least privilege survives projection ────"
@@ -9885,6 +10161,9 @@ rc=0
 python3 scripts/check-covers-completeness.py --check >/dev/null 2>&1 || rc=$?
 gate "covers[] completeness: no nuance names a path its digest does not watch" must_pass "$rc"
 rc=0
+python3 scripts/check-covers-completeness.py --self-test >/dev/null 2>&1 || rc=$?
+gate "covers-completeness skips git-ignored paths and still flags tracked ones" must_pass "$rc"
+rc=0
 rc_mustfail python3 scripts/check-covers-completeness.py >/dev/null 2>&1 || rc=$?
 gate "covers-completeness declares its must-fail convention AND honours it" must_pass "$rc"
 rc=0
@@ -11424,6 +11703,37 @@ if command -v python3 >/dev/null 2>&1; then
   gate "claude-launch-safeguard: P1/P2 self-tests + P3 discriminator conjunct-3 mutant teeth" must_pass "$rc"
 else
   _skip_or_fail "Gate 282 (claude-launch-safeguard)" python3
+fi
+
+echo "── Gate 317: 2026-10-20 review regression cases (core / scripts / domain) ──"
+# One case per fixed finding from the 2026-10-20 autonomous repo review (PR
+# #1389): core skills/monitors/launcher (C-*), marketplace root scripts + CI
+# (D-*, plus the A/B ones that live in root-adjacent tooling), and the domain
+# calculators + hooks (H-*). Every case was shown to FAIL against the pre-fix
+# tree at authoring time (each script takes --root <pre-fix copy>; the revert
+# evidence is in the review doc's per-package notes). Exit 2 = a case could not
+# run (missing node/perl/pgrep), which fails the gate rather than passing it.
+# Numbered 317 to clear PR #1387's 310-316; placed after Gate 282 and added
+# only to the `core` suite so it does not collide with #1387's hunks.
+if command -v python3 >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
+  # Filenames spelled out literally (not built from a loop variable): the
+  # inventory sweep's call-graph probe finds a caller by the literal filename.
+  for _rv in scripts/check-review-2026-10-20-core.py \
+    scripts/check-review-2026-10-20-scripts.py \
+    scripts/check-review-2026-10-20-domain.py \
+    plugins/team-portfolio/scripts/test_portfolio.py \
+    plugins/web-design/scripts/test_web_design_checks.py; do
+    rc=0; RV_OUT="$(python3 "$_rv" 2>&1)" || rc=$?
+    # On failure, print every FAIL / NOT RUN line before the tail: the tail alone
+    # can cut off the failing case, as it did when C-17 failed only on CI's Python.
+    if [[ "$rc" -ne 0 ]]; then
+      echo "$RV_OUT" | grep -E '^ +(FAIL|NOT RUN) ' || true
+      echo "$RV_OUT" | tail -n 20
+    fi
+    gate "2026-10-20 review regressions (${_rv##*/})" must_pass "$rc"
+  done
+else
+  _skip_or_fail "Gate 317 (2026-10-20 review regressions)" "python3 + node"
 fi
 
 # CLI-contract spot checks (PR-C hard constraints). Deliberately does NOT

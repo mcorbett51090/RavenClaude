@@ -1279,7 +1279,7 @@ def main() -> int:
     )
     p.add_argument(
         "--judge-model",
-        default="claude-haiku-4-5-20251001",
+        default="claude-haiku-5-5",
         help="judge model id (default: Haiku 4.5)",
     )
     args = p.parse_args()

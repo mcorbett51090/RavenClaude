@@ -91,7 +91,7 @@ decision(){ printf '%s' "$1" | jq -r '.hookSpecificOutput.permissionDecision // 
 # ONLY the propagated exit status (an abort-mutant aborts non-zero by design);
 # stdout — the verdict JSON we assert on — is still captured. Without it `set -e`
 # would kill the test on the (intentional) FM2 fault-injection runs.
-run_mock() { fresh; payload "$2" | THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH" 2>/dev/null || true; }
+run_mock() { fresh; payload "$2" | THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH" 2>/dev/null || true; }
 # Drive the REAL orchestrator with NO mock but a stub claude (→ real seat exit 5).
 run_stub() { fresh; payload "$1" | PATH="$STUB:$PATH" bash "$ORCH" 2>/dev/null || true; }
 
@@ -116,7 +116,7 @@ PY
 run_mutant() { # $1=mutant $2=mock ($2="" -> stub claude) $3=cmd
   fresh
   if [ -n "$2" ]; then
-    payload "$3" | CLAUDE_PLUGIN_ROOT="$PLUGIN" THING_SEAT_MOCK_VERDICT="$2" bash "$1" 2>/dev/null || true
+    payload "$3" | CLAUDE_PLUGIN_ROOT="$PLUGIN" THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$2" bash "$1" 2>/dev/null || true
   else
     payload "$3" | CLAUDE_PLUGIN_ROOT="$PLUGIN" PATH="$STUB:$PATH" bash "$1" 2>/dev/null || true
   fi
@@ -127,7 +127,7 @@ run_mutant() { # $1=mutant $2=mock ($2="" -> stub claude) $3=cmd
 run_mutant_ec() { # $1=mutant $2=mock $3=cmd -> the exit code
   fresh
   local ec=0
-  payload "$3" | CLAUDE_PLUGIN_ROOT="$PLUGIN" THING_SEAT_MOCK_VERDICT="$2" bash "$1" >/dev/null 2>&1 || ec=$?
+  payload "$3" | CLAUDE_PLUGIN_ROOT="$PLUGIN" THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$2" bash "$1" >/dev/null 2>&1 || ec=$?
   echo "$ec"
 }
 

@@ -48,7 +48,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -145,8 +147,12 @@ def install(catalog: dict[str, dict], config: Path, wanted_raw: str) -> int:
         print(f"  available: {', '.join(sorted(catalog))}", file=sys.stderr)
         return 1
 
-    original = config.read_text(encoding="utf-8") if config.is_file() else ""
+    # Read the bytes, not text: text mode translates CRLF to LF, so a CRLF config.toml
+    # would be rewritten to LF while this tool claims it only appends.
+    original = config.read_bytes().decode("utf-8") if config.is_file() else ""
     present = existing_servers(original)
+    crlf = original.count("\r\n")
+    nl = "\r\n" if crlf and crlf * 2 > original.count("\n") else "\n"
 
     blocks: list[str] = []
     added: list[str] = []
@@ -156,6 +162,12 @@ def install(catalog: dict[str, dict], config: Path, wanted_raw: str) -> int:
             # and a duplicate table is a TOML error besides.
             print(f"  = {name} already configured — left untouched")
             continue
+        if "config" not in catalog[name]:
+            print(
+                f"  catalog entry {name!r} is missing its 'config' key",
+                file=sys.stderr,
+            )
+            return 1
         try:
             blocks.append(render_server(name, catalog[name]["config"]))
         except ValueError as e:
@@ -175,8 +187,9 @@ def install(catalog: dict[str, dict], config: Path, wanted_raw: str) -> int:
     )
     new_text = original
     if new_text and not new_text.endswith("\n"):
-        new_text += "\n"
-    new_text += banner + "\n" + "\n".join(blocks)
+        new_text += nl
+    # Append in the file's own newline style (the banner and blocks are built with "\n").
+    new_text += (banner + "\n" + "\n".join(blocks)).replace("\n", nl)
 
     # THE SAFETY PROPERTY, asserted rather than promised.
     if not new_text.startswith(original):
@@ -191,11 +204,16 @@ def install(catalog: dict[str, dict], config: Path, wanted_raw: str) -> int:
             print(f"  refusing to write: result does not parse as TOML — {e}", file=sys.stderr)
             return 1
     else:
-        print("  WARNING: no TOML parser available; wrote without verification",
-              file=sys.stderr)
+        print("  WARNING: no TOML parser available; wrote without verification", file=sys.stderr)
 
     config.parent.mkdir(parents=True, exist_ok=True)
-    config.write_text(new_text, encoding="utf-8")
+    # Write bytes (no newline translation) to a temp file, then replace: a crash can never
+    # leave a half-written config.toml, and an existing file keeps its permissions.
+    tmp = config.with_name(config.name + ".tmp")
+    tmp.write_bytes(new_text.encode("utf-8"))
+    if config.is_file():
+        shutil.copymode(config, tmp)
+    os.replace(tmp, config)
     for name in added:
         by = ", ".join(catalog[name].get("shipped_by") or []) or "?"
         print(f"  + {name} ({catalog[name].get('party', 'unstated')}, from {by})")

@@ -56,7 +56,7 @@ Usage:
     python3 scripts/capture-run-context.py --project-root /path/to/repo
 
     # Provide the model explicitly (else read from $CLAUDE_MODEL, else degraded).
-    python3 scripts/capture-run-context.py --model claude-opus-4-8
+    python3 scripts/capture-run-context.py --model claude-opus-5-5
 
     # Self-test: assert the allowlist has zero env fields + the bundle is well
     # formed against a temp fixture. Exit 0 = healthy, nonzero = contract broken.
@@ -362,11 +362,11 @@ def run_check() -> int:
         (root / ".ravenclaude" / "comfort-posture.yaml").write_text(
             "schema_version: 5\nglobal_default: ask\n", encoding="utf-8"
         )
-        b2 = build_bundle(root, model_arg="claude-opus-4-8")
+        b2 = build_bundle(root, model_arg="claude-opus-5-5")
         if b2.get("capture_method") != "auto":
             print("CHECK FAIL: populated fixture should be auto, not degraded", file=sys.stderr)
             ok = False
-        if b2.get("model") != "claude-opus-4-8":
+        if b2.get("model") != "claude-opus-5-5":
             print("CHECK FAIL: model not captured", file=sys.stderr)
             ok = False
         if b2.get("plugin_versions", {}).get("demo-plugin") != "1.2.3":
@@ -393,7 +393,7 @@ def run_check() -> int:
         (root / ".ravenclaude" / "comfort-posture.yaml").write_text(
             "schema_version: 5\ncategories:\n  network: ask\n", encoding="utf-8"
         )
-        b3 = build_bundle(root, model_arg="claude-opus-4-8")
+        b3 = build_bundle(root, model_arg="claude-opus-5-5")
         if b3.get("posture_label") != "balanced":
             print(
                 "CHECK FAIL: posture file present but keyless should derive to "

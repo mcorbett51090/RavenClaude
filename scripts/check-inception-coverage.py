@@ -74,7 +74,13 @@ def added_artifacts(root: Path, base: str) -> tuple[list[str], str | None]:
     mb, how = _resolve_merge_base(root, base)
     if not mb:
         return [], f"{how} — the added set is UNKNOWN, not empty"
-    rc, out = _git(root, "diff", "--name-only", "--diff-filter=A", mb)
+    # --diff-filter=ACR, not A alone: a file MOVED or COPIED into a gated root
+    # (git mv) is a newly-shipped artifact for coverage purposes, but shows up as
+    # a Rename/Copy, not an Add — so `A` alone silently let a rename-in bypass the
+    # forcing function. Matches the sibling precedent in check-layout.py:93 (same
+    # concern, same fix). --name-only prints the destination path for R/C, which is
+    # what GATED_ROOTS matches against below.
+    rc, out = _git(root, "diff", "--name-only", "--diff-filter=ACR", mb)
     if rc != 0:
         return [], "git diff failed — the added set is UNKNOWN, not empty"
     hits = []
@@ -190,8 +196,11 @@ def main() -> int:
         # one commit, no remote, no merge commit, and GITHUB_BASE_REF cleared.
         with tempfile.TemporaryDirectory() as _td:
             _r = Path(_td)
-            for _cmd in (["init", "-q"], ["config", "user.email", "t@t"],
-                         ["config", "user.name", "t"]):
+            for _cmd in (
+                ["init", "-q"],
+                ["config", "user.email", "t@t"],
+                ["config", "user.name", "t"],
+            ):
                 subprocess.run(["git", "-C", str(_r), *_cmd], check=False, timeout=60)
             (_r / "seed.txt").write_text("x\n", encoding="utf-8")
             subprocess.run(["git", "-C", str(_r), "add", "-A"], check=False, timeout=60)

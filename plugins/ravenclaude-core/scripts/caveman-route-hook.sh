@@ -108,6 +108,23 @@ _run_hook() {
         "${out#SIGNAL }" 0 2>/dev/null || true
       ;;
   esac
+
+  # ---- AppSec hook-env: live mode applies through caveman-apply-mode.sh, which
+  # needs `node`; under the hardened (pinned) hook PATH an nvm / npm-prefix node is
+  # not found and the apply was a silent no-op (status=noop-no-node). Say so, once
+  # per session: systemMessage + stderr + <runtime>/missing-tools.log.
+  if ! command -v node >/dev/null 2>&1 &&
+    grep -Eq '^[[:space:]]*caveman_routing:[[:space:]]*live[[:space:]]*$' "$posture" 2>/dev/null; then
+    # shellcheck source=/dev/null
+    [ -f "$hooks_dir/_rc-runtime.sh" ] && . "$hooks_dir/_rc-runtime.sh" 2>/dev/null
+    if command -v _rc_tool_missing >/dev/null 2>&1; then
+      _rc_system_message "$(_rc_tool_missing node caveman-route-hook.sh \
+        "caveman_routing is live but the caveman mode switch was not applied" \
+        "$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)")"
+    else
+      echo "[RavenClaude] WARNING: node not found on the hook PATH - caveman-route-hook.sh: caveman_routing is live but the caveman mode switch was not applied" >&2
+    fi
+  fi
   return 0
 }
 

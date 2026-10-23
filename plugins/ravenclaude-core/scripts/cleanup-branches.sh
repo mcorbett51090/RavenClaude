@@ -184,7 +184,7 @@ for b in "${branches[@]}"; do
   # SOUND, gh-free local proof of merged-ness (fast-forward / merge-commit), so
   # it stands on its own even when gh is unavailable.
   if [ -z "$reason" ]; then
-    if git merge-base --is-ancestor "$b" "$default_branch" 2>/dev/null; then
+    if git merge-base --is-ancestor "refs/heads/$b" "$default_branch" 2>/dev/null; then
       reason="all commits in $default_branch"
     fi
   fi
