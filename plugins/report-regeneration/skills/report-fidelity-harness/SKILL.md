@@ -67,9 +67,11 @@ Optional flags:
 
 - `--taint taint.json` — override the taint dictionary (default: derive the old-artifact literals
   from the template's documented `TAINT DICTIONARY` block).
-- `--disable-leg V4` (repeatable) — neuter a leg. This is the **must-fail mutant knob**: a
-  disabled leg reports `pass` unconditionally, so a test can prove the *enabled* leg has real
-  teeth (defect caught with it on, slips with it off).
+- `--disable-leg V4` (repeatable) — neuter a leg. This is the **test-only must-fail mutant
+  knob**: it is refused (exit `2`) unless `RR_HARNESS_ENABLE_DISABLE_LEG=1` is set, and the Python
+  API ignores it without that flag. A disabled leg reports verdict `disabled`, never `pass`, and
+  forces the overall gate off `PASS` (a blocking disabled leg makes it `FAIL`), so a test can prove
+  the *enabled* leg has real teeth without the mutant ever green-lighting a delivery.
 - `--ttl <seconds>` / `--pretty`.
 
 **Exit codes:** `0` = PASS or PARTIAL (no blocking failure), `1` = FAIL (a blocking leg fired),

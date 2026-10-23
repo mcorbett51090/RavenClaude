@@ -115,6 +115,47 @@ def main():
           approx(did["DR-B"]["billings"], 36000.0) and approx(did["DR-B"]["recognized"], 3000.0))
     check("overall deferred-revenue schedule reports ties=True", dr["ties"] is True)
 
+    print("P12 — sign symmetry: a credit memo (negative amount) negates the positive schedule (A-10)")
+    def _row(kind, total):
+        if kind == "prepaid":
+            return {"prepaid_id": "X", "description": "d", "total_amount": str(total),
+                    "term_months": "12", "start_month": "2026-01"}
+        return {"contract_id": "X", "description": "d", "billing_amount": str(total),
+                "term_months": "12", "start_month": "2026-01"}
+
+    def _negates(kind, pos_total):
+        fn = se.prepaid if kind == "prepaid" else se.deferred_revenue
+        keys = ("opening_balance", "ending_balance", "monthly_amount",
+                "additions" if kind == "prepaid" else "billings",
+                "amortization" if kind == "prepaid" else "recognized")
+        ok = True
+        for per in ("2025-12", "2026-01", "2026-02", "2026-06", "2026-11", "2026-12", "2027-01"):
+            pos = fn([_row(kind, pos_total)], per)["items"][0]
+            neg = fn([_row(kind, -pos_total)], per)["items"][0]
+            ok = ok and all(approx(neg[k], -pos[k]) for k in keys)
+        return ok
+
+    for kind in ("prepaid", "deferred-revenue"):
+        check(f"{kind}: -1,200 over 12 months is the row-by-row negation of +1,200 (every period)",
+              _negates(kind, 1200.0))
+        check(f"{kind}: -1,000.00 over 12 months (rounding remainder) negates +1,000.00",
+              _negates(kind, 1000.0))
+    neg_pre = se.prepaid([_row("prepaid", -1200.0)], "2026-12")
+    neg_item = neg_pre["items"][0]
+    pos_full = se.prepaid([_row("prepaid", 1200.0)], "2026-12")["items"][0]["full_schedule"]
+    check("negative prepaid: final period ending is 0 and the item ties",
+          approx(neg_item["ending_balance"], 0.0) and neg_item["tie_ok"] and neg_pre["ties"])
+    check("negative prepaid: first period amortizes ONE month (-100), not the whole total",
+          approx(se.prepaid([_row("prepaid", -1200.0)], "2026-01")["items"][0]["amortization"], -100.0))
+    check("negative prepaid: full_schedule is the exact negation of the positive one, ends at 0",
+          all(approx(n[k], -p[k]) for n, p in zip(neg_item["full_schedule"], pos_full)
+              for k in ("opening", "addition", "drawdown", "closing"))
+          and approx(neg_item["full_schedule"][-1]["closing"], 0.0)
+          and approx(sum(r["drawdown"] for r in neg_item["full_schedule"]), -1200.0))
+    mixed = se.deferred_revenue([_row("deferred", 1200.0), _row("deferred", -300.0)], "2026-06")
+    check("a credit memo mixed with an invoice still ties as a portfolio (net 900 billed)",
+          mixed["ties"] is True and approx(mixed["rollforward"]["ending"], 450.0))
+
     print("P12 — CLI + --strict blocking")
     r = py("depreciation", "--assets", FA, "--period", PERIOD)
     check("CLI depreciation runs (rc0) and emits ties=true JSON",

@@ -1,4 +1,5 @@
 import { defineMiddleware } from "astro:middleware";
+import { serverEnv } from "./lib/mint-cube-token";
 
 // CSP for the no-iframe (direct-API) Cube embed pattern — see
 // ../skills/embed-csp-and-iframe-sandboxing/SKILL.md "Cube (with custom
@@ -17,7 +18,8 @@ import { defineMiddleware } from "astro:middleware";
 // to a constant) — a production build without CUBE_API_ORIGIN set at BUILD
 // time would ship a CSP pointing at localhost:4000 forever, regardless of
 // what's set at deploy/runtime. process.env sidesteps Vite's static-replace
-// plugin entirely (it only targets import.meta.env.*).
+// plugin entirely (it only targets import.meta.env.*). Read through
+// serverEnv() so `astro dev` also sees a value set only in .env (review E-2).
 //
 // ⛔ CUBE_API_ORIGIN must be scheme+host[:port] ONLY — no path, query, or
 // fragment, e.g. "https://cube.client-domain.com". Validated below via
@@ -81,7 +83,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   context.locals.cspNonce = nonce;
 
-  const cubeApiOrigin = safeOrigin(process.env.CUBE_API_ORIGIN, "http://localhost:4000");
+  const cubeApiOrigin = safeOrigin(serverEnv("CUBE_API_ORIGIN"), "http://localhost:4000");
   const csp = buildCsp(cubeApiOrigin, nonce);
   const response = await next();
 

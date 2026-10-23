@@ -1177,10 +1177,11 @@ const voted = (
         // source-quality tier configured with fewer votes than REFUTATIONS_REQUIRED
         // (verify_policy is operator/classifier-set independently of knobs.refutations_required,
         // with no cross-field validation) doesn't have every claim unconditionally killed —
-        // rcdr-verify-quorum-kills-low-vote-tier.
-        let survives =
-          valid.length >= Math.min(voteCount, REFUTATIONS_REQUIRED) &&
-          refutedCount < REFUTATIONS_REQUIRED;
+        // rcdr-verify-quorum-kills-low-vote-tier. The KILL threshold is capped the same
+        // way: uncapped, a 1-vote tier's lone refuting vote (1 < 2) let the claim
+        // SURVIVE, and Synthesize then had no non-refuted verdict to quote.
+        const killThreshold = Math.min(voteCount, REFUTATIONS_REQUIRED);
+        let survives = valid.length >= killThreshold && refutedCount < killThreshold;
 
         // Optional escalation: if any voter returned confidence:low, fire one
         // additional vote at verify_judgment tier (gap-delta C4 / A4).
@@ -1207,7 +1208,7 @@ const voted = (
             valid.push(extra);
             if (extra.refuted) {
               const newRefuted = valid.filter((v) => v.refuted).length;
-              survives = newRefuted < REFUTATIONS_REQUIRED;
+              survives = valid.length >= killThreshold && newRefuted < killThreshold;
             }
             escalated = true;
           }
@@ -1319,9 +1320,12 @@ _phaseStart("synthesize");
 const confRank = { high: 0, medium: 1, low: 2 };
 const block = confirmed
   .map((c, i) => {
+    // Fall back to the first verdict (then to a placeholder) so Synthesize can never
+    // throw on a confirmed claim that has no non-refuted verdict.
     const best = c.verdicts
       .filter((v) => !v.refuted)
-      .sort((a, b) => confRank[a.confidence] - confRank[b.confidence])[0];
+      .sort((a, b) => confRank[a.confidence] - confRank[b.confidence])[0] ||
+      c.verdicts[0] || { confidence: "unknown", evidence: "(no verifier evidence)" };
     return (
       "### [" +
       i +

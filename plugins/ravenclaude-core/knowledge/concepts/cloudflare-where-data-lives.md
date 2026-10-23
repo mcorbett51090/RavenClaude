@@ -51,7 +51,7 @@ The load-bearing one is not a size: _"Each individual D1 database is inherently 
 
 Object storage, S3-API-compatible, and the differentiator is one line: **"Egress (data transfer to Internet)" is "Free."** No per-GB bandwidth bill for serving what you stored. That single fact is what makes user-uploaded media, public downloads, dataset hosting and video segments viable at a price S3 can't match, and it is the reason to migrate even when nothing else about R2 is better for you.
 
-You pay for storage and operations instead: **$0.015/GB-month** standard ($0.01 for Infrequent Access), **Class A $4.50/million** (writes and lists — `PutObject`, `ListObjects`, `CopyObject`, multipart), **Class B $0.36/million** (reads — `GetObject`, `HeadObject`). Deletes are free. The free tier is 10 GB-month plus 1M Class A and 10M Class B operations per month. The practical shape: **writes cost 12× what reads cost**, so batch uploads and stop listing a bucket on every page load.
+You pay for storage and operations instead: **$0.015/GB-month** standard ($0.01 for Infrequent Access), **Class A $4.50/million** (writes and lists — `PutObject`, `ListObjects`, `CopyObject`, multipart), **Class B $0.36/million** (reads — `GetObject`, `HeadObject`). Deletes are free. The free tier is 10 GB-month plus 1M Class A and 10M Class B operations per month. The practical shape: **writes cost 12.5× what reads cost**, so batch uploads and stop listing a bucket on every page load.
 
 ### KV — fast reads, and the trap
 

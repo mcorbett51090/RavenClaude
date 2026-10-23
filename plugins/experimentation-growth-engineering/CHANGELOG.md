@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-2 experiment_calc mde searches up to 1 - p1, not min(p, 1 - p)
+
 ## [0.3.4] — 2026-08-14
 
 ### Changed

@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.6] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-5 escalate application Mail/Calendars/Contacts grants that carry no .All
+
 ## [0.4.5] — 2026-08-28
 
 Weekly research sweep. Graph v1.0 `driveItem: PUT /content` simple-PUT ceiling is **250 MB**, not the legacy OneDrive-REST ~4 MB; decision tree, best-practice, and workloads agent corrected. ~10 MiB recommended upload-session threshold and 4 MiB / 320 KiB chunk guidance left untouched. Verified 2026-08-28 against MS Learn [`driveitem-put-content?view=graph-rest-1.0`](https://learn.microsoft.com/graph/api/driveitem-put-content?view=graph-rest-1.0). **Migration:** none — knowledge-file content only.

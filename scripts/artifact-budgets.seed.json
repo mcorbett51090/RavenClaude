@@ -111,6 +111,11 @@
         "subagent-ttl-advisor inventory entry (core 0.358.0, Gate 242 inception fix)",
         33200,
         "core 0.358.0 adds scripts/subagent-ttl-advisor.py (rc ttl-advice) and inventory concept subagent-ttl-advisor-in-window-gaps covering it, required by Gate 242. Regenerated dashboard.html measures 33,170 island payload elements, over the prior 33,150 ceiling by 20. Inventory entry ships no mermaid block. Pure content-size raise, not a DOM control. Re-measured on this branch head; appended, never edited."
+      ],
+      [
+        "platform-fact re-verification + 2026-10-20 review (core 0.358.5, PR #1389)",
+        33210,
+        "Owner-approved on PR #1389. The four concepts only this PR re-verified (hook-lifecycle, permission-layers, permission-modes, session-start-context) added 30 island elements over main (33,175). Offsets taken first, all in this PR: duplicate same-URL sources merged in three concepts and a broken empty code span in runaway-brake fixed (-4 elements); a fourth merge was dropped to stay inside the 20-concept render cap. Measured 33,201, over the prior 33,200 by 1. No byte raise: the v5 theme block (render-concepts.py :is() grouping, computed styles proven identical in Chromium) cut dashboard.html to 10,927,528 bytes, 82,472 under its ceiling. Appended, never edited."
       ]
     ],
     "index.html": [
@@ -440,5 +445,5 @@
       ]
     ]
   },
-  "measured_against": "bfce04d57697b84b2254d49b9717622c696781a2"
+  "measured_against": "b9d66a367b4ff64bf96575d1bca114507f1df167"
 }

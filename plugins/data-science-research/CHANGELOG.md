@@ -3,6 +3,12 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.3.1 — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-13 fix dead and blind grep -E checks in four advisory hooks (riders H-11, H-12, H-14)
+
 ## 0.3.0 — 2026-10-19
 
 New skill — the EDA visualization step gets a lookup helper.

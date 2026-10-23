@@ -35,6 +35,7 @@ import argparse
 import datetime as _dt
 import json
 import os
+import re
 import sys
 from collections import defaultdict
 
@@ -42,12 +43,12 @@ from collections import defaultdict
 _BAD_OUTCOMES = {"fail", "flake"}
 _VALID_OUTCOMES = {"pass", "fail", "flake"}
 
-# Filename substrings used to auto-classify a test file's level in pyramid_ratio --dir.
-_LEVEL_HINTS: dict[str, tuple[str, ...]] = {
-    "e2e": ("e2e", "end2end", "end-to-end", ".cy.", "playwright", "cypress"),
-    "integration": ("integration", "_it", ".it.", "contract"),
-    "unit": ("unit", ".spec.", ".test.", "_test"),
-}
+# Whole-word tokens (a path segment or filename split on non-alphanumerics) used to
+# auto-classify a test file's level in pyramid_ratio --dir. They are matched against the
+# path RELATIVE to --dir, never against ancestor directory names, and as whole tokens, so
+# `/home/x_it/proj/tests/unit/test_a.py` is a unit test: `_it` in an ancestor is not a hint.
+_E2E_TOKENS = frozenset({"e2e", "end2end", "playwright", "cypress"})
+_INTEGRATION_TOKENS = frozenset({"integration", "it", "contract"})
 _TEST_FILE_MARKERS = (".test.", ".spec.", "_test", "test_", ".cy.", ".it.")
 
 
@@ -170,6 +171,18 @@ def run_flake_rate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _classify_level(rel_path: str) -> str:
+    """Classify a test file's level from its path relative to the scanned root."""
+    lowered = rel_path.replace(os.sep, "/").lower()
+    name = lowered.rsplit("/", 1)[-1]
+    tokens = {t for t in re.split(r"[^a-z0-9]+", lowered) if t}
+    if tokens & _E2E_TOKENS or "end-to-end" in lowered or ".cy." in name:
+        return "e2e"
+    if tokens & _INTEGRATION_TOKENS:
+        return "integration"
+    return "unit"  # a generic test marker, or an explicit unit hint
+
+
 def _count_tests_in_dir(root: str) -> dict[str, int]:
     """Walk a directory and classify each test file into unit/integration/e2e."""
     counts = {"unit": 0, "integration": 0, "e2e": 0}
@@ -178,13 +191,8 @@ def _count_tests_in_dir(root: str) -> dict[str, int]:
             lower = fname.lower()
             if not any(marker in lower for marker in _TEST_FILE_MARKERS):
                 continue
-            rel = os.path.join(dirpath, fname).lower()
-            level = "unit"  # default when only a generic test marker matches
-            for candidate in ("e2e", "integration", "unit"):
-                if any(hint in rel for hint in _LEVEL_HINTS[candidate]):
-                    level = candidate
-                    break
-            counts[level] += 1
+            rel = os.path.relpath(os.path.join(dirpath, fname), root)
+            counts[_classify_level(rel)] += 1
     return counts
 
 

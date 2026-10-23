@@ -87,7 +87,10 @@ _BANDS = {
 
 
 def _yn(s: str) -> bool:
-    """Parse a yes/no/true/false flag. 'unknown' is treated as yes (fail-safe)."""
+    """Parse a yes/no/true/false flag. 'unknown' is treated as yes (fail-safe).
+
+    Not used for --auth-required: there 'yes' LOWERS urgency, so see _auth_required().
+    """
     v = s.strip().lower()
     if v in {"yes", "y", "true", "t", "1"}:
         return True
@@ -97,6 +100,18 @@ def _yn(s: str) -> bool:
         # Fail safe toward higher urgency when reachability/exposure is unknown.
         return True
     raise argparse.ArgumentTypeError(f"expected yes/no/unknown, got {s!r}")
+
+
+def _auth_required(s: str) -> bool:
+    """Parse --auth-required with its OWN tri-state.
+
+    Requiring authentication moves the band from CRITICAL down to HIGH, so the fail-safe
+    reading of an unknown is the opposite of the other flags: 'unknown' means NO
+    authentication is known to be required (the higher-urgency band).
+    """
+    if s.strip().lower() in {"unknown", "u", "?"}:
+        return False
+    return _yn(s)
 
 
 def _band(cvss: float, reachable: bool, internet: bool, auth: bool, kev: bool) -> str:
@@ -118,7 +133,8 @@ def cmd_risk_band(a: argparse.Namespace) -> int:
         return 2
     reachable = _yn(a.reachable)
     internet = _yn(a.internet_exposed)
-    auth = _yn(a.auth_required)
+    auth = _auth_required(a.auth_required)
+    auth_unknown = a.auth_required.strip().lower() in {"unknown", "u", "?"}
     kev = _yn(a.kev)
     band = _band(a.cvss, reachable, internet, auth, kev)
     info = _BANDS[band]
@@ -128,7 +144,8 @@ def cmd_risk_band(a: argparse.Namespace) -> int:
     print(f"  CVSS base score    : {a.cvss}")
     print(f"  Reachable in usage : {'yes' if reachable else 'no'}")
     print(f"  Internet-exposed   : {'yes' if internet else 'no'}")
-    print(f"  Auth to trigger    : {'yes' if auth else 'no'}")
+    auth_note = " (unknown -> treated as none: fail-safe)" if auth_unknown else ""
+    print(f"  Auth to trigger    : {'yes' if auth else 'no'}{auth_note}")
     print(f"  KEV / known-exploited: {'yes' if kev else 'no'}")
     if a.epss is not None:
         print(f"  EPSS probability   : {a.epss:.2%} (tie-breaker within a band)")
@@ -207,7 +224,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="exposed to untrusted/internet input? yes/no/unknown",
     )
     rb.add_argument(
-        "--auth-required", default="yes", help="authentication required to trigger? yes/no/unknown"
+        "--auth-required",
+        default="unknown",
+        help="authentication required to trigger? yes/no/unknown. Default unknown, which is "
+        "treated as NO authentication (the higher-urgency, fail-safe reading)",
     )
     rb.add_argument(
         "--kev", default="no", help="on CISA KEV / known-exploited / public PoC? yes/no"

@@ -37,9 +37,9 @@ import statement_engine  # noqa: E402
 from close_state import CloseLedger  # noqa: E402
 
 
-def _fmt(n, cur="USD"):
+def _fmt(n, cur="USD", dash="—"):
     if n is None:
-        return "—"
+        return dash
     return f"{n:,.2f}"
 
 
@@ -76,6 +76,12 @@ def render_html(pkg: dict) -> str:
     cf = pkg["statements"].get("cash_flow")
     cf_block = ""
     if cf:
+        unrec_row = ""
+        if cf.get("unreconciled_difference") is not None:
+            unrec_row = (
+                "\n          <tr><td>Unreconciled difference (draft)</td>"
+                f"<td class='num'>{_fmt(cf['unreconciled_difference'])}</td></tr>"
+            )
         cf_block = f"""
       <section>
         <h2>Cash flow <span class="pill warn">{html.escape(cf['label'])}</span></h2>
@@ -84,7 +90,7 @@ def render_html(pkg: dict) -> str:
           <tr><td>Cash from operating</td><td class='num'>{_fmt(cf['cash_from_operating'])}</td></tr>
           <tr><td>Cash from investing</td><td class='num'>{_fmt(cf['cash_from_investing'])}</td></tr>
           <tr><td>Cash from financing</td><td class='num'>{_fmt(cf['cash_from_financing'])}</td></tr>
-          <tr class='subtotal'><td>Net change in cash</td><td class='num'>{_fmt(cf['net_change_in_cash'])}</td></tr>
+          <tr class='subtotal'><td>Net change in cash</td><td class='num'>{_fmt(cf['net_change_in_cash'], dash='n/a')}</td></tr>{unrec_row}
         </tbody></table>
       </section>"""
 
