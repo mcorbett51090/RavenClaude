@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.358.6 — 2026-10-20
+
+### Fixed
+- **The seven Foundations concepts are re-verified ahead of their 2026-11-23 expiry.** The concepts are `agent-harness-loop`, `context-window`, `mcp`, `model-selection`, `source-control-basics`, `subagents` and `tool-use`. A 90-day staleness gate would have blocked every PR from that date. Each `sources:` URL was re-fetched, and the surprising claims were checked against the raw pages. Corrections:
+  - `context-window`: a token is now roughly ½ to ¾ of a word, depending on the tokenizer. The models page: "1M tokens is roughly 555k words … on the current tokenizer"; earlier models fit about 750k.
+  - `mcp`: the remote transport is Streamable HTTP. "The SSE (Server-Sent Events) transport is deprecated."
+  - `model-selection`: a Fable tier now sits above Opus ("for demanding reasoning and long-horizon agentic work"), so Opus is no longer the most expensive tier.
+  - `tool-use`: server tools such as web search "run on Anthropic's infrastructure, with no handler code in your application". Only client tools run in your harness.
+  - `source-control-basics`: `guard-destructive.sh` blocks `git branch -D` on any branch and any force-push, not only on protected branches or `main`. `archive-branch.sh` is for abandoned or unmerged branches, because a merged branch needs no archive tag. That diagram label is corrected and re-rendered.
+  - Three moved `docs.claude.com` sources point at their current `platform.claude.com` pages. `agent-harness-loop` gains two sources that can be checked: its x.com source returns HTTP 402, so the Agent SDK loop page and the LangChain post carrying the quoted saying are added.
+- `last-mile-completion` listed one source URL twice. The pair is merged into one link that keeps both labels. This merge was held out of 0.358.5 by the 20-concept render cap.
+
 ## 0.358.5 — 2026-10-20
 
 ### Changed
