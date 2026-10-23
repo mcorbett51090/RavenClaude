@@ -165,7 +165,11 @@ elif [ "$nb" = 1 ] && [ "$ne" = 1 ]; then
     tmp="$(mktemp)"
     # Strip by LINE NUMBER (not content match) so nothing outside [bl,el] is lost.
     awk -v b="$bl" -v e="$el" 'NR < b || NR > e { print }' "$BASHRC" >"$tmp"
-    mv "$tmp" "$BASHRC"
+    # Write THROUGH the path, never `mv` over it: mv would replace a dotfile-
+    # manager symlink (stow/chezmoi) with a detached copy, and mktemp's 0600
+    # mode would replace the file's own. Redirecting keeps the link and mode.
+    cat "$tmp" >"$BASHRC"
+    rm -f "$tmp"
     log "Refreshed existing shell block in $BASHRC"
   else
     log "WARN: markers out of order in $BASHRC — leaving it untouched. Fix by hand, then re-run."

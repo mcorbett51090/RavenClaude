@@ -272,6 +272,148 @@ def test_schema_validator_rejects_a_bad_receipt():
     assert harness.validate_receipt(bad) != []
 
 
+def test_v2_checks_a_needs_review_node_apart_from_its_rebind_badge():
+    # B-2 binds more nodes as needs-review; V2 must still see an edit inside one (the D4 class),
+    # while rebind's own badge + data-rebind-* flag attributes stay licensed.
+    rh = _load("rebind_html_under_test", _SKILL_DIR.parent / "rebind-html" / "rebind_html.py")
+
+    def nr(anchor_id):
+        return {"node_id": anchor_id, "anchor": {"kind": "element_id", "value": anchor_id},
+                "class": "needs-review", "confidence": 0.6,
+                "provenance": {"source": "t", "source_period": None},
+                "data_query": {"kind": "none", "expression": "pending"}}
+
+    template = ('<html><body><p id="tag">100% Committed since 1998</p>'
+                '<img id="pic" src="a.png" alt="x"><p>chrome</p></body></html>')
+    manifest = {"manifest_version": "1", "rsg_schema_version": "1", "template_id": "t",
+                "format": "html", "bindings": [nr("tag"), nr("pic")]}
+    output, _changes, _n = rh.rebind(template, manifest, {})
+    t_root = harness.parse_html(template)
+    leg = harness.leg_v2(t_root, harness.parse_html(output), manifest, template)
+    assert leg["verdict"] == "pass", leg["evidence"]
+    for bad in (output.replace('id="tag"', 'id="tag" style="color: rgb(250,250,250);"'),
+                output.replace("100% Committed", "100% Totally Committed")):
+        leg = harness.leg_v2(t_root, harness.parse_html(bad), manifest, template)
+        assert leg["verdict"] == "fail", "V2 missed an edit inside a needs-review node"
+
+
+def test_v4_html_catches_a_raw_ungrouped_taint_number():
+    # B-3: a taint figure written raw (no $ / no grouping) survived V4 in every hidden channel.
+    taint = {"old_revenue_total": "$3,102,450"}
+    leaks = {
+        "data- attribute": '<html><body><div data-value="3102450">chart</div></body></html>',
+        "script JSON": '<html><body><script>var d={"rev":[3102450,2900000]};</script></body></html>',
+        "plain text": "<html><body><p>Revenue 3102450</p></body></html>",
+        "3102450.00": "<html><body><p>Revenue 3102450.00</p></body></html>",
+        "formatted visible (control)": "<html><body><p>Revenue $3,102,450</p></body></html>",
+    }
+    for name, text in leaks.items():
+        leg = harness.leg_v4(harness.parse_html(text), taint, text)
+        assert leg["verdict"] == "fail", f"V4 missed the raw taint figure in the {name}"
+    clean = '<html><body><p>Revenue $4,821,300</p><style>p{color:rgb(30,30,30)}</style></body></html>'
+    assert harness.leg_v4(harness.parse_html(clean), taint, clean)["verdict"] == "pass"
+
+
+def test_bad_input_encoding_or_json_is_exit_2_with_a_json_error_not_a_traceback():
+    # B-19: a crash used to exit 1 with no stdout, indistinguishable from a gate FAIL.
+    import subprocess
+    import sys
+
+    latin = _TMP / "latin1-template.html"
+    latin.write_bytes("<html><body><p>Caf\u00e9 report</p></body></html>".encode("cp1252"))
+    bad_manifest = _TMP / "malformed-manifest.json"
+    bad_manifest.write_text("{not json", encoding="utf-8")
+    for template, manifest in ((latin, _MANIFEST), (_CLEAN_OUTPUT, bad_manifest)):
+        proc = subprocess.run(
+            [sys.executable, str(_SKILL_DIR / "harness.py"), "--template", str(template),
+             "--output", str(_CLEAN_OUTPUT), "--manifest", str(manifest), "--new-data", str(_NEW_DATA)],
+            capture_output=True, text=True,
+        )
+        assert proc.returncode == 2, (proc.returncode, proc.stderr[-300:])
+        assert json.loads(proc.stdout)["ok"] is False
+        assert "Traceback" not in proc.stderr
+
+
+def test_taint_flag_accepts_the_build_manifest_taint_dict():
+    # B-4: build_manifest --taint-out writes taint-dict@1; feeding it to --taint crashed V4.
+    import subprocess
+    import sys
+
+    bm = _load("build_manifest_under_test", _SKILL_DIR.parent / "rebind-manifest" / "build_manifest.py")
+    taint_path = _TMP / "taint-dict.json"
+    taint_path.write_text(json.dumps(bm.build_taint_dictionary(_SAMPLE)), encoding="utf-8")
+    bad_path = _TMP / "bad-taint-dict.json"
+    bad_path.write_text(json.dumps({"schema": "report-regeneration/taint-dict@1", "values": [1]}),
+                        encoding="utf-8")
+
+    def run(taint_file):
+        return subprocess.run(
+            [sys.executable, str(_SKILL_DIR / "harness.py"), "--template", str(_SAMPLE),
+             "--output", str(_CLEAN_OUTPUT), "--manifest", str(_MANIFEST), "--new-data", str(_NEW_DATA),
+             "--taint", str(taint_file)],
+            capture_output=True, text=True,
+        )
+
+    proc = run(taint_path)
+    v4 = _legs(json.loads(proc.stdout))["V4"]
+    assert v4["verdict"] in ("pass", "fail"), v4["evidence"]  # V4 ran: no PROBE_ERROR
+    proc = run(bad_path)
+    assert proc.returncode == 2
+    assert "taint-dict@1" in json.loads(proc.stdout)["error"]
+
+
+def test_render_referee_leaves_no_scratch_screenshot_behind():
+    # B-22: every Playwright run left a full-page PNG of the report in the temp dir. Stubbed page.
+    referee = _load("render_referee_under_test", _SKILL_DIR / "render_referee.py")
+    written = []
+
+    class Page:
+        def on(self, *_a):
+            pass
+
+        def goto(self, *_a, **_k):
+            pass
+
+        def wait_for_timeout(self, *_a):
+            pass
+
+        def evaluate(self, *_a):
+            return []
+
+        def screenshot(self, path, **_k):
+            Path(path).write_bytes(b"\x89PNG report pixels")
+            written.append(path)
+
+        def close(self):
+            pass
+
+    class Browser:
+        def new_page(self):
+            return Page()
+
+    run = referee._render_once(Browser(), _CLEAN_OUTPUT, None, 1000)
+    assert written and not any(Path(p).exists() for p in written), "scratch screenshot left behind"
+    assert run["screenshot_path"] is None
+    kept = _TMP / "asked-for.png"
+    run = referee._render_once(Browser(), _CLEAN_OUTPUT, str(kept), 1000)
+    assert kept.exists() and run["screenshot_path"] == str(kept), "an asked-for screenshot is kept"
+
+
+def test_v1_locates_css_selector_bound_slots():
+    # B-29: V1 checked only element_id slots; a compound-selector slot left at its old value passed
+    # whenever the new value appeared anywhere else (the set-membership half).
+    manifest = {"bindings": [{
+        "node_id": "n", "anchor": {"kind": "css_selector", "value": "#k > span:nth-of-type(1)"},
+        "class": "surgical", "data_query": {"kind": "file-cell", "expression": "rev"}}]}
+    new_data = {"values": {"rev": {"value": "$2,000", "type": "currency"}}}
+    stale = '<html><body><div id="k"><span>$1,000</span></div><p>Total $2,000</p></body></html>'
+    leg = harness.leg_v1(harness.parse_html(stale), harness.parse_html(stale), manifest, new_data, stale)
+    assert leg["verdict"] == "fail", leg["evidence"]
+    fresh = '<html><body><div id="k"><span>$2,000</span></div><p>Total $2,000</p></body></html>'
+    leg = harness.leg_v1(harness.parse_html(fresh), harness.parse_html(fresh), manifest, new_data, fresh)
+    assert leg["verdict"] == "pass", leg["evidence"]
+
+
 # ── standalone runner (no pytest required) ─────────────────────────────────────
 
 def _main() -> int:

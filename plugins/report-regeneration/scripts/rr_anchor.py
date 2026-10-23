@@ -110,10 +110,12 @@ class _TreeBuilder(HTMLParser):
     def __init__(self, source: str) -> None:
         super().__init__(convert_charrefs=True)
         self._source = source
-        # line -> absolute char offset of that line's start (1-based lines, as html.parser reports)
+        # line -> absolute char offset of that line's start (1-based lines, as html.parser reports).
+        # B-8: split on '\n' ONLY — html.parser counts lines by '\n', whereas str.splitlines() also
+        # breaks on \r, \v, \f, \x1c-\x1e, \x85, U+2028/9 and would shift every later span.
         self._line_starts = [0]
-        for line in source.splitlines(keepends=True):
-            self._line_starts.append(self._line_starts[-1] + len(line))
+        for line in source.split("\n"):
+            self._line_starts.append(self._line_starts[-1] + len(line) + 1)
         self.root = _El("#document", {}, None)
         self._stack: list[_El] = [self.root]
 
@@ -343,6 +345,10 @@ def _resolve_el(document: _El, anchor: Any) -> _El:
     root_id, root_tag, steps = _parse_steps(value)
     if root_id is not None:
         cur = _find_by_id(document, root_id)
+        if cur is None and root_id == "document":
+            # B-9: infer roots a multi-root fragment's selectors at its synthetic '#document'
+            # umbrella. A real element with id="document" still wins (looked up first, above).
+            cur = document
         if cur is None:
             raise AnchorError(f"ancestor id={root_id!r} not found (selector {value!r})")
     else:
@@ -396,6 +402,28 @@ def exists(html: str, anchor: Any) -> bool:
         return try_resolve(html, anchor) is not None
     except AnchorError:
         return False
+
+
+def resolve_all(html: str, anchors: list) -> list:
+    """Resolve every anchor over ONE parse of `html`: a Node per anchor, or None where it names no
+    node. Raises AnchorError for an unparseable anchor (a bug, not an absence)."""
+    document = _build_tree(html)
+    nodes: list = []
+    for anchor in anchors:
+        kind, value = _normalize_anchor(anchor)
+        if kind == "selector":
+            _parse_steps(value)  # a malformed selector is a bug, not an absence: let it raise
+        try:
+            nodes.append(Node(_resolve_el(document, anchor)))
+        except AnchorError:
+            nodes.append(None)
+    return nodes
+
+
+def unresolved(html: str, anchors: list) -> list:
+    """The anchors (in order) that name no node in `html`, over ONE parse of the document. Raises
+    AnchorError for an unparseable anchor. (B-9: infer's self-check that what it emits resolves.)"""
+    return [a for a, node in zip(anchors, resolve_all(html, anchors)) if node is None]
 
 
 def document_path(html: str, anchor: Any) -> tuple[tuple[str, int], ...]:

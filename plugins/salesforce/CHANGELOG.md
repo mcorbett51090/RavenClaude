@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.6.6] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-4 apex_governor_smell follows a loop to its body across lines
+
 ## [0.6.5] — 2026-08-14
 
 ### Changed

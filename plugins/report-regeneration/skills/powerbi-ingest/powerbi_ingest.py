@@ -197,6 +197,22 @@ def infer_type_and_value(raw: Any) -> tuple:
     return "string", str(raw)
 
 
+# B-12: the only DAX this adapter runs is the shape rebind-manifest generates — a single
+# `EVALUATE ROW("<label>", [<measure>])` with DAX-escaped quoting ("" inside the label, ]] inside
+# the measure). Anything else in a dax-kind expression is refused before any query runs.
+_GENERATED_DAX = re.compile(r'EVALUATE ROW\("(?:[^"]|"")*", \[(?:[^\]]|\]\])*\]\)')
+
+
+def _check_generated_dax(bindings: list) -> None:
+    for b in bindings:
+        expr = b["data_query"]["expression"]
+        if not isinstance(expr, str) or not _GENERATED_DAX.fullmatch(expr):
+            raise IngestError(
+                f"binding {b.get('node_id', '<unknown>')!r}: refusing to run a DAX expression that is "
+                f'not the generated single-measure EVALUATE ROW("label", [Measure]) shape: {expr!r}'
+            )
+
+
 def _dax_bindings(bindings: list) -> list:
     out = []
     for b in bindings:
@@ -255,6 +271,7 @@ def ingest_data(manifest_path: Path, *, source_period: str | None = None,
 
     dax_bindings = _dax_bindings(bindings)
     receipt["bindings_dax"] = len(dax_bindings)
+    _check_generated_dax(dax_bindings)  # B-12: before any env lookup or query
     if not dax_bindings:
         receipt["reason"] = "manifest has no dax-kind bindings -- nothing to ingest from Power BI for this run"
         return receipt

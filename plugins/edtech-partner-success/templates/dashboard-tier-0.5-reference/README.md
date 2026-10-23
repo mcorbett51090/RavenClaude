@@ -68,7 +68,7 @@ python3 export-psm-dashboard.py \
 
 - **Snowflake SQL only.** No Postgres-isms. `QUALIFY`, `IFF`, `COUNT_IF`, `DATEDIFF('day', …)`, `DATE_TRUNC('week', …)`.
 - **No `priority_score` in dbt or in MetricFlow.** Tier 0 classifies it `derived_at_render`. The mart in this directory (`dbt-models-marts-priority-score.sql`) is a **reference** for an OPTIONAL warehouse-side computation — Codex MUST set `priority_score: null` in the export to honor the classification. The reference file ships so Codex can audit weight provenance vs the renderer.
-- **FERPA:** every field that could carry student data is annotated `-- FERPA:` in SQL and `# FERPA:` in Python. Default posture is mask + filter; opt-in surfaces require an explicit `--allow-real-ids` flag.
+- **FERPA:** every field that could carry student data is annotated `-- FERPA:` in SQL and `# FERPA:` in Python. The exporter itself does **no masking**: rows are written exactly as the marts emit them, so mask and filter in the dbt marts. `--allow-real-ids` only acknowledges that the bridge IDs are real and suppresses the exporter's stderr warning; it is not a masking switch. `--validate` needs `data.export.schema.json`; pass `--schema PATH` if it is not under a `bi-report/` directory above the script or the working directory (a missing schema exits 2 before any query runs).
 - **dbt-utils only.** No third-party dbt packages (`dbt_expectations`, etc.) — they accumulate maintenance debt across consumer envs.
 - **Export = stdlib + `snowflake-connector-python` only.** Tier 0.5 budget is one extra third-party dep for the snowflake connector + `jsonschema` for validation. No more.
 - **Cite the prior on every model.** Every file's header carries the lineage + the SKILL/knowledge source URL.

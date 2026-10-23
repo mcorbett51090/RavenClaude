@@ -2,6 +2,62 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.358.6 — 2026-10-20
+
+### Fixed
+- **The seven Foundations concepts are re-verified ahead of their 2026-11-23 expiry.** The concepts are `agent-harness-loop`, `context-window`, `mcp`, `model-selection`, `source-control-basics`, `subagents` and `tool-use`. A 90-day staleness gate would have blocked every PR from that date. Each `sources:` URL was re-fetched, and the surprising claims were checked against the raw pages. Corrections:
+  - `context-window`: a token is now roughly ½ to ¾ of a word, depending on the tokenizer. The models page: "1M tokens is roughly 555k words … on the current tokenizer"; earlier models fit about 750k.
+  - `mcp`: the remote transport is Streamable HTTP. "The SSE (Server-Sent Events) transport is deprecated."
+  - `model-selection`: a Fable tier now sits above Opus ("for demanding reasoning and long-horizon agentic work"), so Opus is no longer the most expensive tier.
+  - `tool-use`: server tools such as web search "run on Anthropic's infrastructure, with no handler code in your application". Only client tools run in your harness.
+  - `source-control-basics`: `guard-destructive.sh` blocks `git branch -D` on any branch and any force-push, not only on protected branches or `main`. `archive-branch.sh` is for abandoned or unmerged branches, because a merged branch needs no archive tag. That diagram label is corrected and re-rendered.
+  - Three moved `docs.claude.com` sources point at their current `platform.claude.com` pages. `agent-harness-loop` gains two sources that can be checked: its x.com source returns HTTP 402, so the Agent SDK loop page and the LangChain post carrying the quoted saying are added.
+- `last-mile-completion` listed one source URL twice. The pair is merged into one link that keeps both labels. This merge was held out of 0.358.5 by the 20-concept render cap.
+
+## 0.358.5 — 2026-10-20
+
+### Changed
+- **`dashboard.html` is 87 KB smaller (11,015,132 → 10,927,528 bytes).** Every concept diagram inlines its own theme `<style>` block, so that block's size multiplies by the 220 diagrams in the Learn tab. `render-concepts.py`'s `_theme_style` now groups same-type selectors with `:is()` (NORMALIZER_VERSION 4 → 5), and the id prefix repeats 19 times per block instead of 36. Only same-type arguments are grouped, so every element's specificity is unchanged. The committed SVGs were migrated by swapping the block in place, with no re-render. Chromium then compared computed styles before and after: 25,083 elements and 861 hover states, with zero differences. A planted colour change showed the comparison can fail.
+- Three concepts listed the same source URL twice, so each pair is merged into one link that keeps both labels (`source-control-basics`, `runes-ready-queue-oath-hook-longship`, `thing-hardening-edit-registry`).
+
+### Fixed
+- `runaway-brake`: the metacharacter list showed a stray backtick, an empty code box and two more backticks. The dashboard's markdown renderer has no double-backtick code spans, so the backtick is now written out in words.
+- **Ten platform-fact concepts re-verified against their live sources (CI time bomb).** On 2026-10-20 six concepts stamped `last_verified: 2026-07-21` crossed the 90-day platform-fact window, so `concepts.py --check` failed, and with it the real-corpus rows of Gates 237 and 239, which run on every PR. Four more (stamped 2026-07-28) would have done the same on 2026-10-27. Every `sources:` URL was fetched again and each claim checked; corrections where the vendor docs have moved:
+  - `cloudflare-what-runs-your-site`: the Worker size limit is now 64 MiB uncompressed on both plans ("There is no compressed size limit"), plus a 1 s startup limit. Compatibility dates on or after 2026-08-04 enable `nodejs_compat` by default. "Serving assets on a path" is a Workers capability, not a Pages-only one.
+  - `cloudflare-who-gets-in`: the Free plan gets the Free Managed Ruleset. It does not lack managed rules altogether.
+  - `cloudflare-where-data-lives`: the R2 Class A to Class B price ratio is 12.5×, and two quotes are re-sourced to the pages that carry them.
+  - `cloudflare-how-users-find-you`: two quotes that appear on no current DNS page are replaced with verbatim text from the DNS concepts page.
+  - `oauth-scope-cost`: sensitive-scope review is now "typically … 3-5 business days". Non-sensitive scopes "only require basic OAuth App Verification". Two diagram labels were updated to match.
+  - `hook-lifecycle`: `onFailure: "block"` (v2.1.295+) lets a `command` or `http` hook fail closed. Exit 0 takes no decision of its own.
+  - `permission-layers`: an absolute path in a rule is `//path`. A single `/` anchors at the settings source.
+  - `permission-modes`: `auto` is no longer a research preview. A project-level `defaultMode: "auto"` is ignored. The `plan` and `dontAsk` wording now matches the docs.
+  - `session-start-context`: the first response waits for SessionStart hooks to finish. The overflow rule is a 2,000-character preview.
+  - `subscription-billing-model`: no body change.
+
+  Only the two changed diagrams (`hook-lifecycle`, `oauth-scope-cost`) were re-rendered, so every other SVG in the pack stays byte-identical. `concepts.json`, `dashboard.html`, `index.html` and `docs/concepts.md` were regenerated.
+
+### Fixed (2026-10-20 autonomous repo review)
+
+Each fix was reproduced on the unmodified code first and carries a regression test that fails with the fix reverted. Most tests live in `scripts/check-review-2026-10-20-core.py`. Full write-up: `docs/reviews/2026-10-20-repo-review.md`.
+
+- D-2 workflow-hygiene Rule 1 fails `permissions: write-all`; quoted `uses:` classified correctly
+- C-1 repo-sweep requires a unique runId and refuses a reused findings dir
+- C-2 repo-sweep refuses a run whose agent() demand exceeds the cap
+- C-11 per-repo dashboard launcher stops only this repo's server
+- C-3 survivors with no verify verdict stay open, no false CONVERGED
+- C-7 monitors read new logs from line 1 and scope to the session
+- C-8 rc probe dns reads a dead resolver as INCONCLUSIVE, not a negative
+- C-9 an unbound hard-gate signal fails closed instead of going to the judge
+- C-13 keep_best ranks gate-green iterations first; a red emit escalates
+- C-14 setup-terminal-indicators writes through a symlinked ~/.bashrc
+- C-15 nested ._* AppleDouble files are excluded by pack and flagged by ZP07
+- C-16 mermaid_label strips structure before escaping, so entities keep their `;`
+- C-17 dv and pbir linters exit 2 on deeply nested JSON instead of crashing: an explicit, iterative 200-level depth cap, so the verdict is the same on Python 3.11, 3.12 and 3.13 (3.12+ parses far deeper JSON than 3.11, which made the first version of this fix pass locally and fail in CI)
+- C-18 fix_summary records malformed applied entries and marks a failed git diff
+- C-19 monitors resolve the newest log with one stat pass, not one per run dir
+- C-4 rc-deep-research caps the kill threshold at the vote count; Synthesize never throws
+- Concept restamps (cosmetic; the claims are unchanged): eight inventory entries whose covered files these fixes edited. The `run-state-monitor` concept and knowledge file now describe C-7's log selection.
+
 ## 0.358.4 — 2026-10-18
 
 ### Changed

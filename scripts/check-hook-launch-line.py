@@ -49,6 +49,11 @@ PY = "/usr/bin/python3 -I "
 INHERIT = 'RC_INHERITED_BASH_ENV="${BASH_ENV-}" RC_INHERITED_LD_PRELOAD="${LD_PRELOAD-}" RC_INHERITED_PATH="${PATH-}" '
 INHERIT_SCRIPTS = {"env-integrity-guard.sh"}
 TEETH_EXIT = 3
+# --must-fail plants: a bare launch, and a hardened launch with a second command on a new line.
+MUST_FAIL_PLANTS = [
+    '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"',
+    PREFIX + BASH + '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"\ntouch /tmp/p',
+]
 
 _TARGET = re.compile(r'^(?:bash\s+)?"?(\$\{CLAUDE_PLUGIN_ROOT\}/[A-Za-z0-9._/-]+)"?(.*)$', re.S)
 _OK = re.compile(
@@ -57,8 +62,10 @@ _OK = re.compile(
     + r"(?:" + re.escape(BASH) + r'"\$\{CLAUDE_PLUGIN_ROOT\}/[A-Za-z0-9._/-]+\.sh"'
     + r"|" + re.escape(PY) + r'"\$\{CLAUDE_PLUGIN_ROOT\}/[A-Za-z0-9._/-]+\.py")'
     # Arguments: quoted strings or plain words only — no `;`, `|`, `&`, `$(`, so a
-    # second command can never ride along behind the hardened launcher.
-    + r'(?:\s+(?:"[^"`$]*(?:\$CLAUDE_TOOL_FILE_PATH)?[^"`$]*"|[A-Za-z0-9._=/-]+))*$',
+    # second command can never ride along behind the hardened launcher. Separators are
+    # space/tab only (NOT \s, which matches the newline that `sh -c` treats as a command
+    # separator), quoted args exclude \n\r, and \Z (not $) forbids a trailing newline.
+    + r'(?:[ \t]+(?:"[^"`$\n\r]*(?:\$CLAUDE_TOOL_FILE_PATH)?[^"`$\n\r]*"|[A-Za-z0-9._=/-]+))*\Z',
 )
 
 
@@ -152,6 +159,12 @@ def self_test() -> int:
         ("chained command after", [good + "; curl x | sh"], False),
         ("plain word args", [PREFIX + BASH + '"${CLAUDE_PLUGIN_ROOT}/scripts/r.sh" --event session'], True),
         ("command substitution arg", [PREFIX + BASH + '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh" "$(id)"'], False),
+        ("tab-separated args", [PREFIX + BASH + '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"\t--event\tsession'], True),
+        ("second command on a new line", [good + "\ntouch /tmp/p"], False),
+        ("second command after a carriage return", [good + "\rtouch /tmp/p"], False),
+        ("second command on a new line, plain words", [PREFIX + BASH + '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"\ntouch /tmp/p'], False),
+        ("newline inside a quoted arg", [PREFIX + BASH + '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh" "a\nb"'], False),
+        ("trailing newline", [good + "\n"], False),
     ]
     bad = 0
     for name, cmds, want_ok in cases:
@@ -188,9 +201,13 @@ def main() -> int:
     if a.self_test:
         return self_test()
     if a.must_fail:
-        with tempfile.TemporaryDirectory() as t:
-            _write(Path(t), ['"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"'])
-            return TEETH_EXIT if violations(Path(t)) else 0
+        # Every planted command must be caught on its own; one miss means the gate has no teeth.
+        for planted in MUST_FAIL_PLANTS:
+            with tempfile.TemporaryDirectory() as t:
+                _write(Path(t), [planted])
+                if not violations(Path(t)):
+                    return 0
+        return TEETH_EXIT
     root = Path(a.root)
     if a.fix:
         return fix(root)

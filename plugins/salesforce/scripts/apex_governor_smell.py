@@ -33,9 +33,10 @@ from pathlib import Path
 
 APEX_SUFFIXES = (".cls", ".trigger", ".apex")
 
-# A line that opens a loop scope. We only need the keyword + an opening that leads
-# to a block; brace-depth tracking below decides where the loop body ends.
-_LOOP_RE = re.compile(r"\b(for|while|do)\b\s*[({]")
+# A loop keyword. Whether it really starts a loop is decided by what FOLLOWS it, which may
+# be on a later line: for/while need a '(' (so a lower-case SOQL `for update` is not a
+# loop), and the body is then a '{' block or, when no '{' follows, the next statement.
+_LOOP_KW_RE = re.compile(r"\b(for|while|do)\b")
 
 # SOQL inside Apex appears as a bracketed query: [ SELECT ... ] or [ FIND ... ].
 _SOQL_RE = re.compile(r"\[\s*(SELECT|FIND)\b", re.IGNORECASE)
@@ -96,72 +97,166 @@ def _record_segment(
         matched.add("dml-in-loop")
 
 
+def _flush(
+    findings: list[Finding],
+    matched: set[str],
+    path: str,
+    idx: int,
+    raw_line: str,
+    seg: list[str],
+    seg_in_loop: bool,
+) -> None:
+    """Score the finished segment under the state it was collected in, then clear it."""
+    if seg_in_loop:
+        _record_segment(findings, matched, path, idx, raw_line, "".join(seg))
+    seg.clear()
+
+
+class _PendingLoop:
+    """A loop keyword whose body has not been fully seen yet (it may span lines).
+
+    phase: "paren"  for/while, waiting for the '(' that opens the header
+           "header" inside the header parens (SOQL here is NOT in the loop)
+           "body"   header closed (or `do`): a '{' opens the body, a ';' means no body, any
+                    other character starts a brace-less single-statement body
+           "stmt"   inside that brace-less statement, up to its terminating ';'
+    """
+
+    __slots__ = ("phase", "parens", "start_depth")
+
+    def __init__(self, keyword: str) -> None:
+        self.phase = "body" if keyword == "do" else "paren"
+        self.parens = 0
+        self.start_depth = 0
+
+
 def scan_text(path: str, source: str) -> list[Finding]:
     """Return the SOQL/DML-in-loop findings for one Apex source string.
 
-    Per line we do a two-pass walk: as we track brace depth / loop scopes
-    character-by-character, we cut the line into segments at each brace that opens
-    a loop BODY. Content before a body-open is matched under the *pre-brace* loop
-    state (so a loop HEADER's own SOQL — the bulk-safe `for (a : [SELECT ...])`
-    single-query pattern — is NOT flagged), while content after the body-open is
-    matched under the now-active scope (so a single-line body like
-    `for (x : xs) { insert x; }` IS flagged). Segmenting on each body-open also
-    handles multiple/nested loop opens on one physical line.
+    We walk the source character by character, tracking brace depth and loop scopes, and
+    cut each line into segments at every point where the in-loop state changes. Content
+    before a body-open is matched under the *pre-brace* loop state (so a loop HEADER's own
+    SOQL -- the bulk-safe `for (a : [SELECT ...])` single-query pattern -- is NOT flagged),
+    while content after the body-open is matched under the now-active scope (so a
+    single-line body like `for (x : xs) { insert x; }` IS flagged).
+
+    A loop keyword stays pending across lines until its body is known: an Allman-style
+    '{' on the next line, a multi-line header, and a brace-less single-statement body
+    (`for (...) insert x;`) are all in-loop; a `do { } while (c);` terminator and a
+    lower-case SOQL `for update` are not loops.
     """
     cleaned = _strip_noise(source)
     lines = cleaned.split("\n")
     raw_lines = source.split("\n")
 
     findings: list[Finding] = []
-    # Stack of brace-depths at which an enclosing loop body began. While the stack
-    # is non-empty we are inside at least one loop.
+    # Stack of brace-depths at which an enclosing loop body began.
     loop_depths: list[int] = []
+    pending: list[_PendingLoop] = []  # innermost last
     depth = 0
 
+    def in_loop() -> bool:
+        return bool(loop_depths) or any(pl.phase == "stmt" for pl in pending)
+
     for idx, line in enumerate(lines):
-        # Positions where a loop-opening keyword begins on this line. Each such
-        # keyword's body is opened by the next '{' we encounter.
-        loop_starts = [m.start() for m in _LOOP_RE.finditer(line)]
-        ls_ptr = 0
-        pending_loops = 0
-
+        keywords = {m.start(): m.group(1) for m in _LOOP_KW_RE.finditer(line)}
         matched: set[str] = set()
+        ctx = (findings, matched, path, idx, raw_lines[idx])
         seg: list[str] = []
-        seg_in_loop = bool(loop_depths)
+        seg_in_loop = in_loop()
+        i = 0
+        while i < len(line):
+            char = line[i]
+            top = pending[-1] if pending else None
 
-        for i, char in enumerate(line):
-            # Register any loop-open keywords we have now reached; their body '{'
-            # follows, so we queue them as pending.
-            while ls_ptr < len(loop_starts) and loop_starts[ls_ptr] <= i:
-                pending_loops += 1
-                ls_ptr += 1
+            if i in keywords and (top is None or top.phase in ("body", "stmt")):
+                if top is not None and top.phase == "body":
+                    # The keyword starts the brace-less body statement of the loop above.
+                    _flush(*ctx, seg, seg_in_loop)
+                    top.phase = "stmt"
+                    top.start_depth = depth
+                    seg_in_loop = in_loop()
+                keyword = keywords[i]
+                pending.append(_PendingLoop(keyword))
+                seg.append(keyword)
+                i += len(keyword)
+                continue
+
+            if top is not None and top.phase == "paren":
+                if char == "(":
+                    top.phase, top.parens = "header", 1
+                elif not char.isspace():
+                    pending.pop()  # not a loop after all (e.g. SOQL `for update`)
+                    continue
+                seg.append(char)
+                i += 1
+                continue
+
+            if top is not None and top.phase == "header":
+                if char == "(":
+                    top.parens += 1
+                elif char == ")":
+                    top.parens -= 1
+                    if top.parens == 0:
+                        top.phase = "body"
+                elif char == "{":
+                    depth += 1  # e.g. `new Set<Id>{...}` literal inside the header
+                elif char == "}":
+                    depth -= 1
+                seg.append(char)
+                i += 1
+                continue
+
+            if top is not None and top.phase == "body":
+                if char == "{":
+                    # This brace opens the loop body. The segment before it (which includes
+                    # any loop-header SOQL) is scored under the pre-brace state; the body
+                    # after it is in-loop.
+                    _flush(*ctx, seg, seg_in_loop)
+                    pending.pop()
+                    loop_depths.append(depth)
+                    depth += 1
+                    seg_in_loop = in_loop()
+                    i += 1
+                    continue
+                if char == ";":
+                    pending.pop()  # `do {...} while (c);` terminator, or an empty loop
+                    seg.append(char)
+                    i += 1
+                    continue
+                if char == "}":
+                    pending.pop()  # malformed: no body before the enclosing block closed
+                    continue
+                if char.isspace():
+                    seg.append(char)
+                    i += 1
+                    continue
+                # First character of a brace-less single-statement body.
+                _flush(*ctx, seg, seg_in_loop)
+                top.phase = "stmt"
+                top.start_depth = depth
+                seg_in_loop = in_loop()
 
             if char == "{":
-                if pending_loops > 0:
-                    # This brace opens a loop body. The segment before it (which
-                    # includes any loop-header SOQL) is scored under the pre-brace
-                    # state; the body after it is in-loop.
-                    if seg_in_loop:
-                        _record_segment(findings, matched, path, idx, raw_lines[idx], "".join(seg))
-                    seg = []
-                    loop_depths.append(depth)
-                    pending_loops -= 1
-                    depth += 1
-                    seg_in_loop = bool(loop_depths)
-                else:
-                    depth += 1
-                    seg.append(char)
+                depth += 1
+                seg.append(char)
             elif char == "}":
                 depth -= 1
                 if loop_depths and loop_depths[-1] == depth:
-                    if seg_in_loop:
-                        _record_segment(findings, matched, path, idx, raw_lines[idx], "".join(seg))
-                    seg = []
+                    _flush(*ctx, seg, seg_in_loop)
                     loop_depths.pop()
-                    seg_in_loop = bool(loop_depths)
+                    seg_in_loop = in_loop()
                 seg.append(char)
             else:
                 seg.append(char)
+
+            # A brace-less body statement ends at its ';' (or when its block closes).
+            if char in ";}":
+                while pending and pending[-1].phase == "stmt" and depth <= pending[-1].start_depth:
+                    _flush(*ctx, seg, seg_in_loop)
+                    pending.pop()
+                    seg_in_loop = in_loop()
+            i += 1
 
         # Flush the trailing segment.
         if seg_in_loop:

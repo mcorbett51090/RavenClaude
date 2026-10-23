@@ -22,7 +22,10 @@ import node from "@astrojs/node";
 // a Workers-class adapter, also swap these reads to
 // `Astro.locals.runtime.env.X` (Cloudflare) or the equivalent platform
 // binding — do NOT restore an `import.meta.env` fallback, that reintroduces
-// the build-time freeze this fix closed. See README.md's CSP caveat too,
+// the build-time freeze this fix closed. (serverEnv()'s DEV_DOTENV map in
+// src/lib/mint-cube-token.ts is not that fallback: it is guarded by
+// import.meta.env.DEV with static keys, so `astro build` compiles it out and
+// no .env value reaches dist/.) See README.md's CSP caveat too,
 // before assuming middleware alone covers every response path on every
 // adapter.
 export default defineConfig({

@@ -9,7 +9,9 @@ The DEFAULT run proves the plan's hardest invariant:
     judge_needed=true → the judge runs AFTER the objective gates;
   - an objective evaluator that ERRORS (exit 2 / cannot run) is treated as RED +
     blocking — an objective gate never fails open;
-  - a signal with no bound command is NOT a silent pass — it becomes a judge dim;
+  - a HARD-GATE signal with no bound command (a missing or mistyped signals key)
+    fails CLOSED: RED, listed in objective_errors, zero judge calls;
+  - a non-gate signal with no bound command is NOT a silent pass — it becomes a judge dim;
   - objective dimension scores are populated (1.0 green / 0.0 red).
 
 A real "judge call" is modeled by a counter incremented ONLY when judge_needed is
@@ -130,11 +132,24 @@ def run_default(ev):
     _check("tests-pass" in env["objective_errors"], "the errored objective gate is recorded")
     _check(judge_calls == 0, "an evaluator error spends ZERO judge calls")
 
-    # no command bound for a signal → judge dim, NOT a silent pass
+    # no command bound for a HARD-GATE signal (a missing / mistyped signals key)
+    # → the gate fails CLOSED: RED, recorded as an objective error, 0 judge calls
     runner, _ = _runner_factory(exit_code=0)
-    env, _jc = _loop_once(ev, _rubric(), {}, runner)  # empty signals map
-    _check("tests-pass" not in env["hard_gates"],
-           "an unbound objective signal is not silently marked a passing hard gate")
+    env, judge_calls = _loop_once(ev, _rubric(), {"lint-cmnd": ["true"]}, runner)  # typo'd key
+    _check(env["hard_gates"].get("tests-pass") is False,
+           "an unbound hard-gate signal is recorded as a RED hard gate (fails closed)")
+    _check(env["red_hard_gates"] == ["tests-pass"] and "tests-pass" in env["objective_errors"],
+           "the unbound hard gate is named red and listed in objective_errors")
+    _check("unbound objective signal" in env["reason"], "the reason says the signal is unbound")
+    _check(env["judge_needed"] is False and judge_calls == 0,
+           "an unbound hard gate spends ZERO judge calls (not demoted to the judge)")
+
+    # no command bound for a NON-hard-gate signal → judge dim, NOT a silent pass
+    soft = _rubric()
+    soft["dimensions"][0]["hard_gate"] = False
+    env, _jc = _loop_once(ev, soft, {}, runner)  # empty signals map
+    _check("tests-pass" not in env["hard_gates"] and "tests-pass" in env["judge_dimensions"],
+           "an unbound non-gate signal becomes a judge dimension, not a silent pass")
 
     # all judge dims, no hard gates green-or-red → still judge (no objective gate to block)
     judge_only = {

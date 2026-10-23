@@ -6,7 +6,7 @@ kind: platform-fact
 order: 21
 summary: "Trial → first charge → renewal. Webhooks are at-least-once and unordered, so provisioning needs an event-ID ledger and a per-state guard — and a $0 invoice is not a payment."
 see_also: [silent-green-defects, oauth-scope-cost]
-last_verified: 2026-07-21
+last_verified: 2026-10-20
 refresh_when: "Stripe changes its webhook delivery guarantee (at-least-once / unordered), changes the invoice.paid + status:active provisioning rule, stops creating a zero-amount invoice for trial subscriptions, or renames the lifecycle events."
 sources:
   - label: "Stripe — Receive Stripe events in your webhook endpoint (duplicates, ordering)"
