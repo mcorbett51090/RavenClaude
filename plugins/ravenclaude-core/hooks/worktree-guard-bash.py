@@ -5,7 +5,10 @@ exit 0 = no out-of-tree write found; 3 = out-of-tree write (reason on stdout).
 Any other exit / exception => caller fails CLOSED.
 Shell parsing here is BEST-EFFORT (no eval, vars/globs/subshell tricks can
 evade it). The real backstop is the bwrap sandbox write allowlist."""
-import os, re, shlex, sys
+import os
+import re
+import shlex
+import sys
 
 root, cwd = os.path.realpath(sys.argv[1]), sys.argv[2]
 cmd = sys.stdin.read()
@@ -54,7 +57,7 @@ for s in segs:
         # inline (-c/-e) or heredoc/stdin programs: look for absolute/home path literals used in writes
         if any(t in ("-c", "-e", "-E", "--eval", "-") for t in toks) or "<<" in s or "<<HEREDOC" in s:
             pass
-for m in re.finditer(r"(?:python[0-9.]*|node|perl|ruby)\b[^\n]*?(?:\s-[ceE]\s|\s-\s|<<)", cmd):
+for _m in re.finditer(r"(?:python[0-9.]*|node|perl|ruby)\b[^\n]*?(?:\s-[ceE]\s|\s-\s|<<)", cmd):
     # best-effort: any quoted absolute/~ path literal in the whole command that looks write-ish
     if re.search(r"open\([^)]*['\"][wax]b?\+?['\"]|write_text|write_bytes|writeFile|appendFile|createWriteStream|shutil\.|os\.(rename|replace|remove|unlink|makedirs|mkdir)|rmtree|unlinkSync|rmSync|open\s*\(?\s*\w+\s*,\s*['\"]\+?>|print\s*\{", cmd):
         for p in re.findall(r"['\"]((?:/|~/)[^'\"\s]*)['\"]", cmd):

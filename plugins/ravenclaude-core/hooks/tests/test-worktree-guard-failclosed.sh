@@ -38,7 +38,7 @@ fail=$((fail-0)); if [ $rc = 2 ] && grep -q fail-closed "$T/err"; then pass=$((p
 [ -s "$T/errors.log" ] && { pass=$((pass+1)); echo "PASS errors.log written"; } || { fail=$((fail+1)); echo "FAIL errors.log empty"; }
 # ── (A) stale lease: never git add/commit; record + deny ──
 js() { jq -cn --arg s "$1" --arg w "$T/wt" '{tool_name:"Write",session_id:$s,cwd:$w,tool_input:{file_path:($w+"/a.txt"),content:"x"}}'; }
-age_lease() { find "$T/gh/leases" -name lease.json -exec touch -d '3 hours ago' {} +; }
+age_lease() { find "$T/gh/leases" -name lease.json -exec python3 -c "import os,sys,time; t=time.time()-10800; [os.utime(p,(t,t)) for p in sys.argv[1:]]" {} +; }
 rm -rf "$T/gh/leases"; printf '%s' "$(js holder0)" | (cd "$T/wt" && bash "$H" check) >/dev/null 2>&1   # holder0 claims lease
 echo dirty > "$T/wt/dirty.txt"; age_lease
 head0=$(git -C "$T/wt" rev-parse HEAD)
@@ -49,4 +49,18 @@ grep -q 'no longer auto-commits' "$T/err" && { pass=$((pass+1)); echo "PASS stal
 rm -f "$T/wt/dirty.txt"; age_lease
 run stale-clean-takeover 0 "$(js claimant1)"
 [ "$(git -C "$T/wt" rev-parse HEAD)" = "$head0" ] && { pass=$((pass+1)); echo "PASS clean-takeover-no-commit"; } || { fail=$((fail+1)); echo "FAIL clean-takeover committed"; }
+# ── F-7: git status FAILS on a stale lease -> deny, never "clean" ──
+rm -rf "$T/gh/leases"; printf '%s' "$(js holder2)" | (cd "$T/wt" && bash "$H" check) >/dev/null 2>&1; age_lease
+cp "$T/wt/.git/index" "$T/index.bak"; printf 'garbage' > "$T/wt/.git/index"
+run stale-git-status-error-denied 2 "$(js claimant3)"
+grep -q "git status' failed" "$T/err" && { pass=$((pass+1)); echo "PASS F-7 deny names git status failure"; } || { fail=$((fail+1)); echo "FAIL F-7 message: $(head -c200 "$T/err")"; }
+grep -q 'stale-lease-git-status-failed' "$T/stale.log" && { pass=$((pass+1)); echo "PASS F-7 logged"; } || { fail=$((fail+1)); echo "FAIL F-7 log"; }
+cp "$T/index.bak" "$T/wt/.git/index"
+# ── internal error inside the lease section -> ERR trap denies ──
+mkdir -p "$T/mf"; for f in worktree-guard-bash.py _portable.sh _emit-event.sh; do [ -f "$(dirname "$H")/$f" ] && cp "$(dirname "$H")/$f" "$T/mf/"; done
+sed 's/^      _wg_holder="\$(_wg_lease_holder)"$/      _wg_holder="$(_wg_lease_holder)"; false/' "$H" > "$T/mf/worktree-guard.sh"
+if grep -q '_wg_lease_holder)"; false' "$T/mf/worktree-guard.sh"; then
+  printf '%s' "$(js s9)" | (cd "$T/wt" && bash "$T/mf/worktree-guard.sh" check) >/dev/null 2>"$T/err"; rc=$?
+  if [ $rc = 2 ] && grep -q 'internal error in the lease section' "$T/err"; then pass=$((pass+1)); echo "PASS lease-internal-error-denied"; else fail=$((fail+1)); echo "FAIL lease-internal-error rc=$rc $(head -c200 "$T/err")"; fi
+else fail=$((fail+1)); echo "FAIL could not inject lease-section error (anchor line moved)"; fi
 echo "RESULT pass=$pass fail=$fail"; [ $fail = 0 ]

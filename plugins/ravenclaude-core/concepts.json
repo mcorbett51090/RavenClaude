@@ -2792,7 +2792,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-13",
+      "last_verified": "2026-10-23",
       "refresh_when": null,
       "sources": [
         {
@@ -2857,9 +2857,10 @@
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh",
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
+        "plugins/ravenclaude-core/hooks/worktree-guard-bash.py",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:e52cb0c159de688c7fc990663ae0a423f2772d060efde11106cceced22138180",
+      "covers_digest": "sha256:f6a2328cb218dced05bd0a51f832578a56abc349cfaadbfaa68888e9b62c6e00",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2888,7 +2889,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-12",
+      "last_verified": "2026-10-23",
       "refresh_when": null,
       "sources": [
         {
@@ -2908,7 +2909,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:247f4921bda6a1a49bc4fe4910535a7ace93b129b6e683c4f83e7d76d9d3edc3",
+      "covers_digest": "sha256:1d5984806f20c024ca602bd02fd4f9b454bfbbe74b1e20c42ae3ae2cf489c11e",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
