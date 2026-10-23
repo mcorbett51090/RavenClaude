@@ -1,6 +1,6 @@
 # 🐦‍⬛ RavenClaude
 
-**A private Claude Code plugin marketplace** — governed multi-agent teams, specialist plugins, and a comfort-posture dashboard that travel with you across projects.
+**A public Claude Code plugin marketplace** — governed multi-agent teams, specialist plugins, and a comfort-posture dashboard that travel with you across projects.
 
 > 🚀 **[▶ See what RavenClaude is (`pitch.html`)](https://mcorbett51090.github.io/RavenClaude/pitch.html)** — value prop, proof, and catalog at a glance. **Start here.**
 >
@@ -31,6 +31,25 @@ Today this marketplace ships **184 plugins** (live inventory: **[portal Marketpl
 
 ## Install
 
+This repository is **public**: anyone can read it, clone it, and install from it without being added as a collaborator. Write access is limited to the collaborators listed in [`docs/access.md`](docs/access.md).
+
+Quick start in Claude Code (inside a session):
+
+```text
+/plugin marketplace add mcorbett51090/RavenClaude
+/plugin install ravenclaude-core@ravenclaude
+/reload-plugins
+```
+
+Or from your shell:
+
+```shell
+claude plugin marketplace add mcorbett51090/RavenClaude
+claude plugin install ravenclaude-core@ravenclaude
+```
+
+The marketplace name is `ravenclaude` (from [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json)), so every install id is `<plugin>@ravenclaude`.
+
 There are **two install paths**, depending on which agent host you use. Pick one and follow that column — the surfaces don't overlap (the `/plugin` slash commands exist only in Claude Code; the `ravenclaude` script exists only on the Copilot side).
 
 |  | **Path A — Claude Code** (recommended if you have it) | **Path B — GitHub Copilot CLI / Codespace** |
@@ -60,7 +79,7 @@ The post-create script auto-installs these on Debian-family images, but if you'r
 
 - **Node 22+** (Copilot CLI requires it). The template image `mcr.microsoft.com/devcontainers/universal:2-linux` already has Node; the `python:3.12` family does not.
 - **git-lfs** (for any repo with LFS-tracked assets).
-- **GitHub CLI** (`gh`) — used to clone a private marketplace fork via your Codespace's auth.
+- **GitHub CLI** (`gh`) — used to clone the marketplace (or your own private fork of it) via your Codespace's auth.
 
 ---
 
@@ -254,6 +273,12 @@ If Gate 302 fails, pack generated per-file artifacts into a few files (the patte
 `salesforce` (Apex, Flow, Agentforce, platform-architecture specialists) has since **shipped** as well — it is now one of the 184 plugins above, no longer planned-only.
 
 Each builds on top of `ravenclaude-core` (which provides the neutral team) and adds domain-specific agents that the consumer can choose to install or skip. `power-platform` is the reference implementation of this pattern.
+
+---
+
+## Security
+
+Found a vulnerability, or a secret that shouldn't be here? **Don't open a public issue.** Report it privately as described in [`SECURITY.md`](SECURITY.md).
 
 ---
 
