@@ -28,7 +28,7 @@ MUST-FAIL HALVES (a check that cannot fail proves nothing)
   M3  a hook that runs `python3 -c` from the project directory is classified unsafe (a planted module in the
       project root is imported); the same hook with `-I` is safe. Each cwd-importing spelling (a path to
       the interpreter, -c glued to its code, an option argument, a pipe, a bare interpreter, a
-      backslash-newline) is a build refusal
+      backslash-newline, and a shell prefix (`then`/`do`/`{`/`exec`/`sudo`)) is a build refusal
   M4  the same workflow with its pluginRoot validation neutered starts without a root, so check 5 can fail
   M5  a hook that runs git in the payload's cwd executes a vendored repository's core.fsmonitor and is
       classified unsafe (H7); the same hook at the project root with core.fsmonitor=false is safe
@@ -359,6 +359,18 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("python3 -", "python3 -"),
             ("python3 <<EOF", "python3 <<EOF"),
             ("backslash-newline", "python3 \\\n -c 'import shlex'"),
+            ("if-then python3 -c", "if x; then python3 -c 'y'; fi"),
+            ("{ python3 -c }", "{ python3 -c 'y'; }"),
+            ("exec python3 -c", "exec python3 -c 'y'"),
+            ("while-do python3 -c", "while true; do python3 -c 'y'; done"),
+            ("sudo python3 -c", "sudo python3 -c 'y'"),
+        )
+        iso_forms = (
+            ("if-then python3 -I -c", "if x; then python3 -I -c 'y'; fi"),
+            ("{ python3 -I -c }", "{ python3 -I -c 'y'; }"),
+            ("exec python3 -I -c", "exec python3 -I -c 'y'"),
+            ("while-do python3 -I -c", "while true; do python3 -I -c 'y'; done"),
+            ("sudo python3 -I -c", "sudo python3 -I -c 'y'"),
         )
         try:
             for label, body in forms:
@@ -366,6 +378,11 @@ def must_fail_python_cwd(dist: Path) -> None:
                 findings = build.hygiene_findings(plug, manifest)
                 hit = [item for item in findings if "zz-py-form.sh" in item and "without -I" in item]
                 check(f"M3 build refuses {label}", bool(hit), "; ".join(hit)[:180])
+            for label, body in iso_forms:
+                planted.write_text("#!/usr/bin/env bash\n" + body + "\n")
+                findings = build.hygiene_findings(plug, manifest)
+                hit = [item for item in findings if "zz-py-form.sh" in item and "without -I" in item]
+                check(f"M3 build allows {label}", not hit, "; ".join(hit)[:180])
         finally:
             if planted.exists():
                 planted.unlink()
