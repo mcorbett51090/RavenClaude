@@ -361,6 +361,14 @@ The filters were also the wrong shape independently: `validate-marketplace.yml`'
 
 > **Admin bypass is deliberate.** `RepositoryRole 5` (admin) keeps `bypass_mode: always` on the ruleset — the documented docs-straight-to-main flow and the `[skip ci]` artifact commits both depend on it, and it is the escape hatch if a required check ever does hang. The trade-off is real and accepted: **required checks do not bind an admin merge**, so `gh pr merge --auto` as an admin can still land ahead of a running check. If you want CI to gate your own merge, wait for green before merging — the ruleset will not do it for you.
 
+### Cursor review agents — out of tokens does not block a merge (owner rule, 2026-10-26)
+
+The **Cursor Approval Agent** and **Cursor Security Agent** run on PRs here. They are not required checks. When the Cursor account is out of tokens, each one finishes **neutral** within a second, with the summary *"run failed to start: … On-demand usage is required"*. That run reviewed nothing, so it does not block a merge: merge on the required checks.
+
+- A Cursor run that is still **queued or in progress** has not finished. Wait for it.
+- A Cursor run that **did** review and left findings is a review. Handle the findings.
+- A neutral Cursor result is never a review. If a PR needs one, a run that failed to start does not supply it.
+
 ## House rules
 
 1. The `ravenclaude-core` plugin stays **domain-neutral**. Power Platform / finance / EdTech / Salesforce specifics live in their own plugins.
