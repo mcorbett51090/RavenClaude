@@ -402,7 +402,7 @@
       "name": "web-design",
       "source": "./plugins/web-design",
       "description": "Web design & build specialist team \u2014 web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). skills (the gold-standard-website-pipeline gated build pipeline, static-site build, design-system audit, card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party hygiene, Fluent UI v9 + React implementation), templates, an advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors \u2014 the design agents carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.18.6",
+      "version": "0.19.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1660,7 +1660,7 @@
       "name": "game-development",
       "source": "./plugins/game-development",
       "description": "Game Development specialist team \u2014 agents, skills, cited knowledge bank, templates, commands, best-practice rules, an advisory hook. A production-and-design team for a game studio or indie team \u2014 it scopes to a vertical slice before a full build, designs core loops and economies that retain, runs production on milestones and risk burn-down, and reads live-ops on retention and monetization the way a team that ships and then operates a game must. Inherits ravenclaude-core protocols.",
-      "version": "0.2.3",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4115,7 +4115,7 @@
       "name": "design-systems-engineering",
       "source": "./plugins/design-systems-engineering",
       "description": "Design-systems engineering team \u2014 agents (design-systems-architect, design-tokens-and-component-engineer) answering 'what is the shared system every product surface builds from, and how is it versioned and adopted?': design-token architecture (primitive \u2192 semantic \u2192 component tiers, theming/dark-mode/multi-brand), component-library API design (composition vs configuration, controlled/uncontrolled, a11y baked in), Storybook/docs, Figma\u2192code token pipeline (Style Dictionary), and versioning/adoption (semver, changesets, codemod-backed breaking changes, deprecation, governance, adoption metrics). skills, a knowledge bank (a Mermaid decision tree + a dated 2026 tooling reference). Distinct from frontend-engineering (builds apps that CONSUME the system), accessibility-engineering (WCAG compliance), and web-design (site visual design) \u2014 this team owns the SYSTEM those build from. Tooling specifics volatile: retrieval-dated + verify-at-use. Needs ravenclaude-core.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "Matt Corbett"
       },

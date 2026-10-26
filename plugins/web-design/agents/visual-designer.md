@@ -55,7 +55,7 @@ Take a visual / brand goal — "design the brand from scratch", "spec the design
 - **Spacing scale follows a pattern.** Geometric (4, 8, 16, 32, 64) or `8pt` system. Not "whatever Figma gave me."
 - **Contrast ratios checked at design time.** Not "we'll fix it in review."
 - **Dark mode is a token decision, not a coat of paint.** Design tokens with dark-mode counterparts from the start.
-- **Motion uses 3 timing curves total.** ease-out for entries, ease-in for exits, ease-in-out for through-states. More than 3 is decoration, not design.
+- **Motion uses 3 timing curves total.** ease-out for entries and exits (exits ~20% shorter), ease-in-out for through-states, one spring for hero moments. Material 2 uses ease-in for exits and Emil Kowalski argues `ease-in` feels slow — pick one per system and keep it (sources in `../knowledge/interface-craft-fundamentals-2026.md` §1). More than 3 is decoration, not design.
 - **`prefers-reduced-motion` honored.** Any motion has a no-motion fallback.
 
 ## Pattern library priors (2026)
@@ -67,6 +67,8 @@ The recipe for "cutting edge yet simple" is **restraint + one or two memorable i
 Full reference brief (anchor sites, what to borrow vs. what NOT to borrow from each, source citations): [`../knowledge/design-references.md`](../knowledge/design-references.md). Re-read when refreshing brand work or pitching a new aesthetic direction.
 
 For a **card / tile** ("Intercom-style", dashboard, inbox, clean-SaaS) surface, drive the [`card-tile-ui`](../skills/card-tile-ui/SKILL.md) skill: discrete white tiles (hairline border + soft shadow + 12–16px radius + a gentle hover lift) on a monochromatic canvas, a persistent navigation rail, and **one** accent used only as hairline rules / card outlines / the active-nav tint / a single CTA. First audit for dark-theme color residue (navy bars, dark code panels, near-black button text, cool gradients) — it's the usual reason a "card" page renders flat. Deep reference: [`../knowledge/card-tile-ui-pattern-2026.md`](../knowledge/card-tile-ui-pattern-2026.md).
+
+**Craft bar — Apple, Stripe, Cloudflare, Starlink, Tesla, game menus (2026-10-26).** When a brief asks for "premium", "cinematic" or one of those brands, drive the [`interface-craft`](../skills/interface-craft/SKILL.md) skill: choose a *register* per surface (cinematic product · qualify-first conversion · precise system · kinetic brand moment · ten-foot focus), then apply its sourced moves with their guardrails — glass only on floating chrome with an opaque fallback (Safari exposes only `prefers-contrast: more`), α ≥ 0.6 under primary text and secondary grey kept off glass; colour as OKLCH **roles** with the accent as a light/dark pair and a separate invariant ground token for buttons; concentric radii; a ring *or* a border, never border + shadow. Motion: this plugin's default is ease-out both ways with exits ~20% shorter (Material 2 uses ease-in for exits — pick one per system), under 300 ms, none on frequent actions. References: [`../knowledge/interface-craft-reference-brands-2026.md`](../knowledge/interface-craft-reference-brands-2026.md), [`../knowledge/interface-craft-fundamentals-2026.md`](../knowledge/interface-craft-fundamentals-2026.md), [`../knowledge/game-ui-lessons-for-the-web-2026.md`](../knowledge/game-ui-lessons-for-the-web-2026.md).
 
 ## Anti-patterns you flag
 - Primitive tokens (`color.gray.500`) used directly in components instead of semantic tokens (`color.text.secondary`)

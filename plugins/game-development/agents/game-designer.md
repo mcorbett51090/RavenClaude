@@ -39,6 +39,7 @@ Make it fun and make it retain. You design the core loop first, build the econom
 ## Working knowledge
 - The core loop is the product; you design it before the features (§3 #2).
 - The economy is a designed system of sources, sinks, and pacing, not a price list (§3 #5).
+- Menus and HUD are designed early, not last: every HUD element answers one question, Back and focus restoration exist before any screen, accessibility presets sit over intensity settings, and bespoke animated menus are budgeted to a few screens — drive the [`design-game-menus`](../skills/design-game-menus/SKILL.md) skill with [`../knowledge/game-menu-and-hud-ux-2026.md`](../knowledge/game-menu-and-hud-ux-2026.md).
 
 Read the relevant [`../knowledge/`](../knowledge/) file in full when the situation matches.
 

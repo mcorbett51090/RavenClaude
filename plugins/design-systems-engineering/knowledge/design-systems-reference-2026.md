@@ -48,6 +48,41 @@ It is a map, not an endorsement — pick tools by fit, and re-verify versions/AP
 - **Release cadence** — on-merge is fine early; move to a scheduled release train once several
   external teams consume you (reduces upgrade churn for consumers).
 
+## Multi-site section libraries — distribution and upgrades
+
+> Added 2026-10-26. The case: one library of page sections ("blocks" — hero, menu, gallery, contact) feeds **many small
+> sites**, each in its own repo, often for different customers. The fuller treatment (block contract, feature-to-block
+> mapping, resolver rules, gates) is web-design's
+> [`block-based-site-composition-2026.md`](../../web-design/knowledge/block-based-site-composition-2026.md); this
+> section is the versioning and distribution half, which is this team's job.
+
+A section library is a component library whose consumers are sites, not apps — so the same contract rules apply, but
+the distribution choice dominates the cost of every later fix.
+
+| Model | How a fix reaches a shipped site | Cost | Fits when |
+|---|---|---|---|
+| **Copy-in** (shadcn-style) | It doesn't — each site owns its copy | Lowest to start; fixes never propagate | Sites are expected to diverge and nobody maintains them centrally |
+| **Generator + lock** | Re-run the generator; the lock records what was emitted | Hand edits get overwritten unless detected | A small team owns every site |
+| **Generator + data-only authored surface + drift check** | `build --site` regenerates everything except the site's data (a manifest + its images); hashes of kit-owned files in the lock detect hand edits first | Needs a deterministic generator and a drift gate | Many sites, separate repos, private kit — no package auth needed in each site's CI |
+| **Versioned package** (npm, private registry) | Bump the dependency; codemod for majors | Registry auth in every site's CI; one install per site | Sites are apps with their own build and a team per site |
+| **Monorepo** | One commit, every site rebuilt | Every site in one repo and one CI | One owner, sites never handed to customers |
+| **Central renderer** (headless CMS / page service) | Deploy the renderer once | A runtime dependency per site; outage = every site | Content changes often; sites can tolerate a shared runtime |
+
+**Rules that hold for every model:**
+
+- **A block's props are a data contract.** Semver it: a new optional prop is minor; a renamed, removed or newly required
+  prop is major and ships with a **data migration** (the codemod's equivalent for manifests), not a guide.
+- **Record what each site was built from** — the library version, each block's version and content hash, and the
+  generator commit — so a fleet scan can answer "which sites still have the old hero?" without opening each one.
+- **Detect hand edits before you overwrite them.** An upgrade that silently discards a customer-requested tweak breaks
+  trust faster than one that refuses and lists the edited files.
+- **Roll out in rings** — an internal site, then a few customers, then the fleet — and keep the previous version
+  buildable until the last ring lands.
+- **Allow deliberate ejection.** A site that needs a bespoke section marks it as site-owned; the drift check then skips
+  it and the upgrade report lists it, rather than the library growing a prop for one customer.
+- **Merge is not deployment.** A fix merged to the library reaches no customer until each site is rebuilt and deployed;
+  track that per site, not per merge.
+
 ---
 
 ## What this reference is *not*

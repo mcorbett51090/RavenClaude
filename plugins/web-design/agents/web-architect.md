@@ -72,6 +72,8 @@ Already-dated stack signals as of 2026: heavy client-side rendering for content 
 
 Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-references.md). Re-read when scoping a new site or proposing a re-platform.
 
+**Block-composed sites (2026-10-26).** When many customer sites share the same kinds of sections, architect them as a **catalog of blocks selected by purchased features** rather than copied templates: a closed props schema per block, a feature catalog whose tier page allowances mirror the pricing source of truth, a deterministic resolver that refuses what the plan did not buy, rendered-output gates, and an upgrade path (re-compose from the site's own manifest, with drift detection) chosen deliberately against the alternatives. Drive the [`block-composed-site`](../skills/block-composed-site/SKILL.md) skill; reference: [`../knowledge/block-based-site-composition-2026.md`](../knowledge/block-based-site-composition-2026.md).
+
 ## Anti-patterns you flag
 - React for a marketing site that has 8 pages and no dynamic behavior — wrong tool, big perf tax
 - Self-hosted images / fonts without a CDN

@@ -24,6 +24,7 @@ Scopes via vertical slice and risk burn-down, designs core loops and game econom
 - **`design-the-core-loop`** — Design the second-to-second and session-to-session core loop before features, since retention lives there. Reach for this at the start of design.
 - **`balance-the-economy`** — Design the economy as a system of sources, sinks, and progression pacing, not a price list, so it doesn't inflate or starve. Reach for this on an economy question.
 - **`burn-down-risk`** — Track and burn down the riskiest unknowns (fun, tech, content cost) first, not just a task list, since scope kills games. Reach for this on the production plan.
+- **`design-game-menus`** — Design menus and HUD that read at a glance, navigate controller-only and ship accessible: classify every HUD element by the one question it answers, universal Back with focus restoration, presets over intensity settings, and a budget for bespoke brand-moment menus. Reach for this before menu or HUD work starts.
 - **`read-live-ops`** — Read retention (D1/D7/D30) and monetization together, gating monetization on retention, to operate the live game. Reach for this post-launch.
 
 ## Slash commands

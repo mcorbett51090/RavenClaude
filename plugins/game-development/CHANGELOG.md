@@ -2,6 +2,17 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.0] — 2026-10-26
+
+### Added
+
+- **`knowledge/game-menu-and-hud-ux-2026.md`** — menu and HUD UX from recent games with dated sources: the diegesis grid, the one-question HUD rule, CommonUI-style Back and focus restoration, controller-only navigation, glyph switching, accessibility presets and the Xbox Accessibility Guidelines / Accessible Games Initiative numbers, juice and UI-sound discipline, and the cost of bespoke brand-as-UI menus.
+- **`skills/design-game-menus/`** — the procedure: inventory and classify the HUD, build the menu architecture before any screen, settings and accessibility first-class, budget brand moments, feedback and sound, verify controller-only and at 200% text.
+
+### Changed
+
+- `game-designer` points at the new skill and knowledge file.
+
 ## [0.2.3] — 2026-08-14
 
 ### Changed

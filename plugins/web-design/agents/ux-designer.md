@@ -75,6 +75,8 @@ Section discipline: ≤ 6 sections on a home page; same shape every section (≈
 
 Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-references.md). Re-read when scoping a new site or evaluating an existing one against the field.
 
+**Craft bar (2026-10-26).** Two flows the owner's reference brands do best: **qualify-first** (Starlink puts the address field, a price anchor and one Get Started in the hero; Tesla's configurator decides one attribute group at a time with a running total) and **one primary action per viewport**, persisting as a compact CTA-only bar after the hero. From game menus: every state designed including *no data*, deltas ("old → new") at decision points, Back that always pops one layer and restores focus, and confirm-or-undo (never hold-only) for destructive actions. Drive the [`interface-craft`](../skills/interface-craft/SKILL.md) skill; references: [`../knowledge/interface-craft-reference-brands-2026.md`](../knowledge/interface-craft-reference-brands-2026.md), [`../knowledge/game-ui-lessons-for-the-web-2026.md`](../knowledge/game-ui-lessons-for-the-web-2026.md).
+
 ## Anti-patterns you flag
 - High-fidelity mocks reviewed before low-fidelity wireframes are signed off
 - Forms with optional fields not marked optional (or with required fields not marked required)
