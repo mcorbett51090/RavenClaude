@@ -1,6 +1,6 @@
 ---
 name: wallet-passes
-description: Use when designing, reviewing, or implementing Apple Wallet (.pkpass / PassKit) or Google Wallet passes — business cards, tickets, save links — or handing a card to another person (share sheet, AirDrop, NFC tag, QR, in-app browsers) and lead capture. Covers pass.json layout, images, NFC/VAS/Smart Tap, updates, JWT save URLs, branding.
+description: Use when designing, reviewing, or implementing Apple Wallet (.pkpass / PassKit) or Google Wallet passes — business cards, loyalty and membership cards, coupons, event tickets, save links — or a pass or contact-card builder, vCard export, or handing a card to another person (share sheet, AirDrop, NFC tag, QR) and lead capture. Covers pass.json layout, images, NFC/VAS/Smart Tap, updates, JWT save URLs, branding.
 ---
 
 # wallet-passes
@@ -13,11 +13,15 @@ Official-docs reference for Apple Wallet (PassKit) and Google Wallet generic pas
 | Google Generic class/object, templates, images, JWT save, Smart Tap, notifications, publishing | [`references/google.md`](references/google.md) |
 | Digital business-card layout, worked examples, common-mistakes checklist | [`references/business-card-layout.md`](references/business-card-layout.md) |
 | Tap-to-share / tap-to-lead-form: what's possible / entitlement-gated / impossible; NFC-tag/QR → HTTPS; workarounds; **pushing a card to another person** (every path ranked, receiving-page traps, Google multi-holder) | [`references/tap-to-share.md`](references/tap-to-share.md) |
+| **Loyalty / membership, coupons, event tickets** (Apple `storeCard` / `coupon` / `eventTicket` / iOS 27 `posterGeneric`; Google Loyalty / Offer / EventTicket), per-type layout maxima, a neutral role-based model for both platforms, go-live gates | [`references/pass-types.md`](references/pass-types.md) |
+| **Building a visual pass designer** — kind-first picker, multi-target preview with "not shown here" badges, slot-aware cropper, blast radius on publish, test-issue to own phone | [`references/pass-builder.md`](references/pass-builder.md) |
+| **Contact cards** — vCard 3.0 fidelity (multi-value, structured address, URL escaping), QR and NFC rules, NameDrop limits, card-builder blocks, team template states, exchange flow | [`references/contact-card-vcard.md`](references/contact-card-vcard.md) |
 | Weak / unverified / absent-evidence claims (the 38-item ledger; P1 = #1–#8) | [`references/verify.md`](references/verify.md) |
 
 ## When to use
 
-- Authoring or reviewing a `.pkpass` / `pass.json` or a Google Wallet `GenericClass` / `GenericObject`.
+- Authoring or reviewing a `.pkpass` / `pass.json` or a Google Wallet class/object — generic, loyalty, offer or event ticket.
+- Designing a **pass builder** or a **contact-card builder** (role-based fields, multi-target preview, vCard export).
 - Choosing field slots, image assets, barcodes, NFC / Smart Tap, or save-link issuance.
 - Designing a **digital business card** that must survive both wallets without baked-in text.
 - Diagnosing truncation, dead links, silent updates, cached stale passes, or rejected artwork.

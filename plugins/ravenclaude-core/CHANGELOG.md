@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.359.0 — 2026-10-26
+
+### Added
+- **`wallet-passes` covers pass types beyond generic, pass builders and contact cards.** Three new references, each retrieval-dated 2026-10-26 with evidence tags:
+  - `references/pass-types.md`: Apple `storeCard`, `coupon`, classic and poster `eventTicket`, and the iOS 27 `posterGeneric` (which needs a legacy fallback on the same pass); Google Loyalty, Offer, EventTicket and Generic-as-membership. It gives per-type layout maxima (Apple drops fields that don't fit; it does not truncate them), image slots, a cross-platform barcode intersection, a neutral role-based `PassTemplate` model with a computed `PlacementPlan`, and the go-live gates. That includes App Store Review Guideline 1.5's "dedicated certificate assigned to the brand or trademark owner", which a multi-tenant signer must escalate to its owner.
+  - `references/pass-builder.md`: what Apple Pass Designer, Google's console, Passcreator and PassKit.com do. It covers what to copy (kind-first picker, a multi-target preview with "not shown here" badges, a slot-aware cropper, blast radius on publish, test-issue to your own phone, a notification composer with Google's 3-per-24-hour budgets) and what to avoid.
+  - `references/contact-card-vcard.md`: vCard 3.0 fidelity. Fold by octet, escape per component, percent-encode `,` and `;` in URLs (one parser truncated at the first comma), and emit several phones and emails, a structured address, labelled links for every social, and `UID`/`REV`/`PRODID`. It also covers QR rules (URL only, ECC H with a logo, dark on light), NFC tag rules, NameDrop limits, card-builder blocks, four-state team templates, and exchange-flow defaults.
+- The skill description and "When to use" name loyalty, coupons, event tickets and the two builders, so routing finds them.
+
 ## 0.358.6 — 2026-10-20
 
 ### Fixed
