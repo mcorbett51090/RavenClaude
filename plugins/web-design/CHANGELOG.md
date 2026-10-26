@@ -2,6 +2,22 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.19.0] — 2026-10-26
+
+### Added
+
+- **`skills/interface-craft/`** — raise a surface to the craft bar of Apple, Stripe, Cloudflare, Starlink, Tesla and recent game menus: choose a register per surface, apply its sourced moves with their guardrails, verify on the rendered page in both themes at 390 and 1440 px.
+- **`skills/block-composed-site/`** — build many customer sites from a catalog of section blocks selected by purchased features; the agent writes a typed manifest, never markup. Block contract, feature and tier mapping, resolver rules, must-fail gates, drift detection, upgrade rollout, and the pitfalls measured while building the owner's factory block system (RavenPower-website-factory PR #118).
+- **`skills/form-builder/`** — build or upgrade a tool owners use to create their own forms: typed definition model, draft + immutable versions keyed by stable field ids, typed condition trees run by one allow-listed interpreter on client and server, save-time logic checks, a phased field catalog, inbox/CSV/webhooks/CRM, server-recomputed payments.
+- **`skills/visual-builder/`** — make any builder (form, contact card, Wallet pass, page) appealing and easy: same-code preview, click-to-insert with drag as a bonus, menu moves, two disclosure levels, undo as patches, autosave with conflict checks, publish with blast radius, constraint-aware warnings.
+- **Knowledge:** `form-builder-2026.md` and `visual-builder-ux-2026.md` (retrieved 2026-10-26; measured drag-and-drop bundle sizes).
+- **Knowledge:** `interface-craft-reference-brands-2026.md` (Apple, Stripe, Cloudflare, Starlink, SpaceX, Tesla — read from live production CSS/HTML and primary sources), `interface-craft-fundamentals-2026.md` (motion, colour, type, layout, states, process, with sourced numbers), `game-ui-lessons-for-the-web-2026.md` (game menu and HUD craft translated to 2026 web platform features, and what must not be copied), `block-based-site-composition-2026.md` (prior-art data models, architecture, gates, distribution, AI-agent practices, pitfalls). All dated 2026-10-26 with OBS/INF/`[unverified]` labels.
+
+### Changed
+
+- `visual-designer`, `ux-designer`, `frontend-implementer` and `web-architect` carry a short pointer paragraph to the new skills and knowledge.
+- `visual-designer`'s motion opinion no longer asserts ease-in for exits as settled: it names the Material 2 vs Emil Kowalski conflict and states this plugin's default (ease-out both ways, exits ~20% shorter).
+
 ## [0.18.6] — 2026-10-20
 
 ### Fixed (2026-10-20 autonomous repo review, PR #1389)

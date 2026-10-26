@@ -74,3 +74,6 @@ description: "Version a component library like the public contract it is (semver
 - **Adoption is the metric** — an elegant system nobody uses is a failed system; lower migration cost
   before adding features.
 - **Retrieval-date the release tooling** (changesets/registry mechanics); the semver principle is durable.
+- **A section library shared by many sites** (one block catalog, many customer repos) — choose the distribution model
+  first, because it decides how a fix reaches a site that already shipped. Table and rollout rules:
+  [`design-systems-reference-2026.md` § "Multi-site section libraries"](../../knowledge/design-systems-reference-2026.md#multi-site-section-libraries--distribution-and-upgrades).
