@@ -2,6 +2,17 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.20.0] — 2026-10-26
+
+### Added
+
+- **`skills/adaptive-layout/`** — make a site adapt to desktop, laptop, phone (both orientations), tablet, iPad windows and foldables like iPhone Duo the way Apple and WebKit prescribe: one document and feature detection (iPad sends a Mac UA; iOS 26 freezes the UA OS version), the exact viewport tag, `viewport-fit=cover` only with all four safe-area insets, `vh`-then-`svh`/`lvh`/`dvh` heights, content-driven tiers in `em` plus container queries, `max(16px, 1rem)` form text, WCAG 2.5.8 targets, 2x-capped art direction, optional Viewport Segments enhancement, and a device matrix with ±1px breakpoint boundaries as the proof.
+- **Knowledge:** `apple-adaptive-web-2026.md` — HIG and WebKit guidance with sources (the HIG's device table is gone since 2026-09-09; Safari 26 tints its bars from the page background and edge-fixed elements; every Home Screen site opens as a web app in iOS 26; `rem` ignores iOS Dynamic Type; no `prefers-reduced-transparency` in Safari), apple.com measured at 35 viewports (734/1068 tiers, 833/834 nav, height-aware hero, 2x-capped art direction), the iPhone Duo viewport table from WebKit's Safari 27.1 post (iPhone Duo shipped 2026-10-23, verified against the Apple Newsroom release), Viewport Segments and Device Posture support, multitasking widths and a device test matrix. Retrieved 2026-10-26.
+
+### Changed
+
+- `frontend-implementer`, `visual-designer` and `accessibility-auditor` carry a pointer to `adaptive-layout`; `static-site-implementation` links it for device adaptation; `templates/launch-checklist.md` gains device-matrix, viewport-tag, viewport-unit and real-Safari items.
+
 ## [0.19.0] — 2026-10-26
 
 ### Added
