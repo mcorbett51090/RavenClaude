@@ -73,8 +73,10 @@ This is **marketplace-only**, like `scripts/notify.sh`: nothing here ships insid
 
 Observed when the task was created on 2026-10-26: `create_trigger` rejected the `connectors` parameter ("not available for this organization", the same as for the Gmail routine), and it stored `sources: []`, so **a firing gets no repos unless they are added in the UI**.
 
-- **Repos (required).** In the claude.ai routines UI, open "Overnight session resume" and add **RavenClaude** (it holds the helper) plus every repo whose sessions should be checked. The routine can check only repos cloned into its own session. A candidate in any other repo is reported as **not checkable** and is not resumed.
-- **Session tools.** The routine needs `list_sessions`, `get_session`, `list_events`, `list_triggers`, `set_session_tags` and `send_message`. If a dry run reports that they did not load, attach the **Claude Code Remote** connector to the routine in the same UI.
+A `DRY RUN` fired on 2026-10-26 (session `session_01TDrESKWycKWz6LWfz8m4fy`) confirmed both gaps and failed closed, sending nothing. `/home/user` was empty. The session held only the trigger and repo tools of `claude-code-remote` (`list_triggers`, `create_trigger`, `add_repo`, …), with no `list_sessions`, `get_session`, `list_events`, `set_session_tags` or `send_message`. Both fixes live on the routine itself in the claude.ai routines UI, and the task stays disabled until they're in:
+
+- **Repos (required).** Add **RavenClaude** (it holds the helper) plus every repo whose sessions should be checked. The routine can check only repos cloned into its own session. A candidate in any other repo is reported as **not checkable** and is not resumed.
+- **Claude Code Remote connector (required).** It supplies the session tools above. The usage-meter routine reads sessions the same way, through this connector attached in the UI.
 
 ## Changing it
 
