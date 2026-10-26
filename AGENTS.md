@@ -199,6 +199,14 @@ A new file's path must match at least one glob in `.repo-layout.json` `allowed_g
 
 ## Testing instructions
 
+> **CI for this repo runs on GitHub Actions; rely on it** (owner rule, 2026-10-26). This repo is
+> **public**, so Actions minutes are free. Don't hold a push to run the suite below locally: push the
+> branch, open the PR, let Actions validate it, then fix what it reports. The steps below are optional
+> fast feedback, worth running when you are iterating on one gate or have no network. Where a step
+> says "required before pushing", read it as "required to be green on the PR". What gates a merge is
+> unchanged: every required check green on the PR's current head. Private repos bill per minute and
+> keep their own push discipline; this rule is for this repo only.
+
 > **⚠️ If steps 3 or 4 fail with a network error, the cause is probably your host's sandbox — not a
 > broken checkout** (added 2026-07-29, audit MH-34). `npx --yes prettier@…` and `pip install ruff`
 > both **download**, and several hosts run the agent inside a sandbox that blocks outbound network by
