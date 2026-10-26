@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.360.0 — 2026-10-26
+
+### Added
+- **Ask the user in modals, never in a prose list.** A new constitution section: every decision, choice or go-ahead goes through `AskUserQuestion` (a modal), up to 4 per call, recommended option first, each option with a one-line consequence, and the answer recorded so it is never asked twice. Requested by the owner after missing questions left at the end of long replies.
+
 ## 0.359.0 — 2026-10-26
 
 ### Added
