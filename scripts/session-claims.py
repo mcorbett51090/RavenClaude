@@ -13,10 +13,12 @@ in two halves:
   * LOCAL (writer). A user-level hook on each machine records what every local
     session is working on (repo, branch, changed and uncommitted files, a
     scrubbed one-line title) and publishes it as one JSON file per session on
-    the orphan data branch `ravenclaude/session-claims` of this repo.
-  * ROUTINE (reader). The routine reads those claims, the recent git activity of
-    each repo, and the running cloud sessions, and asks `check` for a
-    deterministic conflict verdict per candidate session.
+    the orphan data branch `ravenclaude/session-claims` OF THE REPO THE SESSION
+    IS WORKING IN. A claim about a private repo therefore never leaves that
+    repo, and a claim pushed to a public repo carries no title.
+  * ROUTINE (reader). For each repo it can see, the routine reads that repo's
+    claims and recent git activity (`evidence`), adds the running cloud sessions,
+    and asks `check` for a deterministic conflict verdict per candidate session.
 
 MARKETPLACE-ONLY. Like scripts/notify.sh, this never ships inside a plugin, so it
 never changes a consumer's behavior. The hooks are installed into the user's own
@@ -27,13 +29,14 @@ SUBCOMMANDS
                 SessionEnd). Always exits 0 and prints nothing on stdout, because
                 stdout from SessionStart/UserPromptSubmit is injected into the
                 conversation. Publishing runs in a detached child.
-  publish       Sync this host's claims to the data branch (the hook spawns it).
+  publish       Sync this host's claims to each repo's data branch (the hook spawns it).
   install       Add the hooks to ~/.claude/settings.json and write the config.
   uninstall     Remove the hooks (and, with --purge, the local state).
   status        Show the config, hook wiring, local claims and the publish log.
   active        Read published claims and classify them live / dirty-recent / expired.
   git-signals   Recent commits per remote branch of a clone, with files and the
                 Claude-Session trailers that attribute them to a session.
+  evidence      One repo's live claims plus its git-signals, in the shape `check` reads.
   branch-files  Files a branch changes relative to the default branch.
   check         Deterministic conflict verdict for candidate sessions.
   --self-test   Prove each rule passes on a good fixture and fails on a bad one.
@@ -46,6 +49,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import fnmatch
 import hashlib
 import json
 import os
@@ -57,6 +61,8 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -72,6 +78,7 @@ GIT_TIMEOUT = 10
 NET_TIMEOUT = 60
 LOCK_STALE_S = 300
 LOG_CAP_BYTES = 200_000
+VISIBILITY_TTL_S = 7 * 24 * 3600  # cache of public/private lookups
 HOOK_MARKER = "session-claims.py"  # identifies our entries in settings.json
 DEFAULT_BRANCH_NAMES = {"", "head", "main", "master"}
 MIN_BARE_REF = 100  # a bare "#N" counts as a PR reference only from #100 up
@@ -251,13 +258,42 @@ def _porcelain_paths(raw: str) -> list[str]:
     return paths
 
 
-def _origin_repo(top: Path | str) -> str | None:
-    """owner/repo of origin. Reads the raw URL first: `remote get-url` expands insteadOf."""
+def _origin_url(top: Path | str) -> str:
+    """Raw origin URL. Reads the config value first: `remote get-url` expands insteadOf."""
     for args in (["config", "--get", "remote.origin.url"], ["remote", "get-url", "origin"]):
-        repo = normalize_repo(_git(args, cwd=top).stdout)
-        if repo:
-            return repo
-    return None
+        url = _git(args, cwd=top).stdout.strip()
+        if normalize_repo(url):
+            return url
+    return ""
+
+
+def _origin_repo(top: Path | str) -> str | None:
+    url = _origin_url(top)
+    return normalize_repo(url) if url else None
+
+
+def deploy_guard(top: Path | str, branch: str = DEFAULT_BRANCH) -> str:
+    """'' when pushing `branch` to this repo should start no deploy; otherwise the reason.
+
+    GitHub Actions and Cloudflare Pages skip a push whose commit message starts with
+    "[skip ci]", which every claim commit does. Vercel's Git integration builds every
+    pushed branch and documents no commit-message skip, so a repo with a vercel.json
+    must turn deployments off for the branch with git.deploymentEnabled.
+    """
+    vercel = Path(top) / "vercel.json"
+    if not vercel.exists():
+        return ""
+    data = _read_json(vercel)
+    git_cfg = data.get("git") if isinstance(data, dict) else None
+    enabled = git_cfg.get("deploymentEnabled") if isinstance(git_cfg, dict) else None
+    if enabled is False:
+        return ""
+    if isinstance(enabled, dict):
+        rules = [v for k, v in enabled.items() if fnmatch.fnmatchcase(branch, k)]
+        # Vercel deploys a branch that matches several rules if any of them is true.
+        if rules and all(v is False for v in rules):
+            return ""
+    return f'vercel.json has no git.deploymentEnabled {{"{branch}": false}}'
 
 
 def snapshot_workspace(cwd: str) -> dict | None:
@@ -265,7 +301,8 @@ def snapshot_workspace(cwd: str) -> dict | None:
     if top_res.returncode != 0:
         return None
     top = Path(top_res.stdout.strip())
-    repo = _origin_repo(top)
+    remote_url = _origin_url(top)
+    repo = normalize_repo(remote_url) if remote_url else None
     if not repo:
         return None
     branch = _git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=top).stdout.strip()
@@ -286,7 +323,13 @@ def snapshot_workspace(cwd: str) -> dict | None:
         "base": base or "",
         "dirty_files": sorted(set(dirty))[:FILE_CAP],
         "branch_files": sorted(set(branch_files))[:FILE_CAP],
+        # Local only: used to publish, stripped from every published claim.
+        "top": str(top),
+        "remote_url": remote_url,
     }
+
+
+LOCAL_ONLY_FIELDS = ("top", "remote_url")
 
 
 # ------------------------------------------------------------------------- the hook
@@ -294,7 +337,7 @@ def snapshot_workspace(cwd: str) -> dict | None:
 
 def load_config() -> dict | None:
     cfg = _read_json(_home() / "config.json")
-    if not isinstance(cfg, dict) or not cfg.get("remote") or cfg.get("enabled") is False:
+    if not isinstance(cfg, dict) or cfg.get("enabled") is False:
         return None
     cfg.setdefault("branch", DEFAULT_BRANCH)
     cfg.setdefault("include_title", True)
@@ -425,59 +468,123 @@ def _lock():
 
 README = """# ravenclaude/session-claims (data branch: never merge)
 
-One JSON file per local Claude CLI session, at `claims/<host>/<session_id>.json`,
-written by `scripts/session-claims.py` (installed per machine with
-`python3 scripts/session-claims.py install`). The "Overnight session resume" routine
-reads these to avoid restarting cloud work that collides with local work.
-See docs/overnight-session-resume-routine.md on main.
+One JSON file per local Claude CLI session working in this repo, at
+`claims/<host>/<session_id>.json`. They are written by `scripts/session-claims.py`
+from the RavenClaude marketplace (`python3 scripts/session-claims.py install`, once
+per machine). The "Overnight session resume" routine reads them so that it does not
+restart cloud work that collides with local work.
 
-This branch shares no history with main. Do not open a pull request from it.
+Claims about this repo stay in this repo. In a public repo, a claim carries no title.
+This branch shares no history with the default branch. Do not open a pull request from it.
 """
 
 
-def _claim_from_state(state: dict) -> dict:
-    workspaces = sorted(
-        state.get("workspaces", {}).values(), key=lambda w: w.get("seen_at", ""), reverse=True
-    )[:5]
-    claim = {k: v for k, v in state.items() if k not in ("workspaces", "published_at")}
-    claim["workspaces"] = workspaces
-    return claim
+def repo_is_private(repo: str) -> bool:
+    """True only when GitHub confirms `repo` is private. Unknown counts as public.
+
+    An unauthenticated GET of the repo returns 200 for a public repo and 404 for a
+    private one. No token is ever sent. Answers are cached for a week; a failed
+    lookup is not cached and is treated as public, so the title is left out.
+    """
+    override = os.environ.get("RAVENCLAUDE_SESSION_CLAIMS_VISIBILITY", "").strip()
+    if override:
+        pairs = dict(item.split("=", 1) for item in override.split(",") if "=" in item)
+        value = pairs.get(repo, "public") if pairs else override
+        return value.strip() == "private"
+    cache_file = _home() / "visibility.json"
+    cache = _read_json(cache_file, default={}) or {}
+    hit = cache.get(repo)
+    if isinstance(hit, dict) and time.time() - hit.get("checked", 0) < VISIBILITY_TTL_S:
+        return bool(hit.get("private"))
+    private = None
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}",
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "ravenclaude-session-claims"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            private = bool(json.load(response).get("private"))
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            private = True
+    except (OSError, ValueError):
+        pass
+    if private is None:
+        return False
+    cache[repo] = {"private": private, "checked": int(time.time())}
+    _write_json(cache_file, cache)
+    return private
 
 
-def _write_host_claims(cache: Path, host: str) -> int:
+def _live_states() -> list[dict]:
+    """This host's session states, deleting any older than PRUNE_DAYS."""
     now = _now()
-    host_dir = cache / "claims" / host
-    host_dir.mkdir(parents=True, exist_ok=True)
-    keep: set[str] = set()
-    for state_file in sorted((_home() / "state").glob("*.json")):
+    states = []
+    state_dir = _home() / "state"
+    for state_file in sorted(state_dir.glob("*.json")) if state_dir.is_dir() else []:
         state = _read_json(state_file)
-        if not isinstance(state, dict):
-            continue
-        hb = _parse_iso(state.get("heartbeat_at"))
-        if hb is None or now - hb > timedelta(days=PRUNE_DAYS):
+        hb = _parse_iso(state.get("heartbeat_at")) if isinstance(state, dict) else None
+        if hb is None or now - hb > timedelta(days=PRUNE_DAYS) or not state.get("session_id"):
             with contextlib.suppress(OSError):
                 state_file.unlink()
             continue
-        name = f"{_safe_id(state['session_id'])}.json"
+        states.append(state)
+    return states
+
+
+def claims_by_repo(states: list[dict]) -> dict[str, dict]:
+    """Split session states into one claim per (repo, session), each naming only that repo."""
+    out: dict[str, dict] = {}
+    for state in states:
+        for ws in state.get("workspaces", {}).values():
+            repo = ws.get("repo")
+            if not repo:
+                continue
+            entry = out.setdefault(repo, {"remote": "", "tops": [], "claims": {}})
+            entry["remote"] = entry["remote"] or ws.get("remote_url", "")
+            if ws.get("top") and ws["top"] not in entry["tops"]:
+                entry["tops"].append(ws["top"])
+            claim = entry["claims"].get(state["session_id"])
+            if claim is None:
+                claim = {k: v for k, v in state.items() if k not in ("workspaces", "published_at")}
+                claim["workspaces"] = []
+                entry["claims"][state["session_id"]] = claim
+            claim["workspaces"].append({k: v for k, v in ws.items() if k not in LOCAL_ONLY_FIELDS})
+    for entry in out.values():
+        for claim in entry["claims"].values():
+            claim["workspaces"].sort(key=lambda w: w.get("seen_at", ""), reverse=True)
+            del claim["workspaces"][5:]
+    return out
+
+
+def _cache_dir(repo: str) -> Path:
+    return _home() / "repos" / repo.replace("/", "__")
+
+
+def _write_host_claims(cache: Path, host: str, claims: dict[str, dict]) -> int:
+    host_dir = cache / "claims" / host
+    host_dir.mkdir(parents=True, exist_ok=True)
+    keep = set()
+    for session_id, claim in claims.items():
+        name = f"{_safe_id(session_id)}.json"
         keep.add(name)
-        _write_json(host_dir / name, _claim_from_state(state))
+        _write_json(host_dir / name, claim)
     for old in host_dir.glob("*.json"):
         if old.name not in keep:
             old.unlink()
     return len(keep)
 
 
-def _ensure_cache(remote: str, branch: str) -> tuple[Path | None, bool]:
-    """Return (cache_dir, is_new_orphan)."""
-    cache = _home() / "repo"
+def _ensure_cache(cache: Path, remote: str, branch: str) -> tuple[bool | None, bool]:
+    """Prepare the cache clone. Return (ready, is_new_orphan); ready None means unreachable."""
     if (cache / ".git").is_dir():
         _git(["remote", "set-url", "origin", remote], cwd=cache)
-        return cache, False
+        return True, False
     shutil.rmtree(cache, ignore_errors=True)
     cache.parent.mkdir(parents=True, exist_ok=True)
     heads = _git(["ls-remote", "--heads", remote, branch], timeout=NET_TIMEOUT)
     if heads.returncode != 0:
-        _log(f"ls-remote failed: {heads.stderr.strip()[:300]}")
+        _log(f"ls-remote failed for {remote}: {heads.stderr.strip()[:300]}")
         return None, False
     if heads.stdout.strip():
         res = _git(
@@ -486,14 +593,14 @@ def _ensure_cache(remote: str, branch: str) -> tuple[Path | None, bool]:
             timeout=NET_TIMEOUT,
         )
         if res.returncode != 0:
-            _log(f"clone failed: {res.stderr.strip()[:300]}")
+            _log(f"clone failed for {remote}: {res.stderr.strip()[:300]}")
             return None, False
-        return cache, False
+        return True, False
     _git(["init", "--quiet", str(cache)])
     _git(["remote", "add", "origin", remote], cwd=cache)
     _git(["checkout", "--quiet", "--orphan", branch], cwd=cache)
     (cache / "README.md").write_text(README, encoding="utf-8")
-    return cache, True
+    return True, True
 
 
 def _commit(cache: Path, message: str) -> bool:
@@ -516,11 +623,14 @@ def _commit(cache: Path, message: str) -> bool:
     return res.returncode == 0
 
 
-def publish(cfg: dict) -> tuple[bool, str]:
-    remote, branch, host = cfg["remote"], cfg["branch"], _host()
-    cache, orphan = _ensure_cache(remote, branch)
-    if cache is None:
-        return False, "could not reach the claims branch (see publish.log)"
+def _publish_repo(repo: str, remote: str, branch: str, host: str, claims: dict[str, dict]) -> tuple[bool, str]:
+    cache = _cache_dir(repo)
+    ready, orphan = _ensure_cache(cache, remote, branch)
+    if ready is None:
+        return False, "could not reach the repo (see publish.log)"
+    if orphan and not claims:
+        shutil.rmtree(cache, ignore_errors=True)
+        return True, "nothing to publish"
     for attempt in range(1, 4):
         fetch = _git(["fetch", "--quiet", "--depth", "20", "origin", branch], cwd=cache, timeout=NET_TIMEOUT)
         if fetch.returncode == 0:
@@ -528,18 +638,53 @@ def publish(cfg: dict) -> tuple[bool, str]:
             orphan = False
         elif not orphan:
             return False, f"fetch failed: {fetch.stderr.strip()[:300]}"
-        count = _write_host_claims(cache, host)
+        count = _write_host_claims(cache, host, claims)
         _git(["add", "-A", "--", "."], cwd=cache)
         staged = _git(["diff", "--cached", "--quiet"], cwd=cache).returncode != 0
         if not staged and not orphan:
-            return True, f"up to date ({count} claim(s) for {host})"
-        if staged and not _commit(cache, f"chore(session-claims): {host} {count} claim(s) [skip ci]"):
-            return False, "commit failed"
-        push = _git(["push", "--quiet", "origin", f"HEAD:refs/heads/{branch}"], cwd=cache, timeout=NET_TIMEOUT)
-        if push.returncode == 0:
-            return True, f"pushed {count} claim(s) for {host}"
-        _log(f"push attempt {attempt} failed: {push.stderr.strip()[:300]}")
+            done = True
+        else:
+            # "[skip ci]" must LEAD the message: Cloudflare Pages honours it only as a prefix.
+            if staged and not _commit(cache, f"[skip ci] chore(session-claims): {host} {count} claim(s)"):
+                return False, "commit failed"
+            push = _git(["push", "--quiet", "origin", f"HEAD:refs/heads/{branch}"], cwd=cache, timeout=NET_TIMEOUT)
+            if push.returncode != 0:
+                _log(f"{repo}: push attempt {attempt} failed: {push.stderr.strip()[:300]}")
+                continue
+            done = True
+        if done:
+            if not claims:
+                shutil.rmtree(cache, ignore_errors=True)  # nothing left here: stop fetching it
+            return True, f"{count} claim(s) for {host}"
     return False, "push failed after 3 attempts"
+
+
+def publish(cfg: dict) -> tuple[bool, str]:
+    branch, host = cfg["branch"], _host()
+    groups = claims_by_repo(_live_states())
+    repos_dir = _home() / "repos"
+    for cache in sorted(repos_dir.iterdir()) if repos_dir.is_dir() else []:
+        url = _git(["config", "--get", "remote.origin.url"], cwd=cache).stdout.strip()
+        repo = normalize_repo(url)
+        if repo and repo not in groups:
+            groups[repo] = {"remote": url, "tops": [], "claims": {}}  # clear what we published before
+    results = []
+    for repo, entry in sorted(groups.items()):
+        if not entry["remote"]:
+            results.append((False, f"{repo}: no remote URL recorded"))
+            continue
+        guard = next((g for g in (deploy_guard(t, branch) for t in entry["tops"] if Path(t).is_dir()) if g), "")
+        if guard:
+            results.append((True, f"{repo}: skipped, {guard}"))
+            continue
+        claims = entry["claims"]
+        if claims and not repo_is_private(repo):
+            claims = {sid: {**c, "title": ""} for sid, c in claims.items()}
+        ok, message = _publish_repo(repo, entry["remote"], branch, host, claims)
+        results.append((ok, f"{repo}: {message}"))
+    if not results:
+        return True, "no local sessions to publish"
+    return all(ok for ok, _ in results), "; ".join(m for _, m in results)
 
 
 def cmd_publish(args) -> int:
@@ -617,21 +762,10 @@ def _save_settings(path: Path, settings: dict) -> Path | None:
     return backup
 
 
-def _default_remote() -> str | None:
-    url = _git(["remote", "get-url", "origin"], cwd=REPO_ROOT).stdout.strip()
-    if not url or "127.0.0.1" in url:
-        return None  # the cloud git proxy is not reachable from a laptop
-    return url
-
-
 def cmd_install(args) -> int:
     if os.environ.get("CLAUDE_CODE_REMOTE") == "true" and not args.force:
         print("This is a cloud session; cloud sessions are visible to the routine already.")
         print("Run install on your own machine (or pass --force).")
-        return 1
-    remote = args.remote or _default_remote()
-    if not remote:
-        print("Could not work out the claims remote; pass --remote <git url>.")
         return 1
     settings_file = _settings_path()
     settings = _read_json(settings_file, default=None) if settings_file.exists() else {}
@@ -640,23 +774,19 @@ def cmd_install(args) -> int:
         return 1
     removed = _strip_our_hooks(settings)
     _add_our_hooks(settings)
-    cfg = {"remote": remote, "branch": args.branch, "include_title": not args.no_title, "enabled": True}
+    cfg = {"enabled": True, "branch": args.branch, "include_title": not args.no_title}
     if args.dry_run:
         print(json.dumps({"config": cfg, "hooks": settings.get("hooks", {})}, indent=2))
         return 0
     _write_json(_home() / "config.json", cfg)
     backup = _save_settings(settings_file, settings)
-    print(f"config:   {_home() / 'config.json'} (remote {remote}, branch {args.branch})")
+    print(f"config:   {_home() / 'config.json'} (branch {args.branch} in each repo you work in)")
     print(f"hooks:    {settings_file} ({', '.join(HOOK_EVENTS)}; {removed} previous entries replaced)")
     if backup:
         print(f"backup:   {backup}")
-    if args.skip_publish:
-        return 0
-    with _lock() as acquired:
-        ok, message = publish(cfg) if acquired else (False, "another publish is running")
-    print(f"publish:  {'ok' if ok else 'FAILED'}: {message}")
-    print("New Claude sessions on this machine now publish claims. Already-open sessions start on their next restart.")
-    return 0 if ok else 1
+    print("New Claude sessions on this machine now publish claims to the repo they work in.")
+    print("Already-open sessions start on their next restart. Check with: session-claims.py status")
+    return 0
 
 
 def cmd_uninstall(args) -> int:
@@ -698,6 +828,9 @@ def cmd_status(args) -> int:
     print(f"config:  {json.dumps(cfg) if cfg else 'none (hook is a no-op)'}")
     print(f"hooks:   {', '.join(wired) if wired else 'not installed'} in {settings_file}")
     print(f"claims:  {len(states)} local session state file(s) under {_home() / 'state'}")
+    repos_dir = _home() / "repos"
+    cached = sorted(d.name.replace("__", "/") for d in repos_dir.iterdir()) if repos_dir.is_dir() else []
+    print(f"repos:   {', '.join(cached) if cached else 'none published yet'}")
     log = _home() / "publish.log"
     if log.exists():
         tail = log.read_text(encoding="utf-8").splitlines()[-5:]
@@ -810,7 +943,7 @@ def git_signals(repo_dir: str, since_hours: float, fetch: bool) -> list[dict]:
     out: list[dict] = []
     for line in refs.stdout.splitlines():
         name, _, date = line.partition("\t")
-        if name in (base, "origin/HEAD", "origin") or not name.startswith("origin/"):
+        if name in (base, "origin/HEAD", "origin", f"origin/{DEFAULT_BRANCH}") or not name.startswith("origin/"):
             continue
         tip_at = _parse_iso(date)
         if tip_at is None or tip_at < cutoff:
@@ -897,6 +1030,46 @@ def branch_files(top: Path | str, branch: str, base: str | None = None, fetch: b
     if res.returncode != 0:
         return {"base": base, "branch": f"origin/{name}", "files": None, "error": res.stderr.strip()[:300]}
     return {"base": base, "branch": f"origin/{name}", "files": [p for p in res.stdout.splitlines() if p]}
+
+
+def evidence(repo_dir: str, since_hours: float, branch: str = DEFAULT_BRANCH) -> dict:
+    """One repo's live claims and recent git activity, as `check` others.
+
+    claims_branch is "present", "absent" (nobody has published claims here) or
+    "error: ..." (unreadable). A caller must treat "error" as not checkable.
+    """
+    repo = _origin_repo(repo_dir) or ""
+    others: list[dict] = []
+    heads = _git(["ls-remote", "--heads", "origin", branch], cwd=repo_dir, timeout=NET_TIMEOUT)
+    if heads.returncode != 0:
+        status = f"error: {heads.stderr.strip()[:200]}"
+    elif not heads.stdout.strip():
+        status = "absent"
+    else:
+        spec = f"+refs/heads/{branch}:refs/remotes/origin/{branch}"
+        fetch = _git(["fetch", "--quiet", "--depth=1", "origin", spec], cwd=repo_dir, timeout=NET_TIMEOUT)
+        if fetch.returncode != 0:
+            status = f"error: {fetch.stderr.strip()[:200]}"
+        else:
+            try:
+                claims = _load_claims(None, repo_dir, f"origin/{branch}")
+                status = "present"
+            except RuntimeError as exc:
+                claims, status = [], f"error: {exc}"
+            now = _now()
+            for claim in claims:
+                state = classify_claim(claim, now)
+                if state != "expired":
+                    others.append(claim_as_other(claim, state))
+    live = len(others)
+    others += git_signals(repo_dir, since_hours, fetch=True)
+    return {"repo": repo, "claims_branch": status, "live_claims": live, "others": others}
+
+
+def cmd_evidence(args) -> int:
+    result = evidence(args.repo_dir, args.since_hours)
+    print(json.dumps(result, indent=2))
+    return 2 if result["claims_branch"].startswith("error") else 0
 
 
 def cmd_git_signals(args) -> int:
@@ -1121,6 +1294,16 @@ def _unit_cases() -> list[str]:
     scrubbed = make_title(secret)
     if scrubbed is None or "ghp_" in scrubbed or "[REDACTED]" not in scrubbed:
         fails.append(f"make_title did not scrub a GitHub token: {scrubbed!r}")
+    saved_vis = os.environ.get("RAVENCLAUDE_SESSION_CLAIMS_VISIBILITY")
+    try:
+        os.environ["RAVENCLAUDE_SESSION_CLAIMS_VISIBILITY"] = "o/priv=private,o/pub=public"
+        if not repo_is_private("o/priv") or repo_is_private("o/pub") or repo_is_private("o/unlisted"):
+            fails.append("repo_is_private: a mapped override must decide, and an unlisted repo counts as public")
+    finally:
+        if saved_vis is None:
+            os.environ.pop("RAVENCLAUDE_SESSION_CLAIMS_VISIBILITY", None)
+        else:
+            os.environ["RAVENCLAUDE_SESSION_CLAIMS_VISIBILITY"] = saved_vis
     if _porcelain_paths(" M a.py\0R  new.py\0old.py\0?? n.txt\0") != ["a.py", "new.py", "n.txt"]:
         fails.append("_porcelain_paths mis-parsed a rename")
     return fails
@@ -1132,110 +1315,164 @@ def _sh(cmd: list[str], cwd: Path) -> str:
     return subprocess.run(cmd, cwd=cwd, env=env, check=True, capture_output=True, text=True).stdout
 
 
+def _hook(payload: dict, env: dict) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), "hook"], input=json.dumps(payload), capture_output=True, text=True, env=env
+    )
+
+
+def _make_repo(tmp: Path, name: str, files: dict[str, str]) -> Path:
+    """A bare remote reachable as https://github.com/acme/<name>.git plus a working clone."""
+    bare = tmp / f"{name}.git"
+    _sh(["git", "init", "--quiet", "--bare", "-b", "main", str(bare)], tmp)
+    url = f"https://github.com/acme/{name}.git"
+    with open(os.environ["GIT_CONFIG_GLOBAL"], "a") as fh:
+        fh.write(f'[url "{bare}"]\n\tinsteadOf = {url}\n')
+    work = tmp / name
+    _sh(["git", "clone", "--quiet", url, str(work)], tmp)
+    for rel, text in {"README.md": "x\n", **files}.items():
+        (work / rel).write_text(text)
+    _sh(["git", "add", "."], work)
+    _sh(["git", "commit", "--quiet", "-m", "init"], work)
+    _sh(["git", "push", "--quiet", "origin", "HEAD:main"], work)
+    _sh(["git", "fetch", "--quiet", "origin"], work)
+    _sh(["git", "remote", "set-head", "origin", "main"], work)
+    return work
+
+
+def _remote_claims(tmp: Path, name: str, label: str) -> list[dict]:
+    reader = tmp / f"reader-{name}-{label}"
+    _sh(["git", "clone", "--quiet", "--branch", DEFAULT_BRANCH, f"https://github.com/acme/{name}.git", str(reader)], tmp)
+    return _load_claims(None, str(reader), "HEAD")
+
+
+def _has_claims_branch(tmp: Path, name: str) -> bool:
+    return DEFAULT_BRANCH in _sh(["git", "ls-remote", "--heads", f"https://github.com/acme/{name}.git"], tmp)
+
+
 def _git_cases(tmp: Path) -> list[str]:
     fails: list[str] = []
     os.environ["RAVENCLAUDE_SESSION_CLAIMS_HOME"] = str(tmp / "home")
     os.environ["RAVENCLAUDE_SESSION_CLAIMS_HOST"] = "testhost"
     os.environ["CLAUDE_CONFIG_DIR"] = str(tmp / "claude")
+    os.environ["GIT_CONFIG_GLOBAL"] = str(tmp / "gitconfig")
+    os.environ["GIT_CONFIG_NOSYSTEM"] = "1"
+    os.environ["RAVENCLAUDE_SESSION_CLAIMS_VISIBILITY"] = "acme/widgets=private,acme/gadgets=public"
     os.environ.pop("CLAUDE_CODE_REMOTE", None)
+    Path(os.environ["GIT_CONFIG_GLOBAL"]).write_text("")
 
-    # A "GitHub" repo: bare remote + working clone whose origin looks like github.
-    work_remote = tmp / "work.git"
-    _sh(["git", "init", "--quiet", "--bare", "-b", "main", str(work_remote)], tmp)
-    work = tmp / "work"
-    _sh(["git", "clone", "--quiet", str(work_remote), str(work)], tmp)
-    (work / "README.md").write_text("x\n")
-    _sh(["git", "add", "."], work)
-    _sh(["git", "commit", "--quiet", "-m", "init"], work)
-    _sh(["git", "push", "--quiet", "origin", "HEAD:main"], work)
-    _sh(["git", "checkout", "--quiet", "-b", "feat/x"], work)
-    (work / "src.py").write_text("print(1)\n")
-    _sh(["git", "add", "."], work)
+    widgets = _make_repo(tmp, "widgets", {})
+    allowed = json.dumps({"git": {"deploymentEnabled": {"ravenclaude/*": False}}})
+    gadgets = _make_repo(tmp, "gadgets", {"vercel.json": allowed})
+    sprockets = _make_repo(tmp, "sprockets", {"vercel.json": json.dumps({"crons": []})})
+    _sh(["git", "checkout", "--quiet", "-b", "feat/x"], widgets)
+    (widgets / "src.py").write_text("print(1)\n")
+    _sh(["git", "add", "."], widgets)
     trailer = "Claude-Session: https://claude.ai/code/session_01Other"
-    _sh(["git", "commit", "--quiet", "-m", f"feat: x\n\n{trailer}"], work)
-    _sh(["git", "push", "--quiet", "origin", "feat/x"], work)
-    _sh(["git", "fetch", "--quiet", "origin"], work)
-    _sh(["git", "remote", "set-head", "origin", "main"], work)
+    _sh(["git", "commit", "--quiet", "-m", f"feat: x\n\n{trailer}"], widgets)
+    _sh(["git", "push", "--quiet", "origin", "feat/x"], widgets)
 
-    # Make the origin URL GitHub-shaped for snapshot_workspace/git_signals, via insteadOf.
-    gh_url = "https://github.com/acme/widgets.git"
-    _sh(["git", "config", f"url.{work_remote}.insteadOf", gh_url], work)
-    _sh(["git", "remote", "set-url", "origin", gh_url], work)
+    # deploy_guard: Vercel must exclude the branch; other hosts honour the [skip ci] prefix.
+    for label, cfg_text, want_ok in (
+        ("no vercel.json", None, True),
+        ("deployments off", json.dumps({"git": {"deploymentEnabled": False}}), True),
+        ("branch excluded", json.dumps({"git": {"deploymentEnabled": {DEFAULT_BRANCH: False}}}), True),
+        ("glob excluded", allowed, True),
+        ("glob overridden", json.dumps({"git": {"deploymentEnabled": {"ravenclaude/*": False, "*": True}}}), False),
+        ("no exclusion", json.dumps({"crons": []}), False),
+        ("unparseable", "{", False),
+    ):
+        d = tmp / f"guard-{abs(hash(label))}"
+        d.mkdir()
+        if cfg_text is not None:
+            (d / "vercel.json").write_text(cfg_text)
+        if (deploy_guard(d) == "") != want_ok:
+            fails.append(f"deploy_guard[{label}]: want {'ok' if want_ok else 'blocked'}, got {deploy_guard(d)!r}")
 
-    sig = git_signals(str(work), since_hours=6, fetch=False)
+    sig = git_signals(str(widgets), since_hours=6, fetch=False)
     if not sig or sig[0]["workspaces"][0]["files"] != ["src.py"] or sig[0]["sessions"] != ["session_01Other"]:
         fails.append(f"git_signals: unexpected {sig}")
-    snap = snapshot_workspace(str(work))
+    snap = snapshot_workspace(str(widgets))
     if not snap or snap["repo"] != "acme/widgets" or snap["branch_files"] != ["src.py"]:
         fails.append(f"snapshot_workspace: unexpected {snap}")
 
-    # Claims data branch on a second bare remote; the orphan branch does not exist yet.
-    claims_remote = tmp / "claims.git"
-    _sh(["git", "init", "--quiet", "--bare", "-b", "main", str(claims_remote)], tmp)
-    _write_json(_home() / "config.json", {"remote": str(claims_remote), "branch": DEFAULT_BRANCH})
+    _write_json(_home() / "config.json", {"enabled": True, "branch": DEFAULT_BRANCH})
+    env = {**os.environ, "RAVENCLAUDE_SESSION_CLAIMS_INLINE": "1"}
 
-    # Unconfigured and cloud cases: exit 0, empty stdout, no state written.
-    hook_env = {**os.environ, "RAVENCLAUDE_SESSION_CLAIMS_INLINE": "1"}
-    payload = json.dumps({"hook_event_name": "SessionStart", "session_id": "s-1", "cwd": str(work)})
-    cloud = subprocess.run(
-        [sys.executable, str(SCRIPT), "hook"],
-        input=payload,
-        capture_output=True,
-        text=True,
-        env={**hook_env, "CLAUDE_CODE_REMOTE": "true"},
-    )
+    # Cloud sessions: a silent no-op that writes nothing.
+    cloud = _hook({"hook_event_name": "SessionStart", "session_id": "s-1", "cwd": str(widgets)}, {**env, "CLAUDE_CODE_REMOTE": "true"})
     if cloud.returncode != 0 or cloud.stdout or _state_path("s-1").exists():
         fails.append("hook in a cloud session must be a silent no-op")
-    real = subprocess.run(
-        [sys.executable, str(SCRIPT), "hook"], input=payload, capture_output=True, text=True, env=hook_env
-    )
-    if real.returncode != 0 or real.stdout:
-        fails.append(f"hook must exit 0 with empty stdout (rc={real.returncode}, out={real.stdout!r})")
-    if not _state_path("s-1").exists():
-        fails.append("hook SessionStart did not write local state")
-    heads = _sh(["git", "ls-remote", "--heads", str(claims_remote), DEFAULT_BRANCH], tmp)
-    if DEFAULT_BRANCH not in heads:
-        fails.append(f"publish did not create the orphan branch (log: {(_home() / 'publish.log').read_text() if (_home() / 'publish.log').exists() else ''})")
+
+    # A session in a private repo: its claim lands in THAT repo, with its title.
+    start = _hook({"hook_event_name": "SessionStart", "session_id": "s-1", "cwd": str(widgets)}, env)
+    if start.returncode != 0 or start.stdout:
+        fails.append(f"hook must exit 0 with empty stdout (rc={start.returncode}, out={start.stdout!r})")
+    _hook({"hook_event_name": "UserPromptSubmit", "session_id": "s-1", "cwd": str(widgets), "prompt": "build the analytics page"}, env)
+    if not _has_claims_branch(tmp, "widgets"):
+        log = (_home() / "publish.log").read_text() if (_home() / "publish.log").exists() else ""
+        fails.append(f"publish did not create the claims branch in acme/widgets (log: {log})")
+    else:
+        claim = next((c for c in _remote_claims(tmp, "widgets", "1") if c.get("session_id") == "s-1"), {})
+        if claim.get("title") != "build the analytics page":
+            fails.append(f"a private repo's claim must keep its title, got {claim.get('title')!r}")
+        # Named literally: reusing LOCAL_ONLY_FIELDS here would let an emptied constant pass.
+        leaked = [k for w in claim.get("workspaces", []) for k in ("top", "remote_url") if k in w]
+        if leaked:
+            fails.append(f"local-only fields were published: {leaked}")
+
+    # The same session moves to a public repo: a separate claim there, untitled, naming only that repo.
+    state = _read_json(_state_path("s-1"))
+    state["published_at"] = ""
+    _write_json(_state_path("s-1"), state)
+    _hook({"hook_event_name": "PostToolUse", "session_id": "s-1", "cwd": str(gadgets)}, env)
+    if not _has_claims_branch(tmp, "gadgets"):
+        fails.append("publish did not create the claims branch in acme/gadgets")
+    else:
+        claim = next((c for c in _remote_claims(tmp, "gadgets", "1") if c.get("session_id") == "s-1"), {})
+        repos = {w.get("repo") for w in claim.get("workspaces", [])}
+        if claim.get("title") != "" or repos != {"acme/gadgets"}:
+            fails.append(f"public-repo claim must be untitled and name only acme/gadgets: {claim}")
+    claim = next((c for c in _remote_claims(tmp, "widgets", "2") if c.get("session_id") == "s-1"), {})
+    if {w.get("repo") for w in claim.get("workspaces", [])} != {"acme/widgets"}:
+        fails.append(f"the private repo's claim must not mention other repos: {claim}")
+
+    # A repo whose vercel.json would build the branch gets no claims branch at all.
+    _hook({"hook_event_name": "SessionStart", "session_id": "s-2", "cwd": str(sprockets)}, env)
+    if _has_claims_branch(tmp, "sprockets"):
+        fails.append("publish must not push the claims branch to a repo whose vercel.json would build it")
+
+    # The routine's view of one repo: live claims plus git activity.
+    ev = evidence(str(widgets), since_hours=6)
+    kinds = sorted({o["kind"] for o in ev["others"]})
+    if ev["claims_branch"] != "present" or ev["live_claims"] != 1 or kinds != ["claim", "git-branch"]:
+        fails.append(f"evidence(widgets): unexpected {ev['claims_branch']}, {ev['live_claims']}, {kinds}")
+    ev = evidence(str(sprockets), since_hours=6)
+    if ev["claims_branch"] != "absent":
+        fails.append(f"evidence(sprockets): want claims_branch absent, got {ev['claims_branch']}")
 
     # A throttled heartbeat must not publish (fast path).
     t0 = time.time()
-    subprocess.run(
-        [sys.executable, str(SCRIPT), "hook"],
-        input=json.dumps({"hook_event_name": "PostToolUse", "session_id": "s-1", "cwd": str(work)}),
-        capture_output=True,
-        text=True,
-        env=hook_env,
-    )
+    _hook({"hook_event_name": "PostToolUse", "session_id": "s-1", "cwd": str(widgets)}, env)
     if time.time() - t0 > 2.0:
         fails.append("throttled PostToolUse hook took over 2s")
 
-    # Race: someone else pushes to the claims branch; the next publish must still land.
-    other = tmp / "other-clone"
-    _sh(["git", "clone", "--quiet", "--branch", DEFAULT_BRANCH, str(claims_remote), str(other)], tmp)
+    # Race: another host pushes to the claims branch; the next publish must still land.
+    other = tmp / "other-host"
+    _sh(["git", "clone", "--quiet", "--branch", DEFAULT_BRANCH, "https://github.com/acme/widgets.git", str(other)], tmp)
     (other / "claims" / "otherhost").mkdir(parents=True)
     (other / "claims" / "otherhost" / "s-9.json").write_text(json.dumps({"session_id": "s-9"}))
     _sh(["git", "add", "."], other)
     _sh(["git", "commit", "--quiet", "-m", "other host"], other)
     _sh(["git", "push", "--quiet", "origin", f"HEAD:{DEFAULT_BRANCH}"], other)
-    state = _read_json(_state_path("s-1"))
-    state["published_at"] = ""
-    _write_json(_state_path("s-1"), state)
-    subprocess.run(
-        [sys.executable, str(SCRIPT), "hook"],
-        input=json.dumps({"hook_event_name": "SessionEnd", "session_id": "s-1", "cwd": str(work)}),
-        capture_output=True,
-        text=True,
-        env=hook_env,
-    )
-    reader = tmp / "reader"
-    _sh(["git", "clone", "--quiet", "--branch", DEFAULT_BRANCH, str(claims_remote), str(reader)], tmp)
-    claims = _load_claims(None, str(reader), "HEAD")
+    _hook({"hook_event_name": "SessionEnd", "session_id": "s-1", "cwd": str(widgets)}, env)
+    claims = _remote_claims(tmp, "widgets", "3")
     ids = sorted(c.get("session_id", "") for c in claims)
     if ids != ["s-1", "s-9"]:
         fails.append(f"claims after a concurrent push: want [s-1, s-9], got {ids}")
     mine = next((c for c in claims if c.get("session_id") == "s-1"), {})
-    if mine.get("status") != "ended" or mine.get("workspaces", [{}])[0].get("repo") != "acme/widgets":
-        fails.append(f"published claim content wrong: {mine}")
+    if mine.get("status") != "ended":
+        fails.append(f"SessionEnd did not mark the claim ended: {mine}")
 
     # A shallow clone (as in cloud sessions) must still yield a branch's files.
     deep = tmp / "deep.git"
@@ -1266,20 +1503,15 @@ def _git_cases(tmp: Path) -> list[str]:
     # install refuses to rewrite a settings file it cannot parse.
     _settings_path().parent.mkdir(parents=True, exist_ok=True)
     _settings_path().write_text("{ not json")
-    bad_args = argparse.Namespace(
-        remote=str(claims_remote), branch=DEFAULT_BRANCH, no_title=False, dry_run=False, force=True, skip_publish=True
-    )
+    install_args = argparse.Namespace(branch=DEFAULT_BRANCH, no_title=False, dry_run=False, force=True)
     with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
-        rc = cmd_install(bad_args)
+        rc = cmd_install(install_args)
     if rc == 0 or _settings_path().read_text() != "{ not json":
         fails.append("install must refuse, and leave untouched, a settings.json that does not parse")
 
     # install / uninstall keep foreign hooks intact and are idempotent.
     foreign = {"hooks": {"Stop": [{"hooks": [{"type": "command", "command": "echo keep"}]}]}}
     _write_json(_settings_path(), foreign)
-    install_args = argparse.Namespace(
-        remote=str(claims_remote), branch=DEFAULT_BRANCH, no_title=False, dry_run=False, force=True, skip_publish=True
-    )
     with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
         cmd_install(install_args)
         cmd_install(install_args)
@@ -1314,9 +1546,18 @@ def self_test() -> int:
     if not _check_cases(broken):
         fails.append("must-fail half: a checker without the file-overlap rule passed every case")
 
-    saved = {k: os.environ.get(k) for k in (
-        "RAVENCLAUDE_SESSION_CLAIMS_HOME", "RAVENCLAUDE_SESSION_CLAIMS_HOST", "CLAUDE_CONFIG_DIR", "CLAUDE_CODE_REMOTE"
-    )}
+    saved = {
+        k: os.environ.get(k)
+        for k in (
+            "RAVENCLAUDE_SESSION_CLAIMS_HOME",
+            "RAVENCLAUDE_SESSION_CLAIMS_HOST",
+            "RAVENCLAUDE_SESSION_CLAIMS_VISIBILITY",
+            "CLAUDE_CONFIG_DIR",
+            "CLAUDE_CODE_REMOTE",
+            "GIT_CONFIG_GLOBAL",
+            "GIT_CONFIG_NOSYSTEM",
+        )
+    }
     if shutil.which("git"):
         with tempfile.TemporaryDirectory(prefix="session-claims-") as tmp:
             try:
@@ -1351,11 +1592,9 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("publish", help="sync this host's claims").set_defaults(func=cmd_publish)
 
     p = sub.add_parser("install", help="add the hooks to ~/.claude/settings.json")
-    p.add_argument("--remote", help="git URL of the repo holding the claims branch (default: this repo's origin)")
     p.add_argument("--branch", default=DEFAULT_BRANCH)
     p.add_argument("--no-title", action="store_true", help="do not publish the first prompt as a title")
     p.add_argument("--dry-run", action="store_true", help="print what would be written")
-    p.add_argument("--skip-publish", action="store_true", help="do not run a first publish")
     p.add_argument("--force", action="store_true", help="install even inside a cloud session")
     p.set_defaults(func=cmd_install)
 
@@ -1378,6 +1617,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--since-hours", type=float, default=6)
     p.add_argument("--fetch", action="store_true", help="git fetch --prune origin first")
     p.set_defaults(func=cmd_git_signals)
+
+    p = sub.add_parser("evidence", help="one repo's live claims + git-signals, as `check` others")
+    p.add_argument("--repo-dir", required=True)
+    p.add_argument("--since-hours", type=float, default=6)
+    p.set_defaults(func=cmd_evidence)
 
     p = sub.add_parser("branch-files", help="files a branch changes vs the default branch")
     p.add_argument("--repo-dir", required=True)
