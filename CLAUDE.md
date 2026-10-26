@@ -123,6 +123,16 @@ Some remote/web sessions run in a container that is **ephemeral** — reclaimed 
 
 It idempotently re-wires the `ravenclaude` marketplace plus `ravenclaude-core`/`devops-cicd`/`api-engineering`/`team-portfolio` at every fresh container startup, resolving the checkout path dynamically via `$CLAUDE_PROJECT_DIR` (never a baked-in absolute path — a committed `--scope project` marketplace declaration was tried and rejected: it reformats the whole `.claude/settings.json` file, dropping every hook's `comment` field, and bakes in one container's absolute path). Fast-paths to a no-op once everything is already installed; fail-safe, never blocks `SessionStart`, always exits 0.
 
+### Session claims + overnight resume (marketplace-only, user-level) — added 2026-10-26
+
+The "Overnight session resume" scheduled task restarts idle cloud sessions that still have work they can do themselves. It must not restart one whose content another session is already working on. A cloud routine cannot see Claude CLI sessions on a laptop, so [`scripts/session-claims.py`](scripts/session-claims.py) has each machine publish claims:
+
+- **Writer:** `python3 scripts/session-claims.py install` adds four hooks to the **user-level** `~/.claude/settings.json` on that machine. They are not in this repo's `.claude/settings.json` and not in any plugin's `hooks.json`, so they never ship to consumers. The hooks publish one JSON claim per local session (repo, branch, branch and uncommitted files, a scrubbed title) to the orphan data branch **`ravenclaude/session-claims`**. That branch is never merged, and no workflow listens to it.
+- **Reader:** the routine's `check` gives a deterministic `clear` / `conflict` / `unknown` per candidate, using running cloud sessions, claims and recent git activity (attributed by the `Claude-Session:` trailer).
+- **Fail-safe:** the hook always exits 0, prints nothing to the conversation, pushes from a detached child, and is a no-op without a config or in a cloud container (`CLAUDE_CODE_REMOTE=true`).
+
+Full contract, the prompt mirror and install steps: [`docs/overnight-session-resume-routine.md`](docs/overnight-session-resume-routine.md). `python3 scripts/session-claims.py --self-test` proves each conflict rule both ways.
+
 ## Layout enforcement (Claude Code path)
 
 The plugin's `hooks/enforce-layout.sh` runs `PreToolUse` on `Write|Edit|MultiEdit`. It reads `.repo-layout.json` at the project root, matches the target path against `allowed_globs`, and denies off-pattern writes with a suggested correct location. The hook silently allows everything if `.repo-layout.json` is absent — so consumers who install the plugin without setting up a layout manifest are not surprised.
