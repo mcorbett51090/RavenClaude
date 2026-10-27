@@ -1,5 +1,5 @@
 ---
-description: Build a site from section blocks that is pixel-perfect on every screen. Starts from the plugin's tested starter kit (tokens, layout contract, block and manifest schemas, exemplar blocks), gates every step with the contract checker, and proves the rendered site with stress fixtures and the device matrix.
+description: Build a site from section blocks that is pixel-perfect on every screen. Starts from the plugin's tested starter kit (tokens, layout contract, block CSS, schemas, ten exemplar blocks) and reference renderer, gates every step, and proves the rendered site with stress fixtures and the device matrix.
 argument-hint: "[the site, e.g. 'a five-page site for a Fairhope diner' or 'add a team page to our block site']"
 ---
 
@@ -11,31 +11,33 @@ Each step ends at a gate; do not start the next step until it passes. Report eac
 
 ## Steps
 
-1. **Ground the facts.** Gather the business's real name, address, phone, hours, offerings, prices and photos from its
-   own pages and listings. Anything you cannot verify goes in the manifest's `ownerTodos`, never in a rendered field.
-   Ask the user one question when two readings of the request would build different sites.
-2. **Copy the kit** from `templates/block-site/` into the project (`tokens.css`, `layout.css`, the two schemas, the
-   `catalog.json`), unless the project already has one.
-3. **Brand** by changing values in `tokens.css`, never role names.
-   - **Gate:** `python3 <plugin>/scripts/block_site_check.py tokens <site>/tokens.css`.
-4. **Choose blocks by purpose** from the block catalog in `templates/block-site/README.md`. Write a closed, bounded
-   contract for each one in `catalog.json`, starting from the exemplars.
+1. **Ground the facts.** Gather the business's real name, address, phone, hours, special days, offerings, prices and
+   photos from its own pages and listings. Anything you cannot verify goes in the manifest's `ownerTodos`, never in a
+   rendered field. Ask the user one question when two readings of the request would build different sites.
+2. **Copy the kit** from `templates/block-site/` into the project (`tokens.css`, `layout.css`, `blocks.css`, the two
+   schemas, `catalog.json`), unless the project already has one. Render the kit's own example once with
+   `scripts/block_site_render.py render … --placeholders` to see the whole path working.
+   - **Gate:** `python3 <plugin>/scripts/block_site_check.py catalog <site>/catalog.json`.
+3. **Brand** by changing values in `tokens.css` (colours, font stacks), never role names.
+   - **Gate:** `block_site_check.py tokens <site>/tokens.css`.
+4. **Choose blocks by purpose** from the block catalog in `templates/block-site/README.md`. Use the ten exemplars as
+   they are, or write a closed, bounded contract for each new block in `catalog.json`, with a render function and its
+   CSS in `blocks.css`.
    - **Gate:** `block_site_check.py catalog <site>/catalog.json`.
-5. **Build each block to the anatomy** in the kit's README: slots on grid lines, components inside slots, CSS in
-   `@layer blocks` that reads only tokens, and `@container slot` queries.
-   - **Gate:** the block renders in a gallery page, and `node <plugin>/scripts/device_matrix.mjs --dir <site>
-     --pages /gallery.html --full --sweep 320:1600:8` reports no findings.
-6. **Write the manifest.** Write image alt text while looking at each image, and give every asset its real width,
-   height and focal point.
-   - **Gate:** `block_site_check.py manifest <site>/site.manifest.json --catalog <site>/catalog.json`. Fix its warnings
-     about small sources and heavy crops too.
-7. **Render and stress.** Build the site. Generate `block_site_check.py fixtures <site>/catalog.json --out stress.manifest.json`
-   and render those pages too.
+5. **Write the manifest:** business facts, the chrome (nav, header action, footer links), assets and pages. Write
+   image alt text while looking at each image. Give every asset its real width, height and focal point, smaller
+   `sources` for `srcset`, and a portrait crop for a full-bleed photo that crops badly on a phone.
+   - **Gate:** `block_site_check.py manifest <site>/site.manifest.json --catalog <site>/catalog.json`. Fix its
+     warnings about photos too small for their box too.
+6. **Render** with `block_site_render.py render <site>/site.manifest.json --catalog <site>/catalog.json --out dist`.
+   - **Gate:** it exits 0. It refuses a manifest the checker refuses, then checks its own HTML.
+7. **Stress it.** Run `block_site_check.py fixtures <site>/catalog.json --out stress/stress.manifest.json`, and render
+   those pages into the same `dist`.
 8. **Prove it.**
-   - Run the device matrix on the built site and the stress pages with `--full --sweep 320:1600:8`.
+   - Run `node <plugin>/scripts/device_matrix.mjs --dir dist --manifest <site>/site.manifest.json --manifest
+     stress/stress.manifest.json --full --sweep 320:1600:8`.
    - Save baselines with `--shots`.
-   - Look at element screenshots at 390 and 1280px in light and dark, especially hero copy over photos (see
-     `text-over-photo-contrast-2026.md`).
+   - Look at element screenshots at 390 and 1280px in light and dark, especially hero copy over the real photos.
    - **Gate:** zero findings, and screenshots you would show the customer.
 
 ## Guardrails

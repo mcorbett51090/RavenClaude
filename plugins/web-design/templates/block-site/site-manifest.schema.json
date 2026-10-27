@@ -7,12 +7,24 @@
   "additionalProperties": false,
   "required": ["siteId", "lang", "business", "assets", "pages"],
   "properties": {
-    "$schema": { "type": "string" },
-    "siteId": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 60 },
+    "$schema": {
+      "type": "string"
+    },
+    "siteId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "maxLength": 60
+    },
     "lang": {
       "description": "BCP 47 language of the site, used as <html lang>. Hyphenation needs it.",
       "type": "string",
       "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+    },
+    "origin": {
+      "description": "Where the site is served, e.g. https://www.example.com. Gives every page a canonical URL and the JSON-LD its url; without it both are left out.",
+      "type": "string",
+      "pattern": "^https://[a-z0-9.-]+(:[0-9]+)?$",
+      "maxLength": 120
     },
     "tier": {
       "description": "Optional: the plan the customer bought, if the catalog maps features to tiers.",
@@ -21,7 +33,10 @@
     },
     "features": {
       "type": "array",
-      "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
       "uniqueItems": true
     },
     "business": {
@@ -29,24 +44,50 @@
       "additionalProperties": false,
       "required": ["name", "schemaType"],
       "properties": {
-        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
         "schemaType": {
           "description": "schema.org type, e.g. Restaurant, LocalBusiness, Dentist.",
           "type": "string",
           "pattern": "^[A-Z][A-Za-z]+$"
         },
-        "phone": { "type": "string", "maxLength": 30 },
-        "email": { "type": "string", "format": "email", "maxLength": 120 },
+        "phone": {
+          "type": "string",
+          "maxLength": 30
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 120
+        },
         "address": {
           "type": "object",
           "additionalProperties": false,
           "required": ["city", "countryCode"],
           "properties": {
-            "street": { "type": "string", "maxLength": 120 },
-            "city": { "type": "string", "maxLength": 80 },
-            "region": { "type": "string", "maxLength": 80 },
-            "postalCode": { "type": "string", "maxLength": 20 },
-            "countryCode": { "type": "string", "pattern": "^[A-Z]{2}$" }
+            "street": {
+              "type": "string",
+              "maxLength": 120
+            },
+            "city": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "region": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "postalCode": {
+              "type": "string",
+              "maxLength": 20
+            },
+            "countryCode": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$"
+            }
           }
         },
         "hours": {
@@ -63,35 +104,188 @@
                 "minItems": 1,
                 "maxItems": 7,
                 "uniqueItems": true,
-                "items": { "enum": ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] }
+                "items": {
+                  "enum": ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+                }
               },
-              "opens": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" },
-              "closes": { "type": "string", "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$" }
+              "opens": {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+              },
+              "closes": {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+              }
+            }
+          }
+        },
+        "specialHours": {
+          "description": "Days that differ from the weekly hours (holidays, events). Rendered under the hours and emitted as specialOpeningHoursSpecification. A past date is warned about, so stale holidays do not linger.",
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["date", "label"],
+            "properties": {
+              "date": {
+                "type": "string",
+                "pattern": "^20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 40
+              },
+              "closed": {
+                "const": true
+              },
+              "opens": {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+              },
+              "closes": {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "chrome": {
+      "description": "The site's header and footer, the same on every page. The renderer derives the brand and the footer's facts from business; nav labels are bounded so the header has a worst case to test.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nav"],
+      "properties": {
+        "nav": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "href"],
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 20
+              },
+              "href": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            }
+          }
+        },
+        "action": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["label", "href"],
+          "properties": {
+            "label": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 28
+            },
+            "href": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          }
+        },
+        "footerNav": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "href"],
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 20
+              },
+              "href": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
             }
           }
         }
       }
     },
     "assets": {
-      "description": "Every image, keyed by a lower-case slug that blocks reference. width/height are the source's pixels: they reserve the space (no layout shift) and tell the srcset step how large a candidate can be.",
+      "description": "Every image, keyed by a lower-case slug that blocks reference. width/height are the source's pixels: they reserve the space (no layout shift) and tell the size check how large the image can be drawn and stay sharp.",
       "type": "object",
-      "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
         "required": ["src", "alt", "width", "height", "provenance"],
         "properties": {
-          "src": { "type": "string", "maxLength": 300 },
+          "src": {
+            "type": "string",
+            "maxLength": 300
+          },
           "alt": {
             "description": "Written while looking at the image. \"\" only for a decorative image.",
             "type": "string",
             "maxLength": 200
           },
-          "width": { "type": "integer", "minimum": 1 },
-          "height": { "type": "integer", "minimum": 1 },
-          "provenance": { "enum": ["business-own", "commissioned", "licensed-stock", "generated"] },
-          "focal": { "type": "string", "pattern": "^\\d{1,3}% \\d{1,3}%$" },
-          "credit": { "type": "string", "maxLength": 120 }
+          "width": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "provenance": {
+            "enum": ["business-own", "commissioned", "licensed-stock", "generated"]
+          },
+          "focal": {
+            "type": "string",
+            "pattern": "^\\d{1,3}% \\d{1,3}%$"
+          },
+          "credit": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "sources": {
+            "description": "More widths of the SAME crop, for srcset. The renderer lists them with src, so the browser picks the smallest that stays sharp.",
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["src", "width"],
+              "properties": {
+                "src": {
+                  "type": "string",
+                  "maxLength": 300
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          "portrait": {
+            "description": "Another asset's key: a portrait crop of this photo for narrow portrait screens (art direction). A full-bleed band cover-crops a landscape photo to a sliver on a phone.",
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "maxLength": 60
+          }
         }
       }
     },
@@ -103,9 +297,32 @@
         "additionalProperties": false,
         "required": ["path", "title", "description", "blocks"],
         "properties": {
-          "path": { "type": "string", "pattern": "^/([a-z0-9-]+/)*$" },
-          "title": { "type": "string", "minLength": 3, "maxLength": 60 },
-          "description": { "type": "string", "minLength": 50, "maxLength": 160 },
+          "path": {
+            "type": "string",
+            "pattern": "^/([a-z0-9-]+/)*$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 60
+          },
+          "description": {
+            "type": "string",
+            "minLength": 50,
+            "maxLength": 160
+          },
+          "lang": {
+            "description": "This page's language when it differs from the site's.",
+            "type": "string",
+            "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+          },
+          "dir": {
+            "enum": ["ltr", "rtl"]
+          },
+          "noindex": {
+            "description": "Keep the page out of search (stress pages, drafts).",
+            "type": "boolean"
+          },
           "blocks": {
             "type": "array",
             "minItems": 1,
@@ -114,11 +331,30 @@
               "additionalProperties": false,
               "required": ["type", "props"],
               "properties": {
-                "type": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
-                "variant": { "type": "string" },
-                "tone": { "enum": ["canvas", "surface", "inverse", "media"] },
-                "space": { "enum": ["s", "m", "l", "none"] },
-                "props": { "type": "object" }
+                "type": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$"
+                },
+                "variant": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$",
+                  "maxLength": 40
+                },
+                "tone": {
+                  "enum": ["canvas", "surface", "inverse", "media"]
+                },
+                "space": {
+                  "enum": ["s", "m", "l", "none"]
+                },
+                "props": {
+                  "type": "object"
+                },
+                "anchor": {
+                  "description": "An id for in-page links (href=\"#visit\"). Unique on its page.",
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$",
+                  "maxLength": 40
+                }
               }
             }
           }
@@ -128,7 +364,10 @@
     "ownerTodos": {
       "description": "Facts nobody could verify. Never rendered; a placeholder in a rendered field is refused instead.",
       "type": "array",
-      "items": { "type": "string", "maxLength": 300 }
+      "items": {
+        "type": "string",
+        "maxLength": 300
+      }
     }
   }
 }

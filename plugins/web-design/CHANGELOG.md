@@ -7,27 +7,51 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
 ### Added
 
 - **`templates/block-site/`**: a starter kit, so anyone can build a block site with no private composer.
-  - `tokens.css` holds the values a site tunes.
+  - `tokens.css` holds the values a site tunes: scales, font stacks, grid widths, colour roles and the photo scrim.
   - `layout.css` is the layout contract:
     - a page grid with `full`/`wide`/`content` lines;
-    - rhythm tokens and tones;
-    - intrinsic primitives;
+    - rhythm tokens, and tones that re-point every colour role;
+    - intrinsic primitives whose children are containers;
     - a count-aware card grid for 1–6 items;
-    - media frames and a copy-anchored scrim;
-    - text safety;
-    - dark, forced colours, more contrast, reduced motion, RTL and print.
-  - `block.schema.json`, `site-manifest.schema.json`, `catalog.json` (five exemplar block contracts in one file, to stay inside the repo's file budget; the checker also reads a directory of `<id>/block.json`), an example manifest, `gallery.html`, and the 18-block canonical catalog in the kit's README.
-- **`scripts/block_site_check.py`** (stdlib), with `catalog`, `manifest`, `tokens` and `fixtures` commands and a `--self-test` of 46 rows.
-- **`scripts/layout-probe.js`**: 18 rendered-page checks in a dependency-free browser function.
-- **`scripts/device_matrix.mjs`**: runs the probe across 28 viewports, ±1px around every `@media` width, an optional sweep, and three themes. `--self-test` plants 22 defects (every check the probe has), requires a clean control over 306 states, and measures all 18 count × width cells of the card grid. A layout shift counts only when it repeats in 3 of 3 loads (the measured reason is in the knowledge file §11).
-- **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN browser-compat-data read 2026-10-27, the verification ladder, and ten measured pitfalls.
+    - media frames (linked photos included) and a copy-anchored scrim;
+    - text safety and a reading measure;
+    - dark, forced colours (with a backplate behind photo copy), more contrast in light and dark, reduced motion,
+      RTL and print.
+  - `blocks.css` holds the exemplars' CSS and the site header, menu and footer.
+  - `block.schema.json` and `site-manifest.schema.json`. The manifest carries business facts (with special days),
+    site chrome, assets with `srcset` sources and portrait crops, and pages with `lang`, `dir` and anchors.
+  - `catalog.json`: ten exemplar block contracts in one file, to stay inside the repo's file budget. The checker
+    also reads a directory of `<id>/block.json`.
+  - `example.manifest.json`: a three-page site that uses every exemplar. The kit's README carries the 15-block
+    canonical catalog.
+- **`scripts/block_site_check.py`** (stdlib): `catalog`, `manifest`, `tokens` and `fixtures`, with a `--self-test`
+  of 77 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
+  sizes for the box each is drawn in, and reads `oklch()` and other colour syntaxes.
+- **`scripts/block_site_render.py`** (stdlib): the reference renderer, from manifest to static HTML, with HTML checks
+  and a `--self-test` that breaks each of them. CI runs it.
+- **`scripts/layout-probe.js`**: 29 rendered-page checks in a dependency-free async browser function.
+- **`scripts/device_matrix.mjs`**: runs the probe across 28 viewports, ±1px around every `@media` width, and an
+  optional sweep. Its quick rows run five themes with real desktop scrollbars, plus photo-contrast on composited
+  pixels (ported from the owner's factory).
+  - `--self-test` renders the kit and requires the example and 40 stress pages clean.
+  - It plants 38 defects, covering every check, and checks 6 look-alikes that must pass.
+  - It measures all 18 count × width cells of the card grid.
+  - A layout shift counts only when it repeats in 3 of 3 loads (the measured reason is in the knowledge file §11).
+- **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 16 measured
+  pitfalls.
 - **Command:** `/web-design:new-block-site`, gated step by step.
 
 ### Changed
 
-- `block-composed-site` gains Mode 0 (start from the kit), the layout contract, a proof ladder for every mode, and four new pitfalls.
-- `adaptive-layout` Step 7 points at this plugin's own device matrix instead of the owner's private factory.
-- `test_web_design_checks.py` (run by CI Gate 317) gains five block-site tests.
+- `block-composed-site` gains Mode 0 (start from the kit), the layout contract, a proof ladder for every mode, and new
+  pitfalls.
+- `adaptive-layout` Step 7 points at this plugin's own device matrix, which now runs photo-contrast itself.
+- `text-over-photo-contrast-2026.md` records three things this port learned:
+  - the method runs in dark and both more-contrast themes;
+  - it cannot apply in forced colours, where glyphs cannot be hidden;
+  - a reduced-motion transition delays the hide by a frame.
+- `test_web_design_checks.py` (run by CI Gate 317) gains six block-site tests.
 
 ## [0.21.0] — 2026-10-27
 

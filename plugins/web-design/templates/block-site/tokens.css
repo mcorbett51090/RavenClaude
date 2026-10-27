@@ -55,6 +55,15 @@
     --focus-width: 2px;
     --target-min: 2.75rem; /* 44px primary controls; 24px is the WCAG 2.5.8 floor */
 
+    /* Type families. A system stack renders at once with no layout shift and no
+       network. To use a brand face: add its @font-face (font-display: swap),
+       preload the one file the first screen needs, and put a metric-matched
+       fallback face second (size-adjust plus ascent/descent overrides, knowledge
+       §7), so the swap does not move the text. */
+    --font-body:
+      system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    --font-display: var(--font-body);
+
     /* Motion. */
     --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
     --duration: 200ms;
@@ -64,14 +73,22 @@
     --surface: #ffffff;
     --ink: #1b1b1f;
     --ink-muted: #55565e;
-    --rule: #dcdbe0;
+    --rule: #dcdbe0; /* hairlines and card edges: decorative, no contrast bar */
+    --field-border: #8a8b94; /* a form control's edge: 3:1 on canvas and surface (SC 1.4.11) */
     --accent: #2f5bd3;
     --on-accent: #ffffff;
     --inverse: #15161b;
     --on-inverse: #f4f3ef;
     --on-inverse-muted: #c3c3ca;
+    --inverse-surface: #25262d; /* a card on an inverse band */
+    --inverse-rule: #3a3b44;
     --focus: #1f4fd0;
-    --scrim: rgb(10 11 14 / 0.62);
+    /* The scrim behind copy on a photo: at least --scrim-weak under every line,
+       --scrim-strong at the band's foot (knowledge/text-over-photo-contrast-2026.md
+       §2). block_site_check.py tokens proves both inks hold over a white pixel. */
+    --scrim-color: #0a0b0e;
+    --scrim-weak: 74%;
+    --scrim-strong: 86%;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -80,11 +97,14 @@
       --ink: #f1f0ec;
       --ink-muted: #b7b7bf;
       --rule: #34353d;
+      --field-border: #7d7e88;
       --accent: #8fb0ff;
       --on-accent: #0d1430;
       --inverse: #23242c; /* a dark band must still read as a band on a dark page */
       --on-inverse: #f4f3ef;
       --on-inverse-muted: #c9c9d0;
+      --inverse-surface: #2f3039;
+      --inverse-rule: #4a4b55;
       --focus: #9db9ff;
     }
   }
@@ -94,17 +114,28 @@
     --ink: #f1f0ec;
     --ink-muted: #b7b7bf;
     --rule: #34353d;
+    --field-border: #7d7e88;
     --accent: #8fb0ff;
     --on-accent: #0d1430;
     --inverse: #23242c;
     --on-inverse: #f4f3ef;
     --on-inverse-muted: #c9c9d0;
+    --inverse-surface: #2f3039;
+    --inverse-rule: #4a4b55;
     --focus: #9db9ff;
   }
+  /* After both dark blocks, and with selectors at least as specific as theirs
+     (0,2,0), so "more contrast" wins in the dark theme too. A bare :root here
+     (0,1,0) lost to them, and dark + more contrast changed nothing. */
   @media (prefers-contrast: more) {
-    :root {
+    :root,
+    :root:not([data-theme="light"]),
+    :root[data-theme] {
       --ink-muted: var(--ink);
+      --on-inverse-muted: var(--on-inverse);
       --rule: currentColor;
+      --field-border: currentColor;
+      --inverse-rule: currentColor;
     }
   }
 }

@@ -7,6 +7,7 @@
  *   node device_matrix.mjs --dir dist                     a built site, served locally
  *   node device_matrix.mjs --url http://localhost:4321/   a running server (repeatable)
  *     --pages /,/menu/,/visit/   paths to test (default: / only)
+ *     --manifest FILE            test every page a site manifest lists (repeatable)
  *     --quick                    one viewport per device class (default)
  *     --full                     every row of adaptive-layout's device table
  *     --sweep 320:1600:8         also every 8px from 320 to 1600 (catches the
@@ -42,6 +43,7 @@
  * run is necessary, not sufficient. Finish on a real iPhone and iPad.
  */
 import { createRequire } from "node:module";
+import { execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { deflateSync } from "node:zlib";
 import {
@@ -98,6 +100,8 @@ const THEMES = {
   light: { colorScheme: "light", forcedColors: "none" },
   dark: { colorScheme: "dark", forcedColors: "none" },
   forced: { colorScheme: "light", forcedColors: "active" },
+  contrast: { colorScheme: "light", forcedColors: "none", contrast: "more" },
+  "contrast-dark": { colorScheme: "dark", forcedColors: "none", contrast: "more" },
 };
 
 // Installed before any page script: the probe reads it for layout-shift.
@@ -229,13 +233,20 @@ async function probePage(page, expectedWidth, skip = []) {
   return page.evaluate(`${PROBE}\n;layoutProbe(${JSON.stringify({ expectedWidth, skip })})`);
 }
 
+/** Load a URL; a page that does not answer 2xx is a failure, never a silent pass. */
+async function load(page, url) {
+  const res = await page.goto(url, { waitUntil: "load" });
+  if (!res || res.status() < 200 || res.status() > 299)
+    throw new Error(`${url} answered ${res ? res.status() : "nothing"}; check --pages`);
+}
+
 /** Reload a page that shifted in fresh contexts; count the loads that shift again. */
 async function reloadShifts(browser, v, theme, url, times) {
   let n = 0;
   for (let i = 0; i < times; i++) {
     const ctx = await newStateContext(browser, v, theme);
     const page = await ctx.newPage();
-    await page.goto(url, { waitUntil: "load" });
+    await load(page, url);
     const { findings } = await probePage(page, v.w);
     if (findings.some((x) => x.id === "layout-shift")) n++;
     await ctx.close();
@@ -259,16 +270,265 @@ async function newStateContext(browser, v, theme) {
   return ctx;
 }
 
-async function runMatrix({ chromium, urls, viewports, themes, sweep, shots, launch }) {
+// ─── photo-contrast: text over a photograph, on composited pixels ────────────
+// No colour stands in for a photograph, so the probe's text-contrast check skips
+// text over one, and this scores it instead (knowledge/text-over-photo-contrast-
+// 2026.md §1): hide every glyph (text-shadow and the element's own background
+// stay, because they sit behind the glyphs), capture the VIEWPORT, and score each
+// text line's box pixel by pixel against the text colour composited at its own
+// alpha × its ancestors' opacity. The 5th-percentile pixel is the reading: a
+// bright patch behind a fifth of a line fails, one specular highlight does not.
+// 4.5:1, or 3:1 at 24px / 18.66px bold. The percentile is a HEURISTIC; WCAG names
+// no sampling rule for a photograph. Ported from the owner's factory, where it
+// was built and broken on purpose (RavenPower-website-factory PR #131).
+const PHOTO_FIND = `(async () => {
+  // Two frames first: under reduced motion a style changed just before this
+  // (a mutation, a theme) is still mid-transition, and its colour reads stale.
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  for (const img of document.images) if (img.loading === 'lazy') img.loading = 'eager';
+  await Promise.race([
+    Promise.all([...document.images].map((i) => i.decode().catch(() => {}))),
+    new Promise((r) => setTimeout(r, 4000)),
+  ]);
+  const SX = scrollX, SY = scrollY;
+  const vis = (el) => {
+    if (el.closest('[aria-hidden="true"],[hidden],[inert]')) return false;
+    if (el.closest('details:not([open]) > :not(summary)')) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || cs.visibility === 'collapse') return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const path = (el) => {
+    const parts = [];
+    for (let e = el; e && e.nodeType === 1 && parts.length < 4; e = e.parentElement) {
+      let s = e.tagName.toLowerCase();
+      if (e.id) { s += '#' + e.id; parts.unshift(s); break; }
+      if (e.dataset && e.dataset.block) s += '[data-block="' + e.dataset.block + '"]';
+      else { const c = [...e.classList].slice(0, 2).join('.'); if (c) s += '.' + c; }
+      parts.unshift(s);
+    }
+    return parts.join(' > ');
+  };
+  const media = [];
+  for (const m of document.body.querySelectorAll('*')) {
+    const cs = getComputedStyle(m);
+    if (!/^(IMG|VIDEO|CANVAS)$/.test(m.tagName) && !/url\\(/.test(cs.backgroundImage)) continue;
+    if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    const r = m.getBoundingClientRect();
+    if (r.width < 48 || r.height < 48) continue;
+    media.push({ el: m, l: r.left + SX, t: r.top + SY, r: r.right + SX, b: r.bottom + SY });
+  }
+  const cv = document.createElement('canvas'); cv.width = cv.height = 1;
+  const cx = cv.getContext('2d', { willReadFrequently: true });
+  const rgba = (css) => {
+    cx.clearRect(0, 0, 1, 1); cx.fillStyle = '#000'; cx.fillStyle = css; cx.fillRect(0, 0, 1, 1);
+    const d = cx.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2], d[3] / 255];
+  };
+  const clipTo = (el, q) => {
+    for (let a = el; a && a !== document.body; a = a.parentElement) {
+      const cs = getComputedStyle(a);
+      if (cs.overflowX === 'visible' && cs.overflowY === 'visible' && cs.clip === 'auto' && cs.clipPath === 'none') continue;
+      const r = a.getBoundingClientRect();
+      q = { l: Math.max(q.l, r.left + SX), t: Math.max(q.t, r.top + SY), r: Math.min(q.r, r.right + SX), b: Math.min(q.b, r.bottom + SY) };
+    }
+    return q;
+  };
+  const groups = new Map();
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const range = document.createRange();
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.nodeValue.trim()) continue;
+    const el = n.parentElement;
+    if (!el || el.closest('svg,script,style,noscript,template,canvas') || !vis(el)) continue;
+    range.selectNodeContents(n);
+    const rects = [...range.getClientRects()]
+      .map((r) => clipTo(el, { l: r.left + SX, t: r.top + SY, r: r.right + SX, b: r.bottom + SY }))
+      .filter((q) => q.r - q.l >= 2 && q.b - q.t >= 6);
+    const over = rects.filter((q) => media.some((m) => !el.contains(m.el)
+      && q.l < m.r && q.r > m.l && q.t < m.b && q.b > m.t));
+    if (!over.length) continue;
+    if (!groups.has(el)) groups.set(el, []);
+    groups.get(el).push(...over);
+  }
+  const out = [];
+  for (const [el, rects] of groups) {
+    const cs = getComputedStyle(el);
+    if (cs.backgroundClip === 'text' || cs.webkitBackgroundClip === 'text') continue;
+    // Forced colours paint the forced color; the fill still reports the author's.
+    const fill = matchMedia('(forced-colors: active)').matches ? cs.color : cs.webkitTextFillColor || cs.color;
+    const fg = rgba(fill);
+    let alpha = fg[3];
+    for (let a = el; a && a !== document.documentElement; a = a.parentElement) alpha *= Number(getComputedStyle(a).opacity);
+    if (alpha < 0.02) continue;
+    const size = parseFloat(cs.fontSize), weight = Number(cs.fontWeight) || 400;
+    out.push({ k: out.length, where: path(el), text: el.textContent.trim().replace(/\\s+/g, ' ').slice(0, 40),
+      fg: fg.slice(0, 3), alpha, size, large: size >= 24 || (size >= 18.66 && weight >= 700),
+      rects, top: Math.min(...rects.map((r) => r.t)), bottom: Math.max(...rects.map((r) => r.b)) });
+    el.setAttribute('data-dm-photo', String(out.length - 1));
+  }
+  return out;
+})()`;
+
+// ':root *' outranks a bare '*', so a page's own !important colour cannot survive
+// the hide. Whether the hide LANDED is asserted, not assumed.
+// The kit's reduced-motion rule gives every property a 0.01ms transition, from a
+// layered !important that no unlayered rule can switch off; so the hide waits two
+// frames for that transition to end before it is checked and the capture taken.
+const PHOTO_HIDE = `(async () => {
+  const s = document.createElement('style'); s.setAttribute('data-dm-photo-hide', '');
+  s.textContent = ':root *,:root *::before,:root *::after{-webkit-text-fill-color:transparent!important;'
+    + 'text-decoration-color:transparent!important;caret-color:transparent!important}'
+    + ':root{scroll-behavior:auto!important}';
+  document.head.appendChild(s);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  return [...document.querySelectorAll('[data-dm-photo]')]
+    .filter((el) => !/^rgba\\(0, 0, 0, 0\\)$|^transparent$/.test(getComputedStyle(el).webkitTextFillColor))
+    .map((el) => el.tagName.toLowerCase() + ' ' + getComputedStyle(el).webkitTextFillColor);
+})()`;
+const PHOTO_UNHIDE = `(() => { for (const s of document.querySelectorAll('style[data-dm-photo-hide]')) s.remove();
+  for (const el of document.querySelectorAll('[data-dm-photo]')) el.removeAttribute('data-dm-photo'); })()`;
+
+const PHOTO_SAMPLE = (b64, cands, dpr) => `(async () => {
+  const C = ${JSON.stringify(cands)};
+  const SX = scrollX, SY = scrollY, W = innerWidth, H = innerHeight;
+  const img = new Image(); img.src = 'data:image/png;base64,${b64}'; await img.decode();
+  const k = img.width / W;
+  const geometry = { k, kh: img.height / H, dpr: ${dpr}, w: img.width, h: img.height, W, H };
+  const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height;
+  const ctx = cv.getContext('2d', { willReadFrequently: true }); ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, img.width, img.height).data;
+  const LIN = Array.from({ length: 256 }, (_, v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+  const Y = (r, g, b) => 0.2126 * LIN[Math.round(r)] + 0.7152 * LIN[Math.round(g)] + 0.0722 * LIN[Math.round(b)];
+  const underChrome = (el, x, y) => {
+    for (let e = document.elementFromPoint(x, y); e; e = e.parentElement) {
+      if (e === el || e.contains(el)) return false;
+      const p = getComputedStyle(e).position;
+      if (p === 'fixed' || p === 'sticky') return true;
+    }
+    return false;
+  };
+  const step = Math.max(1, Math.round(k));
+  const res = [];
+  for (const c of C) {
+    const el = document.querySelector('[data-dm-photo="' + c.k + '"]');
+    const lines = c.rects.map((q) => ({ l: q.l - SX, t: q.t - SY, r: q.r - SX, b: q.b - SY }))
+      .filter((q) => q.t >= 0 && q.b <= H && q.r > 0 && q.l < W);
+    if (!el || !lines.length) continue;
+    const full = lines.length === c.rects.length;
+    const q0 = lines[0];
+    if (underChrome(el, Math.min(W - 1, Math.max(0, (q0.l + q0.r) / 2)), (q0.t + q0.b) / 2)) continue;
+    const [fr, fgc, fb] = c.fg, a = c.alpha;
+    const ratios = [];
+    for (const q of lines) {
+      const x0 = Math.max(0, Math.round(q.l * k)), x1 = Math.min(img.width, Math.round(q.r * k));
+      const y0 = Math.max(0, Math.round(q.t * k)), y1 = Math.min(img.height, Math.round(q.b * k));
+      for (let y = y0; y < y1; y += step) for (let x = x0; x < x1; x += step) {
+        const i = (y * img.width + x) * 4;
+        const br = data[i], bg = data[i + 1], bb = data[i + 2];
+        const Lb = Y(br, bg, bb);
+        const Lt = Y(a * fr + (1 - a) * br, a * fgc + (1 - a) * bg, a * fb + (1 - a) * bb);
+        ratios.push((Math.max(Lb, Lt) + 0.05) / (Math.min(Lb, Lt) + 0.05));
+      }
+    }
+    if (!ratios.length) continue;
+    ratios.sort((x, y) => x - y);
+    res.push({ k: c.k, full, n: ratios.length, p5: ratios[Math.floor(ratios.length * 0.05)],
+      median: ratios[Math.floor(ratios.length / 2)] });
+  }
+  return { geometry, res };
+})()`;
+
+const MAX_PHOTO_SHOTS = 12;
+const FRAME = `new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))`;
+
+/** Score every text line over a photo on this page, at this viewport. Returns findings. */
+async function photoContrast(page, v, stats) {
+  const findings = [];
+  const cands = await page.evaluate(PHOTO_FIND);
+  if (!cands.length) return findings;
+  const missed = await page.evaluate(PHOTO_HIDE);
+  if (missed.length) {
+    throw new Error(
+      `hiding the text did NOT land on ${missed.length} element(s) of ${page.url()} (${missed.slice(0, 3).join("; ")}): the capture would score glyphs against themselves`,
+    );
+  }
+  try {
+    const pending = [...cands].sort((x, y) => x.top - y.top);
+    for (let shots = 0; pending.length && shots < MAX_PHOTO_SHOTS; shots++) {
+      // The first pending line a quarter of the way down: under any top chrome,
+      // with the lines below it in the same shot.
+      await page.evaluate(
+        `(async () => { scrollTo({ top: Math.max(0, ${pending[0].top} - innerHeight / 4), behavior: 'instant' }); await ${FRAME}; })()`,
+      );
+      const shot = (
+        await page.screenshot({ type: "png", animations: "disabled", caret: "hide" })
+      ).toString("base64");
+      const { geometry: g, res } = await page.evaluate(PHOTO_SAMPLE(shot, pending, v.dpr));
+      // ⛔ The capture's geometry is asserted: a capture that is not the viewport at
+      // the device's pixel ratio puts every sample somewhere else on the page, and
+      // the readings are still plausible numbers.
+      if (Math.abs(g.k - g.dpr) > 0.05 || Math.abs(g.kh - g.dpr) > 0.05) {
+        throw new Error(
+          `the capture is ${g.w}x${g.h} for a ${g.W}x${g.H} viewport at dpr ${g.dpr}: every photo-contrast sample would be misplaced`,
+        );
+      }
+      const scored = res.filter((r) => r.full || r.k === pending[0].k);
+      const done = new Set(scored.map((r) => r.k));
+      if (!done.has(pending[0].k)) {
+        stats.photoUnscored++;
+        done.add(pending[0].k);
+      }
+      for (const r of scored) {
+        const c = cands[r.k];
+        const need = c.large ? 3 : 4.5;
+        stats.photoTexts++;
+        if (r.p5 / need < stats.minPhoto) {
+          stats.minPhoto = r.p5 / need;
+          stats.minPhotoAt = `"${c.text.slice(0, 24)}" ${r.p5.toFixed(2)}:1 on ${new URL(page.url()).pathname} @ ${v.id}`;
+        }
+        if (r.p5 < need) {
+          findings.push({
+            id: "photo-contrast",
+            where: c.where,
+            msg:
+              `${Math.round(c.size * 10) / 10}px "${c.text}" measures ${r.p5.toFixed(2)}:1 against the photo behind it ` +
+              `(5th-percentile pixel; median ${r.median.toFixed(2)}:1), needs ${need}:1 (SC 1.4.3)`,
+          });
+        }
+      }
+      for (let i = pending.length - 1; i >= 0; i--)
+        if (done.has(pending[i].k)) pending.splice(i, 1);
+    }
+    stats.photoUnscored += pending.length;
+  } finally {
+    await page.evaluate(PHOTO_UNHIDE);
+    await page.evaluate("scrollTo({ top: 0, behavior: 'instant' })");
+  }
+  return findings;
+}
+
+async function runMatrix({
+  chromium,
+  urls,
+  viewports,
+  themes,
+  sweep,
+  shots,
+  launch,
+  photo = true,
+}) {
   const browser = await chromium.launch(launch);
   const findings = [];
   const notes = new Set();
+  const photoStats = { photoTexts: 0, photoUnscored: 0, minPhoto: Infinity, minPhotoAt: "" };
   let states = 0;
   try {
     // Breakpoint edges from the first URL's own CSS.
     const probeCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     const p0 = await probeCtx.newPage();
-    await p0.goto(urls[0], { waitUntil: "load" });
+    await load(p0, urls[0]);
     const bp = await p0.evaluate(BREAKPOINTS);
     await probeCtx.close();
     const edgeWidths = new Set();
@@ -294,7 +554,7 @@ async function runMatrix({ chromium, urls, viewports, themes, sweep, shots, laun
         const ctx = await newStateContext(browser, v, theme);
         const page = await ctx.newPage();
         for (const url of urls) {
-          await page.goto(url, { waitUntil: "load" });
+          await load(page, url);
           let { findings: f, stats } = await probePage(page, v.w);
           states++;
           for (const n of stats.notMeasured || []) notes.add(n);
@@ -311,6 +571,18 @@ async function runMatrix({ chromium, urls, viewports, themes, sweep, shots, laun
               );
             }
           }
+          // Text over photos: one viewport per device class (the crop changes with
+          // the aspect ratio), in every theme but forced colours. There the browser
+          // paints glyphs in the forced colour whatever -webkit-text-fill-color says,
+          // so the hide cannot land (its computed-style check would still pass):
+          // the method does not apply, and the kit gives the copy an opaque Canvas
+          // backplate instead, which --self-test checks.
+          if (photo && v.quick && theme !== "forced")
+            f = f.concat(await photoContrast(page, v, photoStats));
+          else if (photo && v.quick && theme === "forced")
+            notes.add(
+              "photo-contrast: not scored in forced colours (glyphs paint in the forced colour and cannot be hidden for the capture)",
+            );
           for (const x of f) findings.push({ ...x, url, vp: `${v.id} ${v.w}×${v.h}`, theme });
           if (shots) {
             mkdirSync(shots, { recursive: true });
@@ -335,15 +607,13 @@ async function runMatrix({ chromium, urls, viewports, themes, sweep, shots, laun
       });
       const page = await ctx.newPage();
       for (const url of urls) {
-        await page.goto(url, { waitUntil: "load" });
+        await load(page, url);
         await page.evaluate(SETTLE);
         for (let w = from; w <= to; w += step) {
           await page.setViewportSize({ width: w, height: 900 });
-          await page.evaluate(
-            "new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))",
-          );
+          await page.evaluate(FRAME);
           const { findings: f } = await page.evaluate(
-            `${PROBE}\n;layoutProbe(${JSON.stringify({ expectedWidth: w, skip: ["layout-shift", "font-failed", "images"] })})`,
+            `${PROBE}\n;layoutProbe(${JSON.stringify({ expectedWidth: w, skip: ["layout-shift", "font-failed", "images", "overlap", "anchor-obscured", "covered", "focus"] })})`,
           );
           states++;
           for (const x of f) findings.push({ ...x, url, vp: `sweep ${w}px`, theme: "light" });
@@ -351,7 +621,11 @@ async function runMatrix({ chromium, urls, viewports, themes, sweep, shots, laun
       }
       await ctx.close();
     }
-    return { findings, notes: [...notes], states, breakpoints: bp };
+    if (photoStats.photoTexts)
+      notes.add(
+        `photo-contrast: ${photoStats.photoTexts} line(s) over photos scored; lowest ${photoStats.minPhotoAt} (${(photoStats.minPhoto * 100).toFixed(0)}% of its bar)${photoStats.photoUnscored ? `; ${photoStats.photoUnscored} could not be scored` : ""}`,
+      );
+    return { findings, notes: [...notes], states, breakpoints: bp, photo: photoStats };
   } finally {
     await browser.close();
   }
@@ -369,6 +643,10 @@ function report({ findings, notes, states, breakpoints }) {
     `device-matrix: ${states} page states; media breakpoints ${breakpoints.media.length ? `${breakpoints.media.join(", ")}px (each tested ±1px)` : "none"}`,
   );
   for (const n of notes) console.log(`  note  ${n}`);
+  if (!states) {
+    console.log("device-matrix: 0 page states were tested. THIS IS NOT A PASS.");
+    return 2;
+  }
   if (!groups.size) {
     console.log("device-matrix: OK, no findings.");
     console.log(
@@ -425,41 +703,41 @@ function png(w, h, [r, g, b]) {
 }
 
 const LONG_WORD = "Donaudampfschifffahrtsgesellschaftskapitänswitwe";
+const PROSE =
+  "Long-running copy that wraps across several lines, so the width of each line can be measured against a comfortable reading measure on every screen it meets.";
+/** A synthetic page on the kit's three stylesheets, for planting one defect at a time. */
 function page({ head = "", top = "", extra = "", cards = 5 } = {}) {
   const card = (i) =>
-    `<article class="card stack"><h3>Feature ${i}</h3><p>One honest sentence about what this does for a customer.</p></article>`;
+    `<article class="card stack"><h3>Feature ${i}</h3><p class="muted">One honest sentence about what this does for a customer.</p></article>`;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Self-test</title><link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/layout.css">
-<style>@layer blocks {
-  .card { padding: var(--space-m); background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-m); }
-  .site-nav a { display: inline-flex; align-items: center; min-block-size: 2.75rem; padding-inline: var(--space-2xs); color: inherit; }
-  .hero { min-block-size: min(80vh, 44rem); min-block-size: min(80svh, 44rem); align-content: end; }
-  .field { display: grid; gap: var(--space-3xs); }
-  .field input { padding-inline: var(--space-xs); border: 1px solid var(--rule); border-radius: var(--radius-s); background: var(--surface); color: var(--ink); }
-}</style>${head}</head><body>
+<title>Self-test</title><link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/layout.css"><link rel="stylesheet" href="/blocks.css">${head}</head><body>
 ${top}
-<header data-block="site-header" data-tone="canvas" data-space="s"><nav class="site-nav cluster" aria-label="Main"><a href="/">Home</a><a href="/menu/">Menu</a><a href="/visit/">Visit</a><a class="button" href="/book/">Book a table</a></nav></header>
-<main>
-<section data-block="hero" data-tone="media" class="hero" aria-labelledby="h1">
-  <div data-slot="backdrop"><picture><source media="(max-width: 47.99em)" srcset="/portrait.png" width="1200" height="1800"><img src="/landscape.png" width="2560" height="1440" alt="The dining room at opening time"></picture></div>
+<header data-block="site-header" data-tone="canvas" data-space="s" class="site-header"><div class="site-header__bar"><a class="brand" href="/">Diner</a><nav class="site-nav" aria-label="Main"><ul role="list"><li><a href="/">Home</a></li><li><a href="/menu/">Menu</a></li></ul></nav></div></header>
+<main id="main">
+<section data-block="hero-full" data-tone="media" data-space="l" aria-labelledby="h1">
+  <div data-slot="backdrop"><picture><source media="(max-width: 30em) and (orientation: portrait)" srcset="/portrait.png" width="1200" height="1800"><img src="/landscape.png" width="2560" height="1440" alt=""></picture></div>
   <div class="on-photo stack"><h1 id="h1">Breakfast all day, since 1945</h1><p>A diner that still makes its biscuits by hand every morning.</p><div class="cluster"><a class="button" href="/menu/">See the menu</a><a class="button" data-variant="ghost" href="/visit/">Plan a visit</a></div></div>
 </section>
-<section data-block="features" data-tone="canvas" aria-labelledby="h2a"><h2 id="h2a">Why people come back</h2><div><div class="cards">${Array.from({ length: cards }, (_, i) => card(i + 1)).join("")}</div></div></section>
-<section data-block="story" data-tone="surface" aria-labelledby="h2b"><div class="switcher" style="--switch-at: 44rem"><div class="frame" style="--ratio: 4 / 3"><img src="/story.png" width="1200" height="900" alt="The original counter"></div><div class="prose stack"><h2 id="h2b">Same counter, same recipes</h2><p>Long-running copy that should wrap at a comfortable measure on every screen, never stretching edge to edge on a wide monitor.</p></div></div></section>
-<section data-block="contact" data-tone="canvas" aria-labelledby="h2c"><div><form class="stack prose" action="#"><h2 id="h2c">Ask us anything</h2><div class="field"><label for="em">Email</label><input id="em" type="email" autocomplete="email"></div><button class="button" type="submit">Send</button></form></div></section>
-<section data-block="cta" data-tone="inverse" aria-labelledby="h2d"><div class="cluster" style="justify-content: space-between"><h2 id="h2d">Hungry yet?</h2><a class="button" href="/book/">Book a table</a></div></section>
+<section data-block="features-grid" data-tone="canvas" aria-labelledby="h2a"><div><h2 id="h2a">Why people come back</h2></div><div><div class="cards">${Array.from({ length: cards }, (_, i) => card(i + 1)).join("")}</div></div></section>
+<section data-block="story-split" data-tone="surface" aria-labelledby="h2b"><div class="switcher" style="--switch-at: 44rem"><div class="frame" style="--ratio: 4 / 3"><img src="/story.png" width="1200" height="900" alt="The original counter"></div><div class="prose stack"><h2 id="h2b">Same counter, same recipes</h2><p>${PROSE}</p></div></div></section>
+<section data-block="contact-form" data-tone="canvas" aria-labelledby="h2c"><div><form class="stack prose" action="#main"><h2 id="h2c">Ask us anything</h2><div class="field"><label for="em">Email</label><input id="em" type="email" autocomplete="email"></div><div><button class="button" type="submit">Send</button></div></form></div></section>
+<section data-block="cta-banner" data-tone="inverse" aria-labelledby="h2d"><div class="cluster"><h2 id="h2d">Hungry yet?</h2><a class="button" href="/book/">Book a table</a></div></section>
 ${extra}
 </main>
-<footer data-block="site-footer" data-tone="surface" data-space="s"><p>© Example Diner · 411 Fairhope Ave</p></footer>
+<footer data-block="site-footer" data-tone="surface" data-space="s" class="site-footer"><div><p>© Example Diner · 411 Fairhope Ave</p></div></footer>
 </body></html>`;
 }
 
+const sec = (inner, tone = "canvas") =>
+  `<section data-block="m" data-tone="${tone}"><div>${inner}</div></section>`;
 const MUTATIONS = [
   {
     expect: "overflow",
     vp: "iphone",
     html: {
-      extra: `<section data-block="m" data-tone="canvas"><div><div style="inline-size: 560px; block-size: 8px; background: var(--accent)"></div></div></section>`,
+      extra: sec(
+        `<div style="inline-size: 560px; block-size: 8px; background: var(--accent)"></div>`,
+      ),
     },
   },
   {
@@ -491,80 +769,261 @@ const MUTATIONS = [
     },
   },
   {
+    expect: "off-grid",
+    vp: "laptop",
+    why: "a ported wrapper that pads its text off the line",
+    html: {
+      extra: sec(
+        `<div style="padding-inline: 15px"><p>A container class from another site.</p></div>`,
+      ),
+    },
+  },
+  {
+    expect: "off-grid",
+    vp: "laptop",
+    why: "an embed that runs into the gutter",
+    html: {
+      extra: sec(
+        `<div style="margin-inline-start: -48px; block-size: 40px; background: var(--rule)">Embed</div>`,
+      ),
+    },
+  },
+  {
+    expect: "off-grid",
+    vp: "laptop",
+    why: "a photo backdrop boxed inside the content line",
+    html: {
+      head: `<style>@layer overrides { [data-tone="media"] > [data-slot="backdrop"] { grid-column: content !important; } }</style>`,
+    },
+  },
+  {
     expect: "text-overflow",
     vp: "reflow-320",
     html: {
-      extra: `<section data-block="m" data-tone="canvas"><p style="overflow-wrap: normal; hyphens: manual">${LONG_WORD}${LONG_WORD}</p></section>`,
+      extra: sec(`<p style="overflow-wrap: normal; hyphens: manual">${LONG_WORD}${LONG_WORD}</p>`),
+    },
+  },
+  {
+    expect: "text-overflow",
+    vp: "laptop",
+    why: "text spilling out of the bottom of a fixed-height card",
+    html: {
+      extra: sec(
+        `<article class="card" style="block-size: 4rem; inline-size: 14rem"><p>${PROSE}</p></article>`,
+      ),
     },
   },
   {
     expect: "text-clipped",
     vp: "iphone",
     html: {
-      extra: `<section data-block="m" data-tone="canvas"><p style="inline-size: 9rem; overflow: hidden; white-space: nowrap">A caption far too long for its fixed box</p></section>`,
+      extra: sec(
+        `<p style="inline-size: 9rem; overflow: hidden; white-space: nowrap">A caption far too long for its fixed box</p>`,
+      ),
+    },
+  },
+  {
+    expect: "clipped",
+    vp: "laptop",
+    why: "a button wider than the card that clips it",
+    html: {
+      extra: sec(
+        `<article class="card" style="overflow: hidden; inline-size: 12rem"><a class="button" href="/menu/" style="inline-size: 18rem">A button wider than its card</a></article>`,
+      ),
+    },
+  },
+  {
+    expect: "overlap",
+    vp: "laptop",
+    why: "a badge painted over a heading",
+    html: {
+      extra: sec(
+        `<div style="position: relative"><h3>A heading under a badge</h3><span style="position: absolute; inset: 0; background: var(--accent); color: var(--on-accent)">New</span></div>`,
+      ),
     },
   },
   {
     expect: "heading-widow",
     vp: "laptop",
     html: {
-      extra: `<section data-block="m" data-tone="canvas"><h2 style="font-family: monospace; font-size: 20px; inline-size: 11ch; text-wrap: wrap">aaaaa bbbbb c</h2></section>`,
+      extra: sec(
+        `<h2 style="font-family: monospace; font-size: 20px; inline-size: 11ch; text-wrap: wrap">aaaaa bbbbb c</h2>`,
+      ),
     },
+  },
+  {
+    expect: "measure",
+    vp: "laptop",
+    html: { extra: sec(`<p style="max-inline-size: none">${PROSE} ${PROSE}</p>`) },
   },
   {
     expect: "target-size",
     vp: "iphone",
     html: {
-      extra: `<section data-block="m" data-tone="canvas"><div class="cluster" style="--cluster-gap: 2px"><button style="all: unset; inline-size: 14px; block-size: 14px; background: var(--accent)" aria-label="one"></button><button style="all: unset; inline-size: 14px; block-size: 14px; background: var(--accent)" aria-label="two"></button></div></section>`,
+      extra: sec(
+        `<div class="cluster" style="--cluster-gap: 2px"><button style="all: unset; inline-size: 14px; block-size: 14px; background: var(--accent)" aria-label="one"></button><button style="all: unset; inline-size: 14px; block-size: 14px; background: var(--accent)" aria-label="two"></button></div>`,
+      ),
+    },
+  },
+  {
+    expect: "target-size",
+    vp: "iphone",
+    why: "two small targets whose 24px circles meet",
+    html: {
+      extra: sec(
+        `<div class="cluster" style="--cluster-gap: 6px"><button style="all: unset; inline-size: 14px; block-size: 14px; background: var(--accent)" aria-label="one"></button><button style="all: unset; inline-size: 14px; block-size: 14px; background: var(--accent)" aria-label="two"></button></div>`,
+      ),
     },
   },
   {
     expect: "input-zoom",
     vp: "iphone",
-    html: {
-      extra: `<section data-block="m" data-tone="canvas"><label>Name <input style="font-size: 14px"></label></section>`,
-    },
+    html: { extra: sec(`<label>Name <input style="font-size: 14px"></label>`) },
   },
   {
     expect: "orphan-row",
     vp: "laptop",
     html: {
-      extra: `<section data-block="m" data-tone="canvas"><div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem"><div>1</div><div>2</div><div>3</div><div>4</div></div></section>`,
+      extra: sec(
+        `<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem"><div>1</div><div>2</div><div>3</div><div>4</div></div>`,
+      ),
+    },
+  },
+  {
+    expect: "orphan-row",
+    vp: "laptop",
+    why: "layout.css's count-aware .cards must not be defeated by a hard-coded column count",
+    html: {
+      head: `<style>@layer overrides { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } .cards > * { grid-column: auto !important; } }</style>`,
+    },
+    cards: 4,
+  },
+  {
+    expect: "grid-span",
+    vp: "laptop",
+    why: "a count-aware grid that is its own container",
+    html: {
+      extra: `<section data-block="m" data-tone="canvas"><div class="cards"><article class="card">1</article><article class="card">2</article><article class="card">3</article></div></section>`,
+    },
+  },
+  {
+    expect: "nav-wrap",
+    vp: "laptop",
+    html: {
+      extra: sec(
+        `<nav class="site-nav" aria-label="Extra" style="inline-size: 12rem"><ul role="list"><li><a href="/">Breakfast</a></li><li><a href="/">Lunch</a></li><li><a href="/">Catering</a></li><li><a href="/">Gift cards</a></li></ul></nav>`,
+      ),
     },
   },
   {
     expect: "image-distorted",
     vp: "laptop",
     html: {
-      extra: `<section data-block="m" data-tone="canvas"><div><img src="/story.png" width="1200" height="900" style="inline-size: 600px; block-size: 200px" alt="Squashed"></div></section>`,
+      extra: sec(
+        `<img src="/story.png" width="1200" height="900" style="inline-size: 600px; block-size: 200px" alt="Squashed">`,
+      ),
     },
   },
   {
     expect: "image-upscaled",
     vp: "iphone",
     html: {
-      extra: `<section data-block="m" data-tone="canvas"><div class="frame" style="--ratio: 1"><img src="/small.png" width="64" height="64" alt="A tiny source drawn large"></div></section>`,
+      extra: sec(
+        `<div class="frame" style="--ratio: 1"><img src="/small.png" width="64" height="64" alt="A tiny source drawn large"></div>`,
+      ),
+    },
+  },
+  {
+    expect: "image-oversized",
+    vp: "laptop",
+    html: {
+      extra: sec(
+        `<div class="frame" style="--ratio: 1; inline-size: 150px"><img src="/landscape.png" width="2560" height="1440" alt="A huge file in a thumbnail"></div>`,
+      ),
+    },
+  },
+  {
+    expect: "image-gap",
+    vp: "iphone",
+    why: "a picture in a photo band that does not fill it",
+    html: {
+      head: `<style>@layer overrides { [data-tone="media"] > [data-slot="backdrop"] > picture > img { block-size: auto !important; } }</style>`,
     },
   },
   {
     expect: "image-no-size",
     vp: "laptop",
-    html: {
-      extra: `<section data-block="m" data-tone="canvas"><div><img src="/small.png" alt="No dimensions"></div></section>`,
-    },
+    html: { extra: sec(`<img src="/small.png" alt="No dimensions">`) },
   },
   {
     expect: "image-broken",
     vp: "laptop",
     html: {
-      extra: `<section data-block="m" data-tone="canvas"><div class="frame"><img src="/missing.png" width="800" height="600" alt="A photo that never arrives"></div></section>`,
+      extra: sec(
+        `<div class="frame"><img src="/missing.png" width="800" height="600" alt="A photo that never arrives"></div>`,
+      ),
     },
   },
   {
     expect: "img-alt",
     vp: "laptop",
     html: {
-      extra: `<section data-block="m" data-tone="canvas"><div class="frame"><img src="/story.png" width="1200" height="900"></div></section>`,
+      extra: sec(`<div class="frame"><img src="/story.png" width="1200" height="900"></div>`),
+    },
+  },
+  {
+    expect: "text-contrast",
+    vp: "laptop",
+    html: { extra: sec(`<p style="color: #b5b5b5">Light grey on the near-white page.</p>`) },
+  },
+  {
+    expect: "text-contrast",
+    vp: "laptop",
+    why: "a card on an inverse band painted white while its text stays light",
+    html: {
+      head: `<style>@layer overrides { [data-tone="inverse"] .card { background: #ffffff; } }</style>`,
+      extra: sec(
+        `<article class="card stack"><h3>On a dark band</h3><p class="muted">Muted text in a card.</p></article>`,
+        "inverse",
+      ),
+    },
+  },
+  {
+    expect: "focus-hidden",
+    vp: "laptop",
+    html: {
+      extra: sec(
+        `<p><a href="/menu/" style="outline: none !important">A link with no focus ring</a></p>`,
+      ),
+    },
+  },
+  {
+    expect: "focus-clipped",
+    vp: "laptop",
+    html: {
+      extra: sec(
+        `<div style="overflow: hidden"><a class="button" href="/menu/">A focus ring its box cuts off</a></div>`,
+      ),
+    },
+  },
+  {
+    expect: "anchor-obscured",
+    vp: "laptop",
+    html: {
+      head: `<style>@layer overrides { .site-header { position: sticky; inset-block-start: 0; z-index: 5; background: var(--canvas); } }</style>`,
+      // Room below the target, so the browser can scroll it to the top of the
+      // viewport: a target near the page's end can never sit under the bar.
+      extra:
+        sec(`<p><a href="#target">Jump</a></p>`) +
+        `<section id="target" data-block="m" data-tone="surface"><div><p>${PROSE}</p></div></section>` +
+        sec(`<div style="block-size: 120vh"></div>`),
+    },
+  },
+  {
+    expect: "covered",
+    vp: "laptop",
+    html: {
+      top: `<div style="position: fixed; inset-inline: 0; inset-block-end: 0; block-size: 6rem; background: var(--surface); z-index: 9"></div>`,
     },
   },
   {
@@ -582,80 +1041,171 @@ const MUTATIONS = [
     },
   },
   {
-    expect: "off-grid",
-    vp: "laptop",
-    why: "a photo backdrop boxed inside the content line",
-    html: {
-      head: `<style>@layer overrides { [data-tone="media"] > [data-slot="backdrop"] { grid-column: content !important; } }</style>`,
-    },
-  },
-  {
-    expect: "grid-span",
-    vp: "laptop",
-    why: "a count-aware grid that is its own container",
-    html: {
-      extra: `<section data-block="m" data-tone="canvas"><div class="cards"><article class="card">1</article><article class="card">2</article><article class="card">3</article></div></section>`,
-    },
-  },
-  {
     expect: "chrome-share",
     vp: "iphone-land",
     html: {
       top: `<div style="position: fixed; inset-block-start: 0; inset-inline: 0; block-size: 45vh; background: var(--surface); z-index: 9"></div>`,
     },
   },
+];
+
+// Shapes that LOOK like a defect and are not: each must produce none of the ids
+// it names. A probe that fires on correct pages gets switched off.
+const CLEAN = [
   {
-    expect: "orphan-row",
-    vp: "laptop",
-    why: "layout.css's count-aware .cards must not be defeated by a hard-coded column count",
+    forbid: ["overflow"],
+    vp: "iphone",
+    why: "a skip link parked at left: -9999px",
+    html: { top: `<a href="#main" style="position: absolute; left: -9999px">Skip to content</a>` },
+  },
+  {
+    forbid: ["image-upscaled", "image-oversized"],
+    vp: "iphone",
+    why: "a correct srcset at DPR 3 (the browser's 1200w pick for a 354px box)",
     html: {
-      head: `<style>@layer overrides { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } .cards > * { grid-column: auto !important; } }</style>`,
+      extra: sec(
+        `<div class="frame" style="--ratio: 4 / 3; inline-size: 354px"><img src="/story.png" srcset="/s400.png 400w, /story.png 1200w" sizes="354px" width="1200" height="900" alt="Sharp"></div>`,
+      ),
     },
-    cards: 4,
+  },
+  {
+    forbid: ["orphan-row"],
+    vp: "laptop",
+    why: "a two-column form whose button sits alone on the last row",
+    html: {
+      extra: sec(
+        `<form style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem" action="#main"><div class="field"><label for="a1">One</label><input id="a1"></div><div class="field"><label for="a2">Two</label><input id="a2"></div><div class="field"><label for="a3">Three</label><input id="a3"></div><div class="field"><label for="a4">Four</label><input id="a4"></div><div><button class="button" type="submit">Send</button></div></form>`,
+      ),
+    },
+  },
+  {
+    forbid: ["orphan-row"],
+    vp: "ipad",
+    why: "an open-ended .auto-grid marked data-ragged",
+    html: {
+      extra: sec(
+        `<div class="auto-grid" data-ragged><div class="card">1</div><div class="card">2</div><div class="card">3</div></div>`,
+      ),
+    },
+  },
+  {
+    forbid: ["grid-span", "text-overflow", "measure"],
+    vp: "laptop",
+    why: "cards inside half a switcher answer to the half, not the slot",
+    html: {
+      extra: sec(
+        `<div class="switcher" style="--switch-at: 44rem"><div><div class="cards" id="half"><article class="card stack"><h3>One</h3><p class="muted">Short.</p></article><article class="card stack"><h3>Two</h3><p class="muted">Short.</p></article><article class="card stack"><h3>Three</h3><p class="muted">Short.</p></article></div></div><div><p>Beside the cards.</p></div></div>`,
+      ),
+    },
+    assert: () =>
+      document.querySelector("#half > :first-child").getBoundingClientRect().width > 400,
+  },
+  {
+    forbid: ["focus-clipped", "focus-hidden", "image-gap"],
+    vp: "laptop",
+    why: "a linked photo in a frame: the link fills it and the ring is drawn on the frame",
+    html: {
+      extra: sec(
+        `<div class="frame" style="--ratio: 4 / 3; inline-size: 20rem"><a href="/menu/"><img src="/story.png" width="1200" height="900" alt="See the menu"></a></div>`,
+      ),
+    },
+    assert: () => {
+      const a = document.querySelector('.frame > a[href="/menu/"]');
+      return a.getBoundingClientRect().height >= a.parentElement.getBoundingClientRect().height - 1;
+    },
   },
 ];
 
+const KIT_DIR = dirname(LAYOUT_CSS);
+const RENDER = join(HERE, "block_site_render.py");
+const CHECK = join(HERE, "block_site_check.py");
+
 async function selfTest(chromium, launch) {
   const dir = mkdtempSync(join(tmpdir(), "device-matrix-selftest-"));
-  const { server, origin } = await (async () => {
-    copyFileSync(LAYOUT_CSS, join(dir, "layout.css"));
-    copyFileSync(join(dirname(LAYOUT_CSS), "tokens.css"), join(dir, "tokens.css"));
-    writeFileSync(join(dir, "landscape.png"), png(2560, 1440, [92, 70, 52]));
-    writeFileSync(join(dir, "portrait.png"), png(1200, 1800, [92, 70, 52]));
-    writeFileSync(join(dir, "story.png"), png(1200, 900, [140, 120, 96]));
-    writeFileSync(join(dir, "small.png"), png(64, 64, [40, 90, 160]));
-    writeFileSync(join(dir, "index.html"), page());
-    for (const n of [1, 2, 3, 4, 5, 6])
-      writeFileSync(join(dir, `cards-${n}.html`), page({ cards: n }));
-    MUTATIONS.forEach((m, i) =>
-      writeFileSync(join(dir, `m${i}.html`), page({ ...m.html, cards: m.cards ?? 5 })),
-    );
-    return serve(dir);
-  })();
+  const src = mkdtempSync(join(tmpdir(), "device-matrix-stress-"));
   let failed = 0;
   const row = (ok, label, detail = "") => {
     if (!ok) failed++;
     console.log(`  ${ok ? "ok  " : "FAIL"} ${label}${detail ? ` — ${detail}` : ""}`);
   };
+  // 1. The kit's own output: its example site and its stress fixtures, rendered
+  //    by the reference renderer, are the control. Planted defects go on
+  //    synthetic pages beside them.
+  const py = (args) => execFileSync("python3", args, { encoding: "utf8" });
+  py([
+    RENDER,
+    "render",
+    join(KIT_DIR, "example.manifest.json"),
+    "--catalog",
+    join(KIT_DIR, "catalog.json"),
+    "--out",
+    dir,
+    "--placeholders",
+  ]);
+  py([CHECK, "fixtures", join(KIT_DIR, "catalog.json"), "--out", join(src, "stress.json")]);
+  py([
+    RENDER,
+    "render",
+    join(src, "stress.json"),
+    "--catalog",
+    join(KIT_DIR, "catalog.json"),
+    "--out",
+    dir,
+  ]);
+  const example = JSON.parse(
+    readFileSync(join(KIT_DIR, "example.manifest.json"), "utf8"),
+  ).pages.map((p) => p.path);
+  const stress = JSON.parse(readFileSync(join(src, "stress.json"), "utf8")).pages.map(
+    (p) => p.path,
+  );
+  writeFileSync(join(dir, "landscape.png"), png(2560, 1440, [92, 70, 52]));
+  writeFileSync(join(dir, "portrait.png"), png(1200, 1800, [92, 70, 52]));
+  writeFileSync(join(dir, "story.png"), png(1200, 900, [140, 120, 96]));
+  writeFileSync(join(dir, "s400.png"), png(400, 300, [140, 120, 96]));
+  writeFileSync(join(dir, "small.png"), png(64, 64, [40, 90, 160]));
+  for (const n of [1, 2, 3, 4, 5, 6])
+    writeFileSync(join(dir, `cards-${n}.html`), page({ cards: n }));
+  MUTATIONS.forEach((m, i) =>
+    writeFileSync(join(dir, `m${i}.html`), page({ ...m.html, cards: m.cards ?? 5 })),
+  );
+  CLEAN.forEach((m, i) => writeFileSync(join(dir, `c${i}.html`), page(m.html)));
+  const { server, origin } = await serve(dir);
   try {
-    // 1. The control: every count of cards, every quick viewport, every theme, clean.
     const quick = VIEWPORTS.filter((v) => v.quick);
     const control = await runMatrix({
       chromium,
       launch,
-      urls: [1, 2, 3, 4, 5, 6].map((n) => `${origin}/cards-${n}.html`),
+      urls: example.map((p) => origin + p),
       viewports: quick,
       themes: Object.keys(THEMES),
       sweep: [320, 1600, 40],
     });
-    const cf = control.findings;
-    row(
-      cf.length === 0,
-      `control: layout.css blocks with 1–6 cards clean at ${quick.length} viewports × 3 themes + a 320–1600px sweep (${control.states} states)`,
-      cf
+    const show = (fs) =>
+      fs
         .slice(0, 3)
-        .map((f) => `[${f.id}] ${f.where} ${f.msg} @ ${f.vp} ${f.theme}`)
-        .join(" | "),
+        .map((f) => `[${f.id}] ${new URL(f.url).pathname} ${f.where} ${f.msg} @ ${f.vp} ${f.theme}`)
+        .join(" | ");
+    row(
+      control.findings.length === 0,
+      `control: the kit's example site (${example.length} pages) clean at ${quick.length} viewports × ${Object.keys(THEMES).length} themes + a 320–1600px sweep (${control.states} states)`,
+      show(control.findings),
+    );
+    row(
+      control.photo.photoTexts > 0,
+      `photo-contrast scored the example's hero copy (${control.photo.photoTexts} lines; lowest ${control.photo.minPhotoAt})`,
+    );
+    const stressRun = await runMatrix({
+      chromium,
+      launch,
+      urls: stress.map((p) => origin + p),
+      viewports: quick,
+      themes: ["light"],
+      sweep: null,
+    });
+    row(
+      stressRun.findings.length === 0,
+      `control: every catalog block at its min, max, longest word and RTL (${stress.length} stress pages) clean at ${quick.length} viewports, photo copy scored on a white photo (${stressRun.states} states)`,
+      show(stressRun.findings),
     );
     // The count-aware .cards grid, measured: row pattern per item count at a
     // phone, a tablet (two-column range) and a laptop (six-track range).
@@ -671,18 +1221,18 @@ async function selfTest(chromium, launch) {
       ipad: { 1: "1", 2: "2", 3: "2+1", 4: "2+2", 5: "2+2+1", 6: "2+2+2" },
       laptop: { 1: "1", 2: "2", 3: "3", 4: "2+2", 5: "3+2", 6: "3+3" },
     };
-    const b2 = await chromium.launch(launch);
+    const browser = await chromium.launch(launch);
     try {
       for (const [vpId, byCount] of Object.entries(WANT)) {
         const v = VIEWPORTS.find((x) => x.id === vpId);
-        const ctx = await b2.newContext({
+        const ctx = await browser.newContext({
           viewport: { width: v.w, height: v.h },
           deviceScaleFactor: v.dpr,
           isMobile: v.mobile,
         });
         const pg = await ctx.newPage();
         for (const [n, want] of Object.entries(byCount)) {
-          await pg.goto(`${origin}/cards-${n}.html`, { waitUntil: "load" });
+          await load(pg, `${origin}/cards-${n}.html`);
           const got = await pg.evaluate(() => {
             const rows = new Map();
             for (const k of document.querySelector(".cards").children) {
@@ -702,29 +1252,62 @@ async function selfTest(chromium, launch) {
         }
         await ctx.close();
       }
-    } finally {
-      await b2.close();
-    }
-    row(
-      control.breakpoints.container.length > 0,
-      "breakpoint reader finds the container-query thresholds in layout.css",
-      control.breakpoints.container.join(","),
-    );
-    // 2. Each planted defect is reported.
-    const browser = await chromium.launch(launch);
-    try {
-      for (const [i, m] of MUTATIONS.entries()) {
-        const v = VIEWPORTS.find((x) => x.id === m.vp);
-        const ctx = await browser.newContext({
-          viewport: { width: v.w, height: v.h },
-          deviceScaleFactor: v.dpr,
-          isMobile: v.mobile,
-          hasTouch: v.mobile,
-          reducedMotion: "reduce",
-        });
-        await ctx.addInitScript(CLS_OBSERVER);
+      // Themes the tokens promise: "more contrast" must change the dark theme too.
+      for (const [theme, same] of [
+        ["dark", false],
+        ["contrast-dark", true],
+        ["contrast", true],
+      ]) {
+        const ctx = await newStateContext(browser, quick[0], theme);
         const pg = await ctx.newPage();
-        await pg.goto(`${origin}/m${i}.html`, { waitUntil: "load" });
+        await load(pg, `${origin}/`);
+        const [muted, ink] = await pg.evaluate(() => [
+          getComputedStyle(document.querySelector(".card .muted")).color,
+          getComputedStyle(document.querySelector(".card h3")).color,
+        ]);
+        row(
+          (muted === ink) === same,
+          `${theme}: muted text ${same ? "takes the full ink colour" : "stays muted"} (${muted} vs ${ink})`,
+        );
+        await ctx.close();
+      }
+      row(
+        control.breakpoints.container.length > 0,
+        "breakpoint reader finds the container-query thresholds in layout.css",
+        control.breakpoints.container.join(","),
+      );
+      {
+        const ctx = await newStateContext(browser, quick[1], "forced");
+        const pg = await ctx.newPage();
+        await load(pg, `${origin}/`);
+        const [plate, canvas] = await pg.evaluate(() => {
+          const probe = document.createElement("div");
+          probe.style.background = "Canvas";
+          document.body.append(probe);
+          const c = getComputedStyle(probe).backgroundColor;
+          probe.remove();
+          return [
+            getComputedStyle(document.querySelector(".on-photo"), "::before").backgroundColor,
+            c,
+          ];
+        });
+        row(
+          plate === canvas && !/rgba/.test(plate),
+          `forced colours: the hero copy sits on an opaque Canvas backplate (${plate})`,
+        );
+        await ctx.close();
+      }
+
+      // 2. Each planted defect is reported, and each look-alike is not.
+      const at = async (vpId, url) => {
+        const v = VIEWPORTS.find((x) => x.id === vpId);
+        const ctx = await newStateContext(browser, v, "light");
+        const pg = await ctx.newPage();
+        await load(pg, url);
+        return { v, ctx, pg };
+      };
+      for (const [i, m] of MUTATIONS.entries()) {
+        const { v, ctx, pg } = await at(m.vp, `${origin}/m${i}.html`);
         const { findings } = await probePage(pg, v.w);
         let hit = findings.some((f) => f.id === m.expect);
         if (hit && m.expect === "layout-shift")
@@ -736,12 +1319,61 @@ async function selfTest(chromium, launch) {
         );
         await ctx.close();
       }
+      for (const [i, m] of CLEAN.entries()) {
+        const { v, ctx, pg } = await at(m.vp, `${origin}/c${i}.html`);
+        const { findings } = await probePage(pg, v.w);
+        const bad = findings.filter((f) => m.forbid.includes(f.id));
+        const held = m.assert ? await pg.evaluate(m.assert) : true;
+        row(
+          !bad.length && held,
+          `must pass: ${m.why} @ ${v.id}`,
+          bad.length
+            ? bad.map((f) => `[${f.id}] ${f.msg}`).join(" | ")
+            : held
+              ? ""
+              : "its layout assertion failed",
+        );
+        await ctx.close();
+      }
+      // photo-contrast: on the stress hero (copy over a near-white photo), both the
+      // factory's mutation and a scrim too thin to hold must be reported.
+      for (const [why, css] of [
+        [
+          "every text colour white at 15% opacity",
+          `:root *, :root *::before { color: rgb(255 255 255 / 0.15) !important; }`,
+        ],
+        [
+          "a scrim too thin over a white photo",
+          `:root { --scrim-weak: 25% !important; --scrim-strong: 35% !important; }`,
+        ],
+      ]) {
+        const { v, ctx, pg } = await at("iphone", `${origin}/stress/hero-full/max/`);
+        await pg.addStyleTag({ content: css });
+        const st = { photoTexts: 0, photoUnscored: 0, minPhoto: Infinity, minPhotoAt: "" };
+        const f = await photoContrast(pg, v, st);
+        row(
+          f.some((x) => x.id === "photo-contrast"),
+          `must fail: photo-contrast (${why}) @ ${v.id}`,
+          `${st.photoTexts} lines scored, lowest ${st.minPhotoAt}`,
+        );
+        await ctx.close();
+      }
     } finally {
       await browser.close();
     }
+    // 3. The harness itself never passes a run that tested nothing.
+    row(
+      (await main(["--url", `${origin}/`, "--pages", "/no-such-page/"])) === 2,
+      "harness: a --pages path that answers 404 stops the run (exit 2), with --url too",
+    );
+    row(
+      (await main(["--dir", dir, "--themes", "drak"])) === 2,
+      "harness: an unknown theme is refused (exit 2), not silently dropped",
+    );
   } finally {
     server.close();
     rmSync(dir, { recursive: true, force: true });
+    rmSync(src, { recursive: true, force: true });
   }
   console.log(`device-matrix --self-test: ${failed ? `FAILED (${failed} row(s))` : "OK"}`);
   return failed ? 1 : 0;
@@ -749,7 +1381,7 @@ async function selfTest(chromium, launch) {
 
 // ─── cli ─────────────────────────────────────────────────────────────────────
 async function main(argv) {
-  const args = { urls: [], pages: ["/"], themes: Object.keys(THEMES) };
+  const args = { urls: [], pages: null, manifests: [], themes: Object.keys(THEMES) };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -761,13 +1393,15 @@ async function main(argv) {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
+    else if (a === "--manifest") args.manifests.push(next());
     else if (a === "--full") args.full = true;
     else if (a === "--quick") args.full = false;
     else if (a === "--sweep") args.sweep = next().split(":").map(Number);
     else if (a === "--themes")
       args.themes = next()
         .split(",")
-        .filter((t) => THEMES[t]);
+        .map((s) => s.trim());
+    else if (a === "--no-photo") args.noPhoto = true;
     else if (a === "--shots") args.shots = resolve(next());
     else if (a === "--json") args.json = resolve(next());
     else if (a === "--chrome") args.chrome = next();
@@ -776,6 +1410,29 @@ async function main(argv) {
       return 2;
     }
   }
+  const unknown = args.themes.filter((t) => !THEMES[t]);
+  if (unknown.length || !args.themes.length) {
+    console.error(
+      `device-matrix: unknown theme(s) ${unknown.join(", ") || "(none given)"}; choose from ${Object.keys(THEMES).join(", ")}`,
+    );
+    return 2;
+  }
+  if (
+    args.sweep &&
+    (args.sweep.length !== 3 || args.sweep.some((n) => !Number.isFinite(n) || n <= 0))
+  ) {
+    console.error("device-matrix: --sweep FROM:TO:STEP, e.g. 320:1600:8");
+    return 2;
+  }
+  for (const m of args.manifests) {
+    if (!existsSync(m)) {
+      console.error(`device-matrix: no such manifest ${m}`);
+      return 2;
+    }
+    const fromManifest = JSON.parse(readFileSync(m, "utf8")).pages.map((p) => p.path);
+    args.pages = [...(args.pages || []), ...fromManifest];
+  }
+  const pages = args.pages || ["/"];
   const pw = loadPlaywright();
   if (!pw) {
     console.error(
@@ -784,16 +1441,16 @@ async function main(argv) {
     return 2;
   }
   const exe = args.chrome || process.env.CHROME_BIN;
-  const launch = exe ? { executablePath: exe } : {};
+  // Real scrollbars: a desktop browser draws a classic 15px one, and with
+  // scrollbar-gutter: stable a page laid out without it measures a width no
+  // reader's browser has. Mobile emulation keeps overlay scrollbars, as phones do.
+  const launch = {
+    ignoreDefaultArgs: ["--hide-scrollbars"],
+    ...(exe ? { executablePath: exe } : {}),
+  };
   if (args.selfTest) return selfTest(pw.chromium, launch);
-  if (
-    args.sweep &&
-    (args.sweep.length !== 3 || args.sweep.some((n) => !Number.isFinite(n) || n <= 0))
-  ) {
-    console.error("device-matrix: --sweep FROM:TO:STEP, e.g. 320:1600:8");
-    return 2;
-  }
   let server;
+  const urls = [];
   if (args.dir) {
     if (!existsSync(args.dir)) {
       console.error(`device-matrix: no such directory ${args.dir}`);
@@ -801,12 +1458,13 @@ async function main(argv) {
     }
     const s = await serve(args.dir);
     server = s.server;
-    args.urls.push(...args.pages.map((p) => s.origin + (p.startsWith("/") ? p : `/${p}`)));
-  } else if (args.urls.length && args.pages.length > 1) {
-    const base = args.urls.shift();
-    args.urls.push(...args.pages.map((p) => new URL(p, base).href));
+    urls.push(...pages.map((p) => s.origin + (p.startsWith("/") ? p : `/${p}`)));
   }
-  if (!args.urls.length) {
+  for (const base of args.urls) {
+    if (args.pages) urls.push(...pages.map((p) => new URL(p, base).href));
+    else urls.push(base);
+  }
+  if (!urls.length) {
     console.error("device-matrix: give --dir DIST or --url URL (see the header)");
     return 2;
   }
@@ -814,11 +1472,12 @@ async function main(argv) {
     const result = await runMatrix({
       chromium: pw.chromium,
       launch,
-      urls: args.urls,
+      urls,
       viewports: args.full ? VIEWPORTS : VIEWPORTS.filter((v) => v.quick),
       themes: args.themes,
       sweep: args.sweep,
       shots: args.shots,
+      photo: !args.noPhoto,
     });
     if (args.json) writeFileSync(args.json, JSON.stringify(result, null, 2));
     return report(result);
@@ -830,4 +1489,5 @@ async function main(argv) {
   }
 }
 
-main(process.argv.slice(2)).then((code) => process.exit(code));
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url))
+  main(process.argv.slice(2)).then((code) => process.exit(code));

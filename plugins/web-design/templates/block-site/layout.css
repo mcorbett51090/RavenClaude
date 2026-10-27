@@ -12,9 +12,13 @@
         lines up with every other block's to the pixel. ✓ off-grid
      2. Gutters are one fluid token, widened for any device safe area.
      3. Section rhythm comes from three tokens (s, m, l). Two adjacent blocks
-        on the same tone share one gap instead of doubling it.
-     4. Each slot is a named inline-size container, so a block changes on the
-        width it actually has, not on the viewport's width.
+        on the same tone share one gap instead of doubling it, across the
+        header / main / footer boundary too.
+     4. Each slot is a named inline-size container (`slot`), and so is every
+        child of a switcher or sidebar, so a component changes on the width it
+        actually has, not on the viewport's width. Components use unnamed
+        @container queries (the nearest box that holds them); `@container slot`
+        means the block's line.
      5. Layout comes from intrinsic primitives (stack, cluster, switcher,
         sidebar, auto-grid, frame), not from per-block breakpoints.
      6. Card grids choose their columns from the item count, so no card is left
@@ -22,11 +26,14 @@
      7. Media sits in aspect-ratio frames with a focal point, and is never
         stretched. ✓ distorted / upscaled
      8. Text never pokes out of its box: long words break, headings balance,
-        and paragraphs keep a 45–75ch measure. ✓ text-overflow / heading-widow
+        and paragraphs keep a 45–75ch measure. ✓ text-overflow / heading-widow /
+        measure
      9. Controls are at least 44px for primary actions (24px is the WCAG floor),
         and form text is at least 16px. ✓ target-size / input-zoom
     10. Dark, forced colours, more contrast, reduced motion, RTL and print are
-        handled here, once, for every block.
+        handled here, once, for every block. Inverse and photo bands re-point
+        EVERY colour role, so a card or a form inside one stays legible.
+        ✓ text-contrast / photo-contrast
 
    Fluid scales (in tokens.css): Utopia's formula, min viewport 320px, max
    1440px. Body text is 16 → 19px at ratios 1.2 → 1.25. No step's max is more
@@ -99,10 +106,12 @@
   body {
     background: var(--canvas);
     color: var(--ink);
+    font-family: var(--font-body);
     font-size: var(--step-0);
   }
   /* Default heading sizes; a block may choose another step for its own headings. */
   :where(h1, h2, h3, h4) {
+    font-family: var(--font-display);
     line-height: 1.1;
   }
   :where(h1) {
@@ -139,6 +148,11 @@
     flex-grow: 1;
     flex-basis: calc((var(--switch-at, 40rem) - 100%) * 999);
   }
+  /* Each child is a container, so a component inside half a switcher (a card
+     grid, say) answers to the half it has, not to the whole slot. */
+  :is(.switcher, .with-sidebar) > * {
+    container-type: inline-size;
+  }
   /* A fixed-width side and a fluid main that wraps under it when main would
      drop below --main-min. */
   .with-sidebar {
@@ -155,7 +169,10 @@
     flex-grow: 999;
     min-inline-size: var(--main-min, 55%);
   }
-  /* As many equal columns as fit at --min-col; never wider than its container. */
+  /* As many equal columns as fit at --min-col; never wider than its container.
+     For open-ended lists (a gallery of 7–12 photos) where a short last row is
+     expected: mark it data-ragged, and the probe's orphan-row check accepts it.
+     Countable items (1–6 cards) use .cards, which never strands one. */
   .auto-grid {
     display: grid;
     gap: var(--grid-gap, var(--space-m));
@@ -194,6 +211,18 @@
     background: transparent;
     color: inherit;
     border-color: currentColor;
+  }
+  /* The first focusable thing on every page: hidden above the viewport until it
+     is focused (never pushed to left: -9999px, which reads as overflow). */
+  .skip-link {
+    position: absolute;
+    inset-block-start: var(--space-xs);
+    inset-inline-start: var(--space-xs);
+    z-index: 10;
+    transform: translateY(calc(-100% - var(--space-xs) - 4px));
+  }
+  .skip-link:focus-visible {
+    transform: none;
   }
   .visually-hidden {
     position: absolute !important;
@@ -251,9 +280,17 @@
   [data-block][data-space="none"] {
     --section-space: 0;
   }
-  /* Two neighbours on the same tone share one gap. */
+  /* Two neighbours on the same tone share one gap: siblings, siblings with one
+     non-rendered element between them (a script), and across the header / main /
+     footer boundary. */
   [data-tone="canvas"] + [data-tone="canvas"],
-  [data-tone="surface"] + [data-tone="surface"] {
+  [data-tone="surface"] + [data-tone="surface"],
+  [data-tone="canvas"] + :is(script, template, style, link) + [data-tone="canvas"],
+  [data-tone="surface"] + :is(script, template, style, link) + [data-tone="surface"],
+  [data-tone="canvas"] + main > [data-tone="canvas"]:first-child,
+  [data-tone="surface"] + main > [data-tone="surface"]:first-child,
+  main:has(> [data-tone="canvas"]:last-child) + [data-tone="canvas"],
+  main:has(> [data-tone="surface"]:last-child) + [data-tone="surface"] {
     padding-block-start: 0;
   }
   /* Tones are surfaces chosen at page level, never colours chosen by a block. */
@@ -265,23 +302,28 @@
     background: var(--surface);
     color: var(--ink);
   }
-  [data-tone="inverse"] {
-    background: var(--inverse);
+  /* A dark band re-points EVERY role, not only the text colour: a card, a form
+     field or a muted line inside it reads the same roles as on the page and
+     stays legible (each pair is in block_site_check.py's ROLE_PAIRS). */
+  :is([data-tone="inverse"], [data-tone="media"]) {
     color: var(--on-inverse);
+    --canvas: var(--inverse);
+    --surface: var(--inverse-surface);
+    --ink: var(--on-inverse);
     --ink-muted: var(--on-inverse-muted);
+    --rule: var(--inverse-rule);
+    --field-border: var(--on-inverse-muted);
     --accent: var(--on-inverse);
     --on-accent: var(--inverse);
     --focus: var(--on-inverse);
+  }
+  [data-tone="inverse"] {
+    background: var(--inverse);
   }
   [data-tone="media"] {
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    color: var(--on-inverse);
-    --ink-muted: var(--on-inverse-muted);
-    --accent: var(--on-inverse);
-    --on-accent: var(--inverse);
-    --focus: var(--on-inverse);
   }
 
   /* 6. Count-aware card grid: columns come from the number of items, which a
@@ -294,7 +336,7 @@
     gap: var(--grid-gap, var(--space-m));
     grid-template-columns: minmax(0, 1fr);
   }
-  @container slot (min-width: 40rem) {
+  @container (min-width: 40rem) {
     .cards {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -302,7 +344,7 @@
       grid-column: 1 / -1;
     }
   }
-  @container slot (min-width: 64rem) {
+  @container (min-width: 64rem) {
     .cards {
       grid-template-columns: repeat(6, minmax(0, 1fr));
     }
@@ -329,11 +371,25 @@
     object-fit: cover;
     object-position: var(--focal, 50% 50%);
   }
-  .frame > picture > img {
+  .frame > picture > img,
+  .frame > :is(a, button) :is(img, video, picture, picture > img) {
     inline-size: 100%;
     block-size: 100%;
     object-fit: cover;
     object-position: var(--focal, 50% 50%);
+  }
+  /* A linked photo: the link fills the frame, and the focus ring goes on the
+     frame, because the frame clips anything drawn outside its own box. */
+  .frame > :is(a, button) {
+    display: block;
+    block-size: 100%;
+  }
+  .frame:has(> :is(a, button):focus-visible) {
+    outline: var(--focus-width) solid var(--focus);
+    outline-offset: 2px;
+  }
+  .frame > :is(a, button):focus-visible {
+    outline: none;
   }
   /* A photo band: the image fills the block, and the scrim is anchored to the
      copy rather than the photo (knowledge/text-over-photo-contrast-2026.md §2). */
@@ -347,8 +403,20 @@
     z-index: -2;
     grid-column: auto;
     grid-row: auto;
+    --focal: var(--focal-wide, 50% 50%);
   }
-  [data-tone="media"] > [data-slot="backdrop"] > :is(img, video, picture, picture > img) {
+  /* A portrait crop (art direction) has its own focal point. */
+  @media (max-width: 30em) and (orientation: portrait) {
+    [data-tone="media"] > [data-slot="backdrop"] {
+      --focal: var(--focal-tall, 50% 50%);
+    }
+  }
+  /* picture > img is its own selector: inside :is() after `>` it would need
+     the img's parent to be the backdrop AND a picture, so it never matched, and a
+     <picture> hero kept its photo's own aspect ratio instead of filling the band
+     (the probe's image-gap check now catches that). */
+  [data-tone="media"] > [data-slot="backdrop"] > :is(img, video, picture),
+  [data-tone="media"] > [data-slot="backdrop"] > picture > img {
     inline-size: 100%;
     block-size: 100%;
     object-fit: cover;
@@ -357,13 +425,24 @@
   [data-tone="media"] .on-photo {
     position: relative;
   }
+  /* The band runs from the foot of the block (through its bottom padding) to
+     --space-3xl above the copy, and the fade happens entirely in that top
+     strip: every line of copy sits on at least --scrim-weak, however tall the
+     copy wraps on a phone. A fade sized in percent of the band stops below the
+     eyebrow on phones; that is the failure the photo-contrast probe found. */
   [data-tone="media"] .on-photo::before {
     content: "";
     position: absolute;
     z-index: -1;
-    inset-block: calc(-1 * var(--space-l));
+    inset-block: calc(-1 * var(--space-3xl)) calc(-1 * var(--section-space, var(--section-m)));
     inset-inline: -50vw;
-    background: linear-gradient(to top, var(--scrim), var(--scrim) 70%, transparent);
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--scrim-color) var(--scrim-strong), transparent),
+      color-mix(in srgb, var(--scrim-color) var(--scrim-weak), transparent)
+        calc(100% - var(--space-3xl)),
+      transparent
+    );
   }
 
   /* 8. Text safety. `anywhere` (not `break-word`) also lowers min-content, so a
@@ -394,6 +473,11 @@
   }
   :where(p, li, dd) {
     text-wrap: pretty; /* no-op where unsupported (Firefox): plain wrap */
+  }
+  /* Running text keeps a readable measure wherever it lands: in a slot, a wide
+     card or a single centred card. */
+  :where(p, li, dd, blockquote, figcaption) {
+    max-inline-size: var(--measure);
   }
 
   /* 9. Inputs and focus. */
@@ -428,8 +512,10 @@
     .button {
       border-color: ButtonText;
     }
+    /* Gradients are dropped in forced colours, so the band becomes a solid
+       Canvas backplate: the copy stays readable over any photo. */
     [data-tone="media"] .on-photo::before {
-      display: none;
+      background: Canvas;
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -443,6 +529,22 @@
     }
   }
   @media print {
+    /* Every tone prints as black on white: the roles are re-pointed, so a muted
+       line on a dark band does not print light grey on white paper. */
+    :root,
+    [data-tone] {
+      --canvas: white;
+      --surface: white;
+      --ink: black;
+      --ink-muted: dimgray;
+      --rule: darkgray;
+      --field-border: dimgray;
+      --accent: black;
+      --on-accent: white;
+      --on-inverse: black;
+      --on-inverse-muted: dimgray;
+      --inverse-surface: white;
+    }
     [data-block] {
       padding-block: 1.5rem;
       break-inside: avoid-page;

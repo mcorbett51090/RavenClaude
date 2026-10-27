@@ -229,14 +229,15 @@ The `visual-designer`, `ux-designer`, `frontend-implementer`, and `web-architect
 - **Runnable checker** — [`scripts/contrast_ratio.py`](scripts/contrast_ratio.py) (stdlib only, Python 3.8+) makes the WCAG contrast-ratio arithmetic mechanical and CI-gateable: `pair` (one foreground/background, with normal-text / large-text / UI-component thresholds for SC 1.4.3 + SC 1.4.11) and `check` (batch-assert a set of token/usage pairings stays in contrast — the token-drift guard). It is a **checker, not a renderer** — you supply the *actual displayed* colors (measure against the real background a surface renders on, gradients/overlays flattened, every interactive state); a nominal pass against the wrong background is not a pass. Owned primarily by `accessibility-auditor` + `visual-designer`. The contrast math is verified against W3C WCAG techniques (see §13).
 - **Block-site toolchain (2026-10-27).** These make the `block-composed-site` contract mechanical for anyone, with no private factory:
   - [`scripts/block_site_check.py`](scripts/block_site_check.py) (stdlib):
-    - `catalog` lints block contracts: closed and bounded props, no styling props, level-1 blocks first.
-    - `manifest` resolves a site against them: single h1, adjacency, dark bands, props, placeholders, assets, links, source sizes.
-    - `tokens` checks every colour-role pairing in `tokens.css`, light and dark.
-    - `fixtures` writes stress pages from the props bounds.
+    - `catalog` lints block contracts: closed and bounded props in a schema subset it can prove, no styling props, level-1 blocks first, unique ids.
+    - `manifest` resolves a site against them: single h1, adjacency, dark bands, required facts, props, placeholders, assets, links and anchors, safe link schemes, hours, and photo sizes for the box each is drawn in.
+    - `tokens` checks every colour-role pairing in `tokens.css` (hex, `rgb()`, `hsl()`, `oklch()`), light and dark, plus the scrim, the 2.5× type bound and the font stack.
+    - `fixtures` writes stress pages from the props bounds, and a near-white stress photo.
     - `--self-test` has a must-fail row per rule.
-  - [`scripts/layout-probe.js`](scripts/layout-probe.js): a dependency-free browser function with 18 rendered-page checks (`off-grid`, `grid-span`, `orphan-row`, `text-overflow`, `image-upscaled`, `layout-shift`…).
-  - [`scripts/device_matrix.mjs`](scripts/device_matrix.mjs) (Playwright): runs the probe at 28 viewports, ±1px around every `@media` width, an optional sweep, and light, dark and forced colours. `--self-test` plants every defect and measures the count-aware grid.
-  - CI runs the Python checks and a syntax check of the browser scripts through `test_web_design_checks.py` (Gate 317). The device matrix needs Playwright and is run by hand.
+  - [`scripts/block_site_render.py`](scripts/block_site_render.py) (stdlib): the reference renderer. A manifest becomes static HTML (page shell, site header with a measured menu breakpoint, footer, ten blocks, `srcset`/`sizes`, JSON-LD), refused if the checker refuses it, then checked as HTML. `--self-test` breaks each HTML check.
+  - [`scripts/layout-probe.js`](scripts/layout-probe.js): a dependency-free, async browser function with 29 rendered-page checks: layout, text (including clipped, overlap and measure), images judged on the decoded file, text contrast, focus rings, anchors and fixed bars.
+  - [`scripts/device_matrix.mjs`](scripts/device_matrix.mjs) (Playwright): runs the probe at 28 viewports, ±1px around every `@media` width and an optional sweep. The quick rows also run five themes (light, dark, forced, and more contrast in light and dark), with real desktop scrollbars and photo-contrast on composited pixels. `--self-test` renders the kit, requires it clean, plants every defect, and checks look-alikes that must pass.
+  - CI runs the Python checks, the renderer's self-test and a syntax check of the browser scripts through `test_web_design_checks.py` (Gate 317). The device matrix needs Playwright and is run by hand.
 - **Runnable checker** — [`skills/brand-guidance-authoring/scripts/brand_guidance_lint.py`](skills/brand-guidance-authoring/scripts/brand_guidance_lint.py) (stdlib only, Python 3.8+) makes `gold-standard-website-pipeline` G3's five brand-guidance structural facts mechanical and CI-gateable — file exists, all 7 sections present in order, typeface count ≤ 2, every anti-pattern catalogue row's `override` resolved, zero adjectival rules in the project's own prose. It is a **structural checker, not a taste judge** — a file that passes can still look bad; that judgment stays with `brand-polish-checklist.md`, which stays advisory. `--self-test` proves each of the 5 checks independently trips on a targeted mutation. Owned primarily by `visual-designer`.
 
 ---
@@ -253,7 +254,7 @@ The `visual-designer`, `ux-designer`, `frontend-implementer`, and `web-architect
 | [`templates/content-style-guide.md`](templates/content-style-guide.md) | Voice, tone, terminology, microcopy patterns |
 | [`templates/seo-audit-report.md`](templates/seo-audit-report.md) | Technical + content SEO findings |
 | [`templates/performance-budget.md`](templates/performance-budget.md) | Per-page performance budget |
-| [`templates/block-site/`](templates/block-site/README.md) | Block-site starter kit: `tokens.css` (values), `layout.css` (the contract), block and manifest schemas, `catalog.json` with five exemplar block contracts (the README lists 18 canonical blocks), an example manifest, and `gallery.html` (clean on the full device matrix). Used by `block-composed-site` Mode 0 and `/web-design:new-block-site` |
+| [`templates/block-site/`](templates/block-site/README.md) | Block-site starter kit: `tokens.css` (values), `layout.css` (the contract), `blocks.css` (the exemplars' CSS and the site chrome), block and manifest schemas, `catalog.json` with ten exemplar block contracts (the README lists 15 canonical blocks), and a three-page example manifest that renders clean on the device matrix. Used by `block-composed-site` Mode 0 and `/web-design:new-block-site` |
 
 ---
 
@@ -353,13 +354,20 @@ PR #315 already added the consolidated `knowledge/web-design-decision-trees.md` 
 - **Text over photos, the generation projection and a measured site cost (2026-10-27, v0.21.0).** What the owner's factory learned in its follow-up PR (RavenPower-website-factory #131: a gap analysis and twenty code-review rounds) came back into the plugin. A new knowledge file gives the composited-pixel method for text over a photograph, the one contrast surface token checks cannot score. It found the kit's own example at 1.25:1 and a hand-built template at 1.24–3.27:1, and both measured agent builds had hit the same failure first. The block-composition knowledge gains the generation projection as shipped (what a model is offered, what stands, what is refused) and the first measured per-site cost ($5.16 and $9.74, about half of it the visual pass). The owner chose to leave the projection's API compile unproven for now; the knowledge file says so.
 
 - **Block sites, pixel-perfect on every screen, for anyone (2026-10-27, v0.22.0).** The block skill depended on the owner's private factory: Mode A assumed its composer, and `adaptive-layout` pointed at its device-matrix harness. This release ships the whole path inside the plugin:
-  - a framework-neutral starter kit (`templates/block-site/`): tokens, the layout contract, schemas, catalog, exemplar blocks, a gallery;
-  - a contract checker with stress fixtures and a role-pair contrast check;
-  - a portable layout probe and device matrix, each with a self-test that plants every defect;
+  - a starter kit (`templates/block-site/`): tokens, the layout contract, block CSS, schemas, ten exemplar blocks, and a three-page example;
+  - a reference renderer that turns a manifest into a static site and checks its own HTML;
+  - a contract checker with stress fixtures, required facts and a role-pair contrast check;
+  - a portable layout probe and device matrix with photo-contrast, five themes and real desktop scrollbars, each with a self-test that plants every defect;
   - the knowledge file that explains every rule;
   - `/web-design:new-block-site`.
 
-  Building the kit found its own defects, and each is now a probe check or a pitfall: a forced-colours border moving slots 1px off the grid, prose placed as a slot, a card grid that was its own container, a photo backdrop boxed by its grid placement, a stranded third stat, and a probe hole where the count-aware grid was never shown to go multi-column. The gallery is clean across 201 page states.
+  Building the kit found its own defects, and each is now a probe check or a pitfall:
+  - a forced-colours border moving slots 1px off the grid, prose placed as a slot, a card grid that was its own container;
+  - a photo backdrop boxed by its grid placement, a `picture > img` selector that never matched (the hero photo stopped short), and `sizes="100vw"` on a cover-cropped band;
+  - a dark band that re-pointed only its text colour, and more contrast doing nothing in dark mode;
+  - a probe that measured a desktop no browser draws, excused anything inside a clipping box, and doubled the density of every `srcset` image.
+
+  Two fresh reviewers (a newcomer and an adversary) found most of these; their findings and dispositions are in PR #1408.
 
 ## Adjacent plugins (added 2026-06-04)
 

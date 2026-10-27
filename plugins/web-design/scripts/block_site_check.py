@@ -17,16 +17,24 @@ templates/block-site/ into exit codes.
                                  unknown blocks or variants, props outside the
                                  block's schema, the single-h1 order, maxPerPage,
                                  adjacency, two dark bands in a row, locked tones,
-                                 placeholder text, asset and link references,
-                                 and image sizes too small for their slot
+                                 facts a block requires, placeholder text, asset,
+                                 link and anchor references, unsafe link schemes,
+                                 overlapping hours, and photos too small for the
+                                 box they are drawn in at 2x
   tokens FILE                    check every colour-role pairing in tokens.css,
                                  light and dark, against WCAG AA (text 4.5:1,
-                                 focus ring 3:1), reading the values from the
-                                 file itself so there is no second copy to drift
+                                 control edges and focus rings 3:1), light copy
+                                 over the photo scrim on a white pixel, the 2.5x
+                                 type-scale bound and the font stack, reading the
+                                 values from the file itself (hex, rgb(), hsl(),
+                                 oklch(), oklab()) so there is no second copy
   fixtures CATALOG --out FILE    write a stress manifest from the catalog's own
                                  bounds: every block at its minimum, its maximum,
                                  one unbreakable word at full length, and RTL
-                                 text. Render it, then run device_matrix.mjs on it.
+                                 text, under the longest header the schema allows;
+                                 and a near-white stress photo beside FILE. Render
+                                 it (block_site_render.py), then run
+                                 device_matrix.mjs on it.
   --self-test                    break each rule in a copy of the starter kit and
                                  require it to be reported; require the kit
                                  itself (catalog, example manifest, fixtures) to
@@ -38,7 +46,9 @@ Exit: 0 clean (warnings may print), 1 problems, 2 usage.
 from __future__ import annotations
 
 import copy
+import datetime
 import json
+import math
 import os
 import re
 import shutil
@@ -61,6 +71,8 @@ TYPES = {
 
 
 def _is_type(value, t):
+    if isinstance(t, list):
+        return any(_is_type(value, x) for x in t)
     if t == "integer":
         return isinstance(value, int) and not isinstance(value, bool)
     if t == "number":
@@ -68,11 +80,36 @@ def _is_type(value, t):
     return isinstance(value, TYPES[t])
 
 
+def _same(a, b):
+    """JSON equality: true is not 1, and 1 is not true (Python says both are)."""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return isinstance(a, bool) and isinstance(b, bool) and a == b
+    if isinstance(a, (list, dict)) or isinstance(b, (list, dict)):
+        return json.dumps(a, sort_keys=True) == json.dumps(b, sort_keys=True)
+    return a == b
+
+
+_RX = {}
+
+
+def _rx(pattern):
+    """A JSON Schema pattern as Python should read it: ASCII classes (\\d is 0-9, not
+    any script's digits) and a final $ that means the very end, not 'before a
+    trailing newline'."""
+    if pattern not in _RX:
+        _RX[pattern] = re.compile(re.sub(r"(?<!\\)\$$", r"\\Z", pattern), re.ASCII)
+    return _RX[pattern]
+
+
+EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+\Z")
+
+
 def validate(schema, value, root=None, path="$"):
     """Return a list of 'path: message' strings. Supports: type, properties,
     required, additionalProperties (bool or schema), propertyNames, enum, const,
     minLength, maxLength, pattern, items, minItems, maxItems, uniqueItems,
-    minimum, maximum, $ref (#/$defs/...). format is not enforced."""
+    minimum, maximum, $ref (#/$defs/...), format: email. Booleans never equal
+    numbers, and patterns read ASCII to the true end of the string."""
     root = root if root is not None else schema
     errs = []
     if "$ref" in schema:
@@ -84,17 +121,19 @@ def validate(schema, value, root=None, path="$"):
     t = schema.get("type")
     if t is not None and not _is_type(value, t):
         return [f"{path}: expected {t}, got {type(value).__name__}"]
-    if "enum" in schema and value not in schema["enum"]:
+    if "enum" in schema and not any(_same(value, e) for e in schema["enum"]):
         errs.append(f"{path}: {json.dumps(value)} is not one of {json.dumps(schema['enum'])}")
-    if "const" in schema and value != schema["const"]:
+    if "const" in schema and not _same(value, schema["const"]):
         errs.append(f"{path}: must be {json.dumps(schema['const'])}")
     if isinstance(value, str):
         if "minLength" in schema and len(value) < schema["minLength"]:
             errs.append(f"{path}: shorter than {schema['minLength']} characters")
         if "maxLength" in schema and len(value) > schema["maxLength"]:
             errs.append(f"{path}: {len(value)} characters, more than {schema['maxLength']}")
-        if "pattern" in schema and not re.search(schema["pattern"], value):
+        if "pattern" in schema and not _rx(schema["pattern"]).search(value):
             errs.append(f"{path}: {json.dumps(value)} does not match {schema['pattern']}")
+        if schema.get("format") == "email" and not EMAIL.match(value):
+            errs.append(f"{path}: {json.dumps(value)} is not an email address")
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         if "minimum" in schema and value < schema["minimum"]:
             errs.append(f"{path}: below {schema['minimum']}")
@@ -134,13 +173,22 @@ def validate(schema, value, root=None, path="$"):
 # ─── catalog ──────────────────────────────────────────────────────────────────
 
 # Props that would let a manifest restyle a block: styling belongs to tokens and
-# variants, never to content.
+# variants, never to content. Tone and space belong on the block instance.
 STYLE_NAME = re.compile(
     r"^(style|styles|class|classes|classname|css|theme|colou?r|background|bg|font|fontsize|fontfamily|fontweight|"
-    r"padding|margin|gap|width|height|align|textalign|justify|radius|shadow|opacity|zindex)$|"
-    r"(colou?r|classname|css|style|fontsize|padding|margin|radius|shadow)$",
+    r"padding|margin|gap|width|height|align|textalign|justify|radius|shadow|opacity|zindex|accent|columns|cols|"
+    r"size|spacing|layout|fullwidth|maxwidth|minwidth|textsize|tone|space)$|"
+    r"(colou?r|classname|css|style|fontsize|textsize|padding|margin|radius|shadow|spacing|maxwidth|minwidth)$",
     re.IGNORECASE,
 )
+# The JSON Schema a props contract may use. Anything else ($ref, anyOf, oneOf,
+# allOf, not, if, patternProperties…) is a branch the checker would have to
+# follow to prove the props closed and bounded, so it is refused instead.
+PROPS_KEYWORDS = {
+    "type", "properties", "required", "additionalProperties", "items", "minItems", "maxItems", "uniqueItems",
+    "minLength", "maxLength", "pattern", "format", "enum", "const", "minimum", "maximum", "description", "title",
+    "default", "examples",
+}
 
 
 def load_json(path):
@@ -176,6 +224,8 @@ def find_blocks(catalog):
 def walk_props(schema, path="props"):
     """Yield (path, node) for every node of a props schema."""
     yield path, schema
+    if not isinstance(schema, dict):
+        return
     for k, v in (schema.get("properties") or {}).items():
         yield from walk_props(v, f"{path}.{k}")
     if isinstance(schema.get("items"), dict):
@@ -186,6 +236,8 @@ def prop_paths(schema, path=""):
     """Every addressable prop path, in the assetProps notation (a.b, list[].c)."""
     out = set()
     for k, v in (schema.get("properties") or {}).items():
+        if not isinstance(v, dict):
+            continue
         p = f"{path}.{k}" if path else k
         out.add(p)
         out |= prop_paths(v, p)
@@ -215,8 +267,21 @@ def check_catalog(catalog, block_schema):
         props = b.get("props") or {}
         if props.get("type") != "object":
             problems.append(f"{where}: props must be an object schema")
+        if "variant" in (props.get("properties") or {}):
+            problems.append(f"{where}: props declares 'variant'; the variant lives on the block instance (variants), never in props")
         for p, node in walk_props(props):
+            if not isinstance(node, dict):
+                problems.append(f"{where}: {p} is not a schema object")
+                continue
+            unknown = sorted(set(node) - PROPS_KEYWORDS)
+            if unknown:
+                problems.append(f"{where}: {p} uses {', '.join(unknown)}, which this checker cannot follow, so it cannot prove the props closed and bounded; write the schema out in the supported subset")
             t = node.get("type")
+            if isinstance(t, list):
+                problems.append(f"{where}: {p} has a list of types {t}; give it one type (an optional prop is left out of required, never typed null)")
+                continue
+            if "items" in node and not isinstance(node["items"], dict):
+                problems.append(f"{where}: {p}.items must be one schema")
             if t == "object" or "properties" in node:
                 if node.get("additionalProperties") is not False:
                     problems.append(f"{where}: {p} is an open object (set additionalProperties: false, so a manifest cannot add props the block never renders)")
@@ -229,12 +294,6 @@ def check_catalog(catalog, block_schema):
                 problems.append(f"{where}: {p} is an unbounded list (give it maxItems)")
             if "enum" in node and not node.get("enum"):
                 problems.append(f"{where}: {p} has an empty enum")
-        variants = b.get("variants") or []
-        venum = ((props.get("properties") or {}).get("variant") or {}).get("enum")
-        if variants and venum is not None and list(venum) != list(variants):
-            problems.append(f"{where}: props.variant enum {venum} must equal variants {variants}")
-        if variants and venum is None:
-            problems.append(f"{where}: declares variants {variants} but props has no variant enum")
         if b.get("headingLevel") == 1 and (b.get("placement") or {}).get("position") != "first":
             problems.append(f"{where}: a level-1 block renders the page's h1, so placement.position must be 'first'")
         tone = b.get("tone") or {}
@@ -259,12 +318,17 @@ def check_catalog(catalog, block_schema):
 
 # ─── manifest ────────────────────────────────────────────────────────────────
 
-PLACEHOLDER = re.compile(r"\b(TODO|TBD|TBC|XXX|FIXME)\b|lorem ipsum|\{\{[^}]*\}\}", re.IGNORECASE)
 PLACEHOLDER_CASED = re.compile(r"\b(TODO|TBD|TBC|XXX|FIXME)\b")  # upper-case words only: 'Todos Santos' is a place
+PLACEHOLDER_ANY = re.compile(r"lorem ipsum|\{\{[^}]*\}\}", re.IGNORECASE)
 DARK = {"inverse", "media"}
-# The widest a slot draws at 2x, in source pixels: below this the image is upscaled
-# somewhere on the device matrix. Full-bleed is capped at 2560 (a QHD desktop at 1x).
-SLOT_MIN_SRC = {"full": 2560, "wide": 2880, "content": 2304, "half-content": 1152, "third-content": 768}
+# How wide a frame on each grid line can be drawn, in CSS px, when its contract
+# gives no maxWidth: full is capped at 1280 (2560 source pixels, a QHD desktop at
+# 1x), the others are layout.css's line widths and halves of them.
+SLOT_MAX_WIDTH = {"full": 1280, "wide": 1440, "content": 1152, "half-content": 576, "third-content": 384}
+DENSITY = 2  # sources are sized for 2x; above 2x the eye cannot tell, and apple.com caps there too
+PORTRAIT_MAX_WIDTH = 480  # the renderer serves a portrait crop at (max-width: 30em) and (orientation: portrait)
+SAFE_HREF = re.compile(r"^(/|#|https://|mailto:[^@\s]+@|tel:\+?[0-9][0-9 ()-]{3,})")
+DAY_ORDER = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 
 
 def _get(props, path):
@@ -296,21 +360,105 @@ def _strings(value, path):
             yield from _strings(v, f"{path}[{i}]")
 
 
-def check_manifest(manifest, blocks, manifest_schema):
+def _minutes(hhmm):
+    h, m = hhmm.split(":")
+    return int(h) * 60 + int(m)
+
+
+def check_hours(business):
+    """Weekly hours that cannot be rendered truthfully: an empty or overlapping window."""
+    problems = []
+    windows = {d: [] for d in DAY_ORDER}
+    for i, h in enumerate(business.get("hours") or []):
+        o, c = _minutes(h["opens"]), _minutes(h["closes"])
+        if o == c:
+            problems.append(f"business.hours[{i}]: opens and closes at the same time ({h['opens']}); leave a closed day out instead")
+            continue
+        end = c if c > o else 24 * 60  # a window past midnight runs to the end of its day
+        for d in h["days"]:
+            for j, (o2, e2) in windows[d]:
+                if o < e2 and o2 < end:
+                    problems.append(f"business.hours[{i}]: {d} overlaps business.hours[{j}]")
+            windows[d].append((i, (o, end)))
+    seen = set()
+    for i, sp in enumerate(business.get("specialHours") or []):
+        if sp["date"] in seen:
+            problems.append(f"business.specialHours[{i}]: {sp['date']} is listed twice")
+        seen.add(sp["date"])
+        timed = "opens" in sp or "closes" in sp
+        if sp.get("closed") and timed:
+            problems.append(f"business.specialHours[{i}]: closed and opening times at once")
+        elif not sp.get("closed") and not ("opens" in sp and "closes" in sp):
+            problems.append(f"business.specialHours[{i}]: give closed: true, or both opens and closes")
+        elif timed and sp["opens"] == sp["closes"]:
+            problems.append(f"business.specialHours[{i}]: opens and closes at the same time")
+    return problems
+
+
+def _need_scale(width, height, box_w, box_h):
+    """How far a width×height source is enlarged to cover a box_w×box_h box at 2x."""
+    return max(DENSITY * box_w / width, DENSITY * box_h / height)
+
+
+def check_manifest(manifest, blocks, manifest_schema, today=None):
     problems, warnings = [], []
     for e in validate(manifest_schema, manifest):
         problems.append(f"manifest {e}")
     if problems:
         return problems, warnings
+    today = today or datetime.date.today().isoformat()
+    business = manifest["business"]
     assets = manifest.get("assets", {})
     paths = [p["path"] for p in manifest["pages"]]
     for dup in sorted({p for p in paths if paths.count(p) > 1}):
         problems.append(f"page path {dup} appears more than once")
+    problems += check_hours(business)
+    for i, sp in enumerate(business.get("specialHours") or []):
+        if sp["date"] < today:
+            warnings.append(f"business.specialHours[{i}]: {sp['date']} ({sp['label']}) has passed; remove it")
+
+    def check_href(at, where, href, anchors):
+        if not isinstance(href, str):
+            return
+        if not SAFE_HREF.match(href):
+            problems.append(f"{at}: {where} is {href[:60]!r}; a link is a path (/…), an in-page #anchor, https://, mailto: or a tel: number")
+            return
+        if href.startswith("/") and not href.startswith("//"):
+            target = href.split("#")[0].split("?")[0]
+            if target and target not in paths:
+                problems.append(f"{at}: {where} links to {href}, which is not a page in this manifest")
+            frag = href.split("#", 1)[1] if "#" in href else ""
+            page = next((p for p in manifest["pages"] if p["path"] == target), None)
+            if frag and page is not None and frag not in {"main"} | {bl.get("anchor") for bl in page["blocks"]}:
+                problems.append(f"{at}: {where} links to {href}, but {target} has no anchor {frag!r}")
+        elif href.startswith("#") and anchors is not None:
+            if href[1:] not in anchors:
+                problems.append(f"{at}: {where} links to {href}, which no block on this page has as its anchor (set the block's anchor, or link to #main)")
+        elif href.startswith("#"):
+            problems.append(f"{at}: {where} is an in-page link, but the header and footer are on every page; link to a path")
+
+    chrome = manifest.get("chrome") or {}
+    for key in ("nav", "footerNav"):
+        for i, link in enumerate(chrome.get(key) or []):
+            check_href("chrome", f"{key}[{i}].href", link["href"], None)
+    if chrome.get("action"):
+        check_href("chrome", "action.href", chrome["action"]["href"], None)
+    if business.get("email") is None and any(
+        str(link.get("href", "")).startswith("mailto:") for link in (chrome.get("nav") or []) + (chrome.get("footerNav") or [])
+    ):
+        warnings.append("chrome links to an email address the business facts do not list")
+
     decorative_ok = set()
     content_use = set()
     for page in manifest["pages"]:
         where = f"page {page['path']}"
         seq = page["blocks"]
+        anchors = {bl["anchor"] for bl in seq if "anchor" in bl} | {"main"}
+        names = [bl["anchor"] for bl in seq if "anchor" in bl]
+        for dup in sorted({n for n in names if names.count(n) > 1}):
+            problems.append(f"{where}: anchor {dup!r} is used more than once")
+        if "main" in names:
+            problems.append(f"{where}: anchor 'main' is reserved for the page's <main>")
         level1 = [i for i, bl in enumerate(seq) if blocks.get(bl["type"], {}).get("headingLevel") == 1]
         for i, bl in enumerate(seq):
             b = blocks.get(bl["type"])
@@ -326,55 +474,65 @@ def check_manifest(manifest, blocks, manifest_schema):
             variants = b.get("variants") or []
             if "variant" in bl and bl["variant"] not in variants:
                 problems.append(f"{at}: variant {bl['variant']!r} is not one of {variants}")
-            if "variant" in bl and (bl.get("props") or {}).get("variant", bl["variant"]) != bl["variant"]:
-                problems.append(f"{at}: variant and props.variant disagree")
             tone = b.get("tone") or {}
             if "tone" in bl:
                 if tone.get("locked") and bl["tone"] != tone.get("default"):
                     problems.append(f"{at}: tone is locked to {tone.get('default')!r}")
                 elif tone.get("allowed") and bl["tone"] not in tone["allowed"]:
                     problems.append(f"{at}: tone {bl['tone']!r} is not one of {tone['allowed']}")
+            for fact in b.get("requires") or []:
+                if not business.get(fact.split(".", 1)[1]):
+                    problems.append(f"{at}: renders {fact}, which the manifest's business does not give")
             for e in validate(b["props"], bl["props"], b["props"], "props"):
                 problems.append(f"{at}: {e}")
             for spath, s in _strings(bl["props"], "props"):
-                if PLACEHOLDER_CASED.search(s) or re.search(r"lorem ipsum|\{\{[^}]*\}\}", s, re.IGNORECASE):
+                if PLACEHOLDER_CASED.search(s) or PLACEHOLDER_ANY.search(s):
                     problems.append(f"{at}: {spath} holds placeholder text {s[:40]!r}: an unknown fact goes in ownerTodos, never in a rendered field")
             for ap in b.get("assetProps") or []:
                 for key in _get(bl["props"], ap):
                     if key not in assets:
                         problems.append(f"{at}: {ap} names asset {key!r}, which the manifest does not have")
-            media = {m["prop"]: m for m in b.get("media") or []}
-            for mprop, m in media.items():
-                for key in _get(bl["props"], mprop):
+            for m in b.get("media") or []:
+                num, den = (int(x) for x in m["ratio"].split(" / "))
+                box_w = m.get("maxWidth") or SLOT_MAX_WIDTH.get(m["slot"], 1152)
+                box_h = m.get("maxHeight") or box_w * den / num
+                for key in _get(bl["props"], m["prop"]):
                     a = assets.get(key)
                     if not a:
                         continue
-                    if m["slot"] == "full":
-                        decorative_ok.add(key)
-                    else:
-                        content_use.add(key)
-                    need = SLOT_MIN_SRC.get(m["slot"])
-                    if need and a["width"] < need:
-                        warnings.append(f"{at}: asset {key!r} is {a['width']}px wide; a {m['slot']} slot draws up to {need}px at 2x, so it will be upscaled (blurry) on large screens")
-                    num, den = (int(x) for x in m["ratio"].split(" / "))
-                    frame, src = num / den, a["width"] / a["height"]
-                    kept = min(frame, src) / max(frame, src)
-                    if kept < 0.6:
-                        warnings.append(f"{at}: asset {key!r} ({a['width']}×{a['height']}) loses {round((1 - kept) * 100)}% of its area in a {m['ratio']} frame; set its focal point or use a better-shaped crop")
+                    (decorative_ok if m["slot"] == "full" else content_use).add(key)
+                    widest = max([a["width"]] + [x["width"] for x in a.get("sources") or []])
+                    scale = _need_scale(widest, widest * a["height"] / a["width"], box_w, box_h)
+                    if scale > 1.02:
+                        warnings.append(
+                            f"{at}: asset {key!r} is {a['width']}×{a['height']}; this frame is drawn up to {round(box_w)}×{round(box_h)} CSS px, "
+                            f"so at 2x it is enlarged {scale:.2f}× (blurry). Supply at least {round(DENSITY * box_w)}×{round(DENSITY * box_h)} for this crop"
+                        )
+                    if not m.get("maxHeight"):
+                        frame, src = num / den, a["width"] / a["height"]
+                        kept = min(frame, src) / max(frame, src)
+                        if kept < 0.6:
+                            warnings.append(f"{at}: asset {key!r} ({a['width']}×{a['height']}) loses {round((1 - kept) * 100)}% of its area in a {m['ratio']} frame; set its focal point or use a better-shaped crop")
+                    pk = a.get("portrait")
+                    if pk:
+                        pa = assets.get(pk)
+                        if pa is None:
+                            problems.append(f"asset {key!r}: portrait names asset {pk!r}, which the manifest does not have")
+                        elif pa["height"] <= pa["width"]:
+                            problems.append(f"asset {key!r}: its portrait crop {pk!r} is {pa['width']}×{pa['height']}, not portrait")
+                        else:
+                            (decorative_ok if m["slot"] == "full" else content_use).add(pk)
+                            ps = _need_scale(pa["width"], pa["height"], PORTRAIT_MAX_WIDTH, box_h)
+                            if ps > 1.02:
+                                warnings.append(f"asset {pk!r}: the portrait crop is drawn up to {PORTRAIT_MAX_WIDTH}×{round(box_h)} CSS px, so at 2x it is enlarged {ps:.2f}×")
             for lp in b.get("linkProps") or []:
                 for href in _get(bl["props"], lp):
-                    if isinstance(href, str) and href.startswith("/") and not href.startswith("//"):
-                        target = href.split("#")[0].split("?")[0]
-                        if target and target not in paths:
-                            problems.append(f"{at}: {lp} links to {href}, which is not a page in this manifest")
+                    check_href(at, lp, href, anchors)
             if i > 0:
                 prev = seq[i - 1]
                 pb = blocks.get(prev["type"])
                 if pb is not None:
-                    na = set(place.get("notAdjacentTo") or []) | {
-                        x for x in ((pb.get("placement") or {}).get("notAdjacentTo") or []) if x == bl["type"]
-                    }
-                    if prev["type"] in na or bl["type"] in ((pb.get("placement") or {}).get("notAdjacentTo") or []):
+                    if prev["type"] in (place.get("notAdjacentTo") or []) or bl["type"] in ((pb.get("placement") or {}).get("notAdjacentTo") or []):
                         problems.append(f"{at}: may not sit directly after {prev['type']}")
                     tone_here = bl.get("tone", tone.get("default"))
                     tone_prev = prev.get("tone", (pb.get("tone") or {}).get("default"))
@@ -397,18 +555,22 @@ def check_manifest(manifest, blocks, manifest_schema):
     for key, a in assets.items():
         if PLACEHOLDER_CASED.search(a.get("alt", "")):
             problems.append(f"asset {key!r}: alt holds placeholder text")
-    unused = set(assets) - decorative_ok - content_use - {
-        k for page in manifest["pages"] for bl in page["blocks"] for ap in (blocks.get(bl["type"], {}).get("assetProps") or []) for k in _get(bl["props"], ap)
-    }
-    for key in sorted(unused):
+        widths = [x["width"] for x in a.get("sources") or []]
+        if len(widths) != len(set(widths)) or a["width"] in widths:
+            problems.append(f"asset {key!r}: two srcset candidates share a width")
+    for key in sorted(set(assets) - decorative_ok - content_use):
         warnings.append(f"asset {key!r} is not used by any block")
+    for path, s in _strings(business, "business"):
+        if PLACEHOLDER_CASED.search(s) or PLACEHOLDER_ANY.search(s):
+            problems.append(f"{path} holds placeholder text {s[:40]!r}")
     return problems, warnings
 
 
 # ─── tokens ──────────────────────────────────────────────────────────────────
 
 # (foreground role, background role, minimum ratio, why). Every pair a block can
-# put on screen through layout.css's tones.
+# put on screen through layout.css's tones; inverse and photo bands re-point the
+# roles, so their pairs are here too.
 ROLE_PAIRS = [
     ("ink", "canvas", 4.5, "body text on the page"),
     ("ink", "surface", 4.5, "body text on a surface band or card"),
@@ -417,22 +579,103 @@ ROLE_PAIRS = [
     ("accent", "canvas", 4.5, "links on the page"),
     ("accent", "surface", 4.5, "links on a surface"),
     ("on-accent", "accent", 4.5, "button labels"),
-    ("on-inverse", "inverse", 4.5, "text on an inverse band"),
-    ("on-inverse-muted", "inverse", 4.5, "secondary text on an inverse band"),
-    ("inverse", "on-inverse", 4.5, "a button label on an inverse band (the accent pair flips there)"),
+    ("field-border", "canvas", 3.0, "a form control's edge on the page (SC 1.4.11)"),
+    ("field-border", "surface", 3.0, "a form control's edge on a surface (SC 1.4.11)"),
     ("focus", "canvas", 3.0, "focus ring on the page (SC 1.4.11)"),
     ("focus", "surface", 3.0, "focus ring on a surface (SC 1.4.11)"),
-    ("on-inverse", "inverse", 3.0, "focus ring on an inverse band (SC 1.4.11)"),
+    ("on-inverse", "inverse", 4.5, "text on an inverse band (and its focus ring)"),
+    ("on-inverse-muted", "inverse", 4.5, "secondary text on an inverse band"),
+    ("on-inverse", "inverse-surface", 4.5, "text in a card on an inverse band"),
+    ("on-inverse-muted", "inverse-surface", 4.5, "secondary text, and a field's edge, in a card on an inverse band"),
+    ("inverse", "on-inverse", 4.5, "a button label on an inverse band (the accent pair flips there)"),
 ]
+SCRIM_INKS = [("on-inverse", 4.5, "copy on a photo"), ("on-inverse-muted", 4.5, "secondary copy on a photo")]
+TYPE_SCALE_MAX = 2.5  # a step's max over its min; above this 200% zoom stops enlarging it (WCAG 1.4.4)
+
+
+def _num(tok, scale=1.0):
+    tok = tok.strip()
+    if tok.endswith("%"):
+        return float(tok[:-1]) / 100 * scale
+    return float(tok)
+
+
+def _oklab_to_srgb(L, a, b):
+    l_ = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
+    m_ = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
+    s_ = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3
+    lin = (
+        4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_,
+        -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_,
+        -0.0041960863 * l_ - 0.7034186147 * m_ + 1.7076147010 * s_,
+    )
+    enc = lambda c: 12.92 * c if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055  # noqa: E731
+    return tuple(min(255.0, max(0.0, enc(min(1.0, max(0.0, c))) * 255)) for c in lin)
+
+
+def parse_color(value, roles=None, depth=0):
+    """A CSS colour value to (r, g, b, alpha) in 0-255, or None if it is not one this reads.
+    Reads #hex, rgb()/rgba(), hsl()/hsla(), oklch(), oklab() and var(--role). Out-of-gamut
+    oklch is clipped to sRGB, as a browser without a wide-gamut screen paints it."""
+    v = value.strip().lower()
+    m = re.fullmatch(r"var\(--([a-z0-9-]+)\)", v)
+    if m and roles is not None and depth < 8 and m.group(1) in roles:
+        return parse_color(roles[m.group(1)], roles, depth + 1)
+    m = re.fullmatch(r"#([0-9a-f]{3,8})", v)
+    if m:
+        h = m.group(1)
+        if len(h) in (3, 4):
+            h = "".join(c * 2 for c in h)
+        if len(h) not in (6, 8):
+            return None
+        alpha = int(h[6:8], 16) / 255 if len(h) == 8 else 1.0
+        return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), alpha)
+    m = re.fullmatch(r"(rgba?|hsla?|oklch|oklab)\((.*)\)", v)
+    if not m:
+        return None
+    fn, args = m.group(1), m.group(2)
+    alpha = 1.0
+    if "/" in args:
+        args, al = args.split("/", 1)
+        alpha = _num(al)
+    parts = [x for x in re.split(r"[\s,]+", args.strip()) if x]
+    if fn.startswith("rgba") or fn == "rgb":
+        if len(parts) == 4:
+            alpha = _num(parts.pop())
+        if len(parts) != 3:
+            return None
+        return tuple(_num(x, 255) for x in parts) + (alpha,)
+    if fn.startswith("hsl"):
+        if len(parts) == 4:
+            alpha = _num(parts.pop())
+        h, sat, light = float(parts[0].replace("deg", "")) % 360, _num(parts[1]), _num(parts[2])
+        c = (1 - abs(2 * light - 1)) * sat
+        x = c * (1 - abs((h / 60) % 2 - 1))
+        r, g, b = [(c, x, 0), (x, c, 0), (0, c, x), (0, x, c), (x, 0, c), (c, 0, x)][int(h // 60) % 6]
+        mm = light - c / 2
+        return ((r + mm) * 255, (g + mm) * 255, (b + mm) * 255, alpha)
+    if len(parts) != 3:
+        return None
+    L = _num(parts[0])
+    if fn == "oklch":
+        C, H = _num(parts[1], 0.4), float(parts[2].replace("deg", ""))
+        a, b = C * math.cos(math.radians(H)), C * math.sin(math.radians(H))
+    else:
+        a, b = _num(parts[1], 0.4), _num(parts[2], 0.4)
+    return _oklab_to_srgb(L, a, b) + (alpha,)
+
+
+def _hex(rgb):
+    return "#" + "".join(f"{round(c):02x}" for c in rgb[:3])
 
 
 def _roles(block):
-    return {m.group(1): m.group(2) for m in re.finditer(r"--([a-z0-9-]+):\s*(#[0-9a-fA-F]{3,8})\s*;", block)}
+    return {m.group(1): " ".join(m.group(2).split()) for m in re.finditer(r"--([a-z0-9-]+):\s*([^;]+);", block)}
 
 
 def token_themes(css):
     """{'light': roles, 'dark': roles}: the first :root block in @layer tokens, then
-    the dark overrides laid over it."""
+    the dark overrides laid over it. Values are raw text; parse_color reads colours."""
     code = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
     light_m = re.search(r":root\s*\{([^}]*)\}", code)
     dark_m = re.search(r':root\[data-theme="dark"\]\s*\{([^}]*)\}', code)
@@ -454,18 +697,60 @@ def check_tokens(css):
     attr_m = re.search(r':root\[data-theme="dark"\]\s*\{([^}]*)\}', code)
     if media_m and attr_m and _roles(media_m.group(1)) != _roles(attr_m.group(1)):
         problems.append("dark: the prefers-color-scheme block and the [data-theme=\"dark\"] block disagree; they are one theme written twice and must match")
+    light = themes["light"]
+    if not light.get("font-body"):
+        problems.append("--font-body is missing: every page would render in the browser's default serif")
+    for name, val in light.items():
+        if not name.startswith("step-"):
+            continue
+        m = re.fullmatch(r"clamp\(\s*([\d.]+)(rem|px)\s*,.*,\s*([\d.]+)(rem|px)\s*\)", val)
+        if not m:
+            problems.append(f"--{name} is not a clamp(min, preferred, max) in rem or px, so its zoom range cannot be checked")
+            continue
+        lo = float(m.group(1)) * (16 if m.group(2) == "rem" else 1)
+        hi = float(m.group(3)) * (16 if m.group(4) == "rem" else 1)
+        if lo <= 0 or hi / lo > TYPE_SCALE_MAX:
+            problems.append(f"--{name} grows {hi / lo:.2f}× from its min to its max; above {TYPE_SCALE_MAX}× text stops growing at 200% zoom (WCAG 1.4.4)")
     for theme, roles in themes.items():
         if not roles:
             problems.append(f"{theme}: no [data-theme=\"dark\"] roles found (a site that supports dark mode needs them)")
             continue
+
+        def col(name, theme=theme, roles=roles):
+            if name not in roles:
+                problems.append(f"{theme}: --{name} is missing")
+                return None
+            c = parse_color(roles[name], roles)
+            if c is None:
+                problems.append(f"{theme}: --{name} is {roles[name]!r}, which this cannot read as a colour (use #hex, rgb(), hsl(), oklch() or oklab())")
+            elif c[3] < 1:
+                problems.append(f"{theme}: --{name} is translucent; a colour role must be opaque, or its contrast depends on what is under it")
+                return None
+            return c
+
         for fg, bg, need, why in ROLE_PAIRS:
-            if fg not in roles or bg not in roles:
-                problems.append(f"{theme}: --{fg} or --{bg} is missing")
+            f, b = col(fg), col(bg)
+            if f is None or b is None:
                 continue
-            r = contrast_ratio(roles[fg], roles[bg])
+            r = contrast_ratio(_hex(f), _hex(b))
             rows.append((theme, fg, bg, r, need, why))
             if r < need:
                 problems.append(f"{theme}: --{fg} {roles[fg]} on --{bg} {roles[bg]} is {r:.2f}:1, needs {need}:1 ({why})")
+        scrim = col("scrim-color")
+        weak = roles.get("scrim-weak")
+        if scrim is None or not weak or not re.fullmatch(r"[\d.]+%", weak) or not roles.get("scrim-strong"):
+            problems.append(f"{theme}: --scrim-color, --scrim-weak and --scrim-strong (a percentage) are what layout.css's photo band reads")
+            continue
+        a = float(weak[:-1]) / 100
+        over_white = tuple(a * c + (1 - a) * 255 for c in scrim[:3])
+        for ink, need, why in SCRIM_INKS:
+            f = col(ink)
+            if f is None:
+                continue
+            r = contrast_ratio(_hex(f), _hex(over_white))
+            rows.append((theme, ink, f"scrim {weak} over white", r, need, why))
+            if r < need:
+                problems.append(f"{theme}: --{ink} over the scrim at --scrim-weak {weak} on a white photo pixel is {r:.2f}:1, needs {need}:1 ({why}); raise --scrim-weak")
     return problems, rows
 
 
@@ -500,7 +785,7 @@ def gen(schema, mode, path, block):
     if path in (block.get("assetProps") or []):
         return "stress-photo"
     if path in (block.get("linkProps") or []):
-        return "#top"
+        return "#main"
     if t == "object":
         out = {}
         req = set(schema.get("required", []))
@@ -540,15 +825,33 @@ def _may_follow(blocks, first, second):
     return not ((a.get("tone") or {}).get("default") in DARK and (b.get("tone") or {}).get("default") in DARK)
 
 
-def make_fixtures(blocks):
+def stress_business(today=None):
+    """Business facts at their bounds: the longest name and street, every day its own
+    row, a window past midnight, and special days ahead of today."""
+    d0 = datetime.date.fromisoformat(today) if today else datetime.date.today()
+    later = lambda n: (d0 + datetime.timedelta(days=n)).isoformat()  # noqa: E731
+    times = [("06:30", "14:00"), ("07:00", "15:30"), ("06:00", "13:00"), ("08:00", "16:00"), ("06:30", "21:00"), ("18:00", "02:00"), ("07:30", "13:00")]
+    return {
+        "name": _text(80, "max"),
+        "schemaType": "LocalBusiness",
+        "phone": "+1 (251) 555-0100",
+        "email": "reservations.and.private.events@example.com",
+        "address": {"street": _text(120, "max"), "city": _text(40, "max"), "region": "AL", "postalCode": "36532-0000", "countryCode": "US"},
+        "hours": [{"days": [d], "opens": o, "closes": c} for d, (o, c) in zip(DAY_ORDER, times)],
+        "specialHours": [
+            {"date": later(20), "label": _text(40, "max"), "closed": True},
+            {"date": later(40), "label": "Christmas Eve", "opens": "07:00", "closes": "12:00"},
+        ],
+    }
+
+
+def make_fixtures(blocks, today=None):
     pages = []
     for bid, b in sorted(blocks.items()):
         for mode in ("min", "max", "long", "rtl"):
             blk = {"type": bid, "props": gen(b["props"], mode, "", b)}
             if b.get("variants"):
                 blk["variant"] = b["variants"][0 if mode == "min" else -1]
-                if "variant" in (b["props"].get("properties") or {}):
-                    blk["props"]["variant"] = blk["variant"]
             seq = [blk]
             if b.get("headingLevel") != 1:
                 lead = next((x for x, xb in sorted(blocks.items()) if xb.get("headingLevel") == 1), None)
@@ -561,21 +864,73 @@ def make_fixtures(blocks):
                         )
                         if spacer:
                             seq.insert(1, {"type": spacer, "props": gen(blocks[spacer]["props"], "min", "", blocks[spacer])})
-            pages.append(
-                {
-                    "path": f"/stress/{bid}/{mode}/",
-                    "title": f"Stress: {bid} at {mode}",
-                    "description": f"The {bid} block rendered at its {mode} content, for the device matrix and visual baselines.",
-                    "blocks": seq,
-                }
-            )
+            page = {
+                "path": f"/stress/{bid}/{mode}/",
+                "title": f"Stress: {bid} at {mode}",
+                "description": f"The {bid} block rendered at its {mode} content, for the device matrix and visual baselines.",
+                "noindex": True,
+                "blocks": seq,
+            }
+            if mode == "rtl":
+                page.update(lang="ar", dir="rtl")
+            pages.append(page)
+    paths = [p["path"] for p in pages]
+    link = lambda i, n: {"label": _text(n, "max"), "href": paths[i % len(paths)]}  # noqa: E731
     return {
         "siteId": "stress-fixtures",
         "lang": "en",
-        "business": {"name": "Stress fixtures", "schemaType": "LocalBusiness"},
-        "assets": {"stress-photo": {"src": "stress-photo.jpg", "alt": "A test photograph", "width": 2560, "height": 1600, "provenance": "generated"}},
+        "business": stress_business(today),
+        "chrome": {
+            "nav": [link(i, 20) for i in range(6)],
+            "action": {"label": _text(28, "max"), "href": "tel:+12515550100"},
+            "footerNav": [link(i, 20) for i in range(8)],
+        },
+        "assets": {"stress-photo": copy.deepcopy(STRESS_PHOTO)},
         "pages": pages,
     }
+
+
+# The worst photo for light copy: near white, with faint bands so it is not flat.
+STRESS_PHOTO = {
+    "src": "stress-photo.png",
+    "alt": "A test photograph",
+    "width": 2560,
+    "height": 1600,
+    "provenance": "generated",
+    "sources": [{"src": "stress-photo-640.png", "width": 640}, {"src": "stress-photo-1280.png", "width": 1280}],
+}
+
+
+def write_png(path, width, height, row_color):
+    """A truecolour PNG whose row y is one colour, row_color(y) -> (r, g, b). Stdlib only."""
+    import struct
+    import zlib
+
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+
+    raw = bytearray()
+    cache = {}
+    for y in range(height):
+        c = row_color(y)
+        if c not in cache:
+            cache[c] = b"\x00" + bytes(c) * width
+        raw += cache[c]
+    with open(path, "wb") as f:
+        f.write(b"\x89PNG\r\n\x1a\n")
+        f.write(chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)))
+        f.write(chunk(b"IDAT", zlib.compress(bytes(raw), 6)))
+        f.write(chunk(b"IEND", b""))
+
+
+def write_stress_photo(path):
+    """The stress photo and its smaller srcset widths, beside path (the same crop)."""
+    w, h = STRESS_PHOTO["width"], STRESS_PHOTO["height"]
+    band = lambda scale: lambda y: (255, 255, 255) if (y // max(1, round(40 * scale))) % 2 else (236, 234, 229)  # noqa: E731
+    write_png(path, w, h, band(1))
+    for x in STRESS_PHOTO["sources"]:
+        k = x["width"] / w
+        write_png(os.path.join(os.path.dirname(path), x["src"]), x["width"], round(h * k), band(k))
 
 
 # ─── self-test ───────────────────────────────────────────────────────────────
@@ -601,6 +956,9 @@ def self_test():
     fx = make_fixtures(blocks)
     fp, _ = check_manifest(fx, blocks, mschema)
     row(not fp and len(fx["pages"]) == 4 * len(blocks), f"positive: generated stress fixtures pass ({len(fx['pages'])} pages)", "; ".join(fp[:2]))
+    rtl = [p for p in fx["pages"] if p["path"].endswith("/rtl/")]
+    row(rtl and all(p.get("dir") == "rtl" and p.get("lang") == "ar" for p in rtl), "fixtures: rtl pages are dir=rtl lang=ar, so mirroring is tested")
+    row(len(fx["chrome"]["nav"]) == 6 and all(len(x["label"]) == 20 for x in fx["chrome"]["nav"]), "fixtures: the header carries its worst case (6 links of 20 characters)")
     hero_max = next(p for p in fx["pages"] if p["path"] == "/stress/hero-full/max/")["blocks"][0]["props"]
     row(len(hero_max["title"]) == 60 and len(hero_max["actions"]) == 2, "fixtures: max mode fills strings to maxLength and lists to maxItems", json.dumps(hero_max)[:80])
     hero_long = next(p for p in fx["pages"] if p["path"] == "/stress/hero-full/long/")["blocks"][0]["props"]
@@ -609,7 +967,18 @@ def self_test():
     with open(os.path.join(KIT, "tokens.css"), encoding="utf-8") as f:
         css = f.read()
     tp, trows = check_tokens(css)
-    row(not tp and len(trows) == 2 * len(ROLE_PAIRS), f"positive: tokens.css passes every role pairing, light and dark ({len(trows)} pairs)", "; ".join(tp[:2]))
+    row(not tp and len(trows) == 2 * (len(ROLE_PAIRS) + len(SCRIM_INKS)), f"positive: tokens.css passes every role pairing and the scrim, light and dark ({len(trows)} pairs)", "; ".join(tp[:2]))
+    ok_oklch, _ = check_tokens(css.replace("--accent: #2f5bd3;", "--accent: oklch(0.5 0.2 264);", 1))
+    row(not ok_oklch, "tokens: an oklch() role is read and scored, not reported missing", "; ".join(ok_oklch[:2]))
+    tcase = lambda label, old, new, want: row(  # noqa: E731
+        any(want in x for x in check_tokens(css.replace(old, new, 1))[0]), f"must fail (tokens): {label}"
+    )
+    tcase("a field border too faint to see (SC 1.4.11)", "--field-border: #8a8b94;", "--field-border: #d0d0d4;", "--field-border")
+    tcase("a card on an inverse band too light for its text", "--inverse-surface: #25262d;", "--inverse-surface: #9a9aa0;", "inverse-surface")
+    tcase("a scrim too thin for light copy over a white pixel", "--scrim-weak: 74%;", "--scrim-weak: 40%;", "raise --scrim-weak")
+    tcase("a type step that grows more than 2.5x", "--step-5: clamp(2.4883rem,", "--step-5: clamp(1rem,", "stops growing at 200% zoom")
+    tcase("no font stack", "--font-body:", "--font-bodyx:", "--font-body is missing")
+    tcase("a translucent colour role", "--surface: #ffffff;", "--surface: #ffffff80;", "translucent")
     bad, _ = check_tokens(css.replace("--ink-muted: #55565e;", "--ink-muted: #9a9aa0;", 1))
     row(any("--ink-muted" in b and "light" in b for b in bad), "must fail (tokens): a muted ink too light for the canvas")
     bad, _ = check_tokens(css.replace("--focus: #9db9ff;\n  }", "--focus: #2a2b33;\n  }"))
@@ -659,13 +1028,18 @@ def self_test():
         catalog_case("unbounded string", edit("cta-banner", lambda b: b["props"]["properties"]["heading"].pop("maxLength")), "unbounded string")
         catalog_case("unbounded list", edit("features-grid", lambda b: b["props"]["properties"]["items"].pop("maxItems")), "unbounded list")
         catalog_case("a styling prop", edit("cta-banner", lambda b: b["props"]["properties"].update(textColor={"type": "string", "maxLength": 9})), "styling prop")
-        catalog_case("variant enum differs from variants", edit("cta-banner", lambda b: b["props"]["properties"]["variant"].update(enum=["book"])), "must equal variants")
         catalog_case("level-1 block not placed first", edit("hero-full", lambda b: b["placement"].update(position="any")), "must be 'first'")
         catalog_case("assetProps names no prop", edit("story-split", lambda b: b.update(assetProps=["photo"])), "which is not a prop")
         catalog_case("media prop not in assetProps", edit("story-split", lambda b: b.update(assetProps=[])), "must also be listed in assetProps")
         catalog_case("tone default not allowed", edit("features-grid", lambda b: b["tone"].update(default="inverse")), "is not in tone.allowed")
         catalog_case("notAdjacentTo names an unknown block", edit("cta-banner", lambda b: b["placement"].update(notAdjacentTo=["hero-giant"])), "unknown block")
         catalog_case("more than three variants", edit("cta-banner", lambda b: b.update(variants=["a", "b", "c", "d"])), "more than 3")
+        catalog_case("a $ref the checker cannot follow", edit("cta-banner", lambda b: b["props"]["properties"].update(extra={"$ref": "#/$defs/anything"})), "cannot follow")
+        catalog_case("anyOf in props", edit("cta-banner", lambda b: b["props"]["properties"]["heading"].update(anyOf=[{"type": "string"}])), "cannot follow")
+        catalog_case("a list of types", edit("cta-banner", lambda b: b["props"]["properties"].update(note={"type": ["string", "null"], "maxLength": 9})), "list of types")
+        catalog_case("variant repeated in props", edit("cta-banner", lambda b: b["props"]["properties"].update(variant={"enum": ["book", "call"]})), "lives on the block instance")
+        catalog_case("a styling prop named accent", edit("features-grid", lambda b: b["props"]["properties"].update(accent={"enum": ["blue"]})), "styling prop")
+        catalog_case("headingLevel true is not 1", edit("page-header", lambda b: b.update(headingLevel=True)), "is not one of [1, 2]")
 
         def manifest_case(label, mutate, want, catalog_mutate=None):
             bl = copy.deepcopy(blocks)
@@ -686,7 +1060,7 @@ def self_test():
         manifest_case("notAdjacentTo", lambda m: B(m).insert(1, copy.deepcopy(B(m)[-1])), "may not sit directly after")
         manifest_case(
             "two dark bands in a row",
-            lambda m: B(m).insert(4, {"type": "features-grid", "tone": "inverse", "props": B(m)[1]["props"]}),
+            lambda m: B(m).insert(1, {"type": "features-grid", "tone": "inverse", "props": B(m)[1]["props"]}),
             "two dark bands",
             catalog_mutate=lambda bl: bl["features-grid"]["tone"].update(allowed=["canvas", "surface", "inverse"]),
         )
@@ -701,10 +1075,30 @@ def self_test():
         manifest_case("empty alt on a content image", lambda m: m["assets"]["counter"].update(alt=""), "empty alt")
         manifest_case("internal link to a missing page", lambda m: B(m)[0]["props"]["actions"][0].update(href="/specials/"), "not a page in this manifest")
         manifest_case("duplicate page path", lambda m: m["pages"].append(copy.deepcopy(m["pages"][0])), "appears more than once")
+        manifest_case("a block's required fact is missing", lambda m: m["business"].pop("hours"), "does not give")
+        manifest_case("an in-page link to no anchor", lambda m: B(m)[0]["props"]["actions"][0].update(href="#nowhere"), "has as its anchor")
+        manifest_case("a link to an anchor another page lacks", lambda m: B(m)[0]["props"]["actions"][0].update(href="/visit/#nowhere"), "has no anchor")
+        manifest_case("a nav link to a missing page", lambda m: m["chrome"]["nav"][0].update(href="/menu/"), "not a page")
+        manifest_case("an in-page link in the header", lambda m: m["chrome"]["nav"][0].update(href="#visit"), "on every page")
+        manifest_case("a javascript: link", lambda m: B(m)[0]["props"]["actions"][0].update(href="javascript:alert(1)"), "a link is a path")
+        manifest_case("an anchor used twice", lambda m: B(m)[1].update(anchor="visit"), "used more than once")
+        manifest_case("the reserved anchor main", lambda m: B(m)[1].update(anchor="main"), "reserved")
+        manifest_case("a portrait crop that is landscape", lambda m: m["assets"]["dining-room-portrait"].update(width=2000, height=1000), "not portrait")
+        manifest_case("a special day both closed and open", lambda m: m["business"]["specialHours"][0].update(opens="09:00", closes="12:00"), "closed and opening times")
+        manifest_case("two windows on one day overlap", lambda m: m["business"]["hours"].append({"days": ["Mo"], "opens": "13:00", "closes": "15:00"}), "overlaps")
+        manifest_case("a window that opens as it closes", lambda m: m["business"]["hours"][1].update(closes="07:30"), "same time")
+        manifest_case("a quotation without permission", lambda m: B(m)[4]["props"].update(permission=False), "must be true")
+        manifest_case("two srcset candidates of one width", lambda m: m["assets"]["counter"]["sources"].append({"src": "x.jpg", "width": 800}), "share a width")
+        manifest_case("a path with a trailing newline", lambda m: m["pages"][1].update(path="/visit/\n"), "does not match")
+        manifest_case("a date in another script's digits", lambda m: m["business"]["specialHours"][0].update(date="٢٠٢٦-١١-٢٦"), "does not match")
         mm = copy.deepcopy(example)
-        mm["assets"]["counter"]["width"] = 640
+        mm["assets"]["counter"].update(width=1100, height=825)
         _, w = check_manifest(mm, blocks, mschema)
-        row(any("will be upscaled" in x for x in w), "warns: an image too small for its slot at 2x")
+        row(any("enlarged" in x and "counter" in x for x in w), "warns: a photo that is sharp side by side but blurry when the split stacks (1100px for a 704px frame at 2x)")
+        mm = copy.deepcopy(example)
+        mm["assets"]["dining-room"].update(height=1000)
+        _, w = check_manifest(mm, blocks, mschema)
+        row(any("enlarged" in x and "dining-room" in x for x in w), "warns: a hero source too short for the band's 704px height at 2x")
         mm = copy.deepcopy(example)
         mm["assets"]["counter"].update(width=600, height=1600)
         _, w = check_manifest(mm, blocks, mschema)
@@ -769,7 +1163,10 @@ def main(argv):
         with open(argv[3], "w", encoding="utf-8") as f:
             json.dump(fx, f, ensure_ascii=False, indent=2)
             f.write("\n")
-        print(f"block_site_check fixtures: wrote {len(fx['pages'])} stress pages to {argv[3]} (render them, then run device_matrix.mjs)")
+        photo = os.path.join(os.path.dirname(os.path.abspath(argv[3])), STRESS_PHOTO["src"])
+        write_stress_photo(photo)
+        print(f"block_site_check fixtures: wrote {len(fx['pages'])} stress pages to {argv[3]} and the stress photo to {photo}")
+        print("  next: block_site_render.py render <that file> --catalog <catalog> --out <dir>, then device_matrix.mjs --dir <dir> --manifest <that file>")
         return 0
     print(__doc__)
     return 2

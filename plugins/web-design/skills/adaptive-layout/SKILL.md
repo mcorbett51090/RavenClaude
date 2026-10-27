@@ -135,19 +135,19 @@ declares** — read from the built CSS, which a minifier may have rewritten to r
 
 - **This plugin ships the harness:** [`scripts/device_matrix.mjs`](../../scripts/device_matrix.mjs) runs
   [`scripts/layout-probe.js`](../../scripts/layout-probe.js) over exactly this table, plus ±1px around every
-  `@media` width in your CSS and an optional sweep (`--sweep 320:1600:8`), in light, dark and forced colours:
-  `node scripts/device_matrix.mjs --dir dist --pages /,/menu/ --full`.
-  - Its `--self-test` plants every defect the probe knows and requires each one to be reported; run it once per
-    machine.
+  `@media` width in your CSS and an optional sweep (`--sweep 320:1600:8`). The one-per-class rows also run in dark,
+  forced colours and more contrast (light and dark). Desktop rows draw real scrollbars.
+  `node scripts/device_matrix.mjs --dir dist --pages /,/menu/ --full` (or `--manifest site.manifest.json`).
+  - Its `--self-test` plants every defect the probe knows and requires each one to be reported, and checks
+    look-alikes that must not be. Run it once per machine.
   - Use it rather than writing a probe that has never been shown to fail.
-  - The owner's site factory carries an older sibling (`scripts/test/device-matrix.mjs` in
-    RavenPower-website-factory) with the photo-contrast probe
-    ([`text-over-photo-contrast-2026.md`](../../knowledge/text-over-photo-contrast-2026.md)).
-- **Text over a photo needs its own probe**, and it runs at one viewport per class, because the photo crop changes
-  with the aspect ratio. The probe hides the glyphs, captures the viewport (never the full document, which grows every
-  `svh` hero), and scores each line at its 5th-percentile composited pixel. The method and its pitfalls are in
-  [`text-over-photo-contrast-2026.md`](../../knowledge/text-over-photo-contrast-2026.md). The factory's harness
-  implements it as `photo-contrast`, with a mutation that must fire.
+- **Text over a photo needs its own probe**, and the harness runs it (`photo-contrast`) at one viewport per class,
+  because the photo crop changes with the aspect ratio. It hides the glyphs, captures the viewport (never the full
+  document, which grows every `svh` hero), and scores each line at its 5th-percentile composited pixel. The method and
+  its pitfalls are in [`text-over-photo-contrast-2026.md`](../../knowledge/text-over-photo-contrast-2026.md); it was
+  built in the owner's site factory and ported here, with the factory's mutation that must fire. It cannot run in
+  forced colours, where glyphs paint in the forced colour and cannot be hidden: there the copy needs an opaque
+  `Canvas` backplate.
 - **Chromium is not WebKit.** Emulation sets width, DPR, touch and the viewport tag, but has no Safari toolbar,
   no safe areas and no dynamic viewport. Finish on a real iPhone and iPad, or in the Xcode Device Hub simulator
   (Xcode 27.1+ includes iPhone Duo).

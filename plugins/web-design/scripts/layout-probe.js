@@ -3,49 +3,70 @@
  *
  *   Playwright:   await page.evaluate(fs.readFileSync(probe, 'utf8') + ';layoutProbe(' + JSON.stringify(opts) + ')')
  *   DevTools MCP: evaluate_script with the file's text plus `;layoutProbe({})`
- *   A console:    paste the file, then `layoutProbe()`
+ *   A console:    paste the file, then `await layoutProbe()`
+ *
+ * It is async (it decodes each image's file to learn its real pixel size) and it
+ * scrolls the page and moves focus to test what a reader would meet; it puts the
+ * scroll position and focus back when it is done.
  *
  * scripts/device_matrix.mjs runs it at every viewport, theme and breakpoint edge.
  * Every check reads the live layout (getBoundingClientRect, getComputedStyle,
- * Range rects, the font set), never the source: a class name in the HTML is a
- * claim about the page, and this measures the page.
+ * Range rects, elementFromPoint, the font set), never the source: a class name in
+ * the HTML is a claim about the page, and this measures the page.
  *
  * Checks (finding ids):
- *   overflow        an element is painted past the viewport edge, and no ancestor
- *                   clips it (html/body clipping does not count: it hides the
- *                   overflow instead of fixing it)
- *   zoom-out        the layout viewport is wider than the screen (opts.expectedWidth),
- *                   so a phone shows the whole page shrunk
- *   off-grid        a block's direct child does not sit on its grid line: its edges
- *                   differ by more than opts.edgeTolerance px from the other blocks'
- *                   children on the same line (content | wide | full), or a block is
- *                   not a grid at all, or a full / backdrop slot does not cover the
- *                   block edge to edge
- *   text-overflow   text sticks out of its box (a long word, a nowrap, a fixed width)
- *   text-clipped    text cut off by its box's overflow: hidden / clip
+ *   overflow        an element is painted past the viewport's inline edge and no
+ *                   ancestor contains it (html/body clipping does not count: it
+ *                   hides the overflow instead of fixing it). Something parked
+ *                   wholly off-screen to the start or top (a skip link) is not.
+ *   zoom-out        the layout viewport is wider than the screen (opts.expectedWidth)
+ *   off-grid        a block's direct child is off its grid line (content | wide |
+ *                   full) compared with the other blocks', a block is not a grid,
+ *                   a full or backdrop slot does not cover the block, something
+ *                   inside a slot pokes past the slot's edge into the gutter, or a
+ *                   wrapper with no visible box pads its content off the line
+ *   text-overflow   text sticks out of its box, sideways or downwards
+ *   text-clipped    text cut off by its own box's overflow: hidden / clip
+ *   clipped         text or a control cut off by an ANCESTOR's overflow: hidden /
+ *                   clip (a card, a frame, a photo band); scroll containers excuse it
+ *   overlap         something is painted over text or a control (hit-tested at its
+ *                   centre, at every scroll position)
  *   heading-widow   a heading's last line is one short word
- *   target-size     an interactive target under 24×24px with no 24px spacing
- *                   (WCAG 2.2 SC 2.5.8; inline links in running text are exempt)
+ *   measure         running text set wider than opts.measureMax characters per line
+ *   target-size     an interactive target under 24×24px whose 24px circle meets
+ *                   another target or another small target's circle (SC 2.5.8;
+ *                   inline links in running text are exempt)
  *   input-zoom      a text field under 16px, which iOS zooms on focus
- *   orphan-row      a grid whose last row holds one narrow item under fuller rows
+ *   orphan-row      a grid of like items whose last row holds one narrow item
+ *                   under fuller rows (a grid marked data-ragged opts out)
  *   grid-span       a grid with zero-width columns: items span tracks the grid does
- *                   not define (typically a container query that cannot match because
- *                   the grid IS the container it queries; put it inside a slot)
+ *                   not define (a container query that cannot match, because the
+ *                   grid IS the container it queries)
+ *   nav-wrap        a row of navigation links broken onto more than one line
  *   image-broken    an image that did not load
  *   image-distorted an image stretched off its natural aspect ratio (object-fit: fill)
- *   image-upscaled  a raster image drawn bigger than its pixels at this DPR
+ *   image-upscaled  the file is enlarged to fill its box at min(DPR, 2)x: blurry
+ *   image-oversized the file is more than 3x the pixels its box needs: wasted bytes
+ *   image-gap       an image in a frame or photo band does not fill it
  *   image-no-size   an image with no width/height, no aspect-ratio and no sized
  *                   frame: it will shift the layout when it loads
  *   img-alt         an <img> with no alt attribute (alt="" is a valid choice)
+ *   text-contrast   text below 4.5:1 (3:1 large) against the flat background it is
+ *                   painted on. Text over a photo is skipped here: device_matrix.mjs
+ *                   scores that on composited pixels (photo-contrast).
+ *   focus-hidden    a focusable element with no visible focus indicator
+ *   focus-clipped   its focus ring is cut off by a clipping ancestor
+ *   anchor-obscured an in-page link's target lands under a fixed or sticky bar
+ *   covered         content at the end of the page stays under a fixed bar
  *   layout-shift    cumulative layout shift above opts.clsThreshold (needs the
  *                   observer device_matrix.mjs installs before the page loads)
  *   font-failed     a web font that failed to load, or a used family not loaded
  *   chrome-share    fixed/sticky bars cover more than opts.maxChromeShare of the height
  *
- * Returns { findings: [{ id, where, msg }], stats }.
+ * Returns a Promise of { findings: [{ id, where, msg }], stats }.
  */
 // eslint-disable-next-line no-unused-vars
-function layoutProbe(options) {
+async function layoutProbe(options) {
   const opts = Object.assign(
     {
       blockSelector: "[data-block]",
@@ -55,7 +76,11 @@ function layoutProbe(options) {
       clsThreshold: 0.01,
       maxChromeShare: 0.3,
       upscaleTolerance: 1.15,
+      maxDensity: 2,
+      oversize: 3,
+      measureMax: 75,
       maxPerCheck: 25,
+      maxFocus: 80,
       skip: [],
     },
     options || {},
@@ -71,6 +96,10 @@ function layoutProbe(options) {
   const W = document.documentElement.clientWidth;
   const H = window.innerHeight;
   const DPR = window.devicePixelRatio || 1;
+  const DENSITY = Math.min(DPR, opts.maxDensity);
+  const startX = window.scrollX;
+  const startY = window.scrollY;
+  const startFocus = document.activeElement;
 
   function path(el) {
     const parts = [];
@@ -95,36 +124,94 @@ function layoutProbe(options) {
     const s = cs(el);
     if (s.display === "none" || s.visibility === "hidden" || s.visibility === "collapse")
       return false;
+    if (el.closest("details:not([open]) > :not(summary)")) return false;
     const r = el.getBoundingClientRect();
     return r.width > 0 || r.height > 0;
   }
   const tiny = (r) => r.width <= 1 && r.height <= 1;
-  const clipsX = (s) =>
-    s.overflowX !== "visible" || s.clipPath !== "none" || /paint|content|strict/.test(s.contain);
-  // An ancestor (below body) that clips horizontally contains its descendants'
-  // overflow on purpose; html and body do not, because their clipping is the
-  // viewport's and hides the overflow from the reader instead of fixing it.
-  function clippedByAncestor(el) {
+  const clips = (s) => /hidden|clip/.test(s.overflowX + s.overflowY) || s.clipPath !== "none";
+  const scrolls = (s) => /auto|scroll/.test(s.overflowX + s.overflowY);
+  const fixedish = (el) => {
+    for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
+      const p = cs(e).position;
+      if (p === "fixed" || p === "sticky") return e;
+    }
+    return null;
+  };
+  // An ancestor (below body) that clips or scrolls contains its descendants'
+  // overflow, so they cannot widen the page. html and body do not count: their
+  // clipping is the viewport's and hides the overflow from the reader.
+  function containedByAncestor(el) {
     for (
       let a = el.parentElement;
       a && a !== document.body && a !== document.documentElement;
       a = a.parentElement
     ) {
-      if (clipsX(cs(a))) return true;
+      const s = cs(a);
+      if (clips(s) || scrolls(s) || /paint|content|strict/.test(s.contain)) return true;
     }
     return false;
   }
-  const run = (id, fn) => {
+  const textOwners = () => {
+    const out = new Set();
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let n = 0;
+    for (let t = walker.nextNode(); t && n < 8000; t = walker.nextNode()) {
+      if (!t.nodeValue.trim()) continue;
+      const el = t.parentElement;
+      if (!el || el.closest("script,style,noscript,template,svg,select,option,textarea")) continue;
+      n++;
+      out.add(el);
+    }
+    return [...out].filter(visible);
+  };
+  const lineRects = (el) => {
+    const range = document.createRange();
+    const rects = [];
+    for (const n of el.childNodes) {
+      if (n.nodeType !== 3 || !n.nodeValue.trim()) continue;
+      range.selectNodeContents(n);
+      for (const r of range.getClientRects()) if (r.width > 0 && r.height > 0) rects.push(r);
+    }
+    return rects;
+  };
+  // Any CSS colour (oklch, color-mix, system colours) to 8-bit sRGB, as painted.
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = 1;
+  const cx = cv.getContext("2d", { willReadFrequently: true });
+  const rgba = (css) => {
+    cx.clearRect(0, 0, 1, 1);
+    cx.fillStyle = "#000";
+    cx.fillStyle = css;
+    cx.fillRect(0, 0, 1, 1);
+    const d = cx.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2], d[3] / 255];
+  };
+  const lin = (v) => {
+    v /= 255;
+    return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  const lum = (c) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+  const over = (top, under) => {
+    const a = top[3];
+    return [0, 1, 2].map((i) => top[i] * a + under[i] * (1 - a)).concat(1);
+  };
+  const ratio = (a, b) => {
+    const la = lum(a);
+    const lb = lum(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  };
+  const run = async (id, fn) => {
     if (skip.has(id)) return;
     try {
-      fn();
+      await fn();
     } catch (e) {
       add("probe-error", null, `${id} threw: ${e && e.message}`);
     }
   };
 
   // ── overflow + zoom-out ──────────────────────────────────────────────────
-  run("overflow", () => {
+  await run("overflow", () => {
     if (opts.expectedWidth && Math.abs(window.innerWidth - opts.expectedWidth) > 1) {
       add(
         "zoom-out",
@@ -137,11 +224,15 @@ function layoutProbe(options) {
       add("overflow", null, `the page scrolls sideways: ${sw}px of content in a ${W}px viewport`);
     const reported = [];
     let n = 0;
+    const rtl = cs(document.documentElement).direction === "rtl";
     for (const el of document.body.querySelectorAll("*")) {
       n++;
       const r = el.getBoundingClientRect();
       if (tiny(r) || (r.right <= W + 1 && r.left >= -1)) continue;
-      if (!visible(el) || clippedByAncestor(el)) continue;
+      // Parked wholly before the start edge or above the page: unreachable, so it
+      // cannot widen anything (the skip-link and off-canvas patterns).
+      if (r.bottom <= 0 || (!rtl && r.right <= 0) || (rtl && r.left >= W)) continue;
+      if (!visible(el) || containedByAncestor(el)) continue;
       if (reported.some((p) => p.contains(el))) continue;
       reported.push(el);
       add(
@@ -154,9 +245,10 @@ function layoutProbe(options) {
   });
 
   // ── off-grid ─────────────────────────────────────────────────────────────
-  run("off-grid", () => {
+  await run("off-grid", () => {
     const blocks = [...document.querySelectorAll(opts.blockSelector)].filter(visible);
     const lines = { content: [], wide: [], full: [] };
+    let escapes = 0;
     for (const b of blocks) {
       const s = cs(b);
       if (s.display !== "grid" && s.display !== "inline-grid") {
@@ -193,6 +285,53 @@ function layoutProbe(options) {
         if (!lines[slot]) continue;
         const r = child.getBoundingClientRect();
         lines[slot].push({ el: child, left: r.left, right: r.right });
+        if (slot === "full") continue;
+        // Inside the slot: nothing pokes into the gutter, and no invisible wrapper
+        // pads the content off the line.
+        for (const d of child.querySelectorAll("*")) {
+          if (!visible(d)) continue;
+          const ds = cs(d);
+          if (ds.position === "absolute" || ds.position === "fixed") continue;
+          let inScroller = false;
+          for (let p = d.parentElement; p && p !== child; p = p.parentElement)
+            if (scrolls(cs(p)) || clips(cs(p))) inScroller = true;
+          if (inScroller) continue;
+          const dr = d.getBoundingClientRect();
+          if (tiny(dr)) continue;
+          if (dr.left < r.left - opts.edgeTolerance || dr.right > r.right + opts.edgeTolerance) {
+            escapes++;
+            add(
+              "off-grid",
+              d,
+              `runs ${Math.round(Math.max(r.left - dr.left, dr.right - r.right))}px past its ${slot} slot (${Math.round(r.left)}–${Math.round(r.right)}px) into the gutter`,
+            );
+            break;
+          }
+          const pad = Math.max(parseFloat(ds.paddingInlineStart), parseFloat(ds.paddingInlineEnd));
+          const boxless =
+            /rgba\(0, 0, 0, 0\)|transparent/.test(ds.backgroundColor) &&
+            ds.backgroundImage === "none" &&
+            ds.boxShadow === "none" &&
+            parseFloat(ds.borderInlineStartWidth) === 0 &&
+            parseFloat(ds.borderInlineEndWidth) === 0;
+          if (
+            pad > opts.edgeTolerance &&
+            boxless &&
+            /^(block|flex|grid|flow-root)$/.test(ds.display) &&
+            !d.matches(
+              "ul,ol,li,dl,dd,blockquote,figure,fieldset,details,summary,table,td,th,pre,label,button,a,nav,form",
+            ) &&
+            Math.abs(dr.left - r.left) <= opts.edgeTolerance &&
+            d.textContent.trim()
+          ) {
+            add(
+              "off-grid",
+              d,
+              `${Math.round(pad)}px of inline padding on a box with nothing to show for it moves its content off the ${slot} line`,
+            );
+            break;
+          }
+        }
       }
     }
     const mode = (xs) => {
@@ -222,10 +361,11 @@ function layoutProbe(options) {
       }
     }
     stats.checked["off-grid"] = checked;
+    stats.checked["grid-escape"] = escapes;
   });
 
-  // ── text-overflow / text-clipped / heading-widow ─────────────────────────
-  run("text-overflow", () => {
+  // ── text-overflow / text-clipped / clipped / heading-widow / measure ─────
+  await run("text-overflow", () => {
     const boxOf = (el) => {
       for (let e = el; e && e !== document.documentElement; e = e.parentElement) {
         const d = cs(e).display;
@@ -233,47 +373,115 @@ function layoutProbe(options) {
       }
       return document.body;
     };
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    const range = document.createRange();
+    const owners = textOwners();
     const seen = new Set();
     let n = 0;
-    for (let t = walker.nextNode(); t && n < 8000; t = walker.nextNode()) {
-      if (!t.nodeValue.trim()) continue;
-      const el = t.parentElement;
-      if (
-        !el ||
-        el.closest("script,style,noscript,template,svg,select,option,textarea") ||
-        !visible(el)
-      )
-        continue;
+    for (const el of owners) {
       const box = boxOf(el);
       if (seen.has(box)) continue;
       const bs = cs(box);
       const br = box.getBoundingClientRect();
       if (tiny(br)) continue;
-      if (bs.overflowX === "auto" || bs.overflowX === "scroll") continue; // scrolls on purpose
-      if (bs.textOverflow === "ellipsis") continue; // truncates on purpose
+      if (scrolls(bs)) continue; // scrolls on purpose
+      if (bs.textOverflow === "ellipsis" || bs.webkitLineClamp !== "none") continue; // truncates on purpose
       n++;
       const left = br.left + parseFloat(bs.borderLeftWidth) + parseFloat(bs.paddingLeft);
       const right = br.right - parseFloat(bs.borderRightWidth) - parseFloat(bs.paddingRight);
-      range.selectNodeContents(t);
-      for (const r of range.getClientRects()) {
-        if (r.width === 0) continue;
-        if (r.right > right + 1 || r.left < left - 1) {
-          seen.add(box);
-          const clipped = bs.overflowX === "hidden" || bs.overflowX === "clip";
+      const top = br.top + parseFloat(bs.borderTopWidth);
+      const bottom = br.bottom - parseFloat(bs.borderBottomWidth);
+      // Glyph boxes overhang a tight line-height by a fraction of the font size.
+      const vtol = Math.max(2, parseFloat(cs(el).fontSize) * 0.35);
+      for (const r of lineRects(el)) {
+        const sideways = r.right > right + 1 || r.left < left - 1;
+        const down = r.bottom > bottom + vtol || r.top < top - vtol;
+        if (!sideways && !down) continue;
+        seen.add(box);
+        const cut = sideways ? /hidden|clip/.test(bs.overflowX) : /hidden|clip/.test(bs.overflowY);
+        const by = sideways
+          ? Math.max(r.right - right, left - r.left)
+          : Math.max(r.bottom - bottom, top - r.top);
+        add(
+          cut ? "text-clipped" : "text-overflow",
+          box,
+          `"${el.textContent.trim().slice(0, 40)}" runs ${Math.round(by)}px ${sideways ? "past the side of" : "out of the bottom of"} its box${cut ? " and is cut off" : ""}`,
+        );
+        break;
+      }
+    }
+    // Downwards: a box whose height is fixed lets its text spill out of the
+    // bottom, while the text's own block grows with it. So compare each line with
+    // its ancestors up to the block, not only with its own box. Out-of-flow text
+    // (absolutely positioned, or under a transform) is left to the other checks.
+    for (const el of owners) {
+      if (seen.has(boxOf(el)) || el.closest("[data-slot='backdrop']")) continue;
+      let outOfFlow = false;
+      for (let e = el; e && e !== document.body; e = e.parentElement) {
+        const es = cs(e);
+        if (es.position === "absolute" || es.position === "fixed" || es.transform !== "none")
+          outOfFlow = true;
+      }
+      if (outOfFlow) continue;
+      const lines = lineRects(el);
+      if (!lines.length) continue;
+      const lowest = Math.max(...lines.map((r) => r.bottom));
+      const vtol = Math.max(2, parseFloat(cs(el).fontSize) * 0.35);
+      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+        const as = cs(a);
+        if (scrolls(as) || /hidden|clip/.test(as.overflowY)) break; // scrolls, or reported as clipped
+        const ar = a.getBoundingClientRect();
+        const floor = ar.bottom - parseFloat(as.borderBottomWidth);
+        if (lowest > floor + vtol) {
+          seen.add(boxOf(el));
           add(
-            clipped ? "text-clipped" : "text-overflow",
-            box,
-            `"${t.nodeValue.trim().slice(0, 40)}" runs ${Math.round(Math.max(r.right - right, left - r.left))}px past its box${clipped ? " and is cut off" : ""}`,
+            "text-overflow",
+            a,
+            `"${el.textContent.trim().slice(0, 40)}" runs ${Math.round(lowest - floor)}px out of the bottom of this box (a fixed height?)`,
           );
           break;
         }
+        if (a.matches(opts.blockSelector)) break;
       }
     }
     stats.checked["text-overflow"] = n;
+
+    // Text or a control cut off by an ancestor that clips (a card, a frame, a band).
+    const subjects = new Set(owners);
+    for (const el of document.querySelectorAll("a[href],button,input,select,textarea,summary"))
+      if (visible(el)) subjects.add(el);
+    const reported = [];
+    let c = 0;
+    for (const el of subjects) {
+      if (el.closest("[data-slot='backdrop']") || reported.some((p) => p.contains(el))) continue;
+      const rects = el.matches("a,button,input,select,textarea,summary")
+        ? [el.getBoundingClientRect()]
+        : lineRects(el);
+      if (!rects.length || rects.every(tiny)) continue;
+      c++;
+      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+        const s = cs(a);
+        if (scrolls(s)) break; // reachable by scrolling
+        if (!clips(s)) continue;
+        const ar = a.getBoundingClientRect();
+        if (tiny(ar)) break; // a visually hidden wrapper: hidden on purpose
+        const cutX = /hidden|clip/.test(s.overflowX) || s.clipPath !== "none";
+        const cutY = /hidden|clip/.test(s.overflowY) || s.clipPath !== "none";
+        let worst = 0;
+        for (const r of rects) {
+          if (cutX) worst = Math.max(worst, r.right - ar.right, ar.left - r.left);
+          if (cutY) worst = Math.max(worst, r.bottom - ar.bottom, ar.top - r.top);
+        }
+        if (worst > 1) {
+          reported.push(el);
+          add("clipped", el, `${Math.round(worst)}px of it is cut off by ${path(a)}`);
+        }
+        break;
+      }
+    }
+    stats.checked.clipped = c;
+
     // A heading whose last line is one short word.
     let h = 0;
+    const range = document.createRange();
     for (const el of document.querySelectorAll("h1,h2,h3")) {
       if (!visible(el)) continue;
       range.selectNodeContents(el);
@@ -293,48 +501,79 @@ function layoutProbe(options) {
       const words = el.textContent.trim().split(/\s+/);
       const lastWord = words[words.length - 1] || "";
       if (last < 0.2 * Math.max(...widths) && lastWord.length <= 10) {
+        const balanced = /balance/.test(cs(el).textWrapStyle || cs(el).textWrap || "");
         add(
           "heading-widow",
           el,
-          `"${el.textContent.trim().slice(0, 40)}" ends on a line holding only "${lastWord}" (text-wrap: balance fixes this)`,
+          `"${el.textContent.trim().slice(0, 40)}" ends on a line holding only "${lastWord}" (${balanced ? "text-wrap: balance is already on and did not help: shorten the heading or change its max-inline-size" : "text-wrap: balance fixes this"})`,
         );
       }
     }
     stats.checked["heading-widow"] = h;
+
+    // Running text wider than a comfortable line.
+    let m = 0;
+    for (const el of document.querySelectorAll("p, li, dd, blockquote, figcaption")) {
+      if (!visible(el) || el.closest("nav")) continue;
+      const rows = new Set(lineRects(el).map((r) => Math.round(r.top / 4)));
+      if (rows.size < 2) continue;
+      m++;
+      const s = cs(el);
+      // From longhands: the font shorthand serialises as "" whenever a longhand it
+      // cannot express is set, and the canvas then measures its own 10px default.
+      cx.font = `${s.fontStyle} ${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
+      const ch = cx.measureText("0").width || parseFloat(s.fontSize) * 0.5;
+      const width =
+        el.getBoundingClientRect().width - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+      const chars = width / ch;
+      if (chars > opts.measureMax)
+        add(
+          "measure",
+          el,
+          `lines run ${Math.round(chars)}ch wide; keep running text at 45–${opts.measureMax}ch (max-inline-size: var(--measure))`,
+        );
+    }
+    stats.checked.measure = m;
   });
 
   // ── target-size / input-zoom ─────────────────────────────────────────────
-  run("target-size", () => {
+  await run("target-size", () => {
     const sel =
       "a[href],button,input:not([type=hidden]),select,textarea,summary,[role=button],[role=link],[tabindex]:not([tabindex='-1'])";
     const targets = [...document.querySelectorAll(sel)]
       .filter(visible)
-      .map((el) => ({ el, r: el.getBoundingClientRect() }));
+      .map((el) => ({ el, r: el.getBoundingClientRect() }))
+      .filter((t) => !tiny(t.r));
     const inlineInText = (el) => {
       if (el.tagName !== "A" || cs(el).display !== "inline") return false;
       const p = el.parentElement;
       return !!p && p.textContent.trim().length > el.textContent.trim().length + 10;
     };
+    const small = (t) =>
+      (t.r.width < opts.minTarget || t.r.height < opts.minTarget) && !inlineInText(t.el);
+    const rad = opts.minTarget / 2;
     for (const t of targets) {
+      if (!small(t)) continue;
       const { el, r } = t;
-      if (r.width >= opts.minTarget && r.height >= opts.minTarget) continue;
-      if (inlineInText(el)) continue;
       // WCAG 2.5.8 spacing exception: a 24px circle on the target's centre must
-      // not intersect another target.
-      const cx = r.left + r.width / 2;
-      const cy = r.top + r.height / 2;
-      const rad = opts.minTarget / 2;
+      // not intersect another target, nor another undersized target's circle.
+      const cxp = r.left + r.width / 2;
+      const cyp = r.top + r.height / 2;
       const hits = targets.some((o) => {
         if (o === t || o.el.contains(el) || el.contains(o.el)) return false;
-        const nx = Math.max(o.r.left, Math.min(cx, o.r.right));
-        const ny = Math.max(o.r.top, Math.min(cy, o.r.bottom));
-        return (nx - cx) ** 2 + (ny - cy) ** 2 < rad * rad;
+        const nx = Math.max(o.r.left, Math.min(cxp, o.r.right));
+        const ny = Math.max(o.r.top, Math.min(cyp, o.r.bottom));
+        if ((nx - cxp) ** 2 + (ny - cyp) ** 2 < rad * rad) return true;
+        if (!small(o)) return false;
+        const ox = o.r.left + o.r.width / 2;
+        const oy = o.r.top + o.r.height / 2;
+        return (ox - cxp) ** 2 + (oy - cyp) ** 2 < (2 * rad) ** 2;
       });
       if (hits)
         add(
           "target-size",
           el,
-          `${Math.round(r.width)}×${Math.round(r.height)}px target with a neighbour inside its 24px circle (SC 2.5.8)`,
+          `${Math.round(r.width)}×${Math.round(r.height)}px target whose 24px circle meets a neighbour (SC 2.5.8)`,
         );
     }
     stats.checked["target-size"] = targets.length;
@@ -365,8 +604,8 @@ function layoutProbe(options) {
     stats.checked["input-zoom"] = f;
   });
 
-  // ── orphan-row ───────────────────────────────────────────────────────────
-  run("orphan-row", () => {
+  // ── orphan-row / grid-span / nav-wrap ────────────────────────────────────
+  await run("orphan-row", () => {
     let n = 0;
     for (const g of document.querySelectorAll("body *")) {
       const s = cs(g);
@@ -389,7 +628,11 @@ function layoutProbe(options) {
           `columns resolve to ${tracks.map((t) => Math.round(t)).join(" / ")}px: items span tracks the grid does not define (is this grid the container its own @container rule queries?)`,
         );
       }
-      if (kids.length < 3) continue;
+      if (kids.length < 3 || g.hasAttribute("data-ragged")) continue;
+      // Only a grid of LIKE items can strand one: a form's fields and its button
+      // are not a set of cards.
+      const kind = (k) => `${k.tagName}.${[...k.classList].sort().join(".")}`;
+      if (new Set(kids.map(kind)).size !== 1) continue;
       n++;
       const rows = new Map();
       for (const k of kids) {
@@ -408,15 +651,50 @@ function layoutProbe(options) {
         add(
           "orphan-row",
           g,
-          `${kids.length} items laid out ${ordered.map((r) => r.length).join("+")}: the last one is alone on its row`,
+          `${kids.length} items laid out ${ordered.map((r) => r.length).join("+")}: the last one is alone on its row (use .cards, or mark an open-ended list data-ragged)`,
         );
       }
     }
     stats.checked["orphan-row"] = n;
+    let v = 0;
+    for (const nav of document.querySelectorAll("nav")) {
+      if (!visible(nav)) continue;
+      const links = [...nav.querySelectorAll("a[href]")].filter(visible);
+      if (links.length < 2) continue;
+      const parent = links[0].closest("ul,ol") || nav;
+      if (cs(parent).flexDirection === "column" || cs(parent).display === "block") continue;
+      v++;
+      const tops = new Set(links.map((l) => Math.round(l.getBoundingClientRect().top / 4)));
+      if (tops.size > 1)
+        add(
+          "nav-wrap",
+          nav,
+          `${links.length} links broken over ${tops.size} lines: collapse it into a menu below this width`,
+        );
+    }
+    stats.checked["nav-wrap"] = v;
   });
 
   // ── images ───────────────────────────────────────────────────────────────
-  run("images", () => {
+  await run("images", async () => {
+    // The file's real pixels: naturalWidth is corrected for the srcset density the
+    // browser chose, so it is the drawn size, not the file's.
+    const files = new Map();
+    await Promise.all(
+      [...document.images].map(async (img) => {
+        if (!img.complete || !img.naturalWidth) return;
+        const src = img.currentSrc || img.src;
+        if (!src) return;
+        try {
+          const probe = new Image();
+          probe.src = src;
+          await probe.decode();
+          files.set(img, [probe.naturalWidth, probe.naturalHeight]);
+        } catch (_) {
+          /* not decodable here: reported as not measured below */
+        }
+      }),
+    );
     let n = 0;
     for (const img of document.images) {
       if (!img.hasAttribute("alt"))
@@ -441,10 +719,10 @@ function layoutProbe(options) {
         parseFloat(s.paddingBottom) -
         parseFloat(s.borderTopWidth) -
         parseFloat(s.borderBottomWidth);
-      const nw = img.naturalWidth;
-      const nh = img.naturalHeight;
       if (bw <= 0 || bh <= 0) continue;
       const fit = s.objectFit;
+      const nw = img.naturalWidth;
+      const nh = img.naturalHeight;
       if (fit === "fill" && Math.abs(bw / bh - nw / nh) / (nw / nh) > 0.02) {
         add(
           "image-distorted",
@@ -452,29 +730,75 @@ function layoutProbe(options) {
           `${nw}×${nh} image drawn ${Math.round(bw)}×${Math.round(bh)}: stretched (use a frame with object-fit: cover)`,
         );
       }
-      const src = img.currentSrc || img.src || "";
-      const vector = /\.svg(\?|#|$)/i.test(src) || src.startsWith("data:image/svg");
-      if (!vector) {
-        const scale =
-          fit === "cover"
-            ? Math.max(bw / nw, bh / nh)
-            : fit === "contain" || fit === "scale-down"
-              ? Math.min(bw / nw, bh / nh)
-              : Math.max(bw / nw, bh / nh);
-        if (scale * DPR > opts.upscaleTolerance) {
-          add(
-            "image-upscaled",
-            img,
-            `${nw}px-wide image drawn at ${(scale * DPR).toFixed(2)}× its pixels at DPR ${DPR}: blurry (add a larger srcset candidate)`,
-          );
-        }
-      }
-      const sized = img.hasAttribute("width") && img.hasAttribute("height");
-      const parent =
+      // A frame or a photo band the image does not fill.
+      const holder =
         img.parentElement && img.parentElement.tagName === "PICTURE"
           ? img.parentElement.parentElement
           : img.parentElement;
-      const framed = parent && cs(parent).aspectRatio !== "auto";
+      const framed =
+        holder &&
+        (holder.matches(".frame, [data-slot='backdrop']") || cs(holder).aspectRatio !== "auto");
+      if (framed) {
+        const hr = holder.getBoundingClientRect();
+        const gap = Math.max(
+          hr.right - r.right,
+          r.left - hr.left,
+          hr.bottom - r.bottom,
+          r.top - hr.top,
+        );
+        if (gap > 1)
+          add(
+            "image-gap",
+            img,
+            `the image covers ${Math.round(r.width)}×${Math.round(r.height)}px of its ${Math.round(hr.width)}×${Math.round(hr.height)}px frame: ${Math.round(gap)}px of the frame shows through`,
+          );
+      }
+      const src = img.currentSrc || img.src || "";
+      const vector = /\.svg(\?|#|$)/i.test(src) || src.startsWith("data:image/svg");
+      const file = files.get(img);
+      if (!vector && file) {
+        const [fw, fh] = file;
+        const ar = fw / fh;
+        let dw;
+        let dh;
+        if (fit === "cover") {
+          dw = Math.max(bw, bh * ar);
+          dh = dw / ar;
+        } else if (fit === "contain" || fit === "scale-down") {
+          dw = Math.min(bw, bh * ar);
+          dh = dw / ar;
+          if (fit === "scale-down" && nw < dw) {
+            dw = nw;
+            dh = nh;
+          }
+        } else if (fit === "none") {
+          dw = nw;
+          dh = nh;
+        } else {
+          dw = bw;
+          dh = bh;
+        }
+        const scale = Math.max(dw / fw, dh / fh) * DENSITY;
+        if (scale > opts.upscaleTolerance) {
+          add(
+            "image-upscaled",
+            img,
+            `a ${fw}×${fh} file drawn ${Math.round(dw)}×${Math.round(dh)} CSS px is enlarged ${scale.toFixed(2)}× at ${DENSITY}x: blurry (supply at least ${Math.ceil(dw * DENSITY)}×${Math.ceil(dh * DENSITY)} for this crop)`,
+          );
+        }
+        if (fw >= 1000 && scale > 0 && 1 / scale > opts.oversize) {
+          add(
+            "image-oversized",
+            img,
+            `a ${fw}px-wide file for a ${Math.round(dw)}px box at ${DENSITY}x: ${(1 / scale).toFixed(1)}× the pixels it needs (fix its sizes, or add a smaller srcset candidate)`,
+          );
+        }
+      } else if (!vector && !file) {
+        stats.notMeasured.push(
+          `image size of ${src.slice(0, 80)} (its file could not be decoded here)`,
+        );
+      }
+      const sized = img.hasAttribute("width") && img.hasAttribute("height");
       if (!sized && s.aspectRatio === "auto" && !framed) {
         add(
           "image-no-size",
@@ -486,8 +810,82 @@ function layoutProbe(options) {
     stats.checked.images = n;
   });
 
+  // ── text-contrast (flat backgrounds; photos are device_matrix.mjs's) ─────
+  await run("text-contrast", () => {
+    const media = [];
+    for (const m of document.body.querySelectorAll("img,video,canvas,picture,*")) {
+      const isMedia = /^(IMG|VIDEO|CANVAS)$/.test(m.tagName);
+      if (!isMedia && cs(m).backgroundImage === "none") continue;
+      const r = m.getBoundingClientRect();
+      if (r.width >= 48 && r.height >= 48) media.push({ el: m, r });
+    }
+    const opacity = (el) => {
+      let a = 1;
+      for (let e = el; e && e !== document.documentElement; e = e.parentElement)
+        a *= Number(cs(e).opacity);
+      return a;
+    };
+    const backdrop = (el) => {
+      const layers = [];
+      for (let e = el; e; e = e.parentElement) {
+        const c = rgba(cs(e).backgroundColor);
+        if (c[3] > 0) layers.push(c);
+        if (c[3] >= 1) break;
+      }
+      let base = [255, 255, 255, 1];
+      for (let i = layers.length - 1; i >= 0; i--) base = over(layers[i], base);
+      return base;
+    };
+    const forced = matchMedia("(forced-colors: active)").matches;
+    let n = 0;
+    for (const el of textOwners()) {
+      if (el.closest("[data-tone='media']") || el.matches(":disabled")) continue;
+      const rects = lineRects(el);
+      if (!rects.length || rects.every(tiny)) continue;
+      const r0 = rects[0];
+      if (
+        media.some(
+          (m) =>
+            !el.contains(m.el) &&
+            !m.el.contains(el) &&
+            r0.left < m.r.right &&
+            r0.right > m.r.left &&
+            r0.top < m.r.bottom &&
+            r0.bottom > m.r.top,
+        ) ||
+        media.some(
+          (m) => m.el.contains(el) && m.el.tagName !== "BODY" && m.el !== document.documentElement,
+        )
+      )
+        continue; // over a photo or a gradient: scored on pixels by device_matrix.mjs
+      const s = cs(el);
+      if (s.backgroundClip === "text" || s.webkitBackgroundClip === "text") continue;
+      // The glyphs paint in -webkit-text-fill-color, except in forced colours,
+      // where the browser paints the forced color and the fill still reports
+      // the author's value (measured in Chromium, 2026-10-27).
+      const fill = forced ? s.color : s.webkitTextFillColor || s.color;
+      const fg = rgba(fill);
+      fg[3] *= opacity(el);
+      if (fg[3] < 0.02) continue;
+      n++;
+      const bg = backdrop(el);
+      const shown = over(fg, bg);
+      const r = ratio(shown, bg);
+      const size = parseFloat(s.fontSize);
+      const large = size >= 24 || (size >= 18.66 && Number(s.fontWeight) >= 700);
+      const need = large ? 3 : 4.5;
+      if (r < need - 0.005)
+        add(
+          "text-contrast",
+          el,
+          `"${el.textContent.trim().slice(0, 30)}" is ${r.toFixed(2)}:1 on its background, needs ${need}:1 (SC 1.4.3)`,
+        );
+    }
+    stats.checked["text-contrast"] = n;
+  });
+
   // ── layout-shift ─────────────────────────────────────────────────────────
-  run("layout-shift", () => {
+  await run("layout-shift", () => {
     const m = window.__layoutProbe;
     if (!m || typeof m.cls !== "number") {
       stats.notMeasured.push("layout-shift (no observer installed before load)");
@@ -504,7 +902,7 @@ function layoutProbe(options) {
   });
 
   // ── fonts ────────────────────────────────────────────────────────────────
-  run("font-failed", () => {
+  await run("font-failed", () => {
     const declared = new Set();
     for (const f of document.fonts) {
       declared.add(f.family.replace(/^["']|["']$/g, ""));
@@ -531,7 +929,7 @@ function layoutProbe(options) {
   });
 
   // ── chrome-share ─────────────────────────────────────────────────────────
-  run("chrome-share", () => {
+  await run("chrome-share", () => {
     let covered = 0;
     for (const el of document.body.querySelectorAll("*")) {
       const s = cs(el);
@@ -553,6 +951,164 @@ function layoutProbe(options) {
       );
     }
   });
+
+  // ── what a reader meets while scrolling: overlap, anchors, the page's end ─
+  const jump = (x, y) => window.scrollTo({ left: x, top: y, behavior: "instant" });
+  await run("overlap", () => {
+    const subjects = [
+      ...new Set([
+        ...textOwners(),
+        ...document.querySelectorAll("a[href],button,input,select,textarea,summary"),
+      ]),
+    ].filter((el) => visible(el) && !el.closest("[data-slot='backdrop']") && !fixedish(el));
+    const done = new Set();
+    const maxY = Math.max(0, document.documentElement.scrollHeight - H);
+    let n = 0;
+    for (let y = 0; ; y = Math.min(maxY, y + Math.round(H * 0.8))) {
+      jump(0, y);
+      for (const el of subjects) {
+        if (done.has(el)) continue;
+        const rect = el.matches("a,button,input,select,textarea,summary")
+          ? el.getBoundingClientRect()
+          : lineRects(el)[0];
+        if (!rect || tiny(rect)) {
+          done.add(el);
+          continue;
+        }
+        const px = rect.left + rect.width / 2;
+        const py = rect.top + rect.height / 2;
+        if (py < 0 || py >= H || px < 0 || px >= W) continue;
+        done.add(el);
+        n++;
+        const hit = document.elementFromPoint(px, py);
+        if (!hit || hit === el || el.contains(hit) || hit.contains(el)) continue;
+        if (fixedish(hit)) {
+          done.delete(el); // under a bar at this scroll position: try the next one
+          continue;
+        }
+        if (el.closest("label") && el.closest("label").contains(hit)) continue;
+        add(
+          "overlap",
+          el,
+          `${path(hit)} is painted over it at (${Math.round(px)}, ${Math.round(py)})`,
+        );
+      }
+      if (y >= maxY) break;
+    }
+    stats.checked.overlap = n;
+  });
+  await run("anchor-obscured", () => {
+    let n = 0;
+    const ids = new Set(
+      [...document.querySelectorAll("a[href^='#']")]
+        .map((a) => decodeURIComponent(a.getAttribute("href").slice(1)))
+        .filter(Boolean),
+    );
+    for (const id of ids) {
+      const target = document.getElementById(id);
+      if (!target || !visible(target)) continue;
+      n++;
+      target.scrollIntoView({ block: "start", behavior: "instant" });
+      const r = target.getBoundingClientRect();
+      for (const fx of [0.1, 0.5, 0.9]) {
+        const px = r.left + r.width * fx;
+        const py = Math.max(0, r.top) + 4;
+        if (py >= H || px < 0 || px >= W) continue;
+        const hit = document.elementFromPoint(px, py);
+        const bar = hit && !target.contains(hit) && !hit.contains(target) && fixedish(hit);
+        if (bar) {
+          add(
+            "anchor-obscured",
+            target,
+            `#${id} lands under ${path(bar)}: give it scroll-margin-top as tall as the bar`,
+          );
+          break;
+        }
+      }
+    }
+    stats.checked["anchor-obscured"] = n;
+  });
+  await run("covered", () => {
+    jump(0, document.documentElement.scrollHeight);
+    let n = 0;
+    for (const el of textOwners()) {
+      const r = lineRects(el)[0];
+      if (!r || fixedish(el) || r.top < 0 || r.bottom > H) continue;
+      n++;
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      const bar = hit && hit !== el && !el.contains(hit) && !hit.contains(el) && fixedish(hit);
+      if (bar)
+        add(
+          "covered",
+          el,
+          `at the end of the page it is still under ${path(bar)}: pad the page's end by the bar's height`,
+        );
+    }
+    stats.checked.covered = n;
+  });
+
+  // ── focus: every focusable shows a ring, and nothing clips it ────────────
+  await run("focus", () => {
+    const sel =
+      "a[href],button,input:not([type=hidden]),select,textarea,summary,[tabindex]:not([tabindex='-1'])";
+    const els = [...document.querySelectorAll(sel)]
+      .filter((el) => visible(el) && !el.matches(":disabled"))
+      .slice(0, opts.maxFocus);
+    let n = 0;
+    for (const el of els) {
+      el.focus({ focusVisible: true });
+      if (document.activeElement !== el || !el.matches(":focus-visible")) continue;
+      n++;
+      // The ring may be drawn on the element or, for a linked photo, on its frame.
+      let owner = null;
+      for (let e = el, i = 0; e && i < 3; e = e.parentElement, i++) {
+        const s = cs(e);
+        if (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0) {
+          owner = e;
+          break;
+        }
+      }
+      if (!owner) {
+        if (cs(el).boxShadow === "none")
+          add(
+            "focus-hidden",
+            el,
+            "focused, it shows no outline and no box-shadow: a keyboard user cannot see where they are (SC 2.4.7)",
+          );
+        continue;
+      }
+      const os = cs(owner);
+      const grow = parseFloat(os.outlineOffset) + parseFloat(os.outlineWidth);
+      const or = owner.getBoundingClientRect();
+      const ring = { l: or.left - grow, r: or.right + grow, t: or.top - grow, b: or.bottom + grow };
+      for (let a = owner.parentElement; a && a !== document.body; a = a.parentElement) {
+        const s = cs(a);
+        if (scrolls(s) && !clips(s)) break;
+        if (!clips(s)) continue;
+        const ar = a.getBoundingClientRect();
+        const cut = Math.max(
+          ring.r - ar.right,
+          ar.left - ring.l,
+          ring.b - ar.bottom,
+          ar.top - ring.t,
+        );
+        if (cut > 0.5)
+          add(
+            "focus-clipped",
+            el,
+            `${Math.round(cut)}px of its focus ring is cut off by ${path(a)}`,
+          );
+        break;
+      }
+    }
+    stats.checked.focus = n;
+  });
+
+  // Put the page back as it was found.
+  if (startFocus && startFocus.focus && startFocus !== document.body)
+    startFocus.focus({ preventScroll: true });
+  else if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  jump(startX, startY);
 
   stats.counts = counts;
   stats.viewport = { width: W, innerWidth: window.innerWidth, height: H, dpr: DPR };

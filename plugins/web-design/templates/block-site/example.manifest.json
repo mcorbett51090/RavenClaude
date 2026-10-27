@@ -2,6 +2,7 @@
   "$schema": "site-manifest.schema.json",
   "siteId": "example-diner",
   "lang": "en-US",
+  "origin": "https://www.example.com",
   "business": {
     "name": "Example Diner",
     "schemaType": "Restaurant",
@@ -14,8 +15,53 @@
       "countryCode": "US"
     },
     "hours": [
-      { "days": ["Mo", "Tu", "We", "Th", "Fr", "Sa"], "opens": "06:30", "closes": "14:00" },
-      { "days": ["Su"], "opens": "07:30", "closes": "13:00" }
+      {
+        "days": ["Mo", "Tu", "We", "Th", "Fr", "Sa"],
+        "opens": "06:30",
+        "closes": "14:00"
+      },
+      {
+        "days": ["Su"],
+        "opens": "07:30",
+        "closes": "13:00"
+      }
+    ],
+    "specialHours": [
+      {
+        "date": "2026-11-26",
+        "label": "Thanksgiving Day",
+        "closed": true
+      }
+    ]
+  },
+  "chrome": {
+    "nav": [
+      {
+        "label": "Home",
+        "href": "/"
+      },
+      {
+        "label": "Visit",
+        "href": "/visit/"
+      },
+      {
+        "label": "Contact",
+        "href": "/contact/"
+      }
+    ],
+    "action": {
+      "label": "Call us",
+      "href": "tel:+12515550100"
+    },
+    "footerNav": [
+      {
+        "label": "Visit",
+        "href": "/visit/"
+      },
+      {
+        "label": "Contact",
+        "href": "/contact/"
+      }
     ]
   },
   "assets": {
@@ -25,7 +71,22 @@
       "width": 2560,
       "height": 1440,
       "provenance": "business-own",
-      "focal": "50% 60%"
+      "focal": "50% 60%",
+      "sources": [
+        {
+          "src": "images/dining-room-1280.jpg",
+          "width": 1280
+        }
+      ],
+      "portrait": "dining-room-portrait"
+    },
+    "dining-room-portrait": {
+      "src": "images/dining-room-portrait.jpg",
+      "alt": "",
+      "width": 1200,
+      "height": 1800,
+      "provenance": "business-own",
+      "focal": "50% 55%"
     },
     "counter": {
       "src": "images/counter.jpg",
@@ -33,7 +94,13 @@
       "width": 1600,
       "height": 1200,
       "provenance": "business-own",
-      "focal": "30% 40%"
+      "focal": "30% 40%",
+      "sources": [
+        {
+          "src": "images/counter-800.jpg",
+          "width": 800
+        }
+      ]
     }
   },
   "pages": [
@@ -44,34 +111,45 @@
       "blocks": [
         {
           "type": "hero-full",
-          "variant": "photo",
           "props": {
             "eyebrow": "Downtown Fairhope · since 1945",
             "title": "Breakfast all day, made by hand every morning",
             "lede": "A neighbourhood diner where the biscuits are rolled at six and the coffee is never more than a minute from the pot.",
             "image": "dining-room",
             "actions": [
-              { "label": "Plan a visit", "href": "#visit", "kind": "primary" },
-              { "label": "Call us", "href": "tel:+12515550100", "kind": "ghost" }
+              {
+                "label": "Plan a visit",
+                "href": "#visit",
+                "kind": "primary"
+              },
+              {
+                "label": "Call us",
+                "href": "tel:+12515550100",
+                "kind": "ghost"
+              }
             ]
           }
         },
         {
           "type": "features-grid",
+          "variant": "with-icon",
           "props": {
             "heading": "Why people come back",
             "items": [
               {
                 "title": "Biscuits from scratch",
-                "body": "Rolled at six every morning, never frozen."
+                "body": "Rolled at six every morning, never frozen.",
+                "icon": "clock"
               },
               {
                 "title": "Breakfast all day",
-                "body": "Pancakes at two in the afternoon are a right, not a favour."
+                "body": "Pancakes at two in the afternoon are a right, not a favour.",
+                "icon": "cup"
               },
               {
                 "title": "Walk-ins welcome",
-                "body": "No reservations needed for parties under six."
+                "body": "No reservations needed for parties under six.",
+                "icon": "check"
               }
             ]
           }
@@ -88,17 +166,142 @@
             "image": "counter"
           }
         },
-        { "type": "hours-location", "props": { "heading": "Hours and location" } },
+        {
+          "type": "stats-band",
+          "props": {
+            "heading": "By the numbers",
+            "items": [
+              {
+                "value": "1945",
+                "label": "Serving since",
+                "source": "City of Fairhope business licence, 1945"
+              },
+              {
+                "value": "4,200",
+                "label": "Biscuits a week",
+                "source": "Our flour orders, 2025 average"
+              },
+              {
+                "value": "6",
+                "label": "Original stools",
+                "source": "Still at the counter"
+              }
+            ]
+          }
+        },
+        {
+          "type": "testimonial",
+          "props": {
+            "heading": "What guests say",
+            "quote": "The only place in town where the waitress remembers how you take your eggs after one visit.",
+            "name": "Dana R.",
+            "context": "Google review, March 2026",
+            "permission": true
+          }
+        },
+        {
+          "type": "hours-location",
+          "anchor": "visit",
+          "props": {
+            "heading": "Hours and location"
+          }
+        },
         {
           "type": "cta-banner",
-          "variant": "book",
+          "variant": "call",
           "props": {
             "heading": "Hungry yet?",
-            "action": { "label": "Book a table", "href": "tel:+12515550100" }
+            "action": {
+              "label": "Call (251) 555-0100",
+              "href": "tel:+12515550100"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "/visit/",
+      "title": "Visit Example Diner",
+      "description": "Opening hours, holiday closures, directions and parking for Example Diner on Fairhope Avenue in downtown Fairhope.",
+      "blocks": [
+        {
+          "type": "page-header",
+          "props": {
+            "eyebrow": "Visit",
+            "title": "Find us on Fairhope Avenue",
+            "intro": "Walk-ins are welcome every day we are open. Parties of six or more, call ahead and we will push the tables together."
+          }
+        },
+        {
+          "type": "hours-location",
+          "tone": "surface",
+          "props": {
+            "heading": "Hours and location",
+            "note": "Free street parking on Fairhope Ave, and a public lot behind the building."
+          }
+        },
+        {
+          "type": "faq-list",
+          "tone": "canvas",
+          "props": {
+            "heading": "Questions",
+            "items": [
+              {
+                "question": "Do you take reservations?",
+                "answer": "For parties of six or more, by phone."
+              },
+              {
+                "question": "Is there parking?",
+                "answer": "Free street parking on Fairhope Ave and a public lot behind the building."
+              },
+              {
+                "question": "Do you have high chairs?",
+                "answer": "Yes, four, and a changing table in the back restroom."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "path": "/contact/",
+      "title": "Contact Example Diner",
+      "description": "Ask Example Diner about large parties, catering or anything else; the owner reads every message.",
+      "blocks": [
+        {
+          "type": "page-header",
+          "props": {
+            "title": "Ask us anything",
+            "intro": "For a table today, call. For anything else, write to us here."
+          }
+        },
+        {
+          "type": "contact-form",
+          "props": {
+            "heading": "Send a message",
+            "action": "https://forms.example.com/example-diner",
+            "submitLabel": "Send",
+            "fields": [
+              {
+                "kind": "name",
+                "label": "Your name",
+                "required": true
+              },
+              {
+                "kind": "email",
+                "label": "Email",
+                "required": true
+              },
+              {
+                "kind": "message",
+                "label": "Message",
+                "required": true
+              }
+            ]
           }
         }
       ]
     }
   ],
-  "ownerTodos": ["Confirm the Thanksgiving hours before publishing them."]
+  "ownerTodos": ["Confirm the Christmas hours before publishing them."]
 }

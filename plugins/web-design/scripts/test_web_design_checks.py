@@ -159,6 +159,12 @@ class BlockSiteKit(unittest.TestCase):
         r = run(os.path.join(HERE, "block_site_check.py"), "--self-test")
         self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-1000:])
 
+    def test_block_site_render_self_test(self):
+        # Renders the kit's example and stress fixtures and checks the HTML
+        # (one h1, ids, labels, links, alt and sizes, escaping, JSON-LD hours).
+        r = run(os.path.join(HERE, "block_site_render.py"), "--self-test")
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-1000:])
+
     def test_fluid_type_steps_stay_zoom_safe(self):
         # A fluid step whose max is more than 2.5x its min can stop 200% zoom
         # enlarging text (WCAG 1.4.4; Barvian, Smashing Magazine, 2023-11-07).
@@ -169,12 +175,13 @@ class BlockSiteKit(unittest.TestCase):
         for name, lo, hi in steps:
             self.assertLessEqual(float(hi) / float(lo), 2.5, f"{name}: max over 2.5x min")
 
-    def test_layout_css_carries_no_colour_values(self):
-        # Colour VALUES live in tokens.css (exempt by name); the contract file
-        # must pass this plugin's own hard-coded-colour hook.
-        with open(os.path.join(KIT, "layout.css"), encoding="utf-8") as f:
-            code = re.sub(r"/\*.*?\*/", "", f.read(), flags=re.S)
-        self.assertIsNone(re.search(r"#[0-9a-fA-F]{3,8}\b", code))
+    def test_layout_and_block_css_carry_no_colour_values(self):
+        # Colour VALUES live in tokens.css (exempt by name); the contract and the
+        # blocks must pass this plugin's own hard-coded-colour hook.
+        for name in ("layout.css", "blocks.css"):
+            with open(os.path.join(KIT, name), encoding="utf-8") as f:
+                code = re.sub(r"/\*.*?\*/", "", f.read(), flags=re.S)
+            self.assertIsNone(re.search(r"#[0-9a-fA-F]{3,8}\b", code), name)
 
     def test_kit_json_is_valid(self):
         for dirpath, _dirs, files in os.walk(KIT):
