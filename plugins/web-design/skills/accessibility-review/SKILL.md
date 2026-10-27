@@ -69,6 +69,10 @@ For each high-stakes flow:
 ### Pass 5 — Color + contrast + motion
 
 - Color contrast: every text foreground vs background, including hover / active states, gradients, image overlays
+  - Text over a photo cannot be scored from hexes. Measure the composited pixels behind each line in a browser (the
+    5th-percentile pixel is a defensible reading), per
+    [`text-over-photo-contrast-2026.md`](../../knowledge/text-over-photo-contrast-2026.md). If you did not measure it,
+    report it as not measured, never as passing.
   - Body text ≥ 4.5:1
   - Large text (≥ 18pt regular or 14pt bold) ≥ 3:1
   - UI components and graphical objects ≥ 3:1

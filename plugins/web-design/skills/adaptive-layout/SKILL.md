@@ -136,6 +136,11 @@ declares** — read from the built CSS, which a minifier may have rewritten to r
 - A harness that implements exactly this, with a control run and four planted-defect mutations that must each
   fire, ships in the owner's site factory: `scripts/test/device-matrix.mjs` (RavenPower-website-factory). Reuse
   its shape; do not write a probe that has never been shown to fail.
+- **Text over a photo needs its own probe**, and it runs at one viewport per class, because the photo crop changes
+  with the aspect ratio. The probe hides the glyphs, captures the viewport (never the full document, which grows every
+  `svh` hero), and scores each line at its 5th-percentile composited pixel. The method and its pitfalls are in
+  [`text-over-photo-contrast-2026.md`](../../knowledge/text-over-photo-contrast-2026.md). The factory's harness
+  implements it as `photo-contrast`, with a mutation that must fire.
 - **Chromium is not WebKit.** Emulation sets width, DPR, touch and the viewport tag, but has no Safari toolbar,
   no safe areas and no dynamic viewport. Finish on a real iPhone and iPad, or in the Xcode Device Hub simulator
   (Xcode 27.1+ includes iPhone Duo).

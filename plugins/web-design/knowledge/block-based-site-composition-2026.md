@@ -9,6 +9,11 @@
 > generic Astro shell, a deterministic resolver with 26 must-fail self-test rows, and drift detection. Where this
 > file says "the factory does X", that is what shipped there. The [`block-composed-site`](../skills/block-composed-site/SKILL.md)
 > skill is the procedure for using or building a system like it.
+>
+> **Updated 2026-10-27** from the factory's next two PRs. §7 (the generation projection) and §8 (measured cost) come
+> from #131. Pitfalls 17–23 were each caught by its code-review rounds or by its device matrix. The structured-hours
+> pattern in pitfall 23 comes from #132. Text over photos has its own file:
+> [`text-over-photo-contrast-2026.md`](text-over-photo-contrast-2026.md).
 
 ## 0. The short version
 
@@ -143,10 +148,13 @@ live site actually serves.
 1. **Constrained composition.** The agent's whole output is the manifest. Generate the allowed block and variant enums
    per site from the resolved features, so an out-of-catalog choice cannot be expressed.
 2. **Two schemas.** Claude structured outputs reject recursive schemas, numerical constraints (`minimum`, `maximum`,
-   `multipleOf`), string constraints (`minLength`, `maxLength`) and `additionalProperties` other than `false` — an
-   unsupported feature is a 400 error (Anthropic structured-outputs docs, retrieved 2026-10-26). So compile a
-   **generation projection** (closed enums, bounds moved into `description`, no recursion) and keep the full schema for
-   **post-generation validation**, feeding errors back. Dropping the bounds silently would remove the guarantees.
+   `multipleOf`), string constraints (`minLength`, `maxLength`), array limits beyond `minItems` 0 or 1, and
+   `additionalProperties` other than `false`, so no maps. A request also allows at most **24 optional and 16
+   union-typed parameters**. An unsupported feature is a 400 error. (Source: Anthropic structured-outputs docs,
+   § JSON Schema limitations and § Schema complexity limits, retrieved 2026-10-26 and recorded in the factory's
+   `scripts/lib/manifest-projection.mjs`.) So compile a **generation projection** (closed enums, bounds moved into
+   `description`, no recursion) and keep the full schema for **post-generation validation**, feeding errors back.
+   Dropping the bounds silently would remove the guarantees. §7 is the contract the factory shipped.
 3. **Stage it:** plan (sections + variants within the allowed set) → fill (one section at a time with that block's
    projection, its truth rules and the owner's data) → validate (resolver + gates).
 4. **Describe blocks for routing** (use-when / avoid-when, kept short like an agent description) and keep a **golden
@@ -182,6 +190,89 @@ live site actually serves.
 16. **Dark bands that vanish in dark mode.** A band authored dark on purpose must point at a re-pointed token
     (`--panel` steps up, `--chrome` steps down on a dark page), never the raw night material — on a dark page that
     material *is* the canvas.
+
+17. **A scrim sized to the hero, not to the text.** A gradient in percent of the hero's height stopped below the
+    eyebrow on a phone. Two builds shipped a 12px eyebrow at 1.8–1.9:1, and the kit's own example measured 1.25:1.
+    Anchor the band to the copy, and measure text over photos on composited pixels
+    ([`text-over-photo-contrast-2026.md`](text-over-photo-contrast-2026.md)).
+18. **A grid that strands one card.** Three feature cards at 669–874px left one alone on its row. Choose the column
+    count from the item count, and let an odd last card span two columns.
+19. **"Dark" screenshots that were light.** When dark mode is opt-in through `localStorage`, set the key before the
+    page loads (an init script), or every dark capture is the light theme.
+20. **A gate exemption that matched nothing.** The factory's sold-site check exempted the `/connect` pages from its
+    indexability rule against a path no real build produces. Its self-tests passed, and a sold site could never pass.
+    Match on the dist-relative path, and prove an exemption end to end on a built `dist/`.
+21. **A printed URL that moved.** Card URLs derived from list position, and later from an automatic de-duplication
+    suffix, moved when the list changed, and a QR code with that URL may already be printed. Derive a slug from the
+    name, use a hash of the name when it has no Latin letters, allow an explicit `slug`, and refuse a collision rather
+    than renaming anyone.
+22. **A merge that reverses a fact.** Three regressions from one review round were each caught by the next. The
+    projection's inverse put the skeleton's `''` back into a field the generator left out, so `check` failed on a field
+    that should be absent. A brand merge kept a scaffold's placeholder black palette. The composer's asset sweep would
+    have deleted the only copy of an unused photo. Make every merge and every sweep rule a self-test row.
+23. **One fact, two copies.** Hours written as display rows beside a hand-written `openingHoursSpecification` will
+    drift. Store structured hours (`days`, `opens`, `closes`), derive the rows ("Monday – Saturday", "Closed",
+    "Open 24 hours") and the JSON-LD from them, and check both on the built pages (factory PR #132).
+
+## 7. The generation projection, as built
+
+The factory's `compose-site.mjs projection` / `unproject` (in `scripts/lib/manifest-projection.mjs`) projects
+**one site's content** after its structure is decided. Structure is the pages, each page's ordered blocks and
+variants, the tier and features.
+
+- **Every property is required.** An empty value (`''`, `[]`, `0`, an object of empties) means "leave it out".
+  Nullable types become their non-null type. Length, range and item-count limits move into the field's
+  description. Maps become arrays of `{ key, … }`. Local `$ref`s are inlined.
+- **It offers only what a generator may write.** **Offered:** page and block copy; the business's copy (`shortName`,
+  `tagline`, `description`, `hoursNote`); each skeleton asset as a **fixed** entry with its `alt`, `focal` and
+  `credit`; and a title for each card person. A block's image prop and the share image are enums of the asset keys,
+  and the share image is limited to the keys allowed as share images. **Never offered:** name, phone, email, address,
+  geo, hours, links and brand. The generator has no way to add, drop or relabel a file or a person, because the
+  schema has nowhere to say it.
+- **The skeleton's facts stand** (`keepFacts`). A value the skeleton set wins. An unfilled one (`''`, `[]`, `{}`)
+  takes the generator's value, or stays out. `null` is a fact ("known to be none"). Arrays merge item by item, and a
+  length mismatch is refused, not truncated.
+- **Refused on the way back:** content for a different page plan, a changed variant, a non-object page or block, and
+  an unknown asset or person key.
+- **Then the full schema and every catalog rule run**, exactly as for a hand-written manifest. The projection makes
+  well-formed output likely and never replaces `check`.
+- **Proof:** for every example, the self-test audits the projection against every documented rule (0 optional
+  parameters, 0 unions) and shows that projecting and then un-projecting returns the manifest unchanged.
+- **Not proven:** that the API compiles it. Beyond the documented limits there is an undocumented grammar-size limit
+  ("Schema is too complex for compilation"). The largest example is about 300 schema nodes (about 76 KB). The owner
+  chose to leave this unproven until an API key is available (2026-10-26). A large site may need its pages generated
+  in more than one request **[inferred]**.
+
+## 8. What one site costs to build (measured)
+
+Two builds of the same business from the factory's production brief, each run end to end (eleven steps, including
+the visual pass and the commit) by a fresh mid-tier sub-agent. Costs are at its API list prices: $2 in and $10 out per
+MTok, $0.20 per MTok cache read, $2.50 per MTok five-minute cache write. Phases are attributed by the tool each call
+made. **[observed]**, 2026-10-26.
+
+| Phase | Single tier (5 pages) | Growth tier (6 of 10 pages) |
+|---|---|---|
+| Visual pass (device matrix, screenshots, contrast) | 39 calls, $2.55 | 57 calls, $5.23 |
+| Reading the kit, other | 19 calls, $1.31 | 24 calls, $2.19 |
+| Writing and checking the manifest | 8 calls, $0.49 | 12 calls, $1.16 |
+| Looking at photos | 2 calls, $0.07 | 6 calls, $0.43 |
+| Facts (web research) | 7 calls, $0.33 | 5 calls, $0.21 |
+| Catalog, scaffold, build, gates, commit, report | 7 calls, $0.40 | 8 calls, $0.51 |
+| **Total** | **82 calls, $5.16** | **112 calls, $9.74** |
+| Unique context (cache writes + fresh input) | 286k tokens | 504k tokens |
+| Cache reads | 18.5M tokens ($3.70) | 36.1M tokens ($7.23) |
+
+**Reading it [inferred from the table]:**
+
+- **The visual pass is about half of each bill, and it found every real defect.** Both builds independently hit the
+  same hero-contrast failure, and each wrote its own pixel script to find it. A shipped probe turns that into one
+  command.
+- **Cache reads are 72–74% of the bill.** Every call re-reads the context so far, so cost grows with the number of
+  calls more than with what each call does. Fewer, larger steps would save more than any change to the manifest
+  format.
+- **Writing the manifest is 9–12%.** That is the step a block catalog exists to make cheap, and it is cheap.
+- **Not yet comparable with hand-built templates:** the template route's "200–350k tokens a site" was never measured
+  this way. The comparable figure is unique context (286k and 504k).
 
 ## Sources
 

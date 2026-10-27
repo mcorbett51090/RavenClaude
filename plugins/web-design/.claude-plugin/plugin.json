@@ -1,6 +1,6 @@
 {
   "name": "web-design",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), performance engineer (Core Web Vitals, image/font optimization). Skills cover the gold-standard website pipeline, static-site builds, interface craft from Apple / Stripe / Cloudflare / Starlink / Tesla / game menus, adaptive layout across desktop, phone, tablet and foldables (device-matrix verified), block-composed sites built from purchased features, owner-facing form and visual builders, design-system audits, brand guidance, card/tile UI, accessibility review, Core Web Vitals, technical SEO, information architecture, conversion design, content audits, design tokens, third-party hygiene and Fluent UI v9. Plus templates, commands, a hook and a 2026 knowledge bank. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
