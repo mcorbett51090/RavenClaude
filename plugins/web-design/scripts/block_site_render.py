@@ -111,11 +111,19 @@ def window(opens, closes, lang):
     return f"{clock(opens, lang)} – {clock(closes, lang)}"
 
 
-def special_rows(business, lang):
+def current_special(business, today):
+    """Special days from today on: a past holiday is not shown, or emitted."""
+    return [sp for sp in business.get("specialHours") or [] if sp["date"] >= today]
+
+
+def special_rows(business, lang, today):
     out = []
-    for sp in business.get("specialHours") or []:
+    this_year = int(today[:4])
+    for sp in current_special(business, today):
         date = datetime.date.fromisoformat(sp["date"])
-        when = f"{sp['label']} ({date.strftime('%b')}\u00a0{date.day})"  # the date never breaks
+        # The date never breaks; it carries its year once the year is not this one.
+        year = f",\u00a0{date.year}" if date.year != this_year else ""
+        when = f"{sp['label']} ({date.strftime('%b')}\u00a0{date.day}{year})"
         out.append((when, "Closed" if sp.get("closed") else window(sp["opens"], sp["closes"], lang)))
     return out
 
@@ -157,7 +165,8 @@ def label(text, rtl):
     return out + e(text[at:])
 
 
-def json_ld(manifest, page_url):
+def json_ld(manifest, page_url, today=None):
+    today = today or datetime.date.today().isoformat()
     b = manifest["business"]
     data = {"@context": "https://schema.org", "@type": b["schemaType"], "name": b["name"]}
     if manifest.get("origin"):
@@ -177,7 +186,7 @@ def json_ld(manifest, page_url):
             {"@type": "OpeningHoursSpecification", "dayOfWeek": [SCHEMA_DAY[d] for d in h["days"]], "opens": h["opens"], "closes": h["closes"]}
             for h in b["hours"]
         ]
-    if b.get("specialHours"):
+    if current_special(b, today):
         # Google's documented convention: closed all day is opens = closes = 00:00.
         data["specialOpeningHoursSpecification"] = [
             {
@@ -187,7 +196,7 @@ def json_ld(manifest, page_url):
                 "opens": "00:00" if sp.get("closed") else sp["opens"],
                 "closes": "00:00" if sp.get("closed") else sp["closes"],
             }
-            for sp in b["specialHours"]
+            for sp in current_special(b, today)
         ]
     # No "<" at all inside the script element: then no fact can end it early or
     # open the parser's escaped states ("<!--", "<script").
@@ -404,7 +413,7 @@ def b_hours_location(p, ctx):
         out += f'<a class="button" data-variant="ghost" href={a(tel_href(b["phone"]))}>Call {phone_text(b["phone"])}</a>'
     out += '</div></div><div><div class="hours-table"><dl class="hours">'
     out += "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in hours_rows(b, lang)) + "</dl>"
-    special = special_rows(b, lang)
+    special = special_rows(b, lang, ctx["today"])
     if special:
         out += '<h3>Special days</h3><dl class="hours">' + "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in special) + "</dl>"
     return out + "</div></div></div>"
@@ -555,6 +564,7 @@ def base_path(manifest):
     return manifest.get("basePath") or "/"
 
 
+UNSAFE_URL = re.compile(r'(?:href|src|action|srcset|formaction)="\s*(?:[^"]*,\s*)?(?:javascript:|vbscript:|data:|file:|//)', re.IGNORECASE)
 LOCAL_URL = re.compile(r'((?:href|src|action)=")/(?!/)')
 SRCSET_URL = re.compile(r'(srcset=")([^"]*)(")')
 
@@ -589,7 +599,8 @@ def page_direction(manifest, page):
     return check.text_direction(lang, page.get("dir") or (None if page.get("lang") else manifest.get("dir")))
 
 
-def render_page(manifest, page, blocks, year, renderers=None):
+def render_page(manifest, page, blocks, today, renderers=None):
+    year = today[:4]
     renderers = renderers or RENDER
     lang = page.get("lang") or manifest["lang"]
     direction = page_direction(manifest, page)
@@ -639,7 +650,7 @@ def render_page(manifest, page, blocks, year, renderers=None):
         f"@container slot (width >= {nav_at}rem) {{ .site-menu {{ display: none; }} }}"
         "}</style>"
     )
-    head.append(f'<script type="application/ld+json">{json_ld(manifest, origin)}</script>')
+    head.append(f'<script type="application/ld+json">{json_ld(manifest, origin, today)}</script>')
     head.append("</head>")
     body = ["<body>", '<a class="skip-link button" href="#main">Skip to content</a>', header(manifest, page, direction == "rtl"), '<main id="main">']
     for i, bl in enumerate(page["blocks"]):
@@ -653,6 +664,7 @@ def render_page(manifest, page, blocks, year, renderers=None):
             "bid": bid,
             "lang": lang,
             "rtl": direction == "rtl",
+            "today": today,
         }
         tone = bl.get("tone", contract["tone"]["default"])
         space = bl.get("space", contract.get("space"))
@@ -744,20 +756,29 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
         else:
             notes.append(f"{src}: missing beside the manifest; the page will show a broken image")
     if manifest.get("icon"):
-        here = os.path.join(manifest_dir, manifest["icon"])
+        # The schema already refuses ../ and a leading /; this guards a port of it too.
+        here = os.path.normpath(os.path.join(manifest_dir, manifest["icon"]))
+        dst = os.path.normpath(os.path.join(out, manifest["icon"]))
+        if not here.startswith(os.path.normpath(manifest_dir) + os.sep) or not dst.startswith(os.path.normpath(out) + os.sep):
+            return [f"icon {manifest['icon']!r} points outside the manifest's or the output's directory"], notes
         if os.path.isfile(here):
-            dst = os.path.join(out, manifest["icon"])
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             shutil.copyfile(here, dst)
         else:
             notes.append(f"icon {manifest['icon']}: missing beside the manifest")
-    year = (today or datetime.date.today().isoformat())[:4]
+    today = today or datetime.date.today().isoformat()
     base = base_path(manifest)
-    for page in manifest["pages"]:
-        d = os.path.join(out, page["path"].strip("/"))
+    built = {page["path"]: rebase(render_page(manifest, page, blocks, today, renderers), base) for page in manifest["pages"]}
+    # Whatever a contract or a block function forgot to declare, no page ships a
+    # script URL or a link to another site that reads like a path.
+    unsafe = [f"page {path}: {m.group(0)[:70]}" for path, h in built.items() for m in UNSAFE_URL.finditer(h)]
+    if unsafe:
+        return [f"an unsafe URL in the rendered HTML (javascript:, data:, vbscript:, file: or //host): {u}" for u in unsafe], notes
+    for path, page_html in built.items():
+        d = os.path.join(out, path.strip("/"))
         os.makedirs(d, exist_ok=True)
         with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
-            f.write(rebase(render_page(manifest, page, blocks, year, renderers), base))
+            f.write(page_html)
     if manifest.get("origin"):
         locs = [manifest["origin"] + base + p["path"].lstrip("/") for p in manifest["pages"] if not p.get("noindex")]
         with open(os.path.join(out, "sitemap.xml"), "w", encoding="utf-8") as f:
@@ -931,7 +952,7 @@ def self_test():
         row(
             "query=411+Fairhope+Ave+%23200" in b_hours_location(
                 {"heading": "Visit"},
-                {"manifest": {"business": {**example["business"], "address": {**example["business"]["address"], "street": "411 Fairhope Ave #200"}}}, "lang": "en", "hid": "h"},
+                {"manifest": {"business": {**example["business"], "address": {**example["business"]["address"], "street": "411 Fairhope Ave #200"}}}, "lang": "en", "hid": "h", "today": "2026-10-27"},
             ),
             "a maps link encodes its query: a suite number's # does not cut the city off",
         )
@@ -988,6 +1009,29 @@ def self_test():
         um["pages"][1]["blocks"].append({"type": "map-embed", "props": {"title": "Map"}})
         uprobs, _ = render(um, unknown, os.path.join(tmp, "unknown"), KIT, placeholders=True, today="2026-10-27")
         row(any("no render function" in x for x in uprobs), "must fail: a catalog block with no render function is named")
+
+        # Whatever a block function writes, a script URL never ships.
+        bad = dict(RENDER)
+        bad["page-header"] = lambda p, ctx: f'<div><h1 id={a(ctx["hid"])}>{e(p["title"])}</h1><a href="javascript:alert(1)">x</a></div>'
+        jout = os.path.join(tmp, "js")
+        jprobs, _ = render(example, blocks, jout, KIT, placeholders=True, today="2026-10-27", renderers=bad)
+        row(
+            any("unsafe URL" in x for x in jprobs) and not os.path.exists(os.path.join(jout, "index.html")),
+            "must fail: a block function that writes a javascript: link is refused, and nothing is written",
+        )
+        # Special days: a past one is gone; one in another year says which.
+        sd = copy.deepcopy(example)
+        sd["business"]["specialHours"] = [
+            {"date": "2026-01-01", "label": "New Year's Day", "closed": True},
+            {"date": "2027-01-01", "label": "New Year's Day", "closed": True},
+        ]
+        rows_ = special_rows(sd["business"], "en", "2026-10-27")
+        ld = json.loads(json_ld(sd, None, "2026-10-27"))
+        row(
+            rows_ == [("New Year's Day (Jan\u00a01,\u00a02027)", "Closed")] and len(ld.get("specialOpeningHoursSpecification", [])) == 1,
+            "a past special day is left out of the page and the JSON-LD; a later year's carries its year",
+            repr(rows_),
+        )
 
         # Served under a subpath, with a share image, an icon and a sitemap.
         sub = copy.deepcopy(example)
@@ -1105,6 +1149,16 @@ def main(argv):
             print(f"  ✗ catalog: {x}")
         print("block_site_render: the catalog fails its own check; fix it first")
         return 1
+    manifest = check.load_json(manifest_path)
+    # The manifest gate runs before a --blocks file is imported: that file is the
+    # project's own trusted Python and could change the checker once loaded.
+    schema = check.load_json(os.path.join(KIT, "site-manifest.schema.json"))
+    gate, _ = check.check_manifest(manifest, blocks, schema)
+    if gate:
+        for x in gate:
+            print(f"  ✗ {x}")
+        print(f"block_site_render: refused, {len(gate)} problem(s); nothing was written")
+        return 1
     renderers = dict(RENDER)
     if blocks_file:
         try:
@@ -1121,7 +1175,6 @@ def main(argv):
         print("  ! styles: the kit's own (no tokens.css, layout.css and blocks.css beside the catalog); pass --css DIR for your brand")
     else:
         print(f"  styles: {css}")
-    manifest = check.load_json(manifest_path)
     probs, notes = render(manifest, blocks, out, os.path.dirname(os.path.abspath(manifest_path)), css, placeholders, renderers=renderers)
     for n in notes:
         print(f"  ! {n}")

@@ -75,6 +75,15 @@
     scrollbar-gutter: stable;
     color-scheme: light dark;
   }
+  /* A theme chosen on the page (tokens.css's [data-theme]) sets the native
+     controls too: without this a date picker's icon follows the OS, and on a
+     page forced light under a dark OS it is white on a white field. */
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
   body {
     min-block-size: 100vh;
     min-block-size: 100svh; /* vh first, svh second: see adaptive-layout Step 3 */
@@ -478,6 +487,7 @@
     li,
     dd,
     dt,
+    address,
     figcaption,
     blockquote,
     td,
@@ -579,6 +589,17 @@
     nav,
     .button[data-variant="ghost"] {
       display: none !important;
+    }
+    /* Browsers drop background colours when printing, so a filled button would
+       print its white label on white paper: print it as a black outline. A photo
+       band loses its photo, so it loses its screen-height minimum too. */
+    .button {
+      background: none !important;
+      color: black !important;
+      border-color: black !important;
+    }
+    [data-tone="media"] {
+      min-block-size: auto !important;
     }
     a[href^="http"]::after {
       content: " (" attr(href) ")";

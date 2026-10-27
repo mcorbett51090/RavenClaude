@@ -44,7 +44,7 @@
     "icon": {
       "description": "The site's icon, a file beside the manifest: .svg, .png or .ico. Written as <link rel=icon>.",
       "type": "string",
-      "pattern": "^[A-Za-z0-9_./-]+[.](svg|png|ico)$",
+      "pattern": "^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*[.](svg|png|ico)$",
       "maxLength": 120
     },
     "tier": {

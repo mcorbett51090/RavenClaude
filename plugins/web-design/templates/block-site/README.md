@@ -183,7 +183,7 @@ The kit is tested, not just written:
   the HTML. It also requires each HTML check to fire on a broken copy. CI runs both.
 - `node <plugin>/scripts/device_matrix.mjs --self-test` needs Playwright, so it is run by hand. It renders the same
   pages and requires:
-  - the example clean at every quick viewport in five themes, plus a sweep;
+  - the example clean at every quick viewport in six themes, plus a sweep;
   - every stress page clean at every quick viewport, photo copy included.
 
   It plants every defect the probe knows and requires each to be reported. It checks look-alikes that must not be

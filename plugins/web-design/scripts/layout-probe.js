@@ -65,6 +65,9 @@
  *   focus-hidden    a focusable element with no visible focus indicator
  *   focus-clipped   its focus ring is cut off by a clipping ancestor
  *   focus-contrast  its focus ring is under 3:1 against what it is drawn on
+ *   invisible       text inside a block that takes its space but is drawn at
+ *                   opacity under 0.1, visibility: hidden or a transparent colour
+ *                   (a reveal-on-scroll whose script never ran)
  *   field-contrast  a form control's edge (border or fill) is under 3:1 against
  *                   what it sits on (SC 1.4.11)
  *   anchor-obscured an in-page link's target lands under a fixed or sticky bar
@@ -1036,6 +1039,49 @@ async function layoutProbe(options) {
         );
     }
     stats.checked["text-contrast"] = n;
+  });
+
+  // ── invisible: text a block lays out but nobody can see ──────────────────
+  // Opacity under 0.1, visibility: hidden or a transparent fill on text that
+  // still takes its space: a reveal-on-scroll whose script never ran, an
+  // entrance animation stuck at its start. Every other check would skip it as
+  // intentionally hidden, so a blank page would pass.
+  await run("invisible", () => {
+    let n = 0;
+    const seen = new Set();
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+      if (!t.nodeValue.trim()) continue;
+      const el = t.parentElement;
+      if (!el || seen.has(el)) continue;
+      seen.add(el);
+      if (!el.closest(opts.blockSelector)) continue;
+      if (el.closest("script,style,noscript,template,svg,[hidden],[inert],[aria-hidden='true']"))
+        continue;
+      if (el.closest("details:not([open]) > :not(summary)")) continue;
+      const s = cs(el);
+      if (s.display === "none" || s.visibility === "collapse") continue;
+      const r = el.getBoundingClientRect();
+      if (tiny(r) || r.width < 2 || r.height < 2) continue; // visually hidden on purpose
+      n++;
+      const fill = rgba(forced ? s.color : s.webkitTextFillColor || s.color);
+      const clipText = s.backgroundClip === "text" || s.webkitBackgroundClip === "text";
+      const why =
+        s.visibility === "hidden"
+          ? "visibility: hidden"
+          : opacity(el) < 0.1
+            ? `opacity ${opacity(el).toFixed(2)}`
+            : fill[3] < 0.02 && !clipText
+              ? "a transparent text colour"
+              : "";
+      if (why)
+        add(
+          "invisible",
+          el,
+          `"${el.textContent.trim().slice(0, 30)}" takes its space but is drawn with ${why}: a reveal that never ran, or content hidden by CSS`,
+        );
+    }
+    stats.checked.invisible = n;
   });
 
   // ── field-contrast: a form control's edge against what it sits on ────────

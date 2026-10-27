@@ -32,7 +32,7 @@ Then it is **measured**, never assumed:
 1. The contract checker.
 2. The rendered HTML, checked by the renderer.
 3. Stress fixtures generated from the props bounds, rendered.
-4. The device matrix: 28 viewports, ±1px around every breakpoint, an 8px sweep, and five themes on the six quick rows. Desktop rows run with
+4. The device matrix: 28 viewports, ±1px around every breakpoint, an 8px sweep, and six themes on the six quick rows (reduced motion in all but one). Desktop rows run with
    real scrollbars, and copy over photos is scored on composited pixels.
 5. Visual baselines.
 6. A look at element screenshots.
@@ -196,7 +196,7 @@ Props are closed and bounded, so a card list has a known maximum (six in the kit
 - **More contrast** (`prefers-contrast: more`): muted ink becomes full ink, and rules and field edges become `currentColor`. **[observed]** Written on a bare `:root`, it lost to the dark theme's `(0,2,0)` selectors and changed nothing in dark mode; the block now repeats those selectors after the dark blocks, and the device matrix runs `contrast` and `contrast-dark` themes.
 - **Reduced motion:** animations and transitions reduced to near zero (`0.01ms`, from a layered `!important`). **[observed]** That makes every style change a 0.01ms transition: a script that changes a style and reads it in the same tick reads the old value. The device matrix waits two frames.
 - **RTL:** logical properties throughout. Named grid lines mirror on their own, and every block's Arabic `dir=rtl` stress page passes `off-grid` because its slots span the same physical edges **[observed]**.
-- **Print:** bands lose their backgrounds and every colour role is re-pointed to black on white, so a muted line from a dark band does not print light grey (1.75:1) on paper. Photos and ghost buttons are hidden, and external links print their URL.
+- **Print:** bands lose their backgrounds and every colour role is re-pointed to black on white, so a muted line from a dark band does not print light grey (1.75:1) on paper. Photos and ghost buttons are hidden, a button prints as a black outline (paper drops its fill, which left a white label at 2.30:1), a photo band loses its screen-height minimum, and external links print their URL. The self-test checks the button and the band in print media; it does not render a printed page.
 
 ## 10. Proving it: the verification ladder
 
@@ -207,7 +207,7 @@ Props are closed and bounded, so a card list has a known maximum (six in the kit
 | 3. Manifest | `… manifest site.manifest.json --catalog <catalog>` | the single-h1 order, maxPerPage, adjacency, two dark bands, locked tones, missing required facts, props outside bounds, placeholders anywhere a reader sees text (titles, descriptions, chrome), assets, links and anchors, unsafe link schemes, a `tel:` link that does not dial the business's phone, a variant whose link breaks its label's promise (`call` must be `tel:`), a form that posts to an anchor, overlapping hours (overnight windows included), a date not in the calendar, small sources for the drawn box |
 | 4. Render | `python3 scripts/block_site_render.py render …` | refuses what step 3 refuses; then one h1 first, no skipped level, unique ids, labels and links resolve, alt and dimensions, escaped props, JSON-LD hours that match the rows |
 | 5. Extremes | `… fixtures <catalog> --out stress.manifest.json`, then render | every block at minimum, maximum, one unbreakable word at full length, and RTL, under the longest header and over a near-white photo |
-| 6. Device matrix | `node scripts/device_matrix.mjs --dir dist --manifest … --full --sweep 320:1600:8` | the probe at every viewport, ±1px around each `@media` width, an 8px sweep for container-query states, five themes, and photo contrast |
+| 6. Device matrix | `node scripts/device_matrix.mjs --dir dist --manifest … --full --sweep 320:1600:8` | the probe at every viewport, ±1px around each `@media` width, an 8px sweep for container-query states, six themes, every `<details>` open, the header measured, and photo contrast |
 | 7. Baselines | `… --shots baselines/` | visual regression. Diff against baselines made on the same OS and fonts, never across machines |
 | 8. Eyes | element screenshots at 390 and 1280px, both themes | what geometry cannot judge |
 | 9. Devices | a real iPhone and iPad, or the Xcode simulator | Safari's toolbar, safe areas, dynamic viewport |
@@ -227,13 +227,14 @@ Props are closed and bounded, so a card list has a known maximum (six in the kit
 | `heading-widow` | a heading's last line is one short word | `text-wrap: balance`, or shorten it if balance is already on |
 | `target-size` | under 24×24 with a neighbour, or another small target's circle, inside its 24px circle (SC 2.5.8) | `--target-min` |
 | `nav-wrap` | a row of nav links broken onto two lines, or the header's brand, nav and action on more than one row | collapse it into a menu below that width (the renderer's breakpoint is in rem, and counts wide glyphs as 1em) |
+| `invisible` | text inside a block that takes its space but is drawn at opacity under 0.1, `visibility: hidden` or a transparent colour | a reveal must show the content without its script (and under `prefers-reduced-motion`) |
 | `word-broken` | a figure (`$125,000`, `12:30`) or a word no hyphenation can split, broken across lines by `overflow-wrap: anywhere` | give its box room; keep a figure whole (`white-space: nowrap`) and stack its row before it would break |
 | `input-zoom` | form text under 16px | `max(16px, 1rem)` |
 | `orphan-row` | one narrow item alone on the last row | count-aware grid or switcher |
 | `frame-ratio` | a box with an author `aspect-ratio` drawn off it (stretched beside a taller column) | `align-self: start` in a row (the contract sets it for frames in switchers, sidebars and clusters) |
 | `image-distorted`, `image-upscaled`, `image-oversized`, `image-gap`, `image-no-size`, `image-broken`, `img-alt` | stretched; blurry or 3× too heavy for its box at 2x (judged on the decoded file the browser chose; a `srcset` image only when a smaller candidate would have covered the box at the screen's real density); not filling its frame; unsized; missing; unlabelled | frame, a candidate and `sizes` for the drawn box, width/height, alt |
 | `text-contrast` | text under 4.5:1 (3:1 large) on the flat background it is painted on | the tokens; a band re-points every role |
-| `photo-contrast` (device_matrix) | copy over a photo under its bar at the 5th-percentile pixel | the scrim (`--scrim-weak`) |
+| `photo-contrast` (device_matrix) | copy over a photo or a CSS gradient under its bar at the 5th-percentile pixel | the scrim (`--scrim-weak`), or a flat background |
 | `focus-hidden`, `focus-clipped`, `focus-contrast` | no visible focus indicator, one a clipping ancestor cuts off, or one under 3:1 against what it is drawn on | the contract's focus ring; put a linked photo's ring on its frame; `--focus` |
 | `field-contrast` | a form control whose edge (border or fill) is under 3:1 against what it sits on (SC 1.4.11) | `--field-border` |
 | `anchor-obscured`, `covered` | an in-page link's target, or the page's end, stays under a fixed or sticky bar | `scroll-margin-top`; pad the page's end by the bar's height |
@@ -288,6 +289,10 @@ Props are closed and bounded, so a card list has a known maximum (six in the kit
 27. **The header estimate could exceed the header.** A 29-character name with four links estimated 75.9rem; the header's line is at most 72rem, so the desktop nav never appeared at any width, while the measured need was 59.5rem **[observed]**. The estimate now uses character width classes (within about 10% on four measured sites), `chrome.menuBelow` pins a value, and the matrix measures the real need on its widest row, reports `nav-hidden`, and prints the value to pin.
 28. **A frame's `maxWidth` must be the widest it is ever drawn, at any item count.** A team grid of four people in `.cards` lays out two to a row, so a portrait is drawn at half the slot, not the third its contract assumed: 1.26× enlarged at 2x **[observed]**. And a photo wider in shape than its frame is cover-cropped, drawn wider than the frame, so `sizes` now scales by the ratio of the two shapes. That change then made a DPR-3 phone take a 2560w file for a 425px box, and `image-oversized` called it 3× too heavy; the browser was right, because the next candidate down (1280w) could not cover 1275 pixels. The check now judges a `srcset` image by the browser's own rule: oversized only when a smaller candidate would still have covered the box at the screen's real density.
 29. **Two lists of hours in two grids did not line up** (times at x=837 and x=969), and a `.prose.stack` spaced every child twice (63px above a story heading against 19px elsewhere) **[observed]**. The weekly and special hours are subgrids of one table, and prose flow margins stay out of a stack.
+30. **A blank page passed.** A reveal-on-scroll rule (`opacity: 0` until a script adds a class) with no script left /visit/ as a header, empty space and a footer, and the matrix reported zero findings in all five themes **[observed by the round-3 adversary]**: every check skipped text it could not see as intentionally hidden. `invisible` now reports text a block lays out but nobody can see, and a `motion` theme runs with motion on, where such reveals live.
+31. **Text over a CSS gradient was never scored.** The probe skipped any background image and photo-contrast collected only photos, so dark ink on a dark gradient card passed **[observed]**. Gradients are scored on pixels now.
+32. **Paths that were not.** An icon path could climb out of the output directory, `//host` passed as a site path for a link and a form action, a link-shaped prop left out of `linkProps` shipped `javascript:`, and `tel:555-0100` matched "(251) 555-0100" by its last seven digits **[observed]**. The schema refuses the paths, the renderer refuses any script or `//` URL before it writes a file, a contract's link-shaped string props must be declared, and a `tel:` link must match the business's number digit for digit or by its country's calling code.
+33. **Two facts went stale or wrong in plain sight.** A past holiday rendered as if it were coming ("Christmas Eve (Dec 24) Closed", with no year), and `+44 (0)20…` dialled the trunk 0 after the country code **[observed]**. Past special days are left out of the page and the JSON-LD, a later year's carries its year, and `(0)` after `+` is dropped from `tel:`.
 
 ## Sources
 

@@ -12,8 +12,9 @@
  *     --full                     every row of adaptive-layout's device table
  *     --sweep 320:1600:8         also every 8px from 320 to 1600 (catches the
  *                                in-between widths container queries produce)
- *     --themes light,dark,…      themes on the quick rows (default: all five: light,
- *                                dark, forced, contrast, contrast-dark)
+ *     --themes light,dark,…      themes on the quick rows (default: all six: light,
+ *                                dark, forced, contrast, contrast-dark, motion;
+ *                                every theme but motion runs with reduced motion)
  *     --no-photo                 skip the photo-contrast capture (faster)
  *     --shots DIR                a FULL-PAGE PNG per page × viewport × theme, for
  *                                visual-regression baselines. For the "look at it"
@@ -113,6 +114,10 @@ const THEMES = {
   forced: { colorScheme: "light", forcedColors: "active" },
   contrast: { colorScheme: "light", forcedColors: "none", contrast: "more" },
   "contrast-dark": { colorScheme: "dark", forcedColors: "none", contrast: "more" },
+  // Every other theme runs with reduced motion, so settling is deterministic. This
+  // one does not: a reveal-on-scroll or an entrance animation that never ends, or
+  // leaves content hidden, shows up here.
+  motion: { colorScheme: "light", forcedColors: "none", reducedMotion: "no-preference" },
 };
 
 // Installed before any page script: the probe reads it for layout-shift.
@@ -318,7 +323,6 @@ const OPEN_SKIP = [
   "overlap",
   "anchor-obscured",
   "covered",
-  "focus",
 ];
 async function detailsOpen(page, width) {
   const n = await page.evaluate(`(() => {
@@ -397,7 +401,9 @@ const PHOTO_FIND = `(async () => {
   const media = [];
   for (const m of document.body.querySelectorAll('*')) {
     const cs = getComputedStyle(m);
-    if (!/^(IMG|VIDEO|CANVAS)$/.test(m.tagName) && !/url\\(/.test(cs.backgroundImage)) continue;
+    // A photo, a canvas, or a background image or gradient: no one colour stands
+    // in for any of them, so text over them is scored on pixels.
+    if (!/^(IMG|VIDEO|CANVAS)$/.test(m.tagName) && !/url\\(|gradient\\(/.test(cs.backgroundImage)) continue;
     if (cs.display === 'none' || cs.visibility === 'hidden') continue;
     const r = m.getBoundingClientRect();
     if (r.width < 48 || r.height < 48) continue;
@@ -1206,6 +1212,14 @@ const MUTATIONS = [
     },
   },
   {
+    expect: "invisible",
+    vp: "laptop",
+    why: "a reveal-on-scroll whose script never ran (every block at opacity 0)",
+    html: {
+      head: `<style>main > [data-block]:not([data-block="hero-full"]) { opacity: 0; }</style>`,
+    },
+  },
+  {
     expect: "word-broken",
     vp: "laptop",
     why: "a figure in a box too narrow for it",
@@ -1384,6 +1398,14 @@ async function selfTest(chromium, launch) {
     writeFileSync(join(dir, `m${i}.html`), page({ ...m.html, cards: m.cards ?? 5 })),
   );
   CLEAN.forEach((m, i) => writeFileSync(join(dir, `c${i}.html`), page(m.html)));
+  writeFileSync(
+    join(dir, "gradient.html"),
+    page({
+      extra: sec(
+        `<div class="card" style="background: linear-gradient(#26262c, #34343c)"><p>Dark ink on a dark gradient</p></div>`,
+      ),
+    }),
+  );
   writeFileSync(
     join(dir, "graze.html"),
     page({
@@ -1602,6 +1624,51 @@ async function selfTest(chromium, launch) {
           f.some((x) => x.id === "photo-contrast"),
           `must fail: photo-contrast (${why}) @ ${v.id}`,
           `${st.photoTexts} lines scored, lowest ${st.minPhotoAt}`,
+        );
+        await ctx.close();
+      }
+      {
+        // Text over a CSS gradient has no one colour behind it: it is scored on
+        // pixels, like a photo.
+        const { v, ctx, pg } = await at("laptop", `${origin}/gradient.html`);
+        const st = { photoTexts: 0, photoUnscored: 0, minPhoto: Infinity, minPhotoAt: "" };
+        const f = await photoContrast(pg, v, st);
+        row(
+          f.some((x) => x.id === "photo-contrast" && /Dark ink/.test(x.msg)),
+          `must fail: photo-contrast (dark ink on a dark CSS gradient) @ ${v.id}`,
+          f.map((x) => x.msg).join(" | ") || `${st.photoTexts} lines scored`,
+        );
+        await ctx.close();
+      }
+      {
+        // Print: buttons print as a black outline (paper drops the fill), and a
+        // photo band loses its screen-height minimum.
+        const { ctx, pg } = await at("laptop", `${origin}/`);
+        await pg.emulateMedia({ media: "print" });
+        const [btn, minH] = await pg.evaluate(() => [
+          getComputedStyle(document.querySelector("main .button:not([data-variant])")).color,
+          getComputedStyle(document.querySelector('[data-tone="media"]')).minBlockSize,
+        ]);
+        row(
+          btn === "rgb(0, 0, 0)" && (minH === "auto" || minH === "0px"),
+          `print: a button prints black (${btn}) and a photo band has no minimum height (${minH})`,
+        );
+        await ctx.close();
+      }
+      {
+        // A theme set on the page sets the native controls' scheme too.
+        const { ctx, pg } = await at("laptop", `${origin}/`);
+        const schemes = await pg.evaluate(() => {
+          const out = [];
+          for (const t of ["dark", "light"]) {
+            document.documentElement.dataset.theme = t;
+            out.push(getComputedStyle(document.documentElement).colorScheme);
+          }
+          return out;
+        });
+        row(
+          schemes[0] === "dark" && schemes[1] === "light",
+          `color-scheme follows [data-theme] (${schemes.join(", ")})`,
         );
         await ctx.close();
       }

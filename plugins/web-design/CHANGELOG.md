@@ -25,7 +25,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - `example.manifest.json`: a three-page site that uses every exemplar. The kit's README carries the 15-block
     canonical catalog.
 - **`scripts/block_site_check.py`** (stdlib): `catalog`, `manifest`, `tokens` and `fixtures`, with a `--self-test`
-  of 92 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
+  of 102 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
   sizes for the box each is drawn in, and reads `oklch()` and other colour syntaxes. Every `tel:` link must dial the
   business's phone, a contract's `variantLinks` holds a variant to its label (`call` is a `tel:` link), and
   `endpointProps` must be a real form endpoint.
@@ -33,10 +33,10 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   and a `--self-test` that breaks each of them. CI runs it. It uses the stylesheets beside the project's catalog,
   loads the project's own block functions with `--blocks`, writes `sitemap.xml`, link previews and an icon, and serves
   under a `basePath`.
-- **`scripts/layout-probe.js`**: 33 rendered-page checks in a dependency-free async browser function, including
+- **`scripts/layout-probe.js`**: 34 rendered-page checks in a dependency-free async browser function, including
   figures split across lines and the contrast of field edges and focus rings.
 - **`scripts/device_matrix.mjs`**: runs the probe across 28 viewports, ±1px around every `@media` width, and an
-  optional sweep. Its quick rows run five themes with real desktop scrollbars, plus photo-contrast on composited
+  optional sweep. Its quick rows run six themes with real desktop scrollbars, plus photo-contrast on composited
   pixels (ported from the owner's factory).
   - `--self-test` renders the kit and requires the example and 40 stress pages clean.
   - It plants 48 defects, covering every check, and checks 8 look-alikes that must pass.
@@ -44,7 +44,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - It measures all 18 count × width cells of the card grid.
   - A layout shift counts only when it repeats in 5 of 5 loads (the measured reason is in the knowledge file §11).
 - **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
-  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 29 measured
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 33 measured
   pitfalls.
 - **Command:** `/web-design:new-block-site`, gated step by step.
 

@@ -303,6 +303,17 @@ def check_catalog(catalog, block_schema):
         for v in b.get("variantLinks") or {}:
             if v not in (b.get("variants") or []):
                 problems.append(f"{where}: variantLinks names {v!r}, which is not one of its variants")
+        declared = set(b.get("linkProps") or []) | set(b.get("endpointProps") or []) | set(b.get("assetProps") or [])
+        strings = {
+            path[len("props.") :]
+            for path, node in walk_props(props)
+            if isinstance(node, dict) and (node.get("type") == "string" or (node.get("type") == "array" and (node.get("items") or {}).get("type") == "string"))
+        }
+        for ref in sorted(strings & paths):
+            if LINKISH.search(ref.split(".")[-1].replace("[]", "")) and ref not in declared:
+                problems.append(
+                    f"{where}: prop {ref!r} reads like a link; list it in linkProps (or endpointProps, or assetProps), or nothing checks where it points"
+                )
         for key in ("assetProps", "linkProps", "endpointProps"):
             for ref in b.get(key) or []:
                 if ref not in paths:
@@ -330,8 +341,16 @@ DARK = {"inverse", "media"}
 SLOT_MAX_WIDTH = {"full": 1280, "wide": 1440, "content": 1152, "half-content": 576, "third-content": 384}
 DENSITY = 2  # sources are sized for 2x; above 2x the eye cannot tell, and apple.com caps there too
 PORTRAIT_MAX_WIDTH = 480  # the renderer serves a portrait crop at (max-width: 30em) and (orientation: portrait)
-ENDPOINT = re.compile(r"^(https://[^\s#]+|/[^\s#]*)\Z")
-SAFE_HREF = re.compile(r"^(/|#|https://|mailto:[^@\s]+@|tel:\+?[0-9][0-9 ()-]{3,})")
+# "/" but never "//": //host is a link to another site that reads like a path.
+ENDPOINT = re.compile(r"^(https://[^\s#]+|/(?!/)[^\s#]*)\Z")
+SAFE_HREF = re.compile(r"^(/(?!/)|#|https://|mailto:[^@\s]+@|tel:\+?[0-9][0-9 ()-]{3,})")
+# A prop whose name says it is a link must be declared as one, or nothing checks it.
+LINKISH = re.compile(r"(href|url|link|action|src)$", re.IGNORECASE)
+# Country calling codes for the countries a business is most likely in; another
+# country's tel: links must match its business.phone digit for digit.
+CALLING = {"US": "1", "CA": "1", "GB": "44", "IE": "353", "AU": "61", "NZ": "64", "DE": "49", "FR": "33", "ES": "34",
+           "IT": "39", "NL": "31", "BE": "32", "PT": "351", "CH": "41", "AT": "43", "SE": "46", "NO": "47", "DK": "45",
+           "FI": "358", "PL": "48", "MX": "52", "BR": "55", "AR": "54", "JP": "81", "IN": "91", "ZA": "27", "AE": "971"}
 DAY_ORDER = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 EXTENSION = re.compile(r"\s*(?:ext\.?|x)\s*([0-9]{1,6})\Z", re.IGNORECASE)
 # Primary language subtags written right to left; a script subtag (-Arab, -Latn…) wins.
@@ -343,16 +362,35 @@ def phone_parts(phone):
     digits only, so tel: dials exactly it; extension is its digits or ''."""
     m = EXTENSION.search(phone)
     ext, main = (m.group(1), phone[: m.start()]) if m else ("", phone)
+    if main.strip().startswith("+"):
+        main = main.replace("(0)", "")  # +44 (0)20…: the trunk 0 is not dialled after a country code
     digits = re.sub(r"[^0-9]", "", main)
     return ("+" if main.strip().startswith("+") else "") + digits, ext
 
 
-def same_number(tel_href, phone):
-    """True when a tel: link dials the business's number: the same digits, allowing
-    one side to carry the country code the other leaves out."""
-    a = re.sub(r"[^0-9]", "", re.split(r"[;,]", tel_href[4:], maxsplit=1)[0])
-    b = re.sub(r"[^0-9]", "", phone_parts(phone)[0])
-    return min(len(a), len(b)) >= 7 and (a.endswith(b) or b.endswith(a))
+def same_number(tel_href, phone, country=None):
+    """True when a tel: link dials the business's number: digit for digit, or the
+    same number with the country's calling code on one side and the national form
+    (its trunk 0 dropped) on the other. Without a known country, a calling code of
+    one to three digits is allowed only before a full national number (9+ digits)."""
+    a_raw = re.split(r"[;,]", tel_href[4:], maxsplit=1)[0].strip()
+    b_raw = phone_parts(phone)[0]
+    a, b = re.sub(r"[^0-9]", "", a_raw), re.sub(r"[^0-9]", "", b_raw)
+    if a == b:
+        return True
+    cc = CALLING.get((country or "").upper())
+
+    def intl(digits, plus):
+        if plus:
+            return digits
+        return cc + (digits[1:] if digits.startswith("0") else digits) if cc else None
+
+    ai, bi = intl(a, a_raw.startswith("+")), intl(b, b_raw.startswith("+"))
+    if ai and bi:
+        return ai == bi
+    long_, short = (a, b) if len(a) > len(b) else (b, a)
+    short = short[1:] if short.startswith("0") else short
+    return len(short) >= 9 and long_.endswith(short) and 1 <= len(long_) - len(short) <= 3
 
 
 def text_direction(lang, explicit=None):
@@ -483,7 +521,7 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
             # One source for the number: a typed copy goes stale when the business's changes.
             if not business.get("phone"):
                 problems.append(f"{at}: {where} calls {href}, but the business facts list no phone")
-            elif not same_number(href, business["phone"]):
+            elif not same_number(href, business["phone"], (business.get("address") or {}).get("countryCode")):
                 problems.append(f"{at}: {where} calls {href}, not the business's phone {business['phone']!r}")
             return
         if href.startswith("/") and not href.startswith("//"):
@@ -559,14 +597,16 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
                     problems.append(f"{at}: {spath} holds placeholder text {s[:40]!r}: an unknown fact goes in ownerTodos, never in a rendered field")
             for ap in b.get("assetProps") or []:
                 for key in _get(bl["props"], ap):
-                    if key not in assets:
+                    if not isinstance(key, str):
+                        problems.append(f"{at}: {ap} is {json.dumps(key)[:40]}, not an asset key")
+                    elif key not in assets:
                         problems.append(f"{at}: {ap} names asset {key!r}, which the manifest does not have")
             for m in b.get("media") or []:
                 num, den = (int(x) for x in m["ratio"].split(" / "))
                 box_w = m.get("maxWidth") or SLOT_MAX_WIDTH.get(m["slot"], 1152)
                 box_h = m.get("maxHeight") or box_w * den / num
                 for key in _get(bl["props"], m["prop"]):
-                    a = assets.get(key)
+                    a = assets.get(key) if isinstance(key, str) else None
                     if not a:
                         continue
                     (decorative_ok if m["slot"] == "full" else content_use).add(key)
@@ -955,7 +995,9 @@ def stress_business(today=None):
         "schemaType": "LocalBusiness",
         "phone": "+1 (251) 555-0100",
         "email": "reservations.and.private.events@example.com",
-        "address": {"street": _text(120, "max"), "city": _text(40, "max"), "region": "AL", "postalCode": "36532-0000", "countryCode": "US"},
+        # The city is one unbreakable word at the schema's 80-character bound (a real
+        # one, Llanfairpwllgwyngyll…, is 58), so every page's address is stressed.
+        "address": {"street": _text(120, "max"), "city": (LONG * 2)[:80], "region": "AL", "postalCode": "36532-0000", "countryCode": "US"},
         "hours": [{"days": [d], "opens": o, "closes": c} for d, (o, c) in zip(DAY_ORDER, times)],
         "specialHours": [
             {"date": later(20), "label": _text(40, "max"), "closed": True},
@@ -1151,6 +1193,12 @@ def self_test():
         catalog_case("a catalog file with no blocks list", lambda c: c.pop("blocks"), '"blocks" list')
         catalog_case("the same id twice", lambda c: c["blocks"].append(copy.deepcopy(c["blocks"][-1])), "appears more than once")
         catalog_case("schema shape (summary missing)", edit("cta-banner", lambda b: b.pop("summary")), "missing required 'summary'")
+        catalog_case(
+            "a link-shaped prop left out of linkProps (nothing would check its scheme)",
+            edit("page-header", lambda b: b["props"]["properties"].update(link={"type": "string", "maxLength": 200})),
+            "reads like a link",
+        )
+        catalog_case("a frame ratio with a zero in it", edit("story-split", lambda b: b["media"][0].update(ratio="0 / 0")), "does not match")
         catalog_case("open props object", edit("cta-banner", lambda b: b["props"]["properties"]["action"].pop("additionalProperties")), "open object")
         catalog_case("unbounded string", edit("cta-banner", lambda b: b["props"]["properties"]["heading"].pop("maxLength")), "unbounded string")
         catalog_case("unbounded list", edit("features-grid", lambda b: b["props"]["properties"]["items"].pop("maxItems")), "unbounded list")
@@ -1240,6 +1288,24 @@ def self_test():
 
         manifest_case("a form that posts to an in-page anchor", form_to_anchor, "a form posts to")
         manifest_case("placeholder text in a page title", lambda m: m["pages"][0].update(title="TODO home title"), "title holds placeholder")
+        manifest_case("an icon path that climbs out of the site (../)", lambda m: m.update(icon="../../outside.svg"), "does not match")
+        manifest_case("an absolute icon path", lambda m: m.update(icon="/etc/icon.svg"), "does not match")
+        manifest_case("a nav link to //host (another site that reads like a path)", lambda m: m["chrome"]["nav"][0].update(href="//evil.example/"), "a link is a path")
+        manifest_case("a form that posts to //host", lambda m: next(b for p in m["pages"] for b in p["blocks"] if b["type"] == "contact-form")["props"].update(action="//collector.example/x"), "a form posts to")
+        manifest_case("a seven-digit tel: link that matches only the end of the number", lambda m: m["chrome"]["action"].update(href="tel:555-0100"), "not the business's phone")
+        manifest_case("a tel: link with another country's code", lambda m: m["chrome"]["action"].update(href="tel:+4412515550100"), "not the business's phone")
+        manifest_case("an asset prop given a list instead of a key (no crash)", lambda m: B(m)[0]["props"].update(image=["dining-room"]), "not an asset key")
+        uk = copy.deepcopy(example)
+        uk["business"].update(phone="+44 (0)20 7946 0958")
+        uk["business"]["address"]["countryCode"] = "GB"
+        uk = json.loads(json.dumps(uk).replace('"tel:+12515550100"', '"tel:+442079460958"'))
+        uk["chrome"]["action"]["href"] = "tel:020 7946 0958"
+        ukp, _ = check_manifest(uk, blocks, mschema)
+        row(
+            not ukp and phone_parts("+44 (0)20 7946 0958")[0] == "+442079460958",
+            "positive: +44 (0)20… drops the trunk 0, and tel: +44 20… and 020… both dial it",
+            "; ".join(ukp[:2]),
+        )
         manifest_case("a share image with no origin (a preview needs an absolute URL)", lambda m: (m.pop("origin", None), m.update(shareImage="dining-room")), "needs origin")
         manifest_case("a share image that is not an asset", lambda m: m.update(origin="https://www.example.com", shareImage="nope"), "does not have")
         manifest_case("placeholder text in the chrome", lambda m: m["chrome"]["action"].update(label="XXX call"), "chrome.action.label holds placeholder")
