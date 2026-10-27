@@ -124,8 +124,8 @@ def clock(hhmm, lang, ui=None):
     h, m = (int(x) for x in hhmm.split(":"))
     if (ui.get("clock") or ("12" if lang.lower().startswith("en") else "24")) == "24":
         return f"{h:02d}:{m:02d}"
-    suffix = ui["am"] if h < 12 else ui["pm"]
-    return f"{(h % 12) or 12}:{m:02d}\u00a0{suffix}"  # 8:00 PM never breaks
+    suffix = (ui["am"] if h < 12 else ui["pm"]).replace(" ", "\u00a0")
+    return f"{(h % 12) or 12}:{m:02d}\u00a0{suffix}"  # 8:00 PM (and 8:00 p. m.) never breaks
 
 
 def hours_rows(business, lang, ui=None, kind="open"):
@@ -812,7 +812,7 @@ def header(manifest, page, rtl=False):
     if plang != manifest["lang"]:
         own = sorted((x["path"] for x in manifest["pages"] if x.get("lang") == plang), key=lambda q: (q.count("/"), q))
         home = own[0] if own else home
-    out += f'<a class="brand" href={a(home)}>{e(header_name(manifest))}</a>'
+    out += f'<a class="brand" href={a(home)}><bdi>{e(header_name(manifest))}</bdi></a>'
     action = ""
     # On a page in another language the chrome's labels are still the site's:
     # marked so, a screen reader reads them in their own language.
@@ -1326,7 +1326,7 @@ def image_size(path):
 
 def _tiff_orientation(t):
     """The Orientation tag (0x0112) of an EXIF/TIFF block, or None."""
-    if t[:6] == b"Exif\0\0":
+    if t[:5] == b"Exif\0":  # then \0 or \xff: browsers take both
         t = t[6:]
     order = {b"II": "little", b"MM": "big"}.get(t[:2])
     if not order or len(t) < 8:
@@ -1353,7 +1353,7 @@ def image_orientation(path):
             marker, n = data[i + 1], int.from_bytes(data[i + 2 : i + 4], "big")
             if marker == 0xDA:
                 return None
-            if marker == 0xE1 and data[i + 4 : i + 10] == b"Exif\0\0":
+            if marker == 0xE1 and data[i + 4 : i + 9] == b"Exif\0":
                 return _tiff_orientation(data[i + 4 : i + 2 + n])
             i += 2 + n
         return None
@@ -1877,9 +1877,11 @@ def self_test():
             sof = b"\xff\xc0" + (17).to_bytes(2, "big") + b"\x08" + h.to_bytes(2, "big") + w.to_bytes(2, "big") + b"\x03" + b"\x01\x11\x00\x02\x11\x00\x03\x11\x00"
             return b"\xff\xd8" + app1 + sof + b"\xff\xd9"
 
-        for name, turn, want in [("side.jpg", 6, "EXIF orientation (6) turns it"), ("upright.jpg", 1, None), ("bare.jpg", None, None)]:
+        for name, turn, want in [("side.jpg", 6, "EXIF orientation (6) turns it"), ("side-ff.jpg", 6, "EXIF orientation (6) turns it"), ("upright.jpg", 1, None), ("bare.jpg", None, None)]:
             with open(os.path.join(adir, "images", name), "wb") as f:
-                f.write(jpeg(1600, 1200, turn))
+                data = jpeg(1600, 1200, turn)
+                # Chromium also takes the EXIF header written "Exif\0\xff".
+                f.write(data.replace(b"Exif\0\0", b"Exif\0\xff") if name == "side-ff.jpg" else data)
             em = copy.deepcopy(example)
             em["assets"]["counter"].update(src="images/" + name, width=1600, height=1200)
             em["assets"]["counter"].pop("sources", None)
@@ -2079,6 +2081,7 @@ def self_test():
         ld_run = json.loads(json_ld({"business": {**example["business"], **rd}, "lang": "en-GB"}, None, "2026-10-27"))
         row(ld_run["specialOpeningHoursSpecification"][0]["validThrough"] == "2027-03-01", "a run of special days is one OpeningHoursSpecification, validFrom to validThrough")
         row(clock("14:30", "en-GB", {**UI, "clock": "24"}) == "14:30" and clock("14:30", "en", UI) == "2:30\u00a0PM", "strings.clock picks a 24-hour clock in English; English defaults to 12")
+        row(clock("14:30", "es", {**UI, "clock": "12", "pm": "p. m."}) == "2:30\u00a0p.\u00a0m.", "a 12-hour suffix with a space in it (p. m.) never breaks")
         # Facts written in the site's script are isolated on a right-to-left page.
         arm = copy.deepcopy(example)
         arm["business"]["address"]["street"] = "14 Tib Street"
@@ -2092,7 +2095,7 @@ def self_test():
         ah = open(os.path.join(aout2, "ar", "index.html"), encoding="utf-8").read() if not apr else ""
         eh = open(os.path.join(aout2, "index.html"), encoding="utf-8").read() if not apr else ""
         row(
-            "<bdi>14 Tib Street</bdi>" in ah and 'class="site-footer__note" dir="auto"' in ah
+            "<bdi>14 Tib Street</bdi>" in ah and 'class="site-footer__note" dir="auto"' in ah and 'class="brand" href="/ar/"><bdi>' in ah
             and 'lang="ar" hreflang="ar" dir="auto">العربية</a>' in eh
             and 'class="brand" href="/ar/"' in ah,
             "rtl: the address is isolated, the footer note sets its own direction, a link in another language is marked, and the brand leads home in the page's language",

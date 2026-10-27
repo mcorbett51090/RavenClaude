@@ -359,6 +359,10 @@ def check_catalog(catalog, block_schema):
             for k in list(rule.get("when") or {}) + list(rule.get("require") or []) + list(rule.get("allow") or []):
                 if f"{items}.{k}" not in paths:
                     problems.append(f"{where}: requireIf names {items}.{k}, which is not a prop")
+        for rng in b.get("ranges") or []:
+            for side in ("from", "to"):
+                if rng.get(side) not in paths:
+                    problems.append(f"{where}: ranges names {rng.get(side)!r}, which is not a prop")
         for ref in b.get("expires") or []:
             node = nodes.get(ref)
             if not isinstance(node, dict) or node.get("type") != "string" or not node.get("pattern"):
@@ -392,12 +396,13 @@ def check_catalog(catalog, block_schema):
 SLOT_WORDS = set(
     "name address street city phone email business company date title description insert enter your number zip "
     "postcode state price link url image photo logo tagline headline text here owner contact website hours "
-    "telephone mobile caption quote author year time amount".split()
+    "telephone mobile caption quote author year time amount line opening hero heading subheading tagline "
+    "service product team member location country region county province".split()
 )
 BRAND_MAX = 32  # the header's name: three lines beside the menu button at 320px
 SLOT_FILLER = {"the", "a", "an", "of", "s", "here", "our", "this", "full", "first", "last"}
 TODO_WORD = re.compile(r"\b(TODO|TBD|TBC|XXX|FIXME)\b")
-BRACKETED = re.compile(r"[\[<]([A-Z][A-Za-z .'/-]{1,40})[\]>]")
+BRACKETED = re.compile(r"[\[<]\s*([A-Za-z][A-Za-z0-9 .,'’/&-]{0,40}?)\s*[\]>]")
 
 
 class _Placeholder:
@@ -436,7 +441,16 @@ LINKISH = re.compile(r"(href|url|link|action|src)$", re.IGNORECASE)
 # country's tel: links must match its business.phone digit for digit.
 CALLING = {"US": "1", "CA": "1", "GB": "44", "IE": "353", "AU": "61", "NZ": "64", "DE": "49", "FR": "33", "ES": "34",
            "IT": "39", "NL": "31", "BE": "32", "PT": "351", "CH": "41", "AT": "43", "SE": "46", "NO": "47", "DK": "45",
-           "FI": "358", "PL": "48", "MX": "52", "BR": "55", "AR": "54", "JP": "81", "IN": "91", "ZA": "27", "AE": "971"}
+           "FI": "358", "PL": "48", "MX": "52", "BR": "55", "AR": "54", "JP": "81", "IN": "91", "ZA": "27", "AE": "971",
+           # A trunk 0 dropped after the code, or no trunk at all; a country with
+           # another trunk (Hungary's 06, Russia's 8) is left out on purpose.
+           "GR": "30", "CZ": "420", "SK": "421", "RO": "40", "BG": "359", "HR": "385", "SI": "386", "LU": "352",
+           "IS": "354", "MT": "356", "CY": "357", "TR": "90", "IL": "972", "SG": "65", "HK": "852", "KR": "82",
+           "CN": "86", "TW": "886", "PH": "63", "MY": "60", "TH": "66", "ID": "62", "VN": "84", "EG": "20",
+           "NG": "234", "KE": "254", "MA": "212", "SA": "966", "QA": "974", "PK": "92"}
+# Digits in other scripts, read as ASCII: Arabic-Indic, Eastern Arabic-Indic,
+# Devanagari and full-width (a Japanese site writes ０７５).
+DIGITS = {base + i: str(i) for base in (0x660, 0x6F0, 0x966, 0xFF10) for i in range(10)}
 DAY_ORDER = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 EXTENSION = re.compile(r"\s*(?:ext\.?|x)\s*([0-9]{1,6})\Z", re.IGNORECASE)
 # Primary language subtags written right to left; a script subtag (-Arab, -Latn…) wins.
@@ -623,10 +637,17 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
     for i, sp in enumerate(business.get("specialHours") or []):
         if (sp.get("until") or sp["date"]) < today:
             warnings.append(f"business.specialHours[{i}]: {sp.get('until') or sp['date']} ({sp['label']}) has passed; remove it")
-    # A call button that shows a number must dial that number.
+    # A call button that shows a number must dial that number: read in any digits,
+    # with any space between the groups (French writes no-break spaces).
     country = (business.get("address") or {}).get("countryCode")
+    if business.get("phone") and not business["phone"].strip().startswith("+") and (country or "").upper() not in CALLING:
+        warnings.append(
+            f"business.phone {business['phone']!r}: no calling code is known for {country!r}, so tel: links dial it as written, "
+            "which fails from another country; write it with its +code"
+        )
     for spath, node in _link_nodes(manifest):
-        run = re.search(r"\+?\(?[0-9][0-9 ().-]{5,}[0-9]", str(node.get("label", "")))
+        label = re.sub(r"[\u00a0\u202f\u2007\u2009]", " ", str(node.get("label", ""))).translate(DIGITS)
+        run = re.search(r"\+?\(?[0-9][0-9 ().-]{5,}[0-9]", label)
         if run and str(node.get("href", "")).startswith("tel:") and len(re.sub(r"\D", "", run.group(0))) >= 7:
             if not business.get("phone") or not same_number("tel:" + run.group(0), business["phone"], country):
                 problems.append(f"{spath}: its label shows {run.group(0)!r}, but it dials {node['href']}; show the number it calls")
@@ -836,6 +857,19 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
                         for need in rule["require"] + (rule.get("allow") or []):
                             if need in item:
                                 problems.append(f"{at}: {head}[{j}] has {need}, which only an item with {kind} takes")
+            for rng in b.get("ranges") or []:
+                head, _, fk = rng["from"].rpartition(".")
+                tk = rng["to"].rpartition(".")[2]
+                for j, item in enumerate(_get(bl["props"], head) if head else [bl["props"]]):
+                    if not isinstance(item, dict) or tk not in item:
+                        continue
+                    if fk not in item:
+                        problems.append(f"{at}: {head.removesuffix('[]')}[{j}] has {tk} but no {fk}")
+                    elif str(item[tk]) <= str(item[fk]):
+                        problems.append(
+                            f"{at}: {head.removesuffix('[]')}[{j}]: {tk} {item[tk]} is not after {fk} {item[fk]} "
+                            "(an end past midnight is the next day: leave it out, or say so in the text)"
+                        )
             for ref in b.get("expires") or []:
                 dates = [d for d in _get(bl["props"], ref) if isinstance(d, str)]
                 past = sorted(d for d in dates if d < today)
@@ -1712,6 +1746,18 @@ def self_test():
             lambda m: [bl["props"]["fields"][0].update(max=50) for pg in m["pages"] for bl in pg["blocks"] if bl["type"] == "contact-form"],
             "which only an item with kind 'party-size' takes",
         )
+        manifest_case(
+            "an event that ends before it starts (past midnight)",
+            lambda m: m["pages"][1]["blocks"].append({"type": "events-list", "props": {"heading": "Coming up", "events": [{"date": "2099-12-04", "starts": "22:00", "ends": "01:30", "title": "Late jazz set"}]}}),
+            "is not after starts",
+        )
+        manifest_case(
+            "an event with an end and no start",
+            lambda m: m["pages"][1]["blocks"].append({"type": "events-list", "props": {"heading": "Coming up", "events": [{"date": "2099-12-04", "ends": "21:00", "title": "Pie social"}]}}),
+            "has ends but no starts",
+        )
+        manifest_case("a call label with no-break spaces showing another number", lambda m: m["chrome"].update(action={"label": "Call (251)\u00a0555\u00a00199", "href": "tel:+12515550100"}), "its label shows")
+        manifest_case("a call label in Arabic-Indic digits showing another number", lambda m: m["chrome"].update(action={"label": "اتصل ٢٥١٥٥٥٠١٩٩", "href": "tel:+12515550100"}), "its label shows")
         manifest_case("a call button whose label shows another number than it dials", lambda m: m["chrome"].update(action={"label": "Call 0161 496 0999", "href": "tel:+12515550100"}), "its label shows")
         manifest_case(
             "an hreflang pair that points only one way",
@@ -1801,6 +1847,10 @@ def self_test():
         gf["pages"][3]["blocks"][1]["props"]["items"][0]["detail"] = "[Market Price]"
         mpp, _ = check_manifest(gf, blocks, mschema)
         row(not mpp, "positive: [Market Price] on a menu is copy, not a template slot (market is not a slot word)", "; ".join(mpp[:2]))
+        row(
+            all(PLACEHOLDER_CASED.search(x) for x in ("[business name]", "[City, State]", "[Address line 1]", "Call us at [phone number]", "[Opening hours]", "[Insert hero headline]", "[Owner\u2019s name]", "[ Business Name ]")),
+            "placeholder: a template's slot in lower case, with a comma, a digit, a curly apostrophe or inner spaces",
+        )
         row(
             all(PLACEHOLDER_CASED.search(x) for x in ("[Your Name]", "[Insert phone number here]", "<Street address>", "[Owner's Name]"))
             and not any(PLACEHOLDER_CASED.search(x) for x in ("[Call for price]", "[Add your choice]", "[They]", "[The]")),

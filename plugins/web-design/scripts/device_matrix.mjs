@@ -400,16 +400,9 @@ const NAV_FIT = `(async () => {
 // What a closed <details> hides (a site menu, an FAQ answer) is laid out only
 // when it opens, so the probe runs again with every one open, and reports only
 // what is inside an opened <details> (plus page-level findings, such as the
-// page scrolling sideways). Checks that read what is UNDER an open menu
+// page scrolling sideways), images in an FAQ answer included. Checks that read what is UNDER an open menu
 // (overlap, anchors, fixed bars) are skipped: a dropdown covers the page by design.
-const OPEN_SKIP = [
-  "layout-shift",
-  "font-failed",
-  "images",
-  "overlap",
-  "anchor-obscured",
-  "covered",
-];
+const OPEN_SKIP = ["layout-shift", "font-failed", "overlap", "anchor-obscured", "covered"];
 async function detailsOpen(page, width) {
   const n = await page.evaluate(`(() => {
     const shut = [...document.querySelectorAll("details:not([open])")];
@@ -466,8 +459,9 @@ const PHOTO_FIND = `(async () => {
     new Promise((r) => setTimeout(r, 4000)),
   ]);
   const SX = scrollX, SY = scrollY;
+  // Drawn is drawn: aria-hidden and inert change what a screen reader or a
+  // pointer gets, not what a reader sees.
   const vis = (el) => {
-    if (el.closest('[aria-hidden="true"],[hidden],[inert]')) return false;
     if (el.closest('details:not([open]) > :not(summary)')) return false;
     const cs = getComputedStyle(el);
     if (cs.display === 'none' || cs.visibility === 'hidden' || cs.visibility === 'collapse') return false;
@@ -657,8 +651,9 @@ const INK_FIND = `(async () => {
     new Promise((r) => setTimeout(r, 4000)),
   ]);
   const SX = scrollX, SY = scrollY;
+  // Drawn is drawn: aria-hidden and inert change what a screen reader or a
+  // pointer gets, not what a reader sees.
   const vis = (el) => {
-    if (el.closest('[aria-hidden="true"],[hidden],[inert]')) return false;
     if (el.closest('details:not([open]) > :not(summary)')) return false;
     const cs = getComputedStyle(el);
     if (cs.display === 'none' || cs.visibility === 'hidden' || cs.visibility === 'collapse') return false;
@@ -714,7 +709,9 @@ const INK_FIND = `(async () => {
           els.set(el, meta.length);
           const size = parseFloat(cs.fontSize), weight = Number(cs.fontWeight) || 400;
           meta.push({ where: path(el), text: el.textContent.trim().replace(/\\s+/g, ' ').slice(0, 40),
-            fill: rgbaOf(cs.webkitTextFillColor || cs.color), large: size >= 24 || (size >= 18.66 && weight >= 700), clip });
+            fill: rgbaOf(cs.webkitTextFillColor || cs.color), large: size >= 24 || (size >= 18.66 && weight >= 700), clip,
+            // Hidden from assistive technology too: if it is also covered, nobody perceives it.
+            deco: !!el.closest('[aria-hidden="true"]') });
           el.setAttribute('data-dm-ink', '');
           if (clip) el.setAttribute('data-dm-ink-clip', '');
         }
@@ -769,6 +766,14 @@ async function textInk(page, stats) {
   const found = await page.evaluate(INK_FIND);
   const { words, meta, W, H } = found;
   if (!words.length) return [];
+  // A phone page wider than its screen is zoomed out (the probe reports the
+  // overflow): its captures are not the viewport, so its words cannot be placed.
+  const vp = page.viewportSize();
+  if (vp && Math.abs(W - vp.width) > 1) {
+    stats.inkZoomed = (stats.inkZoomed || 0) + 1;
+    await page.evaluate(INK_UNHIDE);
+    return [];
+  }
   const scratch = await page.context().newPage();
   const seen = new Uint8Array(words.length);
   const scored = new Uint8Array(words.length);
@@ -961,11 +966,13 @@ async function textInk(page, stats) {
       .join(" ")}"`,
   }));
   return faintFindings.concat(
-    [...byEl].map(([e, ws]) => ({
-      id: "text-hidden",
-      where: meta[e].where,
-      msg: `${ws.length} word(s) of "${meta[e].text}" are never drawn where a reader can see them, wherever the page is scrolled: "${ws.slice(0, 6).join(" ")}"${ws.length > 6 ? " …" : ""} (covered by an element or a ::before/::after layer, masked, or faded out)`,
-    })),
+    [...byEl]
+      .filter(([e]) => !meta[e].deco)
+      .map(([e, ws]) => ({
+        id: "text-hidden",
+        where: meta[e].where,
+        msg: `${ws.length} word(s) of "${meta[e].text}" are never drawn where a reader can see them, wherever the page is scrolled: "${ws.slice(0, 6).join(" ")}"${ws.length > 6 ? " …" : ""} (covered by an element or a ::before/::after layer, masked, or faded out)`,
+      })),
   );
 }
 
@@ -1300,7 +1307,7 @@ async function runMatrix({
       );
     if (inkStats.inkWords || inkStats.inkUnscored)
       notes.add(
-        `text-hidden: ${inkStats.inkWords} word placement(s) checked for ink, ${inkStats.faintWords} on a flat background measured for text-faint${inkStats.inkUnscored ? `; ${inkStats.inkUnscored} not checked (wider or taller than the viewport, or off it)` : ""}`,
+        `text-hidden: ${inkStats.inkWords} word placement(s) checked for ink, ${inkStats.faintWords} on a flat background measured for text-faint${inkStats.inkUnscored ? `; ${inkStats.inkUnscored} not checked (wider or taller than the viewport, or off it)` : ""}${inkStats.inkZoomed ? `; ${inkStats.inkZoomed} page state(s) not captured, zoomed out by content wider than the screen (see the overflow findings)` : ""}`,
       );
     if (print)
       notes.add(
@@ -1642,6 +1649,35 @@ const MUTATIONS = [
     html: {
       extra: sec(
         `<img src="/story.png" width="1200" height="900" style="inline-size: 600px; block-size: 200px" alt="Squashed">`,
+      ),
+    },
+  },
+  {
+    expect: "text-contrast",
+    vp: "laptop",
+    why: "faint text marked aria-hidden: drawn, so measured",
+    html: {
+      extra: sec(`<p aria-hidden="true" style="color: #b8b8b8">A tagline the eye still reads</p>`),
+    },
+  },
+  {
+    expect: "image-upscaled",
+    vp: "iphone",
+    details: true,
+    why: "a blurry photo in an FAQ answer",
+    html: {
+      extra: sec(
+        `<details><summary>What does the room look like?</summary><div class="frame" style="--ratio: 1"><img src="/small.png" width="64" height="64" alt="A tiny source drawn large"></div></details>`,
+      ),
+    },
+  },
+  {
+    expect: "image-oversized",
+    vp: "laptop",
+    why: "an image cannot excuse its own file: object-fit: contain draws it narrower than its box",
+    html: {
+      extra: sec(
+        `<img src="/huge.png" width="2560" height="1440" style="inline-size: 500px; block-size: 100px; object-fit: contain" alt="A huge file, contained">`,
       ),
     },
   },
@@ -2087,6 +2123,13 @@ async function selfTest(chromium, launch) {
     },
   ];
   INK_CASES.forEach((m, i) => writeFileSync(join(dir, `ink${i}.html`), page(m.html)));
+  // A phone page wider than its screen: zoomed out, so its captures cannot be placed.
+  writeFileSync(
+    join(dir, "ink-wide.html"),
+    page({
+      extra: sec(`<div style="inline-size: 400px">A box wider than the phone it is drawn on</div>`),
+    }),
+  );
   // Look-alikes: all seen, so none may be reported.
   writeFileSync(
     join(dir, "ink-ok.html"),
@@ -2097,6 +2140,7 @@ async function selfTest(chromium, launch) {
         `<div class="stack"><h2 style="background: linear-gradient(90deg, #7c2d12, #1e3a8a); -webkit-background-clip: text; background-clip: text; color: transparent">A heading drawn in its gradient</h2>` +
           `<p>Cheers 🍺🍻 from the taproom</p><p><span class="visually-hidden">Read only by a screen reader</span>Seen by everyone</p>` +
           `<div class="card" style="position: relative"><p>Under a light veil that still shows the words</p><span aria-hidden="true" style="position: absolute; inset: 0; background: rgb(255 255 255 / 0.1)"></span></div>` +
+          `<p style="position: relative"><span aria-hidden="true">Decorative echo under a panel</span><span style="position: absolute; inset: 0; background: var(--canvas)"></span></p>` +
           `<p>${PROSE} ${PROSE} ${PROSE}</p></div>`,
       ),
     }),
@@ -2375,6 +2419,23 @@ async function selfTest(chromium, launch) {
           !f.length && st.inkWords > 50,
           `must pass: text-hidden and text-faint look-alikes (a sticky header, a skip link, a gradient-clipped heading, emoji, a visually-hidden span, a 10% veil, small muted text) @ ${vp}`,
           f.map((x) => `${x.where}: ${x.msg}`).join(" | ") || `only ${st.inkWords} words checked`,
+        );
+        await ctx.close();
+      }
+      {
+        const { ctx, pg } = await at("reflow-320", `${origin}/ink-wide.html`);
+        const st = { inkWords: 0, inkUnscored: 0, faintWords: 0 };
+        let f,
+          err = "";
+        try {
+          f = await textInk(pg, st);
+        } catch (e) {
+          err = String(e.message || e);
+        }
+        row(
+          !err && f && !f.length && st.inkZoomed === 1,
+          "a phone page wider than its screen is noted and skipped by the ink capture, not a run that stops (the probe reports the overflow)",
+          err || `inkZoomed ${st.inkZoomed}, ${f ? f.length : 0} finding(s)`,
         );
         await ctx.close();
       }
@@ -2659,7 +2720,7 @@ async function main(argv) {
     urls.push(...pages.map((p) => s.origin + (p.startsWith("/") ? p : `/${p}`)));
   }
   for (const base of args.urls) {
-    if (args.pages) urls.push(...pages.map((p) => new URL(p, base).href));
+    if (args.pages || fromManifests.length) urls.push(...pages.map((p) => new URL(p, base).href));
     else urls.push(base);
   }
   if (!urls.length) {

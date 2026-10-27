@@ -703,7 +703,13 @@
       "truth": [
         "Only events the business has confirmed, on their real dates. A past event is left off the page, and the checker asks for it to be removed."
       ],
-      "linkProps": ["events[].href"]
+      "linkProps": ["events[].href"],
+      "ranges": [
+        {
+          "from": "events[].starts",
+          "to": "events[].ends"
+        }
+      ]
     },
     {
       "id": "hours-location",

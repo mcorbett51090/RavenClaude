@@ -143,8 +143,9 @@ async function layoutProbe(options) {
     return parts.join(" > ");
   }
   const cs = (el) => getComputedStyle(el);
+  // Drawn is drawn: aria-hidden and inert change what a screen reader or a
+  // pointer gets, never what a reader sees, so every visual check measures them.
   function visible(el) {
-    if (el.closest("[hidden],[inert],[aria-hidden='true']")) return false;
     const s = cs(el);
     if (s.display === "none" || s.visibility === "hidden" || s.visibility === "collapse")
       return false;
@@ -865,14 +866,26 @@ async function layoutProbe(options) {
         }
       }),
     );
-    // The widest box each file is drawn in on this page. A browser may show an
-    // already-loaded bigger candidate rather than fetch a smaller one (Chromium
-    // does, from its memory cache): no extra bytes, so not oversized.
+    // The width each image draws its file at (object-fit applied). A browser may
+    // show an already-loaded bigger candidate rather than fetch a smaller one
+    // (Chromium does, from its memory cache): no extra bytes, so a file ANOTHER
+    // image on the page draws at a size that needs it is not oversized.
+    const drawnWidth = (im) => {
+      const r = im.getBoundingClientRect();
+      const fit = cs(im).objectFit;
+      const ar = im.naturalWidth / im.naturalHeight;
+      if (!ar || !r.height) return r.width;
+      if (fit === "cover") return Math.max(r.width, r.height * ar);
+      if (fit === "contain" || fit === "scale-down") return Math.min(r.width, r.height * ar);
+      if (fit === "none") return im.naturalWidth;
+      return r.width;
+    };
     const drawnBy = new Map();
     for (const im of document.images) {
       if (!im.complete || !im.naturalWidth || !visible(im)) continue;
       const k = im.currentSrc || im.src;
-      drawnBy.set(k, Math.max(drawnBy.get(k) || 0, im.getBoundingClientRect().width));
+      if (!drawnBy.has(k)) drawnBy.set(k, []);
+      drawnBy.get(k).push([im, drawnWidth(im)]);
     }
     let n = 0;
     for (const img of document.images) {
@@ -1004,7 +1017,9 @@ async function layoutProbe(options) {
         const covering = cands.filter((w) => w >= needW * 0.98);
         const fair =
           cands.length && fw <= (covering.length ? Math.min(...covering) : Math.max(...cands));
-        const shared = (drawnBy.get(src) || 0) * DENSITY * opts.oversize >= fw;
+        const shared = (drawnBy.get(src) || []).some(
+          ([o, w]) => o !== img && w * DENSITY * opts.oversize >= fw,
+        );
         if (!fair && !shared && fw >= 1000 && scale > 0 && 1 / scale > opts.oversize) {
           add(
             "image-oversized",

@@ -595,6 +595,12 @@
     }
   }
   @media print {
+    /* A closed <details> prints its answer: paper cannot be clicked open. Its
+       own rule, so a browser without ::details-content drops only this one
+       (Chromium 153 prints it, measured in a PDF). */
+    details::details-content {
+      content-visibility: visible;
+    }
     /* Every tone prints as black on white: the roles are re-pointed, so a muted
        line on a dark band does not print light grey on white paper. */
     :root,

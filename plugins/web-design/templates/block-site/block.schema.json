@@ -312,6 +312,23 @@
           }
         }
       }
+    },
+    "ranges": {
+      "description": "Pairs of props where the second is an end that needs the first and comes after it: an event's starts and ends (HH:MM, compared as written).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "$defs": {

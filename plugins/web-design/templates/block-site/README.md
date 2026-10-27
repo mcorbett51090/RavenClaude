@@ -101,7 +101,8 @@ Every step ends at a gate that must pass before the next one starts.
        the checks and keeps its path.
    - **Gate:** `block_site_check.py manifest site/site.manifest.json --catalog site/catalog.json`. Read its warnings
      too: they include any photo too small, at 2x, for the box it is drawn in, and a non-English page without
-     strings. Every `tel:` link the renderer writes carries the country's calling code (from the address), so it
+     strings. Every `tel:` link the renderer writes carries the country's calling code (from the address, for
+     the countries the checker lists; elsewhere write the phone with its +code, and the checker says so), so it
      dials from any network.
 6. **Render** with `block_site_render.py render site/site.manifest.json --catalog site/catalog.json --blocks
    site/blocks.py --out dist` (the flags go in any order; to look at a `basePath` site, serve it under its path:

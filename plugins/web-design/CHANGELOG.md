@@ -27,7 +27,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - `tokens.css` declares `color-scheme`, which names the default theme: `light dark`, a dark-first `dark light`, or
     one theme only. The tokens gate checks the themes it names.
 - **`scripts/block_site_check.py`** (stdlib): `catalog`, `manifest`, `tokens` and `fixtures`, with a `--self-test`
-  of 148 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
+  of 153 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
   sizes for the box each is drawn in, and reads `oklch()` and other colour syntaxes. Every `tel:` link must dial the
   business's phone, a contract's `variantLinks` holds a variant to its label (`call` is a `tel:` link), and
   `endpointProps` must be a real form endpoint. A link, endpoint or asset path with a backslash or a control
@@ -36,7 +36,9 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   `choice` field needs its `options`). Every `YYYY-MM-DD` value must be a real date. Stress fixtures cycle every enum
   value. The tokens gate reads the default theme only from top-level or `@layer` `:root` blocks, and refuses a theme
   block left for a scheme the site does not have. A special day can be a run (`until`) with a label per language
-  (`labels`); hreflang pairs must point both ways; a call button's label must show the number it dials.
+  (`labels`); hreflang pairs must point both ways; a call button's label must show the number it dials, in any
+  digits and spacing; a contract's `ranges` ties an end (an event's `ends`) to its start; and a phone in a country
+  with no known calling code is warned about.
 - **`scripts/block_site_render.py`** (stdlib): the reference renderer, from manifest to static HTML, with HTML checks
   and a `--self-test` that breaks each of them. CI runs it. It uses the stylesheets beside the project's catalog,
   loads the project's own block functions with `--blocks`, writes `sitemap.xml`, link previews and an icon, and serves
@@ -63,14 +65,17 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   paper. The ink capture runs at the device's pixel ratio, and `text-faint` finds text a translucent layer fades.
   The probe's `fold` reports an h1 that ends below the first screen. `--block-shots DIR` writes a PNG per block at
   390 and 1280px in light and dark. With `--manifest`, `--pages` picks pages from it; the motion theme runs in the
-  site's default scheme; and `image-oversized` passes a file another image on the page already needs.
+  site's default scheme; `image-oversized` passes a file another image on the page already draws at a size that
+  needs it; `aria-hidden` and `inert` content is measured like anything else drawn; images inside an opened
+  `<details>` are checked; and a phone page zoomed out by overflow is noted, not a run that stops. Closed
+  `<details>` print their answers.
   - `--self-test` renders the kit and requires the example and 40 stress pages clean.
   - It plants 62 defects, covering every check, and checks 13 look-alikes that must pass (110 rows).
   - Every state is probed a second time with each `<details>` open (the menu, FAQ answers).
   - It measures all 18 count × width cells of the card grid.
   - A layout shift counts only when it repeats in 5 of 5 loads (the measured reason is in the knowledge file §11).
 - **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
-  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 72 measured
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 77 measured
   pitfalls.
 - **Command:** `/web-design:new-block-site`, gated step by step.
 
