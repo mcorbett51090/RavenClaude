@@ -629,6 +629,19 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
             mx = (blocks.get(t, {}).get("placement") or {}).get("maxPerPage")
             if mx and n > mx:
                 problems.append(f"{where}: {n} × {t}, more than its maxPerPage {mx}")
+    for at, key in [("shareImage", manifest.get("shareImage"))] + [
+        (f"page {p['path']}: shareImage", p.get("shareImage")) for p in manifest["pages"]
+    ]:
+        if not key:
+            continue
+        if key not in assets:
+            problems.append(f"{at} names asset {key!r}, which the manifest does not have")
+            continue
+        content_use.add(key)
+        if not manifest.get("origin"):
+            problems.append(f"{at} needs origin: a link preview reads an absolute image URL")
+        elif assets[key]["width"] < 1200:
+            warnings.append(f"{at}: asset {key!r} is {assets[key]['width']}px wide; link previews ask for 1200px")
     for key in sorted(content_use):
         if assets[key]["alt"] == "":
             problems.append(f"asset {key!r} has empty alt but is shown as content; write the alt while looking at the image (\"\" is only for a decorative backdrop)")
@@ -1225,6 +1238,8 @@ def self_test():
 
         manifest_case("a form that posts to an in-page anchor", form_to_anchor, "a form posts to")
         manifest_case("placeholder text in a page title", lambda m: m["pages"][0].update(title="TODO home title"), "title holds placeholder")
+        manifest_case("a share image with no origin (a preview needs an absolute URL)", lambda m: (m.pop("origin", None), m.update(shareImage="dining-room")), "needs origin")
+        manifest_case("a share image that is not an asset", lambda m: m.update(origin="https://www.example.com", shareImage="nope"), "does not have")
         manifest_case("placeholder text in the chrome", lambda m: m["chrome"]["action"].update(label="XXX call"), "chrome.action.label holds placeholder")
         ok_ext, _ = check_manifest({**copy.deepcopy(example), "business": {**example["business"], "phone": "(251) 555-0100 ext. 12"}}, blocks, mschema)
         row(not ok_ext, "positive: a phone with an extension is a valid fact, and the tel: links still match it", "; ".join(ok_ext[:2]))

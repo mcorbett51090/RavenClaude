@@ -12,16 +12,25 @@
  *     --full                     every row of adaptive-layout's device table
  *     --sweep 320:1600:8         also every 8px from 320 to 1600 (catches the
  *                                in-between widths container queries produce)
- *     --themes light,dark,forced themes on the quick rows (default: all three)
- *     --shots DIR                full-page PNG per page × viewport × theme, for
- *                                visual-regression baselines
+ *     --themes light,dark,…      themes on the quick rows (default: all five: light,
+ *                                dark, forced, contrast, contrast-dark)
+ *     --no-photo                 skip the photo-contrast capture (faster)
+ *     --shots DIR                a FULL-PAGE PNG per page × viewport × theme, for
+ *                                visual-regression baselines. For the "look at it"
+ *                                step, screenshot elements instead (Playwright's
+ *                                locator.screenshot()): a full page shrinks detail.
  *     --json FILE                write every finding as JSON
  *     --chrome PATH              a Chromium binary (else CHROME_BIN, else Playwright's)
  *   node device_matrix.mjs --self-test
- *     plants each defect the probe knows in a synthetic page built on
- *     templates/block-site/tokens.css + layout.css, requires each to be reported, and requires
- *     the clean control page to report nothing at every quick viewport in every
- *     theme. A probe that has never failed proves nothing.
+ *     renders the kit's example site and its stress fixtures and requires both
+ *     clean, plants each defect the probe knows in a synthetic page built on the
+ *     kit's stylesheets and requires each to be reported, and requires look-alikes
+ *     of those defects to pass. A probe that has never failed proves nothing.
+ *
+ * Every state is probed twice: as loaded, and with every <details> open (a menu,
+ * an FAQ answer), reporting what the opened details hold. On the widest row the
+ * kit's header is measured: a menu switch it can never reach is `nav-hidden`, and
+ * the value to pin in chrome.menuBelow is printed. Progress goes to stderr.
  *
  * Breakpoint edges: every width a @media rule in the page's own CSS names is
  * tested at that width and one pixel either side (read from the CSSOM, so a
@@ -266,6 +275,36 @@ async function reloadShifts(browser, v, theme, url, times) {
   }
   return n;
 }
+
+// The kit's header (block_site_render.py): what its brand, links and action
+// really need on one row, against the width the renderer switches to the menu
+// at, and the widest the header can ever be (--content-max). Measured, so a
+// brand font or another script cannot fool it the way the estimate can.
+const NAV_FIT = `(async () => {
+  const bar = document.querySelector(".site-header__bar");
+  const rule = [...document.querySelectorAll("head style")]
+    .map((s) => s.textContent.match(/width < ([0-9.]+)rem/)).find(Boolean);
+  if (!bar || !bar.querySelector(".site-nav--inline") || !rule) return null;
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+  const st = document.createElement("style");
+  st.textContent = ".site-menu{display:none!important}.site-nav--inline{display:block!important}"
+    + ".site-header__action{display:inline-flex!important}"
+    + ".site-header__bar,.site-nav--inline ul{flex-wrap:nowrap!important}"
+    + ".site-header .brand{flex:none!important;max-inline-size:none!important}";
+  document.head.append(st);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  const kids = [...bar.children].filter((k) => getComputedStyle(k).display !== "none");
+  const need = kids.reduce((w, k) => w + k.getBoundingClientRect().width, 0)
+    + (kids.length - 1) * parseFloat(getComputedStyle(bar).columnGap);
+  const probe = document.createElement("div");
+  probe.style.inlineSize = "var(--content-max)";
+  document.body.append(probe);
+  const max = probe.getBoundingClientRect().width;
+  probe.remove();
+  st.remove();
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  return { need: need / rem, at: parseFloat(rule[1]), max: max / rem };
+})()`;
 
 // What a closed <details> hides (a site menu, an FAQ answer) is laid out only
 // when it opens, so the probe runs again with every one open, and reports only
@@ -575,6 +614,7 @@ async function runMatrix({
   shots,
   launch,
   photo = true,
+  progress = false,
 }) {
   const browser = await chromium.launch(launch);
   const findings = [];
@@ -602,10 +642,27 @@ async function runMatrix({
         `container-query thresholds in the CSS: ${bp.container.join(", ")}px of container width (covered by --sweep, not by viewport edges)`,
       );
 
+    const navChecked = new Set();
     const rows = [
       ...viewports.map((v) => ({ ...v, themes: v.quick ? themes : ["light"] })),
       ...edges.map((v) => ({ ...v, themes: ["light"] })),
     ];
+    // The header is measured on the widest row, where the fluid type is at its largest.
+    const navWidth = Math.max(...rows.map((r) => r.w));
+    // Progress on stderr, about ten lines a run: a full matrix takes many minutes.
+    const total =
+      rows.reduce((n, r) => n + r.themes.length, 0) * urls.length +
+      (sweep ? (Math.floor((sweep[1] - sweep[0]) / sweep[2]) + 1) * urls.length : 0);
+    const started = Date.now();
+    let told = 0;
+    const tell = () => {
+      if (!progress || states - told < Math.max(1, Math.ceil(total / 10))) return;
+      told = states;
+      const s = Math.round((Date.now() - started) / 1000);
+      process.stderr.write(
+        `device-matrix: ${states}/${total} states, ${Math.floor(s / 60)}m${s % 60}s\n`,
+      );
+    };
     for (const v of rows) {
       for (const theme of v.themes) {
         const ctx = await newStateContext(browser, v, theme);
@@ -614,6 +671,7 @@ async function runMatrix({
           await load(page, url);
           let { findings: f, stats } = await probePage(page, v.w);
           states++;
+          tell();
           for (const n of stats.notMeasured || []) notes.add(n);
           if (f.some((x) => x.id === "layout-shift")) {
             const shifted = 1 + (await reloadShifts(browser, v, theme, url, SHIFT_LOADS - 1));
@@ -643,6 +701,24 @@ async function runMatrix({
               "photo-contrast: not scored in forced colours (glyphs paint in the forced colour and cannot be hidden for the capture)",
             );
           f = f.concat(await detailsOpen(page, v.w));
+          if (v.w === navWidth && !navChecked.has(url)) {
+            navChecked.add(url);
+            const fit = await page.evaluate(NAV_FIT);
+            if (fit) {
+              const pin = Math.ceil((fit.need + 0.5) * 2) / 2;
+              const said = `its brand, links and action need ${fit.need.toFixed(1)}rem on one row; the menu takes over below ${fit.at}rem; the header is at most ${fit.max.toFixed(0)}rem wide`;
+              if (fit.at > fit.max && fit.need <= fit.max - 0.5)
+                f.push({
+                  id: "nav-hidden",
+                  where: "header .site-header__bar",
+                  msg: `the inline nav never shows at any width: ${said}. Set chrome.menuBelow to ${pin}`,
+                });
+              else if (fit.at - fit.need > 0.15 * fit.need)
+                notes.add(
+                  `header (${new URL(url).pathname}): ${said}; chrome.menuBelow: ${pin} would show the links sooner`,
+                );
+            }
+          }
           for (const x of f) findings.push({ ...x, url, vp: `${v.id} ${v.w}×${v.h}`, theme });
           if (shots) {
             mkdirSync(shots, { recursive: true });
@@ -676,6 +752,7 @@ async function runMatrix({
             `${PROBE}\n;layoutProbe(${JSON.stringify({ expectedWidth: w, skip: ["layout-shift", "font-failed", "images", "overlap", "anchor-obscured", "covered", "focus"] })})`,
           );
           states++;
+          tell();
           for (const x of f) findings.push({ ...x, url, vp: `sweep ${w}px`, theme: "light" });
         }
       }
@@ -1258,9 +1335,21 @@ async function selfTest(chromium, launch) {
     "--out",
     dir,
   ]);
-  const example = JSON.parse(
-    readFileSync(join(KIT_DIR, "example.manifest.json"), "utf8"),
-  ).pages.map((p) => p.path);
+  const exampleManifest = JSON.parse(readFileSync(join(KIT_DIR, "example.manifest.json"), "utf8"));
+  const example = exampleManifest.pages.map((p) => p.path);
+  // The example with a menu switch the header can never reach (nav-hidden must fire).
+  const hidden = { ...exampleManifest, chrome: { ...exampleManifest.chrome, menuBelow: 150 } };
+  writeFileSync(join(src, "nav-hidden.json"), JSON.stringify(hidden));
+  py([
+    RENDER,
+    "render",
+    join(src, "nav-hidden.json"),
+    "--catalog",
+    join(KIT_DIR, "catalog.json"),
+    "--out",
+    join(dir, "nav-hidden"),
+    "--placeholders",
+  ]);
   const stress = JSON.parse(readFileSync(join(src, "stress.json"), "utf8")).pages.map(
     (p) => p.path,
   );
@@ -1320,6 +1409,20 @@ async function selfTest(chromium, launch) {
       stressRun.findings.length === 0,
       `control: every catalog block at its min, max, longest word and RTL (${stress.length} stress pages) clean at ${quick.length} viewports, photo copy scored on a white photo (${stressRun.states} states)`,
       show(stressRun.findings),
+    );
+    const hiddenRun = await runMatrix({
+      chromium,
+      launch,
+      urls: [`${origin}/nav-hidden/`],
+      viewports: quick.filter((v) => v.w >= 1280),
+      themes: ["light"],
+      sweep: null,
+      photo: false,
+    });
+    row(
+      hiddenRun.findings.some((f) => f.id === "nav-hidden"),
+      "must fail: nav-hidden (a menu switch wider than the header can ever be)",
+      hiddenRun.findings.map((f) => f.id).join(", ") || "nothing",
     );
     // The count-aware .cards grid, measured: row pattern per item count at a
     // phone, a tablet (two-column range) and a laptop (six-track range).
@@ -1616,6 +1719,7 @@ async function main(argv) {
   }
   try {
     const result = await runMatrix({
+      progress: true,
       chromium: pw.chromium,
       launch,
       urls,

@@ -50,11 +50,13 @@ Every step ends at a gate that must pass before the next one starts.
      than 2.5× (so 200% zoom works), and that a font stack is set.
 3. **Choose blocks from [the catalog](#the-block-catalog).** Pick by purpose, never by look. Copy an exemplar contract
    from `catalog.json` for each block you need and fill it in: closed props, every string and list bounded, its slots,
-   media boxes, the facts it `requires`, a11y and truth. Keep them in one `catalog.json`, or split them into
+   media boxes, the facts it `requires`, a11y and truth. A media box's `maxWidth` is the widest the frame is ever drawn,
+   at any width and any item count: a card in a two-up row of `.cards` is about half the slot (576px), not a third. Keep them in one `catalog.json`, or split them into
    `catalog/<id>/block.json` beside each component once the catalog grows; the checker reads either form.
    - **Gate:** `block_site_check.py catalog site/catalog.json`. It refuses props it cannot prove closed and bounded
      (`$ref`, `anyOf`, type lists), styling props, and a `variant` written into props.
-4. **Build each block to the anatomy** (below): a render function and its CSS in `blocks.css`. The CSS goes in
+4. **Build each block to the anatomy** (below): a render function in your project's own `blocks.py` (a `RENDER` dict of block id to function, passed with `--blocks`; it may import the renderer's helpers: `from block_site_render import e, a, picture`), and its CSS in your `blocks.css`. Never edit the
+   plugin's scripts: an update replaces them. The CSS goes in
    `@layer blocks`, reads only tokens, never sets grid placement, section padding or colours, and changes layout
    with `@container` queries, never `@media`.
    - **Gate:** the stress pages in step 7 render it, and the device matrix passes on them.
@@ -63,11 +65,14 @@ Every step ends at a gate that must pass before the next one starts.
    real `width`/`height`, a focal point, smaller `sources` of the same crop for `srcset`, and a `portrait` crop for a
    full-bleed photo that crops badly on a phone. Write the phone as printed, in digits (`(251) 555-0100 ext. 12`):
    every `tel:` link on the site must dial it. Set `lang`; `dir` follows the language's script unless you set it.
+   Set `origin` (canonical URLs, JSON-LD and `sitemap.xml`), `basePath` if the site is served under a subpath,
+   `shareImage` (an asset with alt, 1200px wide, for link previews) and `icon`.
    - **Gate:** `block_site_check.py manifest site.manifest.json --catalog site/catalog.json`. Read its warnings too:
      they include any photo too small, at 2x, for the box it is drawn in.
-6. **Render** with `block_site_render.py render site.manifest.json --catalog site/catalog.json --out dist`, or with
-   your framework: one component per block type, in manifest order, with `tone` and `space` from the manifest or
-   the contract's defaults.
+6. **Render** with `block_site_render.py render site.manifest.json --catalog site/catalog.json --blocks site/blocks.py
+   --out dist`, or with your framework: one component per block type, in manifest order, with `tone` and `space` from
+   the manifest or the contract's defaults. The stylesheets come from beside the catalog (your branded copy), and the
+   run prints which it used: a line saying "the kit's own" means your brand did not reach `dist`.
    - **Gate:** the renderer runs the manifest check first and refuses on any problem. It then checks its own HTML:
      one h1, no skipped heading level, unique ids, every label and link resolves, every image has alt and dimensions,
      and the JSON-LD parses with hours that match the rows shown.
@@ -105,7 +110,7 @@ How to read a row:
 | ✓ `testimonial` | one quote with attribution / quotes without permission | 2 | surface · canvas | content | figure at the prose measure | quote ≤ 280, name ≤ 80, context ≤ 80, `permission: true` | — | quoted word for word, with permission, and where and when |
 | `price-list` | menu or service prices, exactly as published | 2 | canvas · surface | content | grid with a subgrid row per item; tabular numbers | ≤ 40 items; name ≤ 60, price ≤ 12, note ≤ 120 | — | prices exactly as published, dated |
 | `services-list` | 3–8 services with a line each | 2 | canvas · surface | content | count-aware `.cards`, or a two-column subgrid list | ≤ 8 items | optional icon enum | — |
-| `team-grid` | people who agreed to be shown | 2 | canvas · surface | content | count-aware `.cards` | ≤ 6 people; name ≤ 48, role ≤ 48, bio ≤ 200 | 1/1 third-content | only people who consented; business-own or commissioned photos |
+| `team-grid` | people who agreed to be shown | 2 | canvas · surface | content | count-aware `.cards` | ≤ 6 people; name ≤ 48, role ≤ 48, bio ≤ 200 | 1/1 `half-content`, `maxWidth` 600: `.cards` puts 2 or 4 people two to a row, so a portrait is drawn up to half the slot, not a third | only people who consented; business-own or commissioned photos |
 | `gallery-grid` | 3–12 photos of the place or the work | 2 | canvas · surface | wide | `.auto-grid` of frames marked `data-ragged` (no masonry: mixed ratios leave ragged column bottoms) | 3–12 images | 4/3 or 1/1 frames, lazy | business-own photos; alt written while looking |
 | ✓ `faq-list` | 3–8 real questions customers ask | 2 | surface · canvas | content | stack of `details`; prose measure | 3–8 items; question ≤ 100, answer ≤ 400 | — | FAQPage JSON-LD only if Google still shows it for the type |
 | ✓ `hours-location` | address, hours, special days and directions for a place customers visit / a service-area business → show the area | 2 | canvas · surface | content | switcher at 40rem; hours as a subgrid `dl` with `align-content: start` | heading ≤ 60, note ≤ 160; `requires` address and hours | — | hours from the business's structured hours, the same source as the JSON-LD |

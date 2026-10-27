@@ -194,7 +194,9 @@
   .prose {
     max-inline-size: var(--measure);
   }
-  .prose > * + * {
+  /* Flow spacing, unless the prose is also a .stack: the stack's gap spaces it
+     already, and both together doubled every gap (63px above a story heading). */
+  .prose:not(.stack) > * + * {
     margin-block-start: var(--flow-space, 1em);
   }
   .button {

@@ -215,9 +215,10 @@
     padding-block-end: var(--space-xs);
   }
 
-  /* ─── hours-location: one shared label column, so every row's times line
-     up (subgrid) whatever the longest label ───────────────────────────────── */
-  .hours {
+  /* ─── hours-location: one label column for the weekly rows AND the special
+     days (both lists are subgrids of one table), so every time lines up
+     whatever the longest label ─────────────────────────────────────────────── */
+  .hours-table {
     display: grid;
     grid-template-columns: fit-content(50%) minmax(0, 1fr);
     gap: var(--space-2xs) var(--space-m);
@@ -225,10 +226,20 @@
        auto rows; start keeps the rows together. */
     align-content: start;
   }
+  .hours-table > * {
+    grid-column: 1 / -1;
+  }
+  .hours,
   .hours > div {
     display: grid;
     grid-column: 1 / -1;
     grid-template-columns: subgrid;
+  }
+  .hours {
+    row-gap: var(--space-2xs);
+  }
+  .hours-table > h3 {
+    margin-block-start: var(--space-xs);
   }
   .hours dd {
     margin: 0;

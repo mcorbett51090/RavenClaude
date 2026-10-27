@@ -7,11 +7,15 @@ media contract, and LocalBusiness JSON-LD from the same facts the page shows. Us
 it as is for a static site, or port it to your framework: one component per
 block function below, the same markup, and blocks.css with it.
 
-  render MANIFEST --catalog CATALOG --out DIR [--css DIR] [--placeholders]
+  render MANIFEST --catalog CATALOG --out DIR [--css DIR] [--blocks FILE] [--placeholders]
       Runs `block_site_check.py manifest` first and refuses on any problem. Writes
       DIR/<path>/index.html for each page, copies tokens.css, layout.css and
-      blocks.css (from --css, else the kit), and copies every image the manifest
-      names from beside the manifest. --placeholders writes a plain gradient in
+      blocks.css, and copies every image the manifest names from beside the
+      manifest. The stylesheets come from --css, else from beside the catalog
+      (your branded copy of the kit), else from the kit itself; the run says
+      which. --blocks names a Python file of your own block render functions
+      (a RENDER dict of block id to function, the same shape as the one below),
+      so a new block never means editing this script. --placeholders writes a plain gradient in
       place of any image that is missing (the kit's example ships no photos);
       a placeholder is never a photo, so never publish one.
       Serve DIR to look at it (python3 -m http.server -d DIR): links are paths.
@@ -31,10 +35,13 @@ Exit: 0 ok, 1 problems, 2 usage.
 
 from __future__ import annotations
 
+import contextlib
 import copy
 import datetime
 import hashlib
 import html
+import importlib.util
+import io
 import json
 import os
 import re
@@ -108,7 +115,7 @@ def special_rows(business, lang):
     out = []
     for sp in business.get("specialHours") or []:
         date = datetime.date.fromisoformat(sp["date"])
-        when = f"{sp['label']} ({date.strftime('%b')} {date.day})"
+        when = f"{sp['label']} ({date.strftime('%b')}\u00a0{date.day})"  # the date never breaks
         out.append((when, "Closed" if sp.get("closed") else window(sp["opens"], sp["closes"], lang)))
     return out
 
@@ -154,7 +161,7 @@ def json_ld(manifest, page_url):
     b = manifest["business"]
     data = {"@context": "https://schema.org", "@type": b["schemaType"], "name": b["name"]}
     if manifest.get("origin"):
-        data["url"] = manifest["origin"] + "/"
+        data["url"] = manifest["origin"] + base_path(manifest)
     if b.get("phone"):
         data["telephone"] = b["phone"]
     if b.get("email"):
@@ -193,7 +200,10 @@ def json_ld(manifest, page_url):
 def sizes_for(media, asset=None):
     """The width the image is DRAWN at. A full-bleed band with a fixed height is
     cover-cropped, so on a narrow tall screen its height, not the viewport's width,
-    sets that width: the band is min(80vh, maxHeight) tall (blocks.css's hero rule)."""
+    sets that width: the band is min(80vh, maxHeight) tall (blocks.css's hero rule).
+    A frame narrower in shape than its photo cover-crops it too, and draws it wider
+    than the frame by the ratio of the two shapes; every width here is scaled by it,
+    or the browser picks a file too small for what it draws."""
     slot, mw = media["slot"], media.get("maxWidth")
     if slot == "full":
         if media.get("maxHeight") and asset:
@@ -201,12 +211,23 @@ def sizes_for(media, asset=None):
             return f"max(100vw, min(80vh, {media['maxHeight']}px) * {ar})"
         return "100vw"
     if slot == "wide":
-        return "min(90rem, 100vw)"
-    if slot == "content":
-        return "min(72rem, 100vw)"
-    if slot == "half-content":
-        return f"(min-width: 50rem) min(36rem, 50vw), min({mw or 576}px, 100vw)"
-    return f"(min-width: 50rem) min(24rem, 33vw), min({mw or 384}px, 100vw)"
+        parts = [(None, "min(90rem, 100vw)")]
+    elif slot == "content":
+        parts = [(None, "min(72rem, 100vw)")]
+    elif slot == "half-content":
+        parts = [("(min-width: 50rem)", "min(36rem, 50vw)"), (None, f"min({mw or 576}px, 100vw)")]
+    else:
+        parts = [("(min-width: 50rem)", "min(24rem, 33vw)"), (None, f"min({mw or 384}px, 100vw)")]
+    k = 1.0
+    if asset and media.get("ratio"):
+        num, den = (int(x) for x in media["ratio"].split(" / "))
+        k = max(1.0, (asset["width"] / asset["height"]) / (num / den))
+    out = []
+    for cond, length in parts:
+        if k > 1.01:
+            length = f"calc({length} * {k:.3f})"
+        out.append(f"{cond} {length}" if cond else length)
+    return ", ".join(out)
 
 
 def srcset(asset):
@@ -334,7 +355,7 @@ def b_stats_band(p, ctx):
     # of the longest value's width at --step-4 (0.65em a character, wide glyphs 1em),
     # plus the gaps between them. Narrower than that, the band stacks.
     n = len(p["items"])
-    widest = max(text_em(it["value"], 0.65) for it in p["items"])
+    widest = max(sum(1.0 if char_em(ch) == 1.0 else 0.65 for ch in it["value"]) for it in p["items"])
     switch = f"max(36rem, {n} * {widest:.2f} * var(--step-4) + {n - 1} * var(--space-l))"
     out = f'<div><h2 id={a(ctx["hid"])}>{e(p["heading"])}</h2></div><div><dl class="switcher" style={a("--switch-at: " + switch)}>'
     for it in p["items"]:
@@ -373,12 +394,12 @@ def b_hours_location(p, ctx):
     out += f'<div class="cluster"><a class="button" href={a(maps)}>Get directions<span class="visually-hidden"> (opens a map)</span></a>'
     if b.get("phone"):
         out += f'<a class="button" data-variant="ghost" href={a(tel_href(b["phone"]))}>Call {phone_text(b["phone"])}</a>'
-    out += '</div></div><div class="stack"><dl class="hours">'
+    out += '</div></div><div><div class="hours-table"><dl class="hours">'
     out += "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in hours_rows(b, lang)) + "</dl>"
     special = special_rows(b, lang)
     if special:
         out += '<h3>Special days</h3><dl class="hours">' + "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in special) + "</dl>"
-    return out + "</div></div>"
+    return out + "</div></div></div>"
 
 
 FIELD = {
@@ -427,26 +448,51 @@ RENDER = {
 # ─── chrome and page ─────────────────────────────────────────────────────────
 
 
-def text_em(text, latin):
-    """A string's width in em: `latin` for each narrow character, 1em for each wide
-    one (CJK ideographs, kana, Hangul, full-width forms)."""
-    return sum(1.0 if unicodedata.east_asian_width(ch) in ("W", "F") else latin for ch in text)
+# Advance widths in em by character class, from system sans faces measured in
+# Chromium (2026-10-27: Latin labels averaged 0.41-0.72em a character, Japanese
+# 1.01em). An estimate: device_matrix.mjs measures the real header.
+NARROW = set("ijl|!.,:;'`")
+SEMI = set("frtI()[]{}/\\- ")
+WIDE = set("mwMW@%")
+
+
+def char_em(ch):
+    if unicodedata.east_asian_width(ch) in ("W", "F"):
+        return 1.0
+    if ch in NARROW:
+        return 0.27
+    if ch in SEMI:
+        return 0.36
+    if ch in WIDE:
+        return 0.86
+    if ch.isupper():
+        return 0.68
+    return 0.56
+
+
+def text_em(text, scale=1.0):
+    """A string's width in em, by character class; `scale` for bold or wide faces."""
+    return sum(char_em(ch) for ch in text) * scale
 
 
 def nav_breakpoint(manifest):
-    """The header-bar width (rem) below which the nav becomes a menu: the widest the
-    brand, every link and the action can be, at the largest type step, plus gaps.
-    In rem, so a reader who sets a larger default font size gets the menu sooner,
-    as the text grows. An estimate from character widths; device_matrix.mjs's
-    nav-wrap check is what proves it on the rendered page, at every width."""
+    """The header-bar width (rem) below which the nav becomes a menu: the brand,
+    every link and the action at the largest type step, plus their padding and
+    gaps, and 10% for a wider face. In rem, so a reader who sets a larger default
+    font size gets the menu sooner, as the text grows. chrome.menuBelow pins it.
+    An estimate: device_matrix.mjs measures the real header, reports a nav that
+    can never show, and prints the value to pin."""
     chrome = manifest.get("chrome") or {}
+    if chrome.get("menuBelow"):
+        return chrome["menuBelow"]
     links = chrome.get("nav") or []
     body, brand = 19.0 / 16, 23.75 / 16  # --step-0 and --step-1 at their max, in rem
-    width = text_em(manifest["business"]["name"], 0.62) * brand
-    width += sum(text_em(x["label"], 0.6) * body + 2 * 0.6 for x in links) + 0.6 * max(0, len(links) - 1)
+    width = text_em(manifest["business"]["name"], 1.05) * brand  # bold
+    width += sum(text_em(x["label"]) * body + 2 * 0.6 for x in links) + 0.6 * max(0, len(links) - 1)
     if chrome.get("action"):
-        width += text_em(chrome["action"]["label"], 0.62) * body + 2 * 1.8
-    return round(width * 1.15 + 2 * 1.8, 2)  # 15% for wider glyphs, plus the bar's two gaps
+        width += text_em(chrome["action"]["label"], 1.05) * body + 2 * 1.8  # semibold, --space-m padding
+    gaps = 1.8 * (1 + bool(chrome.get("action")))  # the bar's --space-m between its items
+    return round(width * 1.1 + gaps, 2)
 
 
 def nav_list(links, current):
@@ -497,6 +543,37 @@ def footer(manifest, page, year):
     )
 
 
+def base_path(manifest):
+    return manifest.get("basePath") or "/"
+
+
+LOCAL_URL = re.compile(r'((?:href|src|action)=")/(?!/)')
+SRCSET_URL = re.compile(r'(srcset=")([^"]*)(")')
+
+
+def rebase(page_html, base):
+    """Prefix every site-root URL (href, src, action and srcset entries) with the
+    base path, for a site served under a subpath. The manifest stays base-less."""
+    if base == "/":
+        return page_html
+    out = LOCAL_URL.sub(lambda m: m.group(1) + base, page_html)
+    return SRCSET_URL.sub(
+        lambda m: m.group(1) + ", ".join(base + x.lstrip("/") if x.startswith("/") and not x.startswith("//") else x for x in m.group(2).split(", ")) + m.group(3),
+        out,
+    )
+
+
+def unbase(page_html, base):
+    """rebase undone, for the HTML checks, which resolve links against page paths."""
+    if base == "/":
+        return page_html
+    out = re.sub(r'((?:href|src|action)=")' + re.escape(base), lambda m: m.group(1) + "/", page_html)
+    return SRCSET_URL.sub(
+        lambda m: m.group(1) + ", ".join("/" + x[len(base):] if x.startswith(base) else x for x in m.group(2).split(", ")) + m.group(3),
+        out,
+    )
+
+
 def page_direction(manifest, page):
     """A page's own dir, else the site's (when the page shares the site's language),
     else its language's script direction."""
@@ -504,7 +581,8 @@ def page_direction(manifest, page):
     return check.text_direction(lang, page.get("dir") or (None if page.get("lang") else manifest.get("dir")))
 
 
-def render_page(manifest, page, blocks, year):
+def render_page(manifest, page, blocks, year, renderers=None):
+    renderers = renderers or RENDER
     lang = page.get("lang") or manifest["lang"]
     direction = page_direction(manifest, page)
     origin = manifest.get("origin")
@@ -523,13 +601,28 @@ def render_page(manifest, page, blocks, year):
     if page.get("noindex"):
         head.append('<meta name="robots" content="noindex">')
     if origin:
-        head.append(f'<link rel="canonical" href={a(origin + page["path"])}>')
-        head.append(f'<meta property="og:url" content={a(origin + page["path"])}>')
+        here = origin + base_path(manifest) + page["path"].lstrip("/")
+        head.append(f'<link rel="canonical" href={a(here)}>')
+        head.append(f'<meta property="og:url" content={a(here)}>')
     head += [
         f'<meta property="og:title" content={a(page["title"])}>',
         f'<meta property="og:description" content={a(page["description"])}>',
         '<meta property="og:type" content="website">',
     ]
+    share = page.get("shareImage") or manifest.get("shareImage")
+    if share and origin:
+        img = manifest["assets"][share]
+        absolute = img["src"] if re.match(r"^https?://", img["src"]) else origin + base_path(manifest) + img["src"].lstrip("/")
+        head += [
+            f'<meta property="og:image" content={a(absolute)}>',
+            f'<meta property="og:image:width" content={a(img["width"])}>',
+            f'<meta property="og:image:height" content={a(img["height"])}>',
+            f'<meta property="og:image:alt" content={a(img["alt"])}>',
+            '<meta name="twitter:card" content="summary_large_image">',
+        ]
+    if manifest.get("icon"):
+        kind = {"svg": "image/svg+xml", "png": "image/png", "ico": "image/x-icon"}[manifest["icon"].rsplit(".", 1)[1]]
+        head.append(f'<link rel="icon" href={a("/" + manifest["icon"].lstrip("/"))} type={a(kind)}>')
     head += [f'<link rel="stylesheet" href="/{name}">' for name in CSS_FILES]
     # The one per-site rule: where the nav stops fitting (container width of the bar).
     head.append(
@@ -562,7 +655,7 @@ def render_page(manifest, page, blocks, year):
             attrs += f" data-variant={a(ctx['variant'])}"
         if bl.get("anchor"):
             attrs += f" id={a(bl['anchor'])}"
-        body.append(f"<section {attrs} aria-labelledby={a(ctx['hid'])}>{RENDER[bl['type']](bl['props'], ctx)}</section>")
+        body.append(f"<section {attrs} aria-labelledby={a(ctx['hid'])}>{renderers[bl['type']](bl['props'], ctx)}</section>")
     body += ["</main>", footer(manifest, page, year), "</body>", "</html>"]
     return "\n".join(head + body) + "\n"
 
@@ -585,15 +678,44 @@ def placeholder(path, width, height):
     check.write_png(path, width, height, lambda y: tuple(int(t + (b - t) * y / max(1, height - 1)) for t, b in zip(top, bottom)))
 
 
-def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False, today=None):
+def load_blocks(path):
+    """A project's own render functions: the RENDER dict a Python file defines.
+    Its functions may import helpers from this module (e, a, picture, icon…)."""
+    spec = importlib.util.spec_from_file_location("site_blocks", path)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"{path}: not a Python file")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    extra = getattr(mod, "RENDER", None)
+    if not isinstance(extra, dict) or not all(callable(f) for f in extra.values()):
+        raise ValueError(f"{path} defines no RENDER dict of block id to function")
+    return extra
+
+
+def css_source(catalog, css_dir=None):
+    """Where the stylesheets come from: --css, else beside the catalog, else the kit."""
+    if css_dir:
+        return css_dir
+    here = catalog if os.path.isdir(catalog) else os.path.dirname(os.path.abspath(catalog))
+    for d in (here, os.path.dirname(here)):
+        if all(os.path.isfile(os.path.join(d, n)) for n in CSS_FILES):
+            return d
+    return KIT
+
+
+def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False, today=None, renderers=None):
     """Write the site to out. Returns (problems, notes)."""
+    renderers = renderers or RENDER
     schema = check.load_json(os.path.join(KIT, "site-manifest.schema.json"))
     problems, warnings = check.check_manifest(manifest, blocks, schema, today=today)
     if problems:
         return problems, warnings
-    missing = [bl["type"] for p in manifest["pages"] for bl in p["blocks"] if bl["type"] not in RENDER]
+    missing = [bl["type"] for p in manifest["pages"] for bl in p["blocks"] if bl["type"] not in renderers]
     if missing:
-        return [f"no render function for block {t!r}: add one to RENDER (and its CSS to blocks.css)" for t in sorted(set(missing))], warnings
+        return [
+            f"no render function for block {t!r}: write one in your blocks file (--blocks), and its CSS in your blocks.css"
+            for t in sorted(set(missing))
+        ], warnings
     os.makedirs(out, exist_ok=True)
     for name in CSS_FILES:
         shutil.copyfile(os.path.join(css_dir or KIT, name), os.path.join(out, name))
@@ -613,12 +735,27 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
             notes.append(f"{src}: missing, wrote a placeholder gradient (never publish it)")
         else:
             notes.append(f"{src}: missing beside the manifest; the page will show a broken image")
+    if manifest.get("icon"):
+        here = os.path.join(manifest_dir, manifest["icon"])
+        if os.path.isfile(here):
+            dst = os.path.join(out, manifest["icon"])
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copyfile(here, dst)
+        else:
+            notes.append(f"icon {manifest['icon']}: missing beside the manifest")
     year = (today or datetime.date.today().isoformat())[:4]
+    base = base_path(manifest)
     for page in manifest["pages"]:
         d = os.path.join(out, page["path"].strip("/"))
         os.makedirs(d, exist_ok=True)
         with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
-            f.write(render_page(manifest, page, blocks, year))
+            f.write(rebase(render_page(manifest, page, blocks, year, renderers), base))
+    if manifest.get("origin"):
+        locs = [manifest["origin"] + base + p["path"].lstrip("/") for p in manifest["pages"] if not p.get("noindex")]
+        with open(os.path.join(out, "sitemap.xml"), "w", encoding="utf-8") as f:
+            f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n')
+            f.write("".join(f"  <url><loc>{e(u)}</loc></url>\n" for u in locs))
+            f.write("</urlset>\n")
     return [], notes
 
 
@@ -673,7 +810,7 @@ def check_html(pages, manifest):
     docs = {}
     for path, src in pages.items():
         d = _Doc()
-        d.feed(src)
+        d.feed(unbase(src, base_path(manifest)))
         docs[path] = d
     for path, d in docs.items():
         at = f"page {path}"
@@ -791,6 +928,11 @@ def self_test():
             "a maps link encodes its query: a suite number's # does not cut the city off",
         )
         row(tel_href("(251) 555-0100 ext. 12") == "tel:2515550100", "an extension is shown on the page, never dialled as part of the number")
+        row(
+            "* 1.200" in sizes_for({"slot": "half-content", "ratio": "4 / 3"}, {"width": 2560, "height": 1600})
+            and "calc" not in sizes_for({"slot": "half-content", "ratio": "4 / 3"}, {"width": 1600, "height": 1200}),
+            "sizes grows by the shape ratio when a frame cover-crops a wider photo (16:10 in 4:3 is drawn 1.2x the frame)",
+        )
         ar = copy.deepcopy(example)
         ar["lang"] = "ar"
         for pg in ar["pages"]:
@@ -838,6 +980,85 @@ def self_test():
         um["pages"][1]["blocks"].append({"type": "map-embed", "props": {"title": "Map"}})
         uprobs, _ = render(um, unknown, os.path.join(tmp, "unknown"), KIT, placeholders=True, today="2026-10-27")
         row(any("no render function" in x for x in uprobs), "must fail: a catalog block with no render function is named")
+
+        # Served under a subpath, with a share image, an icon and a sitemap.
+        sub = copy.deepcopy(example)
+        sub.update(origin="https://www.example.com", basePath="/shop/", shareImage="counter", icon="icon.svg")
+        sub["pages"][2]["noindex"] = True
+        sdir = os.path.join(tmp, "sub-src")
+        os.makedirs(sdir)
+        with open(os.path.join(sdir, "icon.svg"), "w", encoding="utf-8") as f:
+            f.write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>')
+        sout = os.path.join(tmp, "sub")
+        sprobs, _ = render(sub, blocks, sout, sdir, KIT, placeholders=True, today="2026-10-27")
+        shome = open(os.path.join(sout, "index.html"), encoding="utf-8").read() if not sprobs else ""
+        spages = {p["path"]: open(os.path.join(sout, p["path"].strip("/"), "index.html"), encoding="utf-8").read() for p in sub["pages"]} if not sprobs else {}
+        row(
+            not sprobs
+            and 'href="/shop/tokens.css"' in shome
+            and 'href="/shop/visit/"' in shome
+            and re.search(r'srcset="/shop/images/[^"]*, /shop/images/', shome) is not None
+            and not check_html(spages, sub),
+            "basePath: every link, image, srcset entry and stylesheet is under /shop/, and the HTML checks still resolve them",
+            "; ".join(sprobs[:2]) or "; ".join(check_html(spages, sub)[:2]),
+        )
+        sitemap = open(os.path.join(sout, "sitemap.xml"), encoding="utf-8").read() if not sprobs else ""
+        row(
+            "<loc>https://www.example.com/shop/visit/</loc>" in sitemap
+            and f"<loc>https://www.example.com/shop{sub['pages'][2]['path']}</loc>" not in sitemap
+            and sitemap.count("<loc>") == 2,
+            "sitemap.xml lists every indexable page at its full URL, and leaves out a noindex page",
+        )
+        row(
+            'property="og:image" content="https://www.example.com/shop/images/' in shome and 'twitter:card" content="summary_large_image"' in shome,
+            "the share image is an absolute og:image URL, with a large twitter card",
+        )
+        row('<link rel="icon" href="/shop/icon.svg" type="image/svg+xml">' in shome and os.path.isfile(os.path.join(sout, "icon.svg")), "the icon is linked and copied")
+
+        # A project's own copy: its branded CSS and its own block, through the CLI.
+        proj = os.path.join(tmp, "proj")
+        os.makedirs(proj)
+        for name in CSS_FILES:
+            shutil.copyfile(os.path.join(KIT, name), os.path.join(proj, name))
+        with open(os.path.join(proj, "tokens.css"), "a", encoding="utf-8") as f:
+            f.write("\n/* brand: c2410c */\n")
+        bundle = check.load_json(os.path.join(KIT, "catalog.json"))
+        notice = copy.deepcopy(next(b for b in bundle["blocks"] if b["id"] == "page-header"))
+        notice.update(id="notice-bar", headingLevel=2, placement={"position": "any"})
+        bundle["blocks"].append(notice)
+        with open(os.path.join(proj, "catalog.json"), "w", encoding="utf-8") as f:
+            json.dump(bundle, f)
+        with open(os.path.join(proj, "blocks.py"), "w", encoding="utf-8") as f:
+            f.write(
+                "from block_site_render import a, e\n"
+                "def notice_bar(p, ctx):\n"
+                "    return f'<div><h2 id={a(ctx[\"hid\"])}>{e(p[\"title\"])}</h2></div>'\n"
+                "RENDER = {'notice-bar': notice_bar}\n"
+            )
+        pm = copy.deepcopy(example)
+        pm["pages"][1]["blocks"].append({"type": "notice-bar", "props": {"title": "Closed for Thanksgiving"}})
+        with open(os.path.join(proj, "site.manifest.json"), "w", encoding="utf-8") as f:
+            json.dump(pm, f)
+        for img in ("images",):
+            if os.path.isdir(os.path.join(KIT, img)):
+                shutil.copytree(os.path.join(KIT, img), os.path.join(proj, img))
+        pout = os.path.join(tmp, "proj-dist")
+        args = ["render", os.path.join(proj, "site.manifest.json"), "--catalog", os.path.join(proj, "catalog.json"), "--out", pout, "--placeholders"]
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = main(args + ["--blocks", os.path.join(proj, "blocks.py")])
+        visit = open(os.path.join(pout, "visit", "index.html"), encoding="utf-8").read() if code == 0 else ""
+        row(code == 0 and "Closed for Thanksgiving" in visit, "a project's own block renders from its --blocks file, with no edit to this script")
+        row(
+            code == 0 and "c2410c" in open(os.path.join(pout, "tokens.css"), encoding="utf-8").read(),
+            "the stylesheets beside the catalog are used by default, so the brand reaches dist",
+        )
+        said = io.StringIO()
+        with contextlib.redirect_stdout(said):
+            code = main(args)
+        row(
+            code == 1 and "no render function for block 'notice-bar'" in said.getvalue(),
+            "must fail: a project block with no --blocks file is refused, not rendered without it",
+        )
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print(f"block_site_render --self-test: {'FAILED (%d row(s))' % failed if failed else 'OK'}")
@@ -856,11 +1077,14 @@ def main(argv):
     manifest_path, catalog, out = argv[1], argv[3], argv[5]
     rest = argv[6:]
     css_dir = None
+    blocks_file = None
     placeholders = False
     while rest:
         flag = rest.pop(0)
         if flag == "--css" and rest:
             css_dir = rest.pop(0)
+        elif flag == "--blocks" and rest:
+            blocks_file = rest.pop(0)
         elif flag == "--placeholders":
             placeholders = True
         else:
@@ -873,8 +1097,24 @@ def main(argv):
             print(f"  ✗ catalog: {x}")
         print("block_site_render: the catalog fails its own check; fix it first")
         return 1
+    renderers = dict(RENDER)
+    if blocks_file:
+        try:
+            renderers.update(load_blocks(blocks_file))
+        except Exception as exc:  # a project file that does not load is a refusal, never a silent kit render
+            print(f"block_site_render: --blocks {blocks_file}: {exc}")
+            return 1
+    css = css_source(catalog, css_dir)
+    for name in CSS_FILES:
+        if not os.path.isfile(os.path.join(css, name)):
+            print(f"block_site_render: --css {css} has no {name}")
+            return 2
+    if os.path.abspath(css) == os.path.abspath(KIT):
+        print("  ! styles: the kit's own (no tokens.css, layout.css and blocks.css beside the catalog); pass --css DIR for your brand")
+    else:
+        print(f"  styles: {css}")
     manifest = check.load_json(manifest_path)
-    probs, notes = render(manifest, blocks, out, os.path.dirname(os.path.abspath(manifest_path)), css_dir, placeholders)
+    probs, notes = render(manifest, blocks, out, os.path.dirname(os.path.abspath(manifest_path)), css, placeholders, renderers=renderers)
     for n in notes:
         print(f"  ! {n}")
     for x in probs:

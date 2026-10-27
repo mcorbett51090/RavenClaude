@@ -57,13 +57,16 @@ and shows the whole path working. Then follow the kit's README, which has eight 
 4. **Build each new block to the anatomy:**
    - a `<section data-block data-tone data-space>` whose direct children are slots on a grid line;
    - components that query their width inside slots;
-   - a render function, and CSS in `blocks.css` (`@layer blocks`) that reads only tokens and uses `@container`
-     queries, never `@media`.
+   - a render function in the project's own `blocks.py` (a `RENDER` dict, passed to the renderer with `--blocks`),
+     never an edit to the plugin's scripts;
+   - CSS in the project's `blocks.css` (`@layer blocks`) that reads only tokens and uses `@container` queries, never
+     `@media`.
 5. **Write the manifest from verified facts:** the business, the chrome (nav, header action, footer links), assets
    with real sizes, `srcset` sources and focal points, and pages.
    - **Gate:** `block_site_check.py manifest`, warnings included.
-6. **Render** with `block_site_render.py render`, or with your framework's port of it.
-   - **Gate:** the renderer refuses a manifest the checker refuses, then checks its own HTML.
+6. **Render** with `block_site_render.py render … --blocks blocks.py`, or with your framework's port of it.
+   - **Gate:** the renderer refuses a manifest the checker refuses, then checks its own HTML. Its `styles:` line must
+     name the project's stylesheets, not the kit's.
 7. **Stress it:** `block_site_check.py fixtures` and render those pages too.
 8. **Prove it** (below).
 
