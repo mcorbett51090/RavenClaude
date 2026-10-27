@@ -1732,6 +1732,7 @@ async function selfTest(chromium, launch) {
         // photo band loses its screen-height minimum.
         const { ctx, pg } = await at("laptop", `${origin}/`);
         await pg.emulateMedia({ media: "print" });
+        await pg.evaluate(SETTLE); // the colour change is a (0.01ms) transition too
         const [btn, minH] = await pg.evaluate(() => [
           getComputedStyle(document.querySelector("main .button:not([data-variant])")).color,
           getComputedStyle(document.querySelector('[data-tone="media"]')).minBlockSize,
