@@ -15,7 +15,10 @@ block function below, the same markup, and blocks.css with it.
       (your branded copy of the kit), else from the kit itself; the run says
       which. --blocks names a Python file of your own block render functions
       (a RENDER dict of block id to function, the same shape as the one below),
-      so a new block never means editing this script. --placeholders writes a plain gradient in
+      so a new block never means editing this script. It runs with this
+      script's privileges: it is your project's own code, not a sandbox. The
+      manifest is checked before it is imported, and the rendered HTML is
+      refused, before anything is written, if it holds a script or //host URL. --placeholders writes a plain gradient in
       place of any image that is missing (the kit's example ships no photos);
       a placeholder is never a photo, so never publish one.
       Serve DIR to look at it (python3 -m http.server -d DIR): links are paths.
