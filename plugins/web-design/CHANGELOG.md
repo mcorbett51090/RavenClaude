@@ -20,24 +20,33 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - `blocks.css` holds the exemplars' CSS and the site header, menu and footer.
   - `block.schema.json` and `site-manifest.schema.json`. The manifest carries business facts (with special days),
     site chrome, assets with `srcset` sources and portrait crops, and pages with `lang`, `dir` and anchors.
-  - `catalog.json`: ten exemplar block contracts in one file, to stay inside the repo's file budget. The checker
-    also reads a directory of `<id>/block.json`.
-  - `example.manifest.json`: a three-page site that uses every exemplar. The kit's README carries the 15-block
-    canonical catalog.
+  - `catalog.json`: thirteen exemplar block contracts in one file, to stay inside the repo's file budget, among them
+    `price-list`, `gallery-grid` and `events-list`. The checker also reads a directory of `<id>/block.json`.
+  - `example.manifest.json`: a four-page site that uses twelve of the thirteen exemplars (`events-list` is in the
+    stress fixtures, whose dates are always to come). The kit's README carries the 16-block canonical catalog.
+  - `tokens.css` declares `color-scheme`, which names the default theme: `light dark`, a dark-first `dark light`, or
+    one theme only. The tokens gate checks the themes it names.
 - **`scripts/block_site_check.py`** (stdlib): `catalog`, `manifest`, `tokens` and `fixtures`, with a `--self-test`
   of 107 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
   sizes for the box each is drawn in, and reads `oklch()` and other colour syntaxes. Every `tel:` link must dial the
   business's phone, a contract's `variantLinks` holds a variant to its label (`call` is a `tel:` link), and
-  `endpointProps` must be a real form endpoint.
+  `endpointProps` must be a real form endpoint. A link, endpoint or asset path with a backslash or a control
+  character is refused (a browser reads `/\host` as `//host`). A media frame may list the photo provenances it
+  accepts, and a contract may mark props that expire (an event's date).
 - **`scripts/block_site_render.py`** (stdlib): the reference renderer, from manifest to static HTML, with HTML checks
   and a `--self-test` that breaks each of them. CI runs it. It uses the stylesheets beside the project's catalog,
   loads the project's own block functions with `--blocks`, writes `sitemap.xml`, link previews and an icon, and serves
-  under a `basePath`.
+  under a `basePath`. Before it writes anything it reads each page with an HTML parser and refuses code or a URL that
+  reaches another site unasked, and runs its HTML checks. It records what it wrote, so the next render removes a page
+  gone from the manifest. It shows photo credits, writes `color-scheme` and `theme-color` meta, and leaves past
+  events off the page.
 - **`scripts/layout-probe.js`**: 34 rendered-page checks in a dependency-free async browser function, including
   figures split across lines and the contrast of field edges and focus rings.
 - **`scripts/device_matrix.mjs`**: runs the probe across 28 viewports, ±1px around every `@media` width, and an
   optional sweep. Its quick rows run six themes with real desktop scrollbars, plus photo-contrast on composited
-  pixels (ported from the owner's factory).
+  pixels (ported from the owner's factory). `text-hidden` finds words no reader can see (covered, masked or faded
+  out) by capturing each page with its text drawn and hidden; any image, font or media file that 404s is
+  `resource-failed`; a `basePath` site is served only under its path; and each page is laid out once in print.
   - `--self-test` renders the kit and requires the example and 40 stress pages clean.
   - It plants 48 defects, covering every check, and checks 8 look-alikes that must pass.
   - Every state is probed a second time with each `<details>` open (the menu, FAQ answers).
