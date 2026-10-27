@@ -113,7 +113,8 @@ Every step ends at a gate that must pass before the next one starts.
      it refuses a folder that already holds files and no record.
    - **Photos are what the manifest says.** A photo's bytes must be the image its name says (an SVG carrying script
      is refused), and its real width and height must be the manifest's: `srcset`, `sizes` and every blur check rest
-     on them. A missing photo is refused; `--placeholders` draws a gradient for a draft.
+     on them. A photo stored on its side with an EXIF tag to turn it is refused (save it upright: `magick in.jpg
+     -auto-orient out.jpg`), and so is a missing one; `--placeholders` draws a gradient for a draft.
    - **Credits.** A photo's `credit` is shown in the footer of each page that shows it. A media frame may list the
      provenances it accepts: the hero takes only `business-own` or `commissioned`, never stock or a generated image
      presented as the place.

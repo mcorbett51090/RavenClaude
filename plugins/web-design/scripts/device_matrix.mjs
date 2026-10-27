@@ -1622,6 +1622,16 @@ const MUTATIONS = [
     },
   },
   {
+    expect: "image-ratio",
+    vp: "laptop",
+    why: "a photo whose file is not the shape the page declares (an EXIF turn, or a wrong size in the manifest)",
+    html: {
+      extra: sec(
+        `<div class="frame" style="--ratio: 4 / 3"><img src="/story.png" width="900" height="1200" alt="Declared portrait, the file is landscape"></div>`,
+      ),
+    },
+  },
+  {
     expect: "image-upscaled",
     vp: "iphone",
     html: {

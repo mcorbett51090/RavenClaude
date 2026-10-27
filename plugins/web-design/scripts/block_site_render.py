@@ -1070,6 +1070,20 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
             if why:
                 return [f"asset {src}: {why}"], notes
             real = image_size(here)
+            if real is None and os.path.splitext(here)[1].lower() in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+                return [f"asset {src}: its size cannot be read from its header (a truncated or damaged file)"], notes
+            if real and not (0 < real[0] <= 16384 and 0 < real[1] <= 16384):
+                return [f"asset {src}: its header gives {real[0]}×{real[1]}, which no web photo is (a damaged file, or one far too big to serve)"], notes
+            # A phone photo stored on its side with an EXIF tag to turn it shows
+            # turned in a browser, and sideways wherever the tag is stripped (an
+            # image CDN or resizer): its pixels must be stored the way it is seen.
+            turn = image_orientation(here)
+            if turn and turn != 1:
+                return [
+                    f"asset {src}: its EXIF orientation ({turn}) {'turns' if turn >= 5 else 'flips'} it when shown, so the "
+                    "manifest's size and every crop describe the wrong picture, and a resizer that strips the tag shows it "
+                    "wrong. Save it with the orientation applied (for example `magick in.jpg -auto-orient out.jpg`)"
+                ], notes
             # The manifest's size decides sizes, srcset and every blur check: a file
             # that is not that size makes all of them wrong.
             if real and (real[0] != w or abs(real[1] - h) > 1):
@@ -1191,9 +1205,9 @@ MAGIC = {
 
 def image_size(path):
     """(width, height) read from the file's own header (PNG, JPEG, GIF, WebP), or
-    None for a format this does not read (AVIF, SVG)."""
+    None for a format this does not read (AVIF, SVG) or a header it cannot."""
     with open(path, "rb") as f:
-        data = f.read(1 << 20)
+        data = f.read(4 << 20)
     if data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR":
         return int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
     if data[:6] in (b"GIF87a", b"GIF89a"):
@@ -1222,6 +1236,57 @@ def image_size(path):
                 continue
             i += 2 + int.from_bytes(data[i + 2 : i + 4], "big")
         return None
+    return None
+
+
+def _tiff_orientation(t):
+    """The Orientation tag (0x0112) of an EXIF/TIFF block, or None."""
+    if t[:6] == b"Exif\0\0":
+        t = t[6:]
+    order = {b"II": "little", b"MM": "big"}.get(t[:2])
+    if not order or len(t) < 8:
+        return None
+    at = int.from_bytes(t[4:8], order)
+    if at + 2 > len(t):
+        return None
+    for k in range(int.from_bytes(t[at : at + 2], order)):
+        e = at + 2 + 12 * k
+        if e + 12 > len(t):
+            return None
+        if int.from_bytes(t[e : e + 2], order) == 0x0112:
+            return int.from_bytes(t[e + 8 : e + 10], order)
+    return None
+
+
+def image_orientation(path):
+    """The EXIF orientation a JPEG, PNG or WebP carries (1 = as stored), or None."""
+    with open(path, "rb") as f:
+        data = f.read(4 << 20)
+    if data[:3] == b"\xff\xd8\xff":
+        i = 2
+        while i + 4 <= len(data) and data[i] == 0xFF:
+            marker, n = data[i + 1], int.from_bytes(data[i + 2 : i + 4], "big")
+            if marker == 0xDA:
+                return None
+            if marker == 0xE1 and data[i + 4 : i + 10] == b"Exif\0\0":
+                return _tiff_orientation(data[i + 4 : i + 2 + n])
+            i += 2 + n
+        return None
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        i = 8
+        while i + 8 <= len(data):
+            n, kind = int.from_bytes(data[i : i + 4], "big"), data[i + 4 : i + 8]
+            if kind == b"eXIf":
+                return _tiff_orientation(data[i + 8 : i + 8 + n])
+            i += 12 + n
+        return None
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        i = 12
+        while i + 8 <= len(data):
+            kind, n = data[i : i + 4], int.from_bytes(data[i + 4 : i + 8], "little")
+            if kind == b"EXIF":
+                return _tiff_orientation(data[i + 8 : i + 8 + n])
+            i += 8 + n + (n & 1)
     return None
 
 
@@ -1712,6 +1777,40 @@ def self_test():
         sm["assets"]["counter"].pop("sources", None)
         sp2, _ = render(sm, blocks, os.path.join(tmp, "small"), adir, placeholders=True, today="2026-10-27")
         row(any("is 400×300, but the manifest says 1600×1200" in x for x in sp2), "must fail: a photo whose real size is not the manifest's (400×300 said to be 1600×1200)", "; ".join(sp2[:2]))
+        # A phone photo stored on its side with an EXIF tag that turns it (orientation 6).
+        def jpeg(w, h, turn=None):
+            app1 = b""
+            if turn:
+                tiff = b"II*\0" + (8).to_bytes(4, "little") + (1).to_bytes(2, "little")
+                tiff += (0x0112).to_bytes(2, "little") + (3).to_bytes(2, "little") + (1).to_bytes(4, "little") + turn.to_bytes(2, "little") + b"\0\0"
+                tiff += (0).to_bytes(4, "little")
+                body = b"Exif\0\0" + tiff
+                app1 = b"\xff\xe1" + (len(body) + 2).to_bytes(2, "big") + body
+            sof = b"\xff\xc0" + (17).to_bytes(2, "big") + b"\x08" + h.to_bytes(2, "big") + w.to_bytes(2, "big") + b"\x03" + b"\x01\x11\x00\x02\x11\x00\x03\x11\x00"
+            return b"\xff\xd8" + app1 + sof + b"\xff\xd9"
+
+        for name, turn, want in [("side.jpg", 6, "EXIF orientation (6) turns it"), ("upright.jpg", 1, None), ("bare.jpg", None, None)]:
+            with open(os.path.join(adir, "images", name), "wb") as f:
+                f.write(jpeg(1600, 1200, turn))
+            em = copy.deepcopy(example)
+            em["assets"]["counter"].update(src="images/" + name, width=1600, height=1200)
+            em["assets"]["counter"].pop("sources", None)
+            ep, _ = render(em, blocks, os.path.join(tmp, "exif-" + name), adir, placeholders=True, today="2026-10-27")
+            if want:
+                row(any(want in x for x in ep), "must fail: a photo stored on its side with an EXIF tag that turns it (shown turned, sideways once a CDN strips the tag)", "; ".join(ep[:2]) or "rendered")
+            else:
+                row(not any("EXIF" in x or "header" in x for x in ep), f"positive: a JPEG with {'orientation 1' if turn else 'no EXIF'} is read as stored", "; ".join(ep[:2]))
+        for name, data, want in [
+            ("trunc.jpg", b"\xff\xd8\xff\xe0\x00\x10JFIF\x00", "cannot be read from its header"),
+            ("zero.gif", b"GIF89a\x00\x00\x00\x00" + b"\x00" * 20, "which no web photo is"),
+        ]:
+            with open(os.path.join(adir, "images", name), "wb") as f:
+                f.write(data)
+            zm = copy.deepcopy(example)
+            zm["assets"]["counter"].update(src="images/" + name)
+            zm["assets"]["counter"].pop("sources", None)
+            zp, _ = render(zm, blocks, os.path.join(tmp, "bad-" + name), adir, placeholders=True, today="2026-10-27")
+            row(any(want in x for x in zp), f"must fail: an image whose header gives no usable size ({name})", "; ".join(zp[:2]) or "rendered")
         mp2, _ = render(example, blocks, os.path.join(tmp, "missing"), adir, placeholders=False, today="2026-10-27")
         row(any("is missing beside the manifest" in x for x in mp2), "must fail: a missing photo without --placeholders (it would ship a broken image)", "; ".join(mp2[:2]))
         # Nested expiry paths are dropped too.

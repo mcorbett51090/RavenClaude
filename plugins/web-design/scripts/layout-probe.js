@@ -49,6 +49,10 @@
  *                   broken across lines by overflow-wrap: its box is too narrow
  *   image-broken    an image that did not load
  *   image-distorted an image stretched off its natural aspect ratio (object-fit: fill)
+ *   image-ratio     the width/height the page declares (the img's, or the chosen
+ *                   <source>'s) are not the shape of the file the browser shows:
+ *                   a photo an EXIF orientation turns, or a wrong size in the
+ *                   manifest, so the reserved box, srcset and every crop are wrong
  *   image-upscaled  the file is enlarged to fill its box at min(DPR, 2)x: blurry
  *   image-oversized the file is more than 3x the pixels its box needs at 2x: wasted
  *                   bytes. With a srcset, only when a smaller candidate would still
@@ -923,6 +927,35 @@ async function layoutProbe(options) {
       const vector = /\.svg(\?|#|$)/i.test(src) || src.startsWith("data:image/svg");
       const file = files.get(img);
       if (!vector && file) {
+        // The shape the page declares: the chosen <source>'s width and height when
+        // it has them (an art-directed crop), else the img's. The decoded file is
+        // the shape the browser draws, an EXIF turn applied.
+        let decl = img;
+        if (img.parentElement && img.parentElement.tagName === "PICTURE") {
+          for (const so of img.parentElement.querySelectorAll("source")) {
+            const urls = (so.getAttribute("srcset") || "")
+              .split(",")
+              .map((c) => c.trim().split(/\s+/)[0])
+              .filter(Boolean)
+              .map((u) => new URL(u, document.baseURI).href);
+            if (urls.includes(img.currentSrc)) {
+              if (so.hasAttribute("width") && so.hasAttribute("height")) decl = so;
+              break;
+            }
+          }
+        }
+        const dw0 = parseFloat(decl.getAttribute("width"));
+        const dh0 = parseFloat(decl.getAttribute("height"));
+        if (dw0 > 0 && dh0 > 0) {
+          const said = dw0 / dh0;
+          const real = file[0] / file[1];
+          if (Math.abs(said - real) / real > 0.02)
+            add(
+              "image-ratio",
+              img,
+              `the page declares ${dw0}×${dh0} (${said.toFixed(2)}:1) for a file the browser shows as ${file[0]}×${file[1]} (${real.toFixed(2)}:1): an EXIF orientation that turns the photo, or a wrong size in the manifest. Save the photo upright and give its real size`,
+            );
+        }
         const [fw, fh] = file;
         const ar = fw / fh;
         let dw;

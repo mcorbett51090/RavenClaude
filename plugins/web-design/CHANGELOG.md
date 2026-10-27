@@ -27,7 +27,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - `tokens.css` declares `color-scheme`, which names the default theme: `light dark`, a dark-first `dark light`, or
     one theme only. The tokens gate checks the themes it names.
 - **`scripts/block_site_check.py`** (stdlib): `catalog`, `manifest`, `tokens` and `fixtures`, with a `--self-test`
-  of 138 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
+  of 140 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
   sizes for the box each is drawn in, and reads `oklch()` and other colour syntaxes. Every `tel:` link must dial the
   business's phone, a contract's `variantLinks` holds a variant to its label (`call` is a `tel:` link), and
   `endpointProps` must be a real form endpoint. A link, endpoint or asset path with a backslash or a control
@@ -43,11 +43,12 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   reaches another site unasked, and anything a browser's parser could read differently (a repeated attribute, SVG
   outside a short allow-list), and runs its HTML checks. It records what it wrote beside the output folder, with a
   digest of each file, so the next render removes a page gone from the manifest and never touches a file it did not
-  write. It checks each photo's bytes and reads its real size, shows photo credits, writes `color-scheme` and
+  write. It checks each photo's bytes, reads its real size, refuses one whose EXIF orientation turns it, shows photo credits, writes `color-scheme` and
   `theme-color` meta, leaves past events off the page, gives a gallery `sizes` per width from its photo count, marks
   chrome in another language with its `lang`, and writes every `tel:` link with the country calling code.
-- **`scripts/layout-probe.js`**: 35 rendered-page checks in a dependency-free async browser function, including
-  figures split across lines and the contrast of field edges and focus rings.
+- **`scripts/layout-probe.js`**: 36 rendered-page checks in a dependency-free async browser function, including
+  figures split across lines, the contrast of field edges and focus rings, and `image-ratio` (a file whose shape is
+  not the one the page declares, as when an EXIF tag turns a photo).
 - **`scripts/device_matrix.mjs`**: runs the probe across 28 viewports, ±1px around every `@media` width, and an
   optional sweep. Its quick rows run six themes with real desktop scrollbars, plus photo-contrast on composited
   pixels (ported from the owner's factory). `text-hidden` finds words no reader can see (covered, masked or faded
@@ -62,7 +63,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - It measures all 18 count × width cells of the card grid.
   - A layout shift counts only when it repeats in 5 of 5 loads (the measured reason is in the knowledge file §11).
 - **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
-  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 62 measured
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 65 measured
   pitfalls.
 - **Command:** `/web-design:new-block-site`, gated step by step.
 

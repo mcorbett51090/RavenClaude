@@ -387,12 +387,34 @@ def check_catalog(catalog, block_schema):
 # ─── manifest ────────────────────────────────────────────────────────────────
 
 # Upper-case words only ('Todos Santos' is a place), and a template's slot
-# written as [Business Name] or <Street address>: a bracket that names a slot,
-# not [GF] on a menu or an editor's [They] in a quote.
-SLOT_WORDS = r"name|address|street|city|phone|email|business|company|date|title|description|insert|your|number|zip|postcode|state|price|link|url|image|photo|logo|tagline|headline|text|here"
-PLACEHOLDER_CASED = re.compile(
-    r"\b(TODO|TBD|TBC|XXX|FIXME)\b|[\[<](?=[^\]>]{0,40}\b(?i:" + SLOT_WORDS + r")\b)[A-Z][A-Za-z .'/-]{1,40}[\]>]"
+# written as [Business Name] or <Street address>: a bracket made only of slot
+# words, not [GF] on a menu, an editor's [They] in a quote, or [Market Price].
+SLOT_WORDS = set(
+    "name address street city phone email business company date title description insert enter your number zip "
+    "postcode state price link url image photo logo tagline headline text here owner contact website hours "
+    "telephone mobile caption quote author year time amount".split()
 )
+SLOT_FILLER = {"the", "a", "an", "of", "s", "here", "our", "this", "full", "first", "last"}
+TODO_WORD = re.compile(r"\b(TODO|TBD|TBC|XXX|FIXME)\b")
+BRACKETED = re.compile(r"[\[<]([A-Z][A-Za-z .'/-]{1,40})[\]>]")
+
+
+class _Placeholder:
+    """search(s): a TODO marker, or a bracket whose every word is a slot word
+    (and at least one is): [Business Name], <Street address>, [Insert phone here]."""
+
+    @staticmethod
+    def search(s):
+        if TODO_WORD.search(s):
+            return True
+        for m in BRACKETED.finditer(s):
+            words = [w.lower() for w in re.findall(r"[A-Za-z]+", m.group(1))]
+            if any(w in SLOT_WORDS for w in words) and all(w in SLOT_WORDS or w in SLOT_FILLER for w in words):
+                return True
+        return False
+
+
+PLACEHOLDER_CASED = _Placeholder()
 PLACEHOLDER_ANY = re.compile(r"lorem ipsum|\{\{[^}]*\}\}|^\s*(n/a|\?+)\s*\Z", re.IGNORECASE)
 DARK = {"inverse", "media"}
 # How wide a frame on each grid line can be drawn, in CSS px, when its contract
@@ -1261,8 +1283,9 @@ def stress_business(today=None):
 def make_fixtures(blocks, today=None):
     pages = []
     for bid, b in sorted(blocks.items()):
-        for mode in ("min", "max", "long", "rtl"):
-            variant = b["variants"][0 if mode == "min" else -1] if b.get("variants") else None
+        for k, mode in enumerate(("min", "max", "long", "rtl")):
+            # Every variant gets a page: a block's middle variant is a layout too.
+            variant = b["variants"][k % len(b["variants"])] if b.get("variants") else None
             blk = {"type": bid, "props": gen(b["props"], mode, "", b, variant)}
             for ref in b.get("expires") or []:
                 _future_dates(blk["props"], ref, today)
@@ -1697,6 +1720,14 @@ def self_test():
         gf["pages"][3]["blocks"][1]["props"]["items"][0]["detail"] = "[GF] [VG] with grits"
         gp, _ = check_manifest(gf, blocks, mschema)
         row(not gp, "positive: dietary codes in brackets ([GF] [VG]) are copy, not a template slot", "; ".join(gp[:2]))
+        gf["pages"][3]["blocks"][1]["props"]["items"][0]["detail"] = "[Market Price]"
+        mpp, _ = check_manifest(gf, blocks, mschema)
+        row(not mpp, "positive: [Market Price] on a menu is copy, not a template slot (market is not a slot word)", "; ".join(mpp[:2]))
+        row(
+            all(PLACEHOLDER_CASED.search(x) for x in ("[Your Name]", "[Insert phone number here]", "<Street address>", "[Owner's Name]"))
+            and not any(PLACEHOLDER_CASED.search(x) for x in ("[Call for price]", "[Add your choice]", "[They]", "[The]")),
+            "placeholder: a bracket of slot words only is a template slot; one with a real word in it is copy",
+        )
         fa = copy.deepcopy(example)
         fa["pages"][3]["blocks"][1]["props"]["asOf"] = "2099-01-01"
         _, fw = check_manifest(fa, blocks, mschema)
