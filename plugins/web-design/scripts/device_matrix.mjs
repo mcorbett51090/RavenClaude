@@ -220,10 +220,14 @@ const TYPES = {
   ".xml": "application/xml",
   ".webmanifest": "application/manifest+json",
 };
-function serve(root) {
+/** Serve a built site. `prefixes` are the manifests' basePaths: a site built to
+ *  live under /clinic/ links to /clinic/tokens.css, which is dist/tokens.css. */
+function serve(root, prefixes = []) {
   const base = resolve(root);
   const server = createServer((req, res) => {
     let p = decodeURIComponent(new URL(req.url, "http://x").pathname);
+    const prefix = prefixes.find((x) => x !== "/" && p.startsWith(x));
+    if (prefix) p = "/" + p.slice(prefix.length);
     let f = normalize(join(base, p));
     if (f !== base && !f.startsWith(base + sep)) {
       res.writeHead(403).end();
@@ -258,10 +262,35 @@ async function probePage(page, expectedWidth, skip = []) {
 }
 
 /** Load a URL; a page that does not answer 2xx is a failure, never a silent pass. */
+const ANALYTICS = /googletagmanager\.com|google-analytics\.com|cloudflareinsights\.com/;
+/** Load a URL; a page that does not answer 2xx is a failure, never a silent pass,
+ *  and so is a page whose stylesheet or script did not load: everything measured
+ *  on it would be the browser's defaults, not the site. */
 async function load(page, url) {
-  const res = await page.goto(url, { waitUntil: "load" });
+  const broken = [];
+  const kinds = new Set(["stylesheet", "script"]);
+  const onResponse = (r) => {
+    if (kinds.has(r.request().resourceType()) && r.status() >= 400)
+      broken.push(`${r.url()} answered ${r.status()}`);
+  };
+  const onFailed = (q) => {
+    if (kinds.has(q.resourceType()) && !ANALYTICS.test(q.url())) broken.push(`${q.url()} failed`);
+  };
+  page.on("response", onResponse);
+  page.on("requestfailed", onFailed);
+  let res;
+  try {
+    res = await page.goto(url, { waitUntil: "load" });
+  } finally {
+    page.off("response", onResponse);
+    page.off("requestfailed", onFailed);
+  }
   if (!res || res.status() < 200 || res.status() > 299)
     throw new Error(`${url} answered ${res ? res.status() : "nothing"}; check --pages`);
+  if (broken.length)
+    throw new Error(
+      `${url}: ${broken[0]}${broken.length > 1 ? ` (and ${broken.length - 1} more)` : ""}; the page rendered without it, so its layout is not the site's (check --dir, and the manifest's basePath)`,
+    );
 }
 
 // A layout shift is a finding only when it repeats in every one of this many loads.
@@ -352,9 +381,7 @@ async function newStateContext(browser, v, theme) {
     ...THEMES[theme],
   });
   await ctx.addInitScript(CLS_OBSERVER);
-  await ctx.route(/googletagmanager\.com|google-analytics\.com|cloudflareinsights\.com/, (r) =>
-    r.abort(),
-  );
+  await ctx.route(ANALYTICS, (r) => r.abort());
   return ctx;
 }
 
@@ -649,6 +676,7 @@ async function runMatrix({
       );
 
     const navChecked = new Set();
+    const shiftNotes = [];
     const rows = [
       ...viewports.map((v) => ({ ...v, themes: v.quick ? themes : ["light"] })),
       ...edges.map((v) => ({ ...v, themes: ["light"] })),
@@ -683,8 +711,8 @@ async function runMatrix({
             const shifted = 1 + (await reloadShifts(browser, v, theme, url, SHIFT_LOADS - 1));
             if (shifted < SHIFT_LOADS) {
               f = f.filter((x) => x.id !== "layout-shift");
-              notes.add(
-                `layout shift on ${new URL(url).pathname} @ ${v.id} ${theme} in ${shifted} of ${SHIFT_LOADS} loads: not reproducible, so not a finding (see the header)`,
+              shiftNotes.push(
+                `${new URL(url).pathname} @ ${v.id} ${theme} (${shifted}/${SHIFT_LOADS})`,
               );
             } else {
               f = f.map((x) =>
@@ -720,9 +748,7 @@ async function runMatrix({
                   msg: `the inline nav never shows at any width: ${said}. Set chrome.menuBelow to ${pin}`,
                 });
               else if (fit.at - fit.need > 0.15 * fit.need)
-                notes.add(
-                  `header (${new URL(url).pathname}): ${said}; chrome.menuBelow: ${pin} would show the links sooner`,
-                );
+                notes.add(`header: ${said}; chrome.menuBelow: ${pin} would show the links sooner`);
             }
           }
           for (const x of f) findings.push({ ...x, url, vp: `${v.id} ${v.w}×${v.h}`, theme });
@@ -764,6 +790,10 @@ async function runMatrix({
       }
       await ctx.close();
     }
+    if (shiftNotes.length)
+      notes.add(
+        `layout shift that did not repeat in ${SHIFT_LOADS} of ${SHIFT_LOADS} loads, on ${shiftNotes.length} page state(s): not findings (see the header). ${shiftNotes.slice(0, 3).join("; ")}${shiftNotes.length > 3 ? "; …" : ""}`,
+      );
     if (photoStats.photoTexts)
       notes.add(
         `photo-contrast: ${photoStats.photoTexts} line(s) over photos scored; lowest ${photoStats.minPhotoAt} (${(photoStats.minPhoto * 100).toFixed(0)}% of its bar)${photoStats.photoUnscored ? `; ${photoStats.photoUnscored} could not be scored` : ""}`,
@@ -1394,10 +1424,37 @@ async function selfTest(chromium, launch) {
   writeFileSync(join(dir, "small.png"), png(64, 64, [40, 90, 160]));
   for (const n of [1, 2, 3, 4, 5, 6])
     writeFileSync(join(dir, `cards-${n}.html`), page({ cards: n }));
+  const photoCard = (i) =>
+    `<article class="card stack"><div class="frame" style="--ratio: 1"><img src="/story.png" width="1200" height="900" alt="Person ${i}"></div><h3>Person ${i}</h3></article>`;
+  for (const n of [1, 3])
+    writeFileSync(
+      join(dir, `photo-cards-${n}.html`),
+      page({
+        extra: sec(
+          `<div class="cards" id="pc">${Array.from({ length: n }, (_, i) => photoCard(i + 1)).join("")}</div>`,
+        ),
+      }),
+    );
   MUTATIONS.forEach((m, i) =>
     writeFileSync(join(dir, `m${i}.html`), page({ ...m.html, cards: m.cards ?? 5 })),
   );
   CLEAN.forEach((m, i) => writeFileSync(join(dir, `c${i}.html`), page(m.html)));
+  writeFileSync(
+    join(dir, "nocss.html"),
+    page({ head: `<link rel="stylesheet" href="/missing.css">` }),
+  );
+  // The example built for a subpath, into its own folder, as a site under /shop/ is.
+  writeFileSync(join(src, "shop.json"), JSON.stringify({ ...exampleManifest, basePath: "/shop/" }));
+  py([
+    RENDER,
+    "render",
+    join(src, "shop.json"),
+    "--catalog",
+    join(KIT_DIR, "catalog.json"),
+    "--out",
+    join(dir, "shop"),
+    "--placeholders",
+  ]);
   writeFileSync(
     join(dir, "gradient.html"),
     page({
@@ -1509,6 +1566,36 @@ async function selfTest(chromium, launch) {
             got === want ? "" : `got ${got}`,
           );
         }
+        await ctx.close();
+      }
+      // Photo cards never stretch: an odd last one keeps a column's width, centred,
+      // and a lone one is a centred third on the six-track grid.
+      for (const [vpId, n, want] of [
+        ["ipad", 3, "equal widths, the last centred"],
+        ["laptop", 1, "a centred third"],
+      ]) {
+        const v = VIEWPORTS.find((x) => x.id === vpId);
+        const ctx = await browser.newContext({
+          viewport: { width: v.w, height: v.h },
+          deviceScaleFactor: v.dpr,
+        });
+        const pg = await ctx.newPage();
+        await load(pg, `${origin}/photo-cards-${n}.html`);
+        const m = await pg.evaluate(() => {
+          const g = document.querySelector("#pc").getBoundingClientRect();
+          const k = [...document.querySelectorAll("#pc > *")].map((e) => e.getBoundingClientRect());
+          const last = k[k.length - 1];
+          return {
+            widths: k.map((r) => Math.round(r.width)),
+            centred: Math.abs(last.left + last.width / 2 - (g.left + g.width / 2)) < 2,
+            share: last.width / g.width,
+          };
+        });
+        const ok =
+          n === 3
+            ? Math.abs(m.widths[2] - m.widths[0]) <= 1 && m.centred
+            : m.centred && m.share > 0.3 && m.share < 0.36;
+        row(ok, `photo cards: ${n} @ ${vpId} lay out as ${want}`, JSON.stringify(m));
         await ctx.close();
       }
       // Themes the tokens promise: "more contrast" must change the dark theme too.
@@ -1704,6 +1791,23 @@ async function selfTest(chromium, launch) {
       (await main(["--dir", dir, "--sweep", "1600:320:8"])) === 2,
       "harness: a sweep that runs backwards (no states) is refused (exit 2)",
     );
+    row(
+      (await main(["--dir", dir, "--pages", "/nocss.html", "--themes", "light", "--no-photo"])) ===
+        2,
+      "harness: a page whose stylesheet did not load stops the run (exit 2): its layout is not the site's",
+    );
+    row(
+      (await main([
+        "--dir",
+        join(dir, "shop"),
+        "--manifest",
+        join(src, "shop.json"),
+        "--themes",
+        "light",
+        "--no-photo",
+      ])) === 0,
+      "harness: a site built for a basePath (/shop/) is served and tested there from --dir, and is clean",
+    );
   } finally {
     server.close();
     rmSync(dir, { recursive: true, force: true });
@@ -1760,12 +1864,17 @@ async function main(argv) {
     console.error("device-matrix: --sweep FROM:TO:STEP with FROM <= TO, e.g. 320:1600:8");
     return 2;
   }
+  const prefixes = [];
   for (const m of args.manifests) {
     if (!existsSync(m)) {
       console.error(`device-matrix: no such manifest ${m}`);
       return 2;
     }
-    const fromManifest = JSON.parse(readFileSync(m, "utf8")).pages.map((p) => p.path);
+    const doc = JSON.parse(readFileSync(m, "utf8"));
+    // A site served under a subpath is tested there: its links say /clinic/….
+    const prefix = doc.basePath || "/";
+    if (prefix !== "/") prefixes.push(prefix);
+    const fromManifest = doc.pages.map((p) => prefix + p.path.replace(/^\//, ""));
     args.pages = [...(args.pages || []), ...fromManifest];
   }
   const pages = args.pages || ["/"];
@@ -1792,7 +1901,7 @@ async function main(argv) {
       console.error(`device-matrix: no such directory ${args.dir}`);
       return 2;
     }
-    const s = await serve(args.dir);
+    const s = await serve(args.dir, prefixes);
     server = s.server;
     urls.push(...pages.map((p) => s.origin + (p.startsWith("/") ? p : `/${p}`)));
   }

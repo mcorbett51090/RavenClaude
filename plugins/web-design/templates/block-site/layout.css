@@ -374,6 +374,13 @@
     .cards > :last-child:nth-child(odd) {
       grid-column: 1 / -1;
     }
+    /* A card with a photo never stretches: its photo would be drawn at the whole
+       slot's width (an 889px portrait among 403px ones). It keeps a column's
+       width, centred, so a photo card is never wider than half the slot. */
+    .cards > :last-child:nth-child(odd):has(.frame) {
+      justify-self: center;
+      inline-size: calc((100% - var(--grid-gap, var(--space-m))) / 2);
+    }
   }
   @container (min-width: 64rem) {
     .cards {
@@ -385,6 +392,15 @@
     }
     .cards:has(> :last-child:nth-child(1)) > * {
       grid-column: 2 / span 4;
+    }
+    /* Six tracks: every card is a third or a half already. A lone photo card
+       is a centred third, not two-thirds. */
+    .cards > :last-child:nth-child(odd):has(.frame) {
+      justify-self: stretch;
+      inline-size: auto;
+    }
+    .cards:has(> :last-child:nth-child(1)) > :has(.frame) {
+      grid-column: 3 / span 2;
     }
     .cards:has(> :last-child:nth-child(2)) > *,
     .cards:has(> :last-child:nth-child(4)) > * {

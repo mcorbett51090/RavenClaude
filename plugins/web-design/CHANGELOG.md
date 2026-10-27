@@ -25,7 +25,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - `example.manifest.json`: a three-page site that uses every exemplar. The kit's README carries the 15-block
     canonical catalog.
 - **`scripts/block_site_check.py`** (stdlib): `catalog`, `manifest`, `tokens` and `fixtures`, with a `--self-test`
-  of 102 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
+  of 107 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
   sizes for the box each is drawn in, and reads `oklch()` and other colour syntaxes. Every `tel:` link must dial the
   business's phone, a contract's `variantLinks` holds a variant to its label (`call` is a `tel:` link), and
   `endpointProps` must be a real form endpoint.
@@ -44,7 +44,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - It measures all 18 count × width cells of the card grid.
   - A layout shift counts only when it repeats in 5 of 5 loads (the measured reason is in the knowledge file §11).
 - **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
-  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 33 measured
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 37 measured
   pitfalls.
 - **Command:** `/web-design:new-block-site`, gated step by step.
 

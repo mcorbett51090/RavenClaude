@@ -703,10 +703,15 @@ async function layoutProbe(options) {
       if (ordered.length < 2) continue;
       const last = ordered[ordered.length - 1];
       const gr = g.getBoundingClientRect();
+      const lr = last[0].getBoundingClientRect();
+      // Centred on purpose (a photo card that keeps its column's width) is not
+      // stranded: only one left at the start edge, with a hole beside it, is.
+      const centred = Math.abs(lr.left + lr.width / 2 - (gr.left + gr.width / 2)) < 2;
       if (
         last.length === 1 &&
+        !centred &&
         ordered.some((r) => r.length >= 2) &&
-        last[0].getBoundingClientRect().width < 0.6 * gr.width
+        lr.width < 0.6 * gr.width
       ) {
         add(
           "orphan-row",

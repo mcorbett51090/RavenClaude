@@ -51,7 +51,9 @@ Every step ends at a gate that must pass before the next one starts.
 3. **Choose blocks from [the catalog](#the-block-catalog).** Pick by purpose, never by look. Copy an exemplar contract
    from `catalog.json` for each block you need and fill it in: closed props, every string and list bounded, its slots,
    media boxes, the facts it `requires`, a11y and truth. A media box's `maxWidth` is the widest the frame is ever drawn,
-   at any width and any item count: a card in a two-up row of `.cards` is about half the slot (576px), not a third. Keep them in one `catalog.json`, or split them into
+   at any width and any item count: a photo card in `.cards` is at most half the slot (576px), because an odd last
+   photo card keeps a column's width, centred, instead of stretching. A string with a `pattern` needs `examples`
+   (values that match), so the fixtures can fill it. Keep the contracts in one `catalog.json`, or split them into
    `catalog/<id>/block.json` beside each component once the catalog grows; the checker reads either form.
    - **Gate:** `block_site_check.py catalog site/catalog.json`. It refuses props it cannot prove closed and bounded
      (`$ref`, `anyOf`, type lists), styling props, and a `variant` written into props.
@@ -66,11 +68,17 @@ Every step ends at a gate that must pass before the next one starts.
    full-bleed photo that crops badly on a phone. Write the phone as printed, in digits (`(251) 555-0100 ext. 12`):
    every `tel:` link on the site must dial it. Set `lang`; `dir` follows the language's script unless you set it.
    Set `origin` (canonical URLs, JSON-LD and `sitemap.xml`), `basePath` if the site is served under a subpath,
-   `shareImage` (an asset with alt, 1200px wide, for link previews) and `icon`.
-   - **Gate:** `block_site_check.py manifest site.manifest.json --catalog site/catalog.json`. Read its warnings too:
-     they include any photo too small, at 2x, for the box it is drawn in.
-6. **Render** with `block_site_render.py render site.manifest.json --catalog site/catalog.json --blocks site/blocks.py
-   --out dist`, or with your framework: one component per block type, in manifest order, with `tone` and `space` from
+   `shareImage` (an asset with alt, 1200px wide, for link previews) and `icon`. Mark an emergency-only line's hours
+   `"kind": "emergency"`: they show under their own heading and are never published as opening hours.
+   - **Another language.** The renderer writes some words itself (Menu, Get directions, Call, day and month names,
+     Closed, Special days, (required), Skip to content). Give them in the site's language in `strings`, and a page in
+     a second language its own `strings` and `alternates` (hreflang). One manifest per language, each with its own
+     `basePath` and `chrome`, is the cleaner shape for a whole second-language site.
+   - **Gate:** `block_site_check.py manifest site/site.manifest.json --catalog site/catalog.json`. Read its warnings
+     too: they include any photo too small, at 2x, for the box it is drawn in, and a non-English page without
+     strings.
+6. **Render** with `block_site_render.py render site/site.manifest.json --catalog site/catalog.json --blocks
+   site/blocks.py --out dist` (the flags go in any order), or with your framework: one component per block type, in manifest order, with `tone` and `space` from
    the manifest or the contract's defaults. The stylesheets come from beside the catalog (your branded copy), and the
    run prints which it used: a line saying "the kit's own" means your brand did not reach `dist`.
    - **Gate:** the renderer runs the manifest check first and refuses on any problem. It then checks its own HTML:
@@ -78,13 +86,19 @@ Every step ends at a gate that must pass before the next one starts.
      and the JSON-LD parses with hours that match the rows shown.
 7. **Stress it.** `block_site_check.py fixtures site/catalog.json --out stress/stress.manifest.json` writes every
    block at its minimum, its maximum, one unbreakable word at full length, and in Arabic right-to-left. The pages
-   carry the longest header the schema allows and a near-white stress photo. Render them into the same `dist`.
+   carry the longest header and address the schema allows and a near-white stress photo. Render them into their own
+   folder, never into `dist`, so they are never published: `block_site_render.py render stress/stress.manifest.json
+   --catalog site/catalog.json --blocks site/blocks.py --out stress/dist`.
    - **Gate:** step 8 runs on these pages too.
-8. **Prove it.**
-   `node <plugin>/scripts/device_matrix.mjs --dir dist --manifest site.manifest.json --manifest stress/stress.manifest.json --full --sweep 320:1600:8`.
-   Save visual baselines with `--shots`, look at element screenshots at 390 and 1280px in both themes, then check on
-   a real iPhone and iPad.
-   - **Gate:** zero findings, and the screenshots look right.
+8. **Prove it.** Two runs:
+   - the site, everything: `node <plugin>/scripts/device_matrix.mjs --dir dist --manifest site/site.manifest.json
+     --full --sweep 320:1600:8` (5 pages took about 6 minutes);
+   - the stress pages, one theme: `node <plugin>/scripts/device_matrix.mjs --dir stress/dist --manifest
+     stress/stress.manifest.json --themes light` (48 pages in six themes took 31 minutes; one theme is a sixth).
+   A site with a `basePath` is served and tested under it. Save visual baselines with `--shots`, look at element
+   screenshots at 390 and 1280px in both themes, then check on a real iPhone and iPad.
+   - **Gate:** zero findings, and the screenshots look right. A run that cannot load a page's stylesheet stops with
+     a reason instead of measuring the browser's defaults.
 
 ## The block catalog
 
@@ -110,7 +124,7 @@ How to read a row:
 | ✓ `testimonial` | one quote with attribution / quotes without permission | 2 | surface · canvas | content | figure at the prose measure | quote ≤ 280, name ≤ 80, context ≤ 80, `permission: true` | — | quoted word for word, with permission, and where and when |
 | `price-list` | menu or service prices, exactly as published | 2 | canvas · surface | content | grid with a subgrid row per item; tabular numbers | ≤ 40 items; name ≤ 60, price ≤ 12, note ≤ 120 | — | prices exactly as published, dated |
 | `services-list` | 3–8 services with a line each | 2 | canvas · surface | content | count-aware `.cards`, or a two-column subgrid list | ≤ 8 items | optional icon enum | — |
-| `team-grid` | people who agreed to be shown | 2 | canvas · surface | content | count-aware `.cards` | ≤ 6 people; name ≤ 48, role ≤ 48, bio ≤ 200 | 1/1 `half-content`, `maxWidth` 600: `.cards` puts 2 or 4 people two to a row, so a portrait is drawn up to half the slot, not a third | only people who consented; business-own or commissioned photos |
+| `team-grid` | people who agreed to be shown | 2 | canvas · surface | content | count-aware `.cards` | ≤ 6 people; name ≤ 48, role ≤ 48, bio ≤ 200 | 1/1 `half-content`, `maxWidth` 600: two to a row at most widths, and an odd last photo card keeps that width, centred | only people who consented; business-own or commissioned photos |
 | `gallery-grid` | 3–12 photos of the place or the work | 2 | canvas · surface | wide | `.auto-grid` of frames marked `data-ragged` (no masonry: mixed ratios leave ragged column bottoms) | 3–12 images | 4/3 or 1/1 frames, lazy | business-own photos; alt written while looking |
 | ✓ `faq-list` | 3–8 real questions customers ask | 2 | surface · canvas | content | stack of `details`; prose measure | 3–8 items; question ≤ 100, answer ≤ 400 | — | FAQPage JSON-LD only if Google still shows it for the type |
 | ✓ `hours-location` | address, hours, special days and directions for a place customers visit / a service-area business → show the area | 2 | canvas · surface | content | switcher at 40rem; hours as a subgrid `dl` with `align-content: start` | heading ≤ 60, note ≤ 160; `requires` address and hours | — | hours from the business's structured hours, the same source as the JSON-LD |
@@ -172,6 +186,26 @@ Rules every block follows (checked by `block_site_check.py` and `layout-probe.js
   forced colours.
 - Anything inside an inverse or photo band reads the same colour roles as on the page, and the band re-points them,
   so a card or a form field there stays legible.
+
+### A render function
+
+`def b_my_block(props, ctx) -> str` returns the section's inner HTML; the renderer writes the `<section>` with its
+`data-*` attributes and `aria-labelledby`. Escape every prop: `e()` for text, `a()` for a quoted attribute value.
+`picture()`, `img()`, `icon()` and `phone_text()` are the kit's own helpers, importable the same way. `ctx` holds:
+
+| Key | Value |
+|---|---|
+| `manifest` | the whole manifest: business facts, assets, chrome |
+| `contract` | this block's contract from the catalog (its `media` gives the frame for `picture()`) |
+| `variant` | the instance's variant, or the contract's first |
+| `hid` | the id this block's heading must carry: the section is `aria-labelledby` it |
+| `bid` | this block's short id on the page (`b3`), to prefix any id inside it |
+| `lang`, `rtl` | the page's language, and whether it reads right to left |
+| `today` | the render date (ISO), for anything dated |
+| `ui` | the renderer's own words in the page's language (`strings` over English) |
+
+A `RENDER` entry under an exemplar's id replaces the kit's function for that block, for example a contact form with
+fields the exemplar does not offer. Change that block's contract first, so the checker knows its props.
 
 ## Proving the kit itself
 

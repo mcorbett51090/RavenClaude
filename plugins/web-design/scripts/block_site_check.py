@@ -247,6 +247,14 @@ def prop_paths(schema, path=""):
     return out
 
 
+def fixed_pattern(pattern):
+    """A pattern anchored at both ends with no open-ended repeat (*, +, {n,})
+    bounds a string's length by itself: ^20[0-9]{2}-[0-1][0-9]$ needs no maxLength."""
+    if not isinstance(pattern, str) or not pattern.startswith("^") or not pattern.endswith("$"):
+        return False
+    return not re.search(r"(?<!\\)[*+]|\{\d+,\}", pattern)
+
+
 def check_catalog(catalog, block_schema):
     if not os.path.exists(catalog):
         return [f"{catalog}: no such catalog file or directory"], {}
@@ -288,7 +296,7 @@ def check_catalog(catalog, block_schema):
                 for name in node.get("properties") or {}:
                     if name != "variant" and STYLE_NAME.search(name):
                         problems.append(f"{where}: {p}.{name} looks like a styling prop; styling comes from tokens and variants, never from content")
-            if t == "string" and not any(k in node for k in ("maxLength", "enum", "const")):
+            if t == "string" and not any(k in node for k in ("maxLength", "enum", "const")) and not fixed_pattern(node.get("pattern")):
                 problems.append(f"{where}: {p} is an unbounded string (give it maxLength): an unbounded string has no worst case to test, so no width can be proven to fit it")
             if t == "array" and "maxItems" not in node:
                 problems.append(f"{where}: {p} is an unbounded list (give it maxItems)")
@@ -309,6 +317,17 @@ def check_catalog(catalog, block_schema):
             for path, node in walk_props(props)
             if isinstance(node, dict) and (node.get("type") == "string" or (node.get("type") == "array" and (node.get("items") or {}).get("type") == "string"))
         }
+        for path, node in walk_props(props):
+            ref = path[len("props.") :]
+            if not isinstance(node, dict) or node.get("type") != "string" or "pattern" not in node or ref in declared:
+                continue
+            ex = node.get("examples")
+            if not isinstance(ex, list) or not ex:
+                problems.append(f"{where}: {ref} has a pattern; give it examples (values that match), so the fixtures can fill it")
+                continue
+            for x in ex:
+                for err in validate({k: v for k, v in node.items() if k != "examples"}, x, None, f"{ref} example"):
+                    problems.append(f"{where}: {err}")
         for ref in sorted(strings & paths):
             if LINKISH.search(ref.split(".")[-1].replace("[]", "")) and ref not in declared:
                 problems.append(
@@ -549,7 +568,7 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
     ):
         warnings.append("chrome links to an email address the business facts do not list")
 
-    for spath, s in _strings(chrome, "chrome"):
+    for spath, s in list(_strings(chrome, "chrome")) + list(_strings(manifest.get("strings") or {}, "strings")):
         if PLACEHOLDER_CASED.search(s) or PLACEHOLDER_ANY.search(s):
             problems.append(f"{spath} holds placeholder text {s[:40]!r}")
     decorative_ok = set()
@@ -559,6 +578,21 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
         for key in ("title", "description"):
             if PLACEHOLDER_CASED.search(page[key]) or PLACEHOLDER_ANY.search(page[key]):
                 problems.append(f"{where}: {key} holds placeholder text {page[key][:40]!r}")
+        for spath, s in _strings(page.get("strings") or {}, "strings"):
+            if PLACEHOLDER_CASED.search(s) or PLACEHOLDER_ANY.search(s):
+                problems.append(f"{where}: {spath} holds placeholder text {s[:40]!r}")
+        # The renderer's own words (Menu, Get directions, day names…) are English
+        # unless the manifest gives them in the page's language.
+        lang = page.get("lang") or manifest["lang"]
+        own = page.get("strings") if page.get("lang") and page["lang"] != manifest["lang"] else manifest.get("strings")
+        if not lang.lower().startswith("en") and not own:
+            warnings.append(
+                f"{where} is in {lang!r} but has no strings: its menu, directions, day and month names and other labels render in English"
+                + (" (give the page its own strings)" if page.get("lang") and page["lang"] != manifest["lang"] else " (give the manifest strings)")
+            )
+        for i, alt in enumerate(page.get("alternates") or []):
+            if alt["href"].startswith("/") and alt["href"].split("#")[0] not in paths:
+                problems.append(f"{where}: alternates[{i}] links to {alt['href']}, which is not a page in this manifest")
         seq = page["blocks"]
         anchors = {bl["anchor"] for bl in seq if "anchor" in bl} | {"main"}
         names = [bl["anchor"] for bl in seq if "anchor" in bl]
@@ -912,6 +946,21 @@ def check_tokens(css):
 WORDS = "breakfast counter biscuits coffee morning griddle neighbours table window kitchen recipe Saturday harbour bakery orchard".split()
 LONG = "Donaudampfschifffahrtsgesellschaftskapitänswitwe"
 RTL = "جاءت المنضدة مع المبنى وما زالت بطاقات الوصفات في العلبة نفسها"
+# The renderer's own words in Arabic, for the stress fixtures' right-to-left pages.
+RTL_STRINGS = {
+    "skip": "انتقل إلى المحتوى",
+    "menu": "القائمة",
+    "directions": "الاتجاهات",
+    "opensMap": "(يفتح خريطة)",
+    "call": "اتصل",
+    "closed": "مغلق",
+    "specialDays": "أيام خاصة",
+    "emergency": "للطوارئ فقط",
+    "required": "(مطلوب)",
+    "open24": "مفتوح 24 ساعة",
+    "days": ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"],
+    "months": ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"],
+}
 
 
 def _text(n, mode):
@@ -959,6 +1008,8 @@ def gen(schema, mode, path, block, variant=None):
         n = schema.get("minItems", 1) if mode == "min" else schema.get("maxItems", 3)
         item_path = f"{path}[]"
         return [gen(schema.get("items", {"type": "string", "maxLength": 20}), mode, item_path, block, variant) for _ in range(max(n, 0))]
+    if t == "string" and schema.get("examples"):
+        return schema["examples"][0 if mode == "min" else -1]
     if t == "string":
         if "pattern" in schema:
             if "%" in schema["pattern"]:
@@ -1034,7 +1085,7 @@ def make_fixtures(blocks, today=None):
                 "blocks": seq,
             }
             if mode == "rtl":
-                page.update(lang="ar", dir="rtl")
+                page.update(lang="ar", dir="rtl", strings=RTL_STRINGS)
             pages.append(page)
     paths = [p["path"] for p in pages]
     link = lambda i, n: {"label": _text(n, "max"), "href": paths[i % len(paths)]}  # noqa: E731
@@ -1198,6 +1249,33 @@ def self_test():
             edit("page-header", lambda b: b["props"]["properties"].update(link={"type": "string", "maxLength": 200})),
             "reads like a link",
         )
+        catalog_case(
+            "a patterned string with no examples (the fixtures could not fill it)",
+            edit("page-header", lambda b: b["props"]["properties"].update(asOf={"type": "string", "pattern": "^20[0-9]{2}-[01][0-9]-[0-3][0-9]$"})),
+            "give it examples",
+        )
+        catalog_case(
+            "an example that breaks its own pattern",
+            edit("page-header", lambda b: b["props"]["properties"].update(asOf={"type": "string", "pattern": "^20[0-9]{2}-[01][0-9]-[0-3][0-9]$", "examples": ["soon"]})),
+            "does not match",
+        )
+        ok_dated = copy.deepcopy(kit_bundle)
+        next(b for b in ok_dated["blocks"] if b["id"] == "page-header")["props"]["properties"]["asOf"] = {
+            "type": "string",
+            "pattern": "^20[0-9]{2}-[01][0-9]-[0-3][0-9]$",
+            "examples": ["2026-01-01", "2026-12-31"],
+        }
+        dp = os.path.join(tmp, "dated.json")
+        with open(dp, "w", encoding="utf-8") as f:
+            json.dump(ok_dated, f)
+        dprobs, dblocks = check_catalog(dp, bschema)
+        dfx = make_fixtures(dblocks, today="2026-10-27") if not dprobs else {"pages": []}
+        filled = [b["props"]["asOf"] for p in dfx["pages"] for b in p["blocks"] if b["type"] == "page-header" and "asOf" in b["props"]]
+        row(
+            not dprobs and filled and set(filled) <= {"2026-01-01", "2026-12-31"},
+            "positive: a fixed-length pattern needs no maxLength, and the fixtures fill it from its examples",
+            "; ".join(dprobs[:2]) or repr(filled[:3]),
+        )
         catalog_case("a frame ratio with a zero in it", edit("story-split", lambda b: b["media"][0].update(ratio="0 / 0")), "does not match")
         catalog_case("open props object", edit("cta-banner", lambda b: b["props"]["properties"]["action"].pop("additionalProperties")), "open object")
         catalog_case("unbounded string", edit("cta-banner", lambda b: b["props"]["properties"]["heading"].pop("maxLength")), "unbounded string")
@@ -1288,6 +1366,16 @@ def self_test():
 
         manifest_case("a form that posts to an in-page anchor", form_to_anchor, "a form posts to")
         manifest_case("placeholder text in a page title", lambda m: m["pages"][0].update(title="TODO home title"), "title holds placeholder")
+        es = copy.deepcopy(example)
+        es["pages"][1].update(lang="es")
+        _, w_es = check_manifest(es, blocks, mschema)
+        es["pages"][1]["strings"] = {"menu": "Menú", "closed": "Cerrado"}
+        _, w_es2 = check_manifest(es, blocks, mschema)
+        row(
+            any("in 'es' but has no strings" in x for x in w_es) and not any("has no strings" in x for x in w_es2),
+            "warns: a Spanish page with no strings (its labels would be English), and stops once it has them",
+        )
+        manifest_case("an alternate that is not a page", lambda m: m["pages"][0].update(alternates=[{"lang": "es", "href": "/es/"}]), "not a page in this manifest")
         manifest_case("an icon path that climbs out of the site (../)", lambda m: m.update(icon="../../outside.svg"), "does not match")
         manifest_case("an absolute icon path", lambda m: m.update(icon="/etc/icon.svg"), "does not match")
         manifest_case("a nav link to //host (another site that reads like a path)", lambda m: m["chrome"]["nav"][0].update(href="//evil.example/"), "a link is a path")

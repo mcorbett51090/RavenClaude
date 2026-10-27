@@ -47,6 +47,95 @@
       "pattern": "^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*[.](svg|png|ico)$",
       "maxLength": 120
     },
+    "strings": {
+      "description": "The words the renderer writes itself, in the site's language. Leave a key out for its English default. A page in a second language gives its own in the page's strings.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "skip": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Skip to content"
+        },
+        "menu": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Menu"
+        },
+        "directions": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Get directions"
+        },
+        "opensMap": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "(opens a map), read by screen readers after Get directions"
+        },
+        "call": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Call, before the phone number"
+        },
+        "closed": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Closed"
+        },
+        "specialDays": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Special days"
+        },
+        "emergency": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Emergencies only, the heading over emergency hours"
+        },
+        "required": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "(required), after a required field's label"
+        },
+        "open24": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Open 24 hours"
+        },
+        "days": {
+          "description": "Monday first.",
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20
+          }
+        },
+        "months": {
+          "description": "Short month names, January first.",
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 12
+          }
+        }
+      }
+    },
     "tier": {
       "description": "Optional: the plan the customer bought, if the catalog maps features to tiers.",
       "type": "string",
@@ -138,6 +227,10 @@
               "closes": {
                 "type": "string",
                 "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+              },
+              "kind": {
+                "description": "open (default): the business is open, and it is published as openingHoursSpecification. emergency: an emergency-only line, shown under its own heading and never published as opening hours.",
+                "enum": ["open", "emergency"]
               }
             }
           }
@@ -389,6 +482,116 @@
                   "type": "string",
                   "pattern": "^[a-z][a-z0-9-]*$",
                   "maxLength": 40
+                }
+              }
+            }
+          },
+          "strings": {
+            "description": "This page's own strings, when it is in another language than the site.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "skip": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Skip to content"
+              },
+              "menu": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Menu"
+              },
+              "directions": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Get directions"
+              },
+              "opensMap": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "(opens a map), read by screen readers after Get directions"
+              },
+              "call": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Call, before the phone number"
+              },
+              "closed": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Closed"
+              },
+              "specialDays": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Special days"
+              },
+              "emergency": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Emergencies only, the heading over emergency hours"
+              },
+              "required": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "(required), after a required field's label"
+              },
+              "open24": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Open 24 hours"
+              },
+              "days": {
+                "description": "Monday first.",
+                "type": "array",
+                "minItems": 7,
+                "maxItems": 7,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 20
+                }
+              },
+              "months": {
+                "description": "Short month names, January first.",
+                "type": "array",
+                "minItems": 12,
+                "maxItems": 12,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 12
+                }
+              }
+            }
+          },
+          "alternates": {
+            "description": "The same page in other languages: a page of this manifest (path) or another site (https URL). Written as <link rel=alternate hreflang>.",
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["lang", "href"],
+              "properties": {
+                "lang": {
+                  "type": "string",
+                  "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+                },
+                "href": {
+                  "type": "string",
+                  "pattern": "^(/(?!/)|https://)",
+                  "maxLength": 200
                 }
               }
             }

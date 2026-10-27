@@ -241,6 +241,17 @@
   .hours-table > h3 {
     margin-block-start: var(--space-xs);
   }
+  /* A time range never breaks ("8:00 PM – 6:00 AM" is one unit), so where a
+     day's name and a whole range cannot sit side by side, the times go under
+     the name. */
+  @container (max-width: 26rem) {
+    .hours-table {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .hours > div > dt {
+      font-weight: 600;
+    }
+  }
   .hours dd {
     margin: 0;
     font-variant-numeric: tabular-nums;

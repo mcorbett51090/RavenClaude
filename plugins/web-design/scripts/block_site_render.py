@@ -62,6 +62,28 @@ import block_site_check as check  # noqa: E402  (same directory; the contract li
 KIT = check.KIT
 CSS_FILES = ["tokens.css", "layout.css", "blocks.css"]
 DAY_NAME = {"Mo": "Monday", "Tu": "Tuesday", "We": "Wednesday", "Th": "Thursday", "Fr": "Friday", "Sa": "Saturday", "Su": "Sunday"}
+# Every word the renderer writes itself. A site in another language gives its own
+# in the manifest's `strings` (a page in a second language, in the page's); the
+# checker warns when a non-English page has none.
+UI = {
+    "skip": "Skip to content",
+    "menu": "Menu",
+    "directions": "Get directions",
+    "opensMap": "(opens a map)",
+    "call": "Call",
+    "closed": "Closed",
+    "specialDays": "Special days",
+    "emergency": "Emergencies only",
+    "required": "(required)",
+    "open24": "Open 24 hours",
+    "days": list(DAY_NAME.values()),
+    "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+}
+
+
+def ui_for(manifest, page):
+    """English, under the site's strings, under this page's."""
+    return {**UI, **(manifest.get("strings") or {}), **(page.get("strings") or {})}
 SCHEMA_DAY = {k: f"https://schema.org/{v}" for k, v in DAY_NAME.items()}
 PORTRAIT_MEDIA = "(max-width: 30em) and (orientation: portrait)"
 GHOST = ' data-variant="ghost"'
@@ -83,14 +105,19 @@ def clock(hhmm, lang):
     if not lang.lower().startswith("en"):
         return f"{h:02d}:{m:02d}"
     suffix = "AM" if h < 12 else "PM"
-    return f"{(h % 12) or 12}:{m:02d} {suffix}"
+    return f"{(h % 12) or 12}:{m:02d}\u00a0{suffix}"  # 8:00 PM never breaks
 
 
-def hours_rows(business, lang):
+def hours_rows(business, lang, ui=None, kind="open"):
     """[(label, value)] for the week, Monday first. Consecutive days with the same
-    windows share a row; a day in no entry is Closed."""
+    windows share a row; a day in no entry is Closed. kind="emergency" lists the
+    emergency-only windows instead, and leaves out the days without one."""
+    ui = ui or UI
+    name = dict(zip(check.DAY_ORDER, ui["days"]))
     windows = {d: [] for d in check.DAY_ORDER}
     for h in business.get("hours") or []:
+        if h.get("kind", "open") != kind:
+            continue
         for d in h["days"]:
             windows[d].append((h["opens"], h["closes"]))
     rows, i = [], 0
@@ -100,18 +127,22 @@ def hours_rows(business, lang):
         j = i
         while j + 1 < 7 and sorted(windows[check.DAY_ORDER[j + 1]]) == w:
             j += 1
-        label = DAY_NAME[d] if i == j else f"{DAY_NAME[d]} – {DAY_NAME[check.DAY_ORDER[j]]}"
-        value = ", ".join(window(o, c, lang) for o, c in w) if w else "Closed"
-        rows.append((label, value))
+        label = name[d] if i == j else f"{name[d]} – {name[check.DAY_ORDER[j]]}"
+        value = ", ".join(window(o, c, lang, ui) for o, c in w) if w else ui["closed"]
+        if w or kind == "open":
+            rows.append((label, value))
         i = j + 1
     return rows
 
 
-def window(opens, closes, lang):
+def window(opens, closes, lang, ui=None):
+    ui = ui or UI
     # 00:00 to 23:59 is how schema.org (and Google) write open all day.
     if (opens, closes) == ("00:00", "23:59"):
-        return "Open 24 hours"
-    return f"{clock(opens, lang)} – {clock(closes, lang)}"
+        return ui["open24"]
+    # One range never breaks across lines ("8:00 PM –" / "6:00 AM"); a list of
+    # ranges breaks after its commas.
+    return f"{clock(opens, lang)}\u00a0–\u00a0{clock(closes, lang)}"
 
 
 def current_special(business, today):
@@ -119,15 +150,16 @@ def current_special(business, today):
     return [sp for sp in business.get("specialHours") or [] if sp["date"] >= today]
 
 
-def special_rows(business, lang, today):
+def special_rows(business, lang, today, ui=None):
+    ui = ui or UI
     out = []
     this_year = int(today[:4])
     for sp in current_special(business, today):
         date = datetime.date.fromisoformat(sp["date"])
         # The date never breaks; it carries its year once the year is not this one.
         year = f",\u00a0{date.year}" if date.year != this_year else ""
-        when = f"{sp['label']} ({date.strftime('%b')}\u00a0{date.day}{year})"
-        out.append((when, "Closed" if sp.get("closed") else window(sp["opens"], sp["closes"], lang)))
+        when = f"{sp['label']} ({ui['months'][date.month - 1]}\u00a0{date.day}{year})"
+        out.append((when, ui["closed"] if sp.get("closed") else window(sp["opens"], sp["closes"], lang, ui)))
     return out
 
 
@@ -159,13 +191,13 @@ PHONE_RUN = re.compile(r"\+?\(?[0-9][0-9 ().-]{4,}[0-9]")
 def label(text, rtl):
     """An author's label: escaped, and on a right-to-left page any phone-shaped run
     isolated left to right, as phone_text does for the business's own number."""
-    if not rtl:
+    if not rtl or not PHONE_RUN.search(text):
         return e(text)
     out, at = "", 0
     for m in PHONE_RUN.finditer(text):
         out += e(text[at : m.start()]) + f'<span dir="ltr">{e(m.group(0))}</span>'
         at = m.end()
-    return out + e(text[at:])
+    return f"<span>{out + e(text[at:])}</span>"  # one flex item in a button
 
 
 def json_ld(manifest, page_url, today=None):
@@ -188,6 +220,7 @@ def json_ld(manifest, page_url, today=None):
         data["openingHoursSpecification"] = [
             {"@type": "OpeningHoursSpecification", "dayOfWeek": [SCHEMA_DAY[d] for d in h["days"]], "opens": h["opens"], "closes": h["closes"]}
             for h in b["hours"]
+            if h.get("kind", "open") == "open"
         ]
     if current_special(b, today):
         # Google's documented convention: closed all day is opens = closes = 00:00.
@@ -411,14 +444,19 @@ def b_hours_location(p, ctx):
     out += "<address>" + "<br>".join(e(x) for x in lines) + "</address>"
     if p.get("note"):
         out += f'<p class="muted">{e(p["note"])}</p>'
-    out += f'<div class="cluster"><a class="button" href={a(maps)}>Get directions<span class="visually-hidden"> (opens a map)</span></a>'
+    ui = ctx.get("ui") or UI
+    out += f'<div class="cluster"><a class="button" href={a(maps)}><span>{e(ui["directions"])}<span class="visually-hidden"> {e(ui["opensMap"])}</span></span></a>'
     if b.get("phone"):
-        out += f'<a class="button" data-variant="ghost" href={a(tel_href(b["phone"]))}>Call {phone_text(b["phone"])}</a>'
+        # One span: a button is a flex box, and a text run beside a span would get the gap twice.
+        out += f'<a class="button" data-variant="ghost" href={a(tel_href(b["phone"]))}><span>{e(ui["call"])} {phone_text(b["phone"])}</span></a>'
     out += '</div></div><div><div class="hours-table"><dl class="hours">'
-    out += "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in hours_rows(b, lang)) + "</dl>"
-    special = special_rows(b, lang, ctx["today"])
+    out += "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in hours_rows(b, lang, ui)) + "</dl>"
+    emergency = hours_rows(b, lang, ui, kind="emergency")
+    if emergency:
+        out += f'<h3>{e(ui["emergency"])}</h3><dl class="hours">' + "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in emergency) + "</dl>"
+    special = special_rows(b, lang, ctx["today"], ui)
     if special:
-        out += '<h3>Special days</h3><dl class="hours">' + "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in special) + "</dl>"
+        out += f'<h3>{e(ui["specialDays"])}</h3><dl class="hours">' + "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in special) + "</dl>"
     return out + "</div></div></div>"
 
 
@@ -441,7 +479,7 @@ def b_contact_form(p, ctx):
         attrs, tag = FIELD[f["kind"]]
         name = f["kind"] if [x["kind"] for x in p["fields"]].count(f["kind"]) == 1 else f"{f['kind']}-{i + 1}"
         req = " required" if f.get("required") else ""
-        label = e(f["label"]) + (' <span class="muted">(required)</span>' if f.get("required") else "")
+        label = e(f["label"]) + (f' <span class="muted">{e((ctx.get("ui") or UI)["required"])}</span>' if f.get("required") else "")
         control = f"<textarea id={a(fid)} name={a(name)} {attrs}{req}></textarea>" if tag == "textarea" else f"<input id={a(fid)} name={a(name)} {attrs}{req}>"
         out += f'<div class="field"><label for={a(fid)}>{label}</label>{control}</div>'
     return out + f'<div><button class="button" type="submit">{e(p["submitLabel"])}</button></div></form></div>'
@@ -523,6 +561,7 @@ def nav_list(links, current):
 
 
 def header(manifest, page, rtl=False):
+    ui = ui_for(manifest, page)
     chrome = manifest.get("chrome") or {}
     links = chrome.get("nav") or []
     out = '<header data-block="site-header" data-tone="canvas" data-space="s" class="site-header"><div class="site-header__bar">'
@@ -534,7 +573,7 @@ def header(manifest, page, rtl=False):
     if links:
         out += f'<nav class="site-nav site-nav--inline" aria-label="Main">{nav_list(links, page["path"])}</nav>'
         out += (
-            '<details class="site-menu"><summary class="button" data-variant="ghost">Menu</summary>'
+            f'<details class="site-menu"><summary class="button" data-variant="ghost">{e(ui["menu"])}</summary>'
             f'<nav class="site-nav" aria-label="Main">{nav_list(links, page["path"])}{action}</nav></details>'
         )
     if action:
@@ -642,6 +681,11 @@ def render_page(manifest, page, blocks, today, renderers=None):
             f'<meta property="og:image:alt" content={a(img["alt"])}>',
             '<meta name="twitter:card" content="summary_large_image">',
         ]
+    for alt in page.get("alternates") or []:
+        href = alt["href"]
+        if href.startswith("/") and origin:
+            href = origin + base_path(manifest) + href.lstrip("/")
+        head.append(f'<link rel="alternate" hreflang={a(alt["lang"])} href={a(href)}>')
     if manifest.get("icon"):
         kind = {"svg": "image/svg+xml", "png": "image/png", "ico": "image/x-icon"}[manifest["icon"].rsplit(".", 1)[1]]
         head.append(f'<link rel="icon" href={a("/" + manifest["icon"].lstrip("/"))} type={a(kind)}>')
@@ -655,7 +699,8 @@ def render_page(manifest, page, blocks, today, renderers=None):
     )
     head.append(f'<script type="application/ld+json">{json_ld(manifest, origin, today)}</script>')
     head.append("</head>")
-    body = ["<body>", '<a class="skip-link button" href="#main">Skip to content</a>', header(manifest, page, direction == "rtl"), '<main id="main">']
+    ui = ui_for(manifest, page)
+    body = ["<body>", f'<a class="skip-link button" href="#main">{e(ui["skip"])}</a>', header(manifest, page, direction == "rtl"), '<main id="main">']
     for i, bl in enumerate(page["blocks"]):
         contract = blocks[bl["type"]]
         bid = f"b{i + 1}"
@@ -668,6 +713,7 @@ def render_page(manifest, page, blocks, today, renderers=None):
             "lang": lang,
             "rtl": direction == "rtl",
             "today": today,
+            "ui": ui,
         }
         tone = bl.get("tone", contract["tone"]["default"])
         space = bl.get("space", contract.get("space"))
@@ -891,7 +937,11 @@ def check_html(pages, manifest):
         except ValueError as err:
             problems.append(f"{at}: JSON-LD does not parse: {err}")
             continue
-        want = [{"days": h["days"], "opens": h["opens"], "closes": h["closes"]} for h in manifest["business"].get("hours") or []]
+        want = [
+            {"days": h["days"], "opens": h["opens"], "closes": h["closes"]}
+            for h in manifest["business"].get("hours") or []
+            if h.get("kind", "open") == "open"
+        ]
         got = [
             {"days": [k for k, v in SCHEMA_DAY.items() if v in s["dayOfWeek"]], "opens": s["opens"], "closes": s["closes"]}
             for s in ld.get("openingHoursSpecification") or []
@@ -900,8 +950,8 @@ def check_html(pages, manifest):
             problems.append(f"{at}: JSON-LD hours {got} differ from the manifest's {want}")
         if d.dl_text:
             shown = " ".join("".join(d.dl_text).split())
-            for lab, val in hours_rows(manifest["business"], page.get("lang") or manifest["lang"]):
-                if f"{lab}" not in shown or val not in shown:
+            for lab, val in hours_rows(manifest["business"], page.get("lang") or manifest["lang"], ui_for(manifest, page)):
+                if " ".join(lab.split()) not in shown or " ".join(val.split()) not in shown:
                     problems.append(f"{at}: the hours on the page do not show {lab}: {val}, which the JSON-LD says")
                     break
     return problems
@@ -1022,6 +1072,33 @@ def self_test():
             any("unsafe URL" in x for x in jprobs) and not os.path.exists(os.path.join(jout, "index.html")),
             "must fail: a block function that writes a javascript: link is refused, and nothing is written",
         )
+        # Another language: the renderer's own words come from strings; emergency
+        # hours are shown apart and never published as opening hours; hreflang.
+        es = copy.deepcopy(example)
+        es["lang"] = "es"
+        es["strings"] = {"menu": "Menú", "directions": "Cómo llegar", "closed": "Cerrado", "emergency": "Solo urgencias",
+                         "days": ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]}
+        for pg in es["pages"]:
+            pg.pop("lang", None)
+        es["business"]["hours"].append({"days": ["Su"], "opens": "20:00", "closes": "06:00", "kind": "emergency"})
+        es["pages"][0]["alternates"] = [{"lang": "en", "href": "https://www.example.com/en/"}]
+        esout = os.path.join(tmp, "es")
+        esp, _ = render(es, blocks, esout, KIT, placeholders=True, today="2026-10-27")
+        eshome = open(os.path.join(esout, "index.html"), encoding="utf-8").read() if not esp else ""
+        esvisit = open(os.path.join(esout, "visit", "index.html"), encoding="utf-8").read() if not esp else ""
+        esld = json.loads(json_ld(es, None, "2026-10-27"))
+        row(
+            not esp
+            and ">Menú<" in eshome
+            and "Cómo llegar" in esvisit
+            and "lunes" in esvisit
+            and "Solo urgencias" in esvisit
+            and not any(h["opens"] == "20:00" for h in esld["openingHoursSpecification"])
+            and 'hreflang="en" href="https://www.example.com/en/"' in eshome,
+            "strings put the renderer's own words in the site's language; emergency hours are shown apart and left out of the JSON-LD; hreflang is written",
+            "; ".join(esp[:2]),
+        )
+
         # Special days: a past one is gone; one in another year says which.
         sd = copy.deepcopy(example)
         sd["business"]["specialHours"] = [
@@ -1100,7 +1177,8 @@ def self_test():
         pout = os.path.join(tmp, "proj-dist")
         args = ["render", os.path.join(proj, "site.manifest.json"), "--catalog", os.path.join(proj, "catalog.json"), "--out", pout, "--placeholders"]
         with contextlib.redirect_stdout(io.StringIO()):
-            code = main(args + ["--blocks", os.path.join(proj, "blocks.py")])
+            # The README's order (--blocks before --out): flags parse in any order.
+            code = main(["render", os.path.join(proj, "site.manifest.json"), "--catalog", os.path.join(proj, "catalog.json"), "--blocks", os.path.join(proj, "blocks.py"), "--out", pout, "--placeholders"])
         visit = open(os.path.join(pout, "visit", "index.html"), encoding="utf-8").read() if code == 0 else ""
         row(code == 0 and "Closed for Thanksgiving" in visit, "a project's own block renders from its --blocks file, with no edit to this script")
         row(
@@ -1126,25 +1204,27 @@ def self_test():
 def main(argv):
     if argv == ["--self-test"]:
         return self_test()
-    if len(argv) < 6 or argv[0] != "render" or argv[2] != "--catalog" or argv[4] != "--out":
+    if not argv or argv[0] != "render" or len(argv) < 2:
         print(__doc__)
         return 2
-    manifest_path, catalog, out = argv[1], argv[3], argv[5]
-    rest = argv[6:]
-    css_dir = None
-    blocks_file = None
+    # Flags in any order after the manifest.
+    manifest_path, rest = argv[1], argv[2:]
+    opts = {"--catalog": None, "--out": None, "--css": None, "--blocks": None}
     placeholders = False
     while rest:
         flag = rest.pop(0)
-        if flag == "--css" and rest:
-            css_dir = rest.pop(0)
-        elif flag == "--blocks" and rest:
-            blocks_file = rest.pop(0)
+        if flag in opts and rest:
+            opts[flag] = rest.pop(0)
         elif flag == "--placeholders":
             placeholders = True
         else:
-            print(__doc__)
+            print(f"block_site_render: unknown or incomplete option {flag!r}; render MANIFEST --catalog FILE --out DIR [--css DIR] [--blocks FILE] [--placeholders]")
             return 2
+    missing = [f for f in ("--catalog", "--out") if not opts[f]]
+    if missing:
+        print(f"block_site_render: {' and '.join(missing)} {'is' if len(missing) == 1 else 'are'} required; render MANIFEST --catalog FILE --out DIR [--css DIR] [--blocks FILE] [--placeholders]")
+        return 2
+    catalog, out, css_dir, blocks_file = opts["--catalog"], opts["--out"], opts["--css"], opts["--blocks"]
     bschema = check.load_json(os.path.join(KIT, "block.schema.json"))
     cprobs, blocks = check.check_catalog(catalog, bschema)
     if cprobs:
