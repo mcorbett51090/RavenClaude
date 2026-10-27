@@ -704,7 +704,7 @@ def nav_breakpoint(manifest):
         return chrome["menuBelow"]
     links = chrome.get("nav") or []
     body, brand = 19.0 / 16, 23.75 / 16  # --step-0 and --step-1 at their max, in rem
-    width = text_em(manifest["business"]["name"], 1.05) * brand  # bold
+    width = text_em(header_name(manifest), 1.05) * brand  # bold
     width += sum(text_em(x["label"]) * body + 2 * 0.6 for x in links) + 0.6 * max(0, len(links) - 1)
     if chrome.get("action"):
         width += text_em(chrome["action"]["label"], 1.05) * body + 2 * 1.8  # semibold, --space-m padding
@@ -724,13 +724,18 @@ def chrome_lang(manifest, page):
     return f" lang={a(manifest['lang'])}" if (page.get("lang") or manifest["lang"]) != manifest["lang"] else ""
 
 
+def header_name(manifest):
+    """The name the header shows: chrome.brand, or the business's name."""
+    return (manifest.get("chrome") or {}).get("brand") or manifest["business"]["name"]
+
+
 def header(manifest, page, rtl=False):
     ui = ui_for(manifest, page)
     chrome = manifest.get("chrome") or {}
     links = chrome.get("nav") or []
     out = '<header data-block="site-header" data-tone="canvas" data-space="none" class="site-header"><div class="site-header__bar">'
     home = "/" if any(p["path"] == "/" for p in manifest["pages"]) else manifest["pages"][0]["path"]
-    out += f'<a class="brand" href={a(home)}>{e(manifest["business"]["name"])}</a>'
+    out += f'<a class="brand" href={a(home)}>{e(header_name(manifest))}</a>'
     action = ""
     # On a page in another language the chrome's labels are still the site's:
     # marked so, a screen reader reads them in their own language.
@@ -1680,8 +1685,11 @@ def self_test():
         evil = copy.deepcopy(example)
         evil["pages"][0]["blocks"][1]["props"]["items"][0]["title"] = "<script>alert(1)</script>"
         evil["business"]["name"] = 'Diner "</script><script>alert(2)</script>'
+        evil["chrome"]["brand"] = "</script><b>Diner</b>"
         eout = os.path.join(tmp, "evil")
-        render(evil, blocks, eout, KIT, placeholders=True, today="2026-10-27")
+        ev, _ = render(evil, blocks, eout, KIT, placeholders=True, today="2026-10-27")
+        if ev:
+            raise SystemExit(f"self-test setup: the escaping manifest was refused: {ev[:2]}")
         ehome = open(os.path.join(eout, "index.html"), encoding="utf-8").read()
         row("<script>alert" not in ehome and "&lt;script&gt;alert(1)" in ehome, "a prop holding markup is escaped in the page and in the JSON-LD")
 

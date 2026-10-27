@@ -43,7 +43,8 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   reaches another site unasked, and anything a browser's parser could read differently (a repeated attribute, SVG
   outside a short allow-list), and runs its HTML checks. It records what it wrote beside the output folder, with a
   digest of each file, so the next render removes a page gone from the manifest and never touches a file it did not
-  write. It checks each photo's bytes, reads its real size, refuses one whose EXIF orientation turns it, shows photo credits, writes `color-scheme` and
+  write. The header shows `chrome.brand` (≤ 32 characters) or the business name. It checks each photo's bytes, reads
+  its real size, refuses one whose EXIF orientation turns it, shows photo credits, writes `color-scheme` and
   `theme-color` meta, leaves past events off the page, gives a gallery `sizes` per width from its photo count, marks
   chrome in another language with its `lang`, and writes every `tel:` link with the country calling code.
 - **`scripts/layout-probe.js`**: 36 rendered-page checks in a dependency-free async browser function, including
@@ -63,7 +64,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - It measures all 18 count × width cells of the card grid.
   - A layout shift counts only when it repeats in 5 of 5 loads (the measured reason is in the knowledge file §11).
 - **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
-  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 65 measured
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 66 measured
   pitfalls.
 - **Command:** `/web-design:new-block-site`, gated step by step.
 

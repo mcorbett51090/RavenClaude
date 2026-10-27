@@ -319,6 +319,12 @@
       "additionalProperties": false,
       "required": ["nav"],
       "properties": {
+        "brand": {
+          "description": "Optional: the name as the header shows it, when business.name is longer than a phone header holds (32 characters wraps to three lines beside the menu button at 320px). Left out, the header shows business.name, which must then be 32 characters or fewer. The legal name stays in business.name, the footer and the structured data.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
         "menuBelow": {
           "description": "Optional: the header width, in rem, below which the nav becomes a menu. Left out, the renderer estimates it from the labels; device_matrix.mjs measures the real header and prints the value to pin here when the estimate is off (a brand font, another script).",
           "type": "number",

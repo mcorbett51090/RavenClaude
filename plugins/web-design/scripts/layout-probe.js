@@ -1217,8 +1217,10 @@ async function layoutProbe(options) {
 
   // ── chrome-share ─────────────────────────────────────────────────────────
   // ── fold: the page's h1 is on the first screen ────────────────────────────
-  // A landing page whose heading starts below the first screen (a tall header
-  // and a tall band on a phone on its side) opens on chrome and a photo.
+  // A page whose heading ends below the first screen (a tall header, a tall
+  // band on a phone on its side) opens on chrome and a photo, with its title
+  // cut. The kit's worst case (a 32-character header name, a 70-character h1)
+  // ends 47px inside a 320×568 screen.
   await run("fold", () => {
     window.scrollTo({ left: 0, top: 0, behavior: "instant" });
     const h1 = [...document.querySelectorAll("h1")].find((x) => visible(x));

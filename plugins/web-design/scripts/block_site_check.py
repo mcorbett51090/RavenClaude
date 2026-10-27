@@ -394,6 +394,7 @@ SLOT_WORDS = set(
     "postcode state price link url image photo logo tagline headline text here owner contact website hours "
     "telephone mobile caption quote author year time amount".split()
 )
+BRAND_MAX = 32  # the header's name: three lines beside the menu button at 320px
 SLOT_FILLER = {"the", "a", "an", "of", "s", "here", "our", "this", "full", "first", "last"}
 TODO_WORD = re.compile(r"\b(TODO|TBD|TBC|XXX|FIXME)\b")
 BRACKETED = re.compile(r"[\[<]([A-Z][A-Za-z .'/-]{1,40})[\]>]")
@@ -630,6 +631,14 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
             problems.append(f"{at}: {where} is an in-page link, but the header and footer are on every page; link to a path")
 
     chrome = manifest.get("chrome") or {}
+    # The header shows chrome.brand, or business.name: past 32 characters a phone's
+    # header wraps it to four lines and more beside the menu button, and the page's
+    # h1 is pushed off the first screen.
+    if not chrome.get("brand") and len(business.get("name") or "") > BRAND_MAX:
+        problems.append(
+            f"business.name is {len(business['name'])} characters, more than a phone header holds ({BRAND_MAX}); "
+            "give chrome.brand, the name as the header shows it (the legal name stays in business.name)"
+        )
     for key in ("nav", "footerNav"):
         for i, link in enumerate(chrome.get(key) or []):
             check_href("chrome", f"{key}[{i}].href", link["href"], None)
@@ -1320,6 +1329,7 @@ def make_fixtures(blocks, today=None):
         "lang": "en",
         "business": stress_business(today),
         "chrome": {
+            "brand": _text(BRAND_MAX, "max"),
             "nav": [link(i, 20) for i in range(6)],
             "action": {"label": _text(28, "max"), "href": "tel:+12515550100"},
             "footerNav": [link(i, 20) for i in range(8)],
@@ -1446,6 +1456,7 @@ def self_test():
     rtl = [p for p in fx["pages"] if p["path"].endswith("/rtl/")]
     row(rtl and all(p.get("dir") == "rtl" and p.get("lang") == "ar" for p in rtl), "fixtures: rtl pages are dir=rtl lang=ar, so mirroring is tested")
     row(len(fx["chrome"]["nav"]) == 6 and all(len(x["label"]) == 20 for x in fx["chrome"]["nav"]), "fixtures: the header carries its worst case (6 links of 20 characters)")
+    row(len(fx["chrome"]["brand"]) == BRAND_MAX and len(fx["business"]["name"]) == 80, "fixtures: the header's name at its bound (chrome.brand), the legal name at its own")
     hero_max = next(p for p in fx["pages"] if p["path"] == "/stress/hero-full/max/")["blocks"][0]["props"]
     row(len(hero_max["title"]) == 60 and len(hero_max["actions"]) == 2, "fixtures: max mode fills strings to maxLength and lists to maxItems", json.dumps(hero_max)[:80])
     hero_long = next(p for p in fx["pages"] if p["path"] == "/stress/hero-full/long/")["blocks"][0]["props"]
@@ -1634,6 +1645,7 @@ def self_test():
         manifest_case("a block's required fact is missing", lambda m: m["business"].pop("hours"), "does not give")
         manifest_case("an in-page link to no anchor", lambda m: B(m)[0]["props"]["actions"][0].update(href="#nowhere"), "has as its anchor")
         manifest_case("a link to an anchor another page lacks", lambda m: B(m)[0]["props"]["actions"][0].update(href="/visit/#nowhere"), "has no anchor")
+        manifest_case("a business name too long for a phone header, with no chrome.brand", lambda m: m["business"].update(name="The Fairhope Breakfast Counter and Griddle Kitchen"), "more than a phone header holds")
         manifest_case("a nav link to a missing page", lambda m: m["chrome"]["nav"][0].update(href="/catering/"), "not a page")
         manifest_case("an in-page link in the header", lambda m: m["chrome"]["nav"][0].update(href="#visit"), "on every page")
         manifest_case("a javascript: link", lambda m: B(m)[0]["props"]["actions"][0].update(href="javascript:alert(1)"), "a link is a path")

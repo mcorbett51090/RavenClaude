@@ -176,7 +176,10 @@ How to read a row:
 
 The **site header and footer** are not blocks. They come from the manifest's `chrome` (a nav of ≤ 6 links of
 ≤ 20 characters, one action, ≤ 8 footer links, and an optional `footerNote`: one line every footer carries, such as
-an age limit or a licence number) and its `business` facts, and are the same on every page. The header's
+an age limit or a licence number) and its `business` facts, and are the same on every page. The header shows the
+business's name, which must then be 32 characters or fewer; a longer legal name keeps its place in the footer and the
+structured data, and `chrome.brand` gives the name as the header shows it (at 320px, 32 characters is three lines
+beside the menu button). The header's
 nav becomes a menu below the width its links need. The renderer works that width out from the labels, in rem (so it
 moves with a reader's font size) and counting wide glyphs such as Japanese at 1em, and the device matrix's `nav-wrap`
 check proves it, header row included.
