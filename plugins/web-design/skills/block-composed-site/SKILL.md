@@ -234,8 +234,9 @@ merge is not a deployment.
   both the backdrop and a picture. The hero photo kept its own aspect ratio and stopped two-thirds of the way down the
   band on a phone. Write `> picture > img` as its own selector; the probe's `image-gap` check catches it.
 - **`sizes="100vw"` on a cover-cropped band** lies on a narrow, tall screen: the band's height sets the drawn width,
-  so the browser picks a file half the size it needs. Give `sizes` the drawn width:
-  `max(100vw, min(80vh, 704px) * <ratio>)`.
+  so the browser picks a file half the size it needs. Give `sizes` the drawn width, assuming the band's tallest:
+  `max(100vw, max(100vh, 704px) * <ratio>)` (long copy grows the band past `min(80vh, 704px)`). Below the full line,
+  subtract the gutters (`100vw - 2rem`), and multiply by the photo's shape over the frame's when it is cover-cropped.
 - **A photo frame beside taller copy** is stretched off its ratio by the row (`align-items: stretch` beats
   `aspect-ratio`) and cover-crops the photo to a sliver. Frames in a row align to `start`; `frame-ratio` reports it.
 - **A dark band that re-points only the text colour** leaves a card inside it white text on a white card (1.11:1).

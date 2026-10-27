@@ -142,7 +142,7 @@ Props are closed and bounded, so a card list has a known maximum (six in the kit
 
 | Media | Largest box (CSS px) | Minimum source for that crop | `sizes` the renderer writes |
 |---|---|---|---|
-| full-bleed band (`hero-full`) | 1280 wide (2560 at 2x, a QHD screen at 1x), 704 tall | 2560 × 1408 | `max(100vw, min(80vh, 704px) * <ratio>)` |
+| full-bleed band (`hero-full`) | 1280 wide (2560 at 2x, a QHD screen at 1x), 704 tall | 2560 × 1408 | `max(100vw, max(100vh, 704px) * <ratio>)`: the band grows past `min(80vh, 704px)` with long copy, so `sizes` assumes the taller of the screen and 704px |
 | content line | 72rem = 1152 | 2304 wide | `min(72rem, 100vw - 2rem)` |
 | half of a switcher (`story-split`) | **704**: it stacks to the switch point, not to half the line | 1408 wide | `(min-width: 50rem) min(36rem, 50vw), min(704px, 100vw - 2rem)` |
 | third of content | 384, or the switch point when it stacks | 768 wide | `(min-width: 50rem) min(24rem, 33vw), min(<maxWidth>px, 100vw - 2rem)` |

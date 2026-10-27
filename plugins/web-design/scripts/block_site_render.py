@@ -198,9 +198,12 @@ def json_ld(manifest, page_url):
 
 
 def sizes_for(media, asset=None):
-    """The width the image is DRAWN at. A full-bleed band with a fixed height is
-    cover-cropped, so on a narrow tall screen its height, not the viewport's width,
-    sets that width: the band is min(80vh, maxHeight) tall (blocks.css's hero rule).
+    """The width the image is DRAWN at. A full-bleed band is cover-cropped, so on a
+    narrow screen its height, not the viewport's width, sets that width. The band
+    is at least min(80vh, maxHeight) tall (blocks.css's hero rule) and grows with
+    long copy (780px on a 320x568 screen with the longest stress copy), so sizes
+    assumes the taller of the screen and maxHeight: it never under-asks, and on a
+    tall screen it over-asks, which only means the largest candidate.
     A frame narrower in shape than its photo cover-crops it too, and draws it wider
     than the frame by the ratio of the two shapes; every width here is scaled by it,
     or the browser picks a file too small for what it draws."""
@@ -208,7 +211,7 @@ def sizes_for(media, asset=None):
     if slot == "full":
         if media.get("maxHeight") and asset:
             ar = round(asset["width"] / asset["height"], 4)
-            return f"max(100vw, min(80vh, {media['maxHeight']}px) * {ar})"
+            return f"max(100vw, max(100vh, {media['maxHeight']}px) * {ar})"
         return "100vw"
     # Below the full line, a slot is the viewport less two gutters, and a gutter is
     # never under 1rem (tokens.css): 100vw - 2rem is never narrower than the slot.
