@@ -210,14 +210,19 @@ def sizes_for(media, asset=None):
             ar = round(asset["width"] / asset["height"], 4)
             return f"max(100vw, min(80vh, {media['maxHeight']}px) * {ar})"
         return "100vw"
+    # Below the full line, a slot is the viewport less two gutters, and a gutter is
+    # never under 1rem (tokens.css): 100vw - 2rem is never narrower than the slot.
+    # Plain 100vw overshot by the gutters, enough on a DPR-3 phone to cross a
+    # candidate and fetch a file twice the size.
+    vw = "(100vw - 2rem)"
     if slot == "wide":
-        parts = [(None, "min(90rem, 100vw)")]
+        parts = [(None, f"min(90rem, {vw})")]
     elif slot == "content":
-        parts = [(None, "min(72rem, 100vw)")]
+        parts = [(None, f"min(72rem, {vw})")]
     elif slot == "half-content":
-        parts = [("(min-width: 50rem)", "min(36rem, 50vw)"), (None, f"min({mw or 576}px, 100vw)")]
+        parts = [("(min-width: 50rem)", "min(36rem, 50vw)"), (None, f"min({mw or 576}px, {vw})")]
     else:
-        parts = [("(min-width: 50rem)", "min(24rem, 33vw)"), (None, f"min({mw or 384}px, 100vw)")]
+        parts = [("(min-width: 50rem)", "min(24rem, 33vw)"), (None, f"min({mw or 384}px, {vw})")]
     k = 1.0
     if asset and media.get("ratio"):
         num, den = (int(x) for x in media["ratio"].split(" / "))

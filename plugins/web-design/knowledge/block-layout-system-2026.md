@@ -143,13 +143,17 @@ Props are closed and bounded, so a card list has a known maximum (six in the kit
 | Media | Largest box (CSS px) | Minimum source for that crop | `sizes` the renderer writes |
 |---|---|---|---|
 | full-bleed band (`hero-full`) | 1280 wide (2560 at 2x, a QHD screen at 1x), 704 tall | 2560 × 1408 | `max(100vw, min(80vh, 704px) * <ratio>)` |
-| content line | 72rem = 1152 | 2304 wide | `min(72rem, 100vw)` |
-| half of a switcher (`story-split`) | **704**: it stacks to the switch point, not to half the line | 1408 wide | `(min-width: 50rem) min(36rem, 50vw), min(704px, 100vw)` |
-| third of content | 384, or the switch point when it stacks | 768 wide | `(min-width: 50rem) min(24rem, 33vw), min(<maxWidth>px, 100vw)` |
+| content line | 72rem = 1152 | 2304 wide | `min(72rem, 100vw - 2rem)` |
+| half of a switcher (`story-split`) | **704**: it stacks to the switch point, not to half the line | 1408 wide | `(min-width: 50rem) min(36rem, 50vw), min(704px, 100vw - 2rem)` |
+| third of content | 384, or the switch point when it stacks | 768 wide | `(min-width: 50rem) min(24rem, 33vw), min(<maxWidth>px, 100vw - 2rem)` |
 
   - **A cover-cropped band is drawn wider than the viewport on a narrow, tall screen**, because its height sets the
     scale. **[observed]** With `sizes="100vw"` at 481×900, the browser picked the 1280w file for a band drawn
     1252×704, enlarged 1.96×. `sizes` must state the drawn width.
+  - **Below the full line, subtract the gutters**, and space `srcset` candidates about 1.5× apart. A slot is the
+    viewport less two gutters of at least 1rem, so the renderer writes `100vw - 2rem`. Plain `100vw` overshot a 425px
+    frame by 10% at 390px, and on a DPR-3 phone that crossed the 1280w candidate and fetched 2560w **[observed]**. A
+    photo wider in shape than its frame is drawn wider than the frame, and every width is multiplied by that ratio.
   - Cap density at 2x, as apple.com does (`adaptive-layout`). Above it the eye cannot tell, and the bytes triple.
   - A **portrait crop** (`portrait` on the asset) is served at `(max-width: 30em) and (orientation: portrait)`. It is
     for composition: with the 2x cap, a 2560×1440 band is still sharp on a 390×844 phone (1350 of 1440 source pixels

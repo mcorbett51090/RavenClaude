@@ -1017,7 +1017,9 @@ STRESS_PHOTO = {
     "width": 2560,
     "height": 1600,
     "provenance": "generated",
-    "sources": [{"src": "stress-photo-640.png", "width": 640}, {"src": "stress-photo-1280.png", "width": 1280}],
+    # Candidates about 1.5x apart, as a site's should be: with 2x steps a box a little
+    # over one candidate's reach on a DPR-3 phone takes a file twice the size it needs.
+    "sources": [{"src": f"stress-photo-{w}.png", "width": w} for w in (640, 960, 1280, 1920)],
 }
 
 
