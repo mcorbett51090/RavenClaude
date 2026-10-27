@@ -5,12 +5,15 @@ A block site stays pixel-perfect and upgradeable only while every block keeps
 its contract and every manifest stays inside it. This turns the contract in
 templates/block-site/ into exit codes.
 
-  catalog DIR                    lint every DIR/**/block.json against
+  catalog CATALOG                lint every block contract against
                                  block.schema.json and the rules a schema cannot
                                  state (closed props, bounded strings and lists,
                                  no styling props, level-1 blocks first, paths
-                                 that resolve)
-  manifest FILE --catalog DIR    resolve a site manifest against the catalog:
+                                 that resolve, unique ids). CATALOG is either a
+                                 catalog.json ({"blocks": [...]}, as the kit
+                                 ships) or a directory of <id>/block.json files
+  manifest FILE --catalog CATALOG
+                                 resolve a site manifest against the catalog:
                                  unknown blocks or variants, props outside the
                                  block's schema, the single-h1 order, maxPerPage,
                                  adjacency, two dark bands in a row, locked tones,
@@ -20,7 +23,7 @@ templates/block-site/ into exit codes.
                                  light and dark, against WCAG AA (text 4.5:1,
                                  focus ring 3:1), reading the values from the
                                  file itself so there is no second copy to drift
-  fixtures DIR --out FILE        write a stress manifest from the catalog's own
+  fixtures CATALOG --out FILE    write a stress manifest from the catalog's own
                                  bounds: every block at its minimum, its maximum,
                                  one unbreakable word at full length, and RTL
                                  text. Render it, then run device_matrix.mjs on it.
@@ -145,13 +148,29 @@ def load_json(path):
         return json.load(f)
 
 
-def find_blocks(catalog_dir):
-    out = {}
-    for dirpath, _dirs, files in os.walk(catalog_dir):
+def find_blocks(catalog):
+    """Read a catalog in either form. Returns (problems, [(where, block, dir_id)]).
+
+    A file is a bundle, {"blocks": [...]}. A directory holds one <id>/block.json
+    per block, and there dir_id is the directory name the block's id must match.
+    """
+    if os.path.isfile(catalog):
+        bundle = load_json(catalog)
+        if not isinstance(bundle, dict) or not isinstance(bundle.get("blocks"), list):
+            return [f'{catalog}: a catalog file is an object with a "blocks" list'], []
+        extra = sorted(set(bundle) - {"$schema", "description", "blocks"})
+        problems = [f"{catalog}: unknown top-level key(s) {extra}"] if extra else []
+        out = []
+        for i, b in enumerate(bundle["blocks"]):
+            bid = b.get("id") if isinstance(b, dict) else None
+            out.append((f"blocks[{i}]" + (f" ({bid})" if isinstance(bid, str) else ""), b, None))
+        return problems, out
+    out = []
+    for dirpath, _dirs, files in sorted(os.walk(catalog)):
         if "block.json" in files:
             p = os.path.join(dirpath, "block.json")
-            out[p] = load_json(p)
-    return out
+            out.append((os.path.relpath(p, catalog), load_json(p), os.path.basename(dirpath)))
+    return [], out
 
 
 def walk_props(schema, path="props"):
@@ -176,22 +195,23 @@ def prop_paths(schema, path=""):
     return out
 
 
-def check_catalog(catalog_dir, block_schema):
-    problems = []
-    blocks = find_blocks(catalog_dir)
+def check_catalog(catalog, block_schema):
+    if not os.path.exists(catalog):
+        return [f"{catalog}: no such catalog file or directory"], {}
+    problems, blocks = find_blocks(catalog)
     if not blocks:
-        return [f"{catalog_dir}: no block.json found"], {}
+        return problems or [f"{catalog}: no block contracts found"], {}
     by_id = {}
-    for path, b in blocks.items():
-        rel = os.path.relpath(path, catalog_dir)
-        where = f"{rel}"
+    for where, b, dir_id in blocks:
         for e in validate(block_schema, b):
             problems.append(f"{where}: {e}")
         if not isinstance(b, dict) or "id" not in b:
             continue
+        if b["id"] in by_id:
+            problems.append(f"{where}: id {b['id']!r} appears more than once in the catalog")
         by_id[b["id"]] = b
-        if os.path.basename(os.path.dirname(path)) != b["id"]:
-            problems.append(f"{where}: id {b['id']!r} does not match its directory {os.path.basename(os.path.dirname(path))!r}")
+        if dir_id is not None and dir_id != b["id"]:
+            problems.append(f"{where}: id {b['id']!r} does not match its directory {dir_id!r}")
         props = b.get("props") or {}
         if props.get("type") != "object":
             problems.append(f"{where}: props must be an object schema")
@@ -572,7 +592,8 @@ def self_test():
 
     bschema = load_json(os.path.join(KIT, "block.schema.json"))
     mschema = load_json(os.path.join(KIT, "site-manifest.schema.json"))
-    probs, blocks = check_catalog(os.path.join(KIT, "catalog"), bschema)
+    kit_catalog = os.path.join(KIT, "catalog.json")
+    probs, blocks = check_catalog(kit_catalog, bschema)
     row(not probs and len(blocks) >= 5, f"positive: the starter catalog passes ({len(blocks)} blocks)", "; ".join(probs[:2]))
     example = load_json(os.path.join(KIT, "example.manifest.json"))
     mp, mw = check_manifest(example, blocks, mschema)
@@ -599,37 +620,52 @@ def self_test():
     tmp = tempfile.mkdtemp(prefix="block-site-check-")
     try:
 
+        kit_bundle = load_json(kit_catalog)
+
+        def write_dir_form(d, rename=None):
+            """The same contracts as a directory of <id>/block.json, optionally misfiled."""
+            for b in kit_bundle["blocks"]:
+                sub = os.path.join(d, (rename or {}).get(b["id"], b["id"]))
+                os.makedirs(sub)
+                with open(os.path.join(sub, "block.json"), "w", encoding="utf-8") as f:
+                    json.dump(b, f)
+
+        d = os.path.join(tmp, "dir-form")
+        write_dir_form(d)
+        got, dblocks = check_catalog(d, bschema)
+        row(not got and set(dblocks) == set(blocks), f"positive: the same catalog as a directory of <id>/block.json passes ({len(dblocks)} blocks)", "; ".join(got[:2]))
+        d = os.path.join(tmp, "dir-misfiled")
+        write_dir_form(d, rename={"cta-banner": "cta"})
+        got, _ = check_catalog(d, bschema)
+        row(any("does not match its directory" in g for g in got), "must fail (catalog): id does not match its directory")
+
         def catalog_case(label, mutate, want):
-            d = os.path.join(tmp, re.sub(r"\W+", "-", label))
-            shutil.copytree(os.path.join(KIT, "catalog"), d)
-            mutate(d)
-            got, _ = check_catalog(d, bschema)
+            bundle = copy.deepcopy(kit_bundle)
+            mutate(bundle)
+            p = os.path.join(tmp, re.sub(r"\W+", "-", label) + ".json")
+            with open(p, "w", encoding="utf-8") as f:
+                json.dump(bundle, f)
+            got, _ = check_catalog(p, bschema)
             hit = any(want in g for g in got)
             row(hit, f"must fail (catalog): {label}", "" if hit else f"expected {want!r}, got {got[:2] or 'nothing'}")
 
-        def edit(d, bid, fn):
-            p = os.path.join(d, bid, "block.json")
-            b = load_json(p)
-            fn(b)
-            with open(p, "w", encoding="utf-8") as f:
-                json.dump(b, f)
+        def edit(bid, fn):
+            return lambda bundle: fn(next(b for b in bundle["blocks"] if b["id"] == bid))
 
-        def rename(d):
-            os.rename(os.path.join(d, "cta-banner"), os.path.join(d, "cta"))
-
-        catalog_case("id does not match its directory", rename, "does not match its directory")
-        catalog_case("schema shape (summary missing)", lambda d: edit(d, "cta-banner", lambda b: b.pop("summary")), "missing required 'summary'")
-        catalog_case("open props object", lambda d: edit(d, "cta-banner", lambda b: b["props"]["properties"]["action"].pop("additionalProperties")), "open object")
-        catalog_case("unbounded string", lambda d: edit(d, "cta-banner", lambda b: b["props"]["properties"]["heading"].pop("maxLength")), "unbounded string")
-        catalog_case("unbounded list", lambda d: edit(d, "features-grid", lambda b: b["props"]["properties"]["items"].pop("maxItems")), "unbounded list")
-        catalog_case("a styling prop", lambda d: edit(d, "cta-banner", lambda b: b["props"]["properties"].update(textColor={"type": "string", "maxLength": 9})), "styling prop")
-        catalog_case("variant enum differs from variants", lambda d: edit(d, "cta-banner", lambda b: b["props"]["properties"]["variant"].update(enum=["book"])), "must equal variants")
-        catalog_case("level-1 block not placed first", lambda d: edit(d, "hero-full", lambda b: b["placement"].update(position="any")), "must be 'first'")
-        catalog_case("assetProps names no prop", lambda d: edit(d, "story-split", lambda b: b.update(assetProps=["photo"])), "which is not a prop")
-        catalog_case("media prop not in assetProps", lambda d: edit(d, "story-split", lambda b: b.update(assetProps=[])), "must also be listed in assetProps")
-        catalog_case("tone default not allowed", lambda d: edit(d, "features-grid", lambda b: b["tone"].update(default="inverse")), "is not in tone.allowed")
-        catalog_case("notAdjacentTo names an unknown block", lambda d: edit(d, "cta-banner", lambda b: b["placement"].update(notAdjacentTo=["hero-giant"])), "unknown block")
-        catalog_case("more than three variants", lambda d: edit(d, "cta-banner", lambda b: b.update(variants=["a", "b", "c", "d"])), "more than 3")
+        catalog_case("a catalog file with no blocks list", lambda c: c.pop("blocks"), '"blocks" list')
+        catalog_case("the same id twice", lambda c: c["blocks"].append(copy.deepcopy(c["blocks"][-1])), "appears more than once")
+        catalog_case("schema shape (summary missing)", edit("cta-banner", lambda b: b.pop("summary")), "missing required 'summary'")
+        catalog_case("open props object", edit("cta-banner", lambda b: b["props"]["properties"]["action"].pop("additionalProperties")), "open object")
+        catalog_case("unbounded string", edit("cta-banner", lambda b: b["props"]["properties"]["heading"].pop("maxLength")), "unbounded string")
+        catalog_case("unbounded list", edit("features-grid", lambda b: b["props"]["properties"]["items"].pop("maxItems")), "unbounded list")
+        catalog_case("a styling prop", edit("cta-banner", lambda b: b["props"]["properties"].update(textColor={"type": "string", "maxLength": 9})), "styling prop")
+        catalog_case("variant enum differs from variants", edit("cta-banner", lambda b: b["props"]["properties"]["variant"].update(enum=["book"])), "must equal variants")
+        catalog_case("level-1 block not placed first", edit("hero-full", lambda b: b["placement"].update(position="any")), "must be 'first'")
+        catalog_case("assetProps names no prop", edit("story-split", lambda b: b.update(assetProps=["photo"])), "which is not a prop")
+        catalog_case("media prop not in assetProps", edit("story-split", lambda b: b.update(assetProps=[])), "must also be listed in assetProps")
+        catalog_case("tone default not allowed", edit("features-grid", lambda b: b["tone"].update(default="inverse")), "is not in tone.allowed")
+        catalog_case("notAdjacentTo names an unknown block", edit("cta-banner", lambda b: b["placement"].update(notAdjacentTo=["hero-giant"])), "unknown block")
+        catalog_case("more than three variants", edit("cta-banner", lambda b: b.update(variants=["a", "b", "c", "d"])), "more than 3")
 
         def manifest_case(label, mutate, want, catalog_mutate=None):
             bl = copy.deepcopy(blocks)

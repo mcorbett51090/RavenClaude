@@ -16,8 +16,8 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
     - media frames and a copy-anchored scrim;
     - text safety;
     - dark, forced colours, more contrast, reduced motion, RTL and print.
-  - `block.schema.json`, `site-manifest.schema.json`, `catalog.md` (18 canonical blocks), five exemplar block contracts, an example manifest, and `gallery.html`.
-- **`scripts/block_site_check.py`** (stdlib), with `catalog`, `manifest`, `tokens` and `fixtures` commands and a `--self-test` of 43 rows.
+  - `block.schema.json`, `site-manifest.schema.json`, `catalog.json` (five exemplar block contracts in one file, to stay inside the repo's file budget; the checker also reads a directory of `<id>/block.json`), an example manifest, `gallery.html`, and the 18-block canonical catalog in the kit's README.
+- **`scripts/block_site_check.py`** (stdlib), with `catalog`, `manifest`, `tokens` and `fixtures` commands and a `--self-test` of 46 rows.
 - **`scripts/layout-probe.js`**: 18 rendered-page checks in a dependency-free browser function.
 - **`scripts/device_matrix.mjs`**: runs the probe across 28 viewports, ±1px around every `@media` width, an optional sweep, and three themes. `--self-test` plants 22 defects (every check the probe has), requires a clean control over 306 states, and measures all 18 count × width cells of the card grid. A layout shift counts only when it repeats in 3 of 3 loads (the measured reason is in the knowledge file §11).
 - **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN browser-compat-data read 2026-10-27, the verification ladder, and ten measured pitfalls.

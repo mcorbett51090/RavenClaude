@@ -15,21 +15,21 @@ Each step ends at a gate; do not start the next step until it passes. Report eac
    own pages and listings. Anything you cannot verify goes in the manifest's `ownerTodos`, never in a rendered field.
    Ask the user one question when two readings of the request would build different sites.
 2. **Copy the kit** from `templates/block-site/` into the project (`tokens.css`, `layout.css`, the two schemas, the
-   catalog), unless the project already has one.
+   `catalog.json`), unless the project already has one.
 3. **Brand** by changing values in `tokens.css`, never role names.
    - **Gate:** `python3 <plugin>/scripts/block_site_check.py tokens <site>/tokens.css`.
-4. **Choose blocks by purpose** from `templates/block-site/catalog.md`. Write a closed, bounded `block.json` for each
-   one, starting from the exemplars.
-   - **Gate:** `block_site_check.py catalog <site>/catalog`.
+4. **Choose blocks by purpose** from the block catalog in `templates/block-site/README.md`. Write a closed, bounded
+   contract for each one in `catalog.json`, starting from the exemplars.
+   - **Gate:** `block_site_check.py catalog <site>/catalog.json`.
 5. **Build each block to the anatomy** in the kit's README: slots on grid lines, components inside slots, CSS in
    `@layer blocks` that reads only tokens, and `@container slot` queries.
    - **Gate:** the block renders in a gallery page, and `node <plugin>/scripts/device_matrix.mjs --dir <site>
      --pages /gallery.html --full --sweep 320:1600:8` reports no findings.
 6. **Write the manifest.** Write image alt text while looking at each image, and give every asset its real width,
    height and focal point.
-   - **Gate:** `block_site_check.py manifest <site>/site.manifest.json --catalog <site>/catalog`. Fix its warnings
+   - **Gate:** `block_site_check.py manifest <site>/site.manifest.json --catalog <site>/catalog.json`. Fix its warnings
      about small sources and heavy crops too.
-7. **Render and stress.** Build the site. Generate `block_site_check.py fixtures <site>/catalog --out stress.manifest.json`
+7. **Render and stress.** Build the site. Generate `block_site_check.py fixtures <site>/catalog.json --out stress.manifest.json`
    and render those pages too.
 8. **Prove it.**
    - Run the device matrix on the built site and the stress pages with `--full --sweep 320:1600:8`.

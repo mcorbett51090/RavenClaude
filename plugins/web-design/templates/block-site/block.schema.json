@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "block.schema.json",
   "title": "Block contract",
-  "description": "One block.json per block. The shape is checked here; the rules a JSON Schema cannot state (every props object closed, every string and list bounded, no styling props, heading level 1 only for a first block) are checked by scripts/block_site_check.py catalog.",
+  "description": "One block contract: an entry in catalog.json, or one <id>/block.json per block. The shape is checked here; the rules a JSON Schema cannot state (every props object closed, every string and list bounded, no styling props, heading level 1 only for a first block) are checked by scripts/block_site_check.py catalog.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -23,7 +23,7 @@
   "properties": {
     "$schema": { "type": "string" },
     "id": {
-      "description": "Matches the block's directory name. Kebab-case.",
+      "description": "Unique in the catalog, and the block's directory name when contracts are kept as <id>/block.json. Kebab-case.",
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]*$",
       "maxLength": 40

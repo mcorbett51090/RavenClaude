@@ -47,9 +47,9 @@ which has eight steps with a gate on each. In short:
 2. Set the brand by changing values in `tokens.css`, never role names.
    - **Gate:** `scripts/block_site_check.py tokens tokens.css`, which checks every colour pairing a block can produce,
      in light and dark.
-3. Choose blocks from [`catalog.md`](../../templates/block-site/catalog.md) by purpose. Copy an exemplar `block.json`
-   for each block and fill in its contract.
-   - **Gate:** `block_site_check.py catalog`.
+3. Choose blocks from [the kit's block catalog](../../templates/block-site/README.md#the-block-catalog) by purpose.
+   Copy an exemplar contract from `catalog.json` for each block and fill it in.
+   - **Gate:** `block_site_check.py catalog catalog.json` (it also reads a directory of `<id>/block.json`).
 4. Build each block to the anatomy:
    - a `<section data-block data-tone data-space>` whose direct children are plain slots on a grid line;
    - components inside slots;

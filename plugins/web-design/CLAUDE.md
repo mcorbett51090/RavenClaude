@@ -253,7 +253,7 @@ The `visual-designer`, `ux-designer`, `frontend-implementer`, and `web-architect
 | [`templates/content-style-guide.md`](templates/content-style-guide.md) | Voice, tone, terminology, microcopy patterns |
 | [`templates/seo-audit-report.md`](templates/seo-audit-report.md) | Technical + content SEO findings |
 | [`templates/performance-budget.md`](templates/performance-budget.md) | Per-page performance budget |
-| [`templates/block-site/`](templates/block-site/README.md) | Block-site starter kit: `tokens.css` (values), `layout.css` (the contract), block and manifest schemas, `catalog.md` plus five exemplar block contracts, an example manifest, and `gallery.html` (clean on the full device matrix). Used by `block-composed-site` Mode 0 and `/web-design:new-block-site` |
+| [`templates/block-site/`](templates/block-site/README.md) | Block-site starter kit: `tokens.css` (values), `layout.css` (the contract), block and manifest schemas, `catalog.json` with five exemplar block contracts (the README lists 18 canonical blocks), an example manifest, and `gallery.html` (clean on the full device matrix). Used by `block-composed-site` Mode 0 and `/web-design:new-block-site` |
 
 ---
 
