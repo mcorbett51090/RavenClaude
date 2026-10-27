@@ -73,16 +73,9 @@
     /* Reserve the scrollbar's space, so a page that grows a scrollbar does not
        shift sideways by its width (desktop browsers with classic scrollbars). */
     scrollbar-gutter: stable;
+    /* The default when tokens.css does not say; tokens.css's :root sets the
+       site's own (light dark, dark light, dark), and wins as a later layer. */
     color-scheme: light dark;
-  }
-  /* A theme chosen on the page (tokens.css's [data-theme]) sets the native
-     controls too: without this a date picker's icon follows the OS, and on a
-     page forced light under a dark OS it is white on a white field. */
-  :root[data-theme="light"] {
-    color-scheme: light;
-  }
-  :root[data-theme="dark"] {
-    color-scheme: dark;
   }
   body {
     min-block-size: 100vh;
@@ -253,6 +246,16 @@
 
 /* ─── contract: last layer, so blocks cannot override it by accident ─────────── */
 @layer contract {
+  /* A theme chosen on the page ([data-theme]) sets the native controls too:
+     without this a date picker's icon follows the OS, and on a page forced
+     light under a dark OS it is white on a white field. In the last layer, so
+     tokens.css's color-scheme on :root cannot undo it. */
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
   /* 1. The page grid. Every block root is one, with the same named lines.
      The two `wide` side tracks grow before the outer margins do, so `wide`
      content widens first as the viewport grows. */

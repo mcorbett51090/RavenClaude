@@ -27,7 +27,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - `tokens.css` declares `color-scheme`, which names the default theme: `light dark`, a dark-first `dark light`, or
     one theme only. The tokens gate checks the themes it names.
 - **`scripts/block_site_check.py`** (stdlib): `catalog`, `manifest`, `tokens` and `fixtures`, with a `--self-test`
-  of 107 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
+  of 127 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
   sizes for the box each is drawn in, and reads `oklch()` and other colour syntaxes. Every `tel:` link must dial the
   business's phone, a contract's `variantLinks` holds a variant to its label (`call` is a `tel:` link), and
   `endpointProps` must be a real form endpoint. A link, endpoint or asset path with a backslash or a control
@@ -48,12 +48,12 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   out) by capturing each page with its text drawn and hidden; any image, font or media file that 404s is
   `resource-failed`; a `basePath` site is served only under its path; and each page is laid out once in print.
   - `--self-test` renders the kit and requires the example and 40 stress pages clean.
-  - It plants 48 defects, covering every check, and checks 8 look-alikes that must pass.
+  - It plants 62 defects, covering every check, and checks 13 look-alikes that must pass (110 rows).
   - Every state is probed a second time with each `<details>` open (the menu, FAQ answers).
   - It measures all 18 count × width cells of the card grid.
   - A layout shift counts only when it repeats in 5 of 5 loads (the measured reason is in the knowledge file §11).
 - **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
-  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 37 measured
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 47 measured
   pitfalls.
 - **Command:** `/web-design:new-block-site`, gated step by step.
 
