@@ -41,6 +41,10 @@
         "href": "/"
       },
       {
+        "label": "Menu",
+        "href": "/menu/"
+      },
+      {
         "label": "Visit",
         "href": "/visit/"
       },
@@ -54,6 +58,10 @@
       "href": "tel:+12515550100"
     },
     "footerNav": [
+      {
+        "label": "Menu",
+        "href": "/menu/"
+      },
       {
         "label": "Visit",
         "href": "/visit/"
@@ -98,6 +106,48 @@
       "sources": [
         {
           "src": "images/counter-800.jpg",
+          "width": 800
+        }
+      ]
+    },
+    "griddle": {
+      "src": "images/griddle.jpg",
+      "alt": "Pancakes on the flat-top griddle, three at a time",
+      "width": 1600,
+      "height": 1200,
+      "provenance": "business-own",
+      "focal": "50% 55%",
+      "sources": [
+        {
+          "src": "images/griddle-800.jpg",
+          "width": 800
+        }
+      ]
+    },
+    "booths": {
+      "src": "images/booths.jpg",
+      "alt": "The window booths in morning light",
+      "width": 1600,
+      "height": 1200,
+      "provenance": "business-own",
+      "focal": "40% 50%",
+      "sources": [
+        {
+          "src": "images/booths-800.jpg",
+          "width": 800
+        }
+      ]
+    },
+    "pie-case": {
+      "src": "images/pie-case.jpg",
+      "alt": "The pie case by the register, six pies deep",
+      "width": 1600,
+      "height": 1200,
+      "provenance": "business-own",
+      "focal": "55% 45%",
+      "sources": [
+        {
+          "src": "images/pie-case-800.jpg",
           "width": 800
         }
       ]
@@ -296,6 +346,99 @@
                 "kind": "message",
                 "label": "Message",
                 "required": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "path": "/menu/",
+      "title": "Menu at Example Diner",
+      "description": "Breakfast, lunch and drinks at Example Diner in Fairhope, with prices as rung up at the register.",
+      "blocks": [
+        {
+          "type": "page-header",
+          "props": {
+            "eyebrow": "Menu",
+            "title": "Breakfast all day, lunch from eleven",
+            "intro": "Everything below is made in the kitchen you can see from the counter. Ask about the pie of the day."
+          }
+        },
+        {
+          "type": "price-list",
+          "props": {
+            "heading": "Breakfast",
+            "asOf": "2026-10-01",
+            "items": [
+              {
+                "name": "Two eggs any way",
+                "price": "$8.50",
+                "detail": "Grits or hash browns, toast",
+                "description": "With bacon or sausage from the butcher on Section Street."
+              },
+              {
+                "name": "Buttermilk pancakes",
+                "price": "$9",
+                "detail": "Stack of three"
+              },
+              {
+                "name": "Biscuits and gravy",
+                "price": "$7.75",
+                "detail": "Two biscuits, sausage gravy"
+              },
+              {
+                "name": "Shrimp and grits",
+                "price": "$14",
+                "description": "Gulf shrimp, stone-ground grits, a fried egg on top."
+              },
+              {
+                "name": "Side of bacon",
+                "price": "$4"
+              }
+            ]
+          }
+        },
+        {
+          "type": "price-list",
+          "tone": "surface",
+          "props": {
+            "heading": "Coffee and drinks",
+            "asOf": "2026-10-01",
+            "items": [
+              {
+                "name": "Drip coffee",
+                "price": "$2.50",
+                "detail": "Refills free"
+              },
+              {
+                "name": "Fresh orange juice",
+                "price": "$4.50",
+                "detail": "12 oz"
+              },
+              {
+                "name": "Sweet tea",
+                "price": "$2.75",
+                "detail": "Refills free"
+              }
+            ]
+          }
+        },
+        {
+          "type": "gallery-grid",
+          "props": {
+            "heading": "From the kitchen",
+            "images": [
+              {
+                "image": "griddle",
+                "caption": "Pancakes, three at a time"
+              },
+              {
+                "image": "booths"
+              },
+              {
+                "image": "pie-case",
+                "caption": "The pie case by the register"
               }
             ]
           }

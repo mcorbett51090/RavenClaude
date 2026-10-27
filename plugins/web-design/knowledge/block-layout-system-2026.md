@@ -1,7 +1,7 @@
 # The block layout system: pixel-perfect on every screen (2026)
 
 > **Dated 2026-10-27.** Built and measured in this plugin, not in a private repo:
-> - the starter kit `templates/block-site/` (tokens.css, layout.css, blocks.css, the block and manifest schemas, ten exemplar blocks, a three-page example);
+> - the starter kit `templates/block-site/` (tokens.css, layout.css, blocks.css, the block and manifest schemas, thirteen exemplar blocks, a four-page example);
 > - `scripts/block_site_check.py` (contract checker and stress fixtures) and `scripts/block_site_render.py` (the reference renderer and its HTML checks);
 > - `scripts/layout-probe.js` and `scripts/device_matrix.mjs` (rendered-page checks over the device table, photo contrast included).
 >
@@ -304,6 +304,11 @@ Props are closed and bounded, so a card list has a known maximum (six in the kit
 40. **The base-path run was kinder than the host.** The matrix answered `/fonts/brand.ttf` from the site's folder although the site lived under `/shop/`, so a root-absolute `url()` loaded in the test and 404'd live **[observed]**. A `--dir` site with a `basePath` is served only under it, and any image, font or media file that answers 4xx is `resource-failed`.
 41. **Print was claimed and never measured.** A printed link's address became a flex item inside its button and squeezed "Get directions" to "Get di-rec-tion s" **[observed]**. Each page is now measured once in its print stylesheet at A4 width, and a button does not print its address.
 42. **A stock photo stood in for the place, and an old page kept publishing.** Provenance was required and never read, so a `licensed-stock` hero passed; a credit was never shown; and a page removed from the manifest stayed in `--out` with last week's hours in its JSON-LD **[observed]**. A media frame lists the provenances it accepts (the hero: business-own or commissioned), the footer shows the credit of each photo on its page, and a render removes the pages its last render wrote that are gone (it refuses a folder holding files it did not write).
+43. **A correct gallery could never pass.** Three or four photos in `.auto-grid` at 1920px resolve to `339 / 339 / 339 / 339 / 0px`, and `grid-span` reported the empty track **[observed by the round-4 newcomer]**. auto-fit collapses an empty track and its gutters, so the real columns still fill the row; `grid-span` now reports only a 0px column that keeps its gaps (an empty optional column pushes the price a gap off its line).
+44. **A dark-first brand did not fit the tokens gate.** Dark values in `:root` failed with "no dark roles", and a stub dark block made it pass while the light theme went unchecked **[observed]**. `color-scheme` on `:root` now says which theme is the default: `dark light` checks the `:root` roles as dark and the light ones as the alternate, `dark` is one theme, and roles that do not match their theme's name are refused. The same value sets the native controls, which had stayed light on an always-dark brand.
+45. **A menu, a gallery and an events list were not in the kit,** and a first draft of them had five layout defects, two of which no gate caught: an `<ol>` kept its 40px indent with its markers removed, and every `li` was capped at the reading measure, even a row of a price list **[observed]**. All three are exemplars now; a marker-less list's indent is `off-grid`; a `role="list"` row is not running text, so it takes its slot's width.
+46. **A gallery photo asked for the whole line.** A frame that is one column of an auto-fit grid had no `sizes` but the slot's, so a 261px column fetched a 1600px file at a phone in landscape **[observed]**. A media frame can name its grid's `minCol`; `sizes` then gives each column count its own width.
+47. **A past event shipped as an empty list.** Every gate passed and the page said "Upcoming events" over nothing **[observed]**. A contract can name the props after which its item is over (`expires`); a past item is left off the page and warned, and a list of only past items is refused.
 
 ## Sources
 

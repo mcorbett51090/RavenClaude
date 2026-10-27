@@ -1,6 +1,6 @@
 ---
 name: block-composed-site
-description: Build or extend a website from a catalog of section blocks, so the agent writes a typed manifest instead of markup and the layout is pixel-perfect on every screen. Ships a starter kit (tokens, layout contract, block CSS, schemas, ten exemplar blocks, a three-page example), a reference renderer, and the tools that prove it (contract checker, stress fixtures, layout probe, device matrix with photo contrast). Covers feature-to-block mapping, resolver rules, gates, drift and upgrades. Used by web-architect and frontend-implementer.
+description: Build or extend a website from a catalog of section blocks, so the agent writes a typed manifest instead of markup and the layout is pixel-perfect on every screen. Ships a starter kit (tokens, layout contract, block CSS, schemas, thirteen exemplar blocks, a four-page example), a reference renderer, and the tools that prove it (contract checker, stress fixtures, layout probe, device matrix with photo contrast). Covers feature-to-block mapping, resolver rules, gates, drift and upgrades. Used by web-architect and frontend-implementer.
 ---
 
 # Skill: block-composed-site
@@ -40,8 +40,8 @@ Whichever mode you start in, finish with **Prove it**: the same ladder applies t
 
 ## Mode 0: start with no catalog (the starter kit)
 
-[`templates/block-site/`](../../templates/block-site/README.md) is a working, tested starting point: ten exemplar
-blocks, their CSS, a three-page example and a reference renderer
+[`templates/block-site/`](../../templates/block-site/README.md) is a working, tested starting point: thirteen exemplar
+blocks, their CSS, a four-page example and a reference renderer
 ([`scripts/block_site_render.py`](../../scripts/block_site_render.py)). Render the example first; it takes two minutes
 and shows the whole path working. Then follow the kit's README, which has eight steps with a gate on each:
 
@@ -111,11 +111,12 @@ The reasoning and numbers for each rule are in
    `node scripts/device_matrix.mjs --dir dist --manifest site.manifest.json --full --sweep 320:1600:8`.
    - **Where it runs:** [`layout-probe.js`](../../scripts/layout-probe.js) at 28 viewports, ±1px around every `@media`
      width and every 8px for container-query states.
-   - **Themes:** five on the quick rows (light, dark, forced colours, more contrast, and more contrast in dark).
-     Desktop rows run with real scrollbars.
+   - **Themes:** six on the quick rows (light, dark, forced colours, more contrast, more contrast in dark, and
+     motion on). Desktop rows run with real scrollbars. Each page is also laid out once in print at A4 width.
    - **What it reports:**
      - layout: overflow, off-grid slots and content escaping into the gutter, zero-width grid columns;
-     - text: overflow (sideways and downwards), text clipped by an ancestor, overlap, widows, the measure;
+     - text: overflow (sideways and downwards), text clipped by an ancestor, overlap on any line, words no reader
+       can see (covered, masked or faded out, found on pixels), widows, the measure;
      - controls: small targets, input zoom, orphan rows, a wrapping nav;
      - images: distorted, upscaled, oversized or gap-showing images, judged against the file the browser chose;
      - contrast: text on flat backgrounds, and copy over photos scored on composited pixels;

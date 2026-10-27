@@ -1,5 +1,5 @@
 ---
-description: Build a site from section blocks that is pixel-perfect on every screen. Starts from the plugin's tested starter kit (tokens, layout contract, block CSS, schemas, ten exemplar blocks) and reference renderer, gates every step, and proves the rendered site with stress fixtures and the device matrix.
+description: Build a site from section blocks that is pixel-perfect on every screen. Starts from the plugin's tested starter kit (tokens, layout contract, block CSS, schemas, thirteen exemplar blocks) and reference renderer, gates every step, and proves the rendered site with stress fixtures and the device matrix.
 argument-hint: "[the site, e.g. 'a five-page site for a Fairhope diner' or 'add a team page to our block site']"
 ---
 
@@ -20,7 +20,7 @@ Each step ends at a gate; do not start the next step until it passes. Report eac
    - **Gate:** `python3 <plugin>/scripts/block_site_check.py catalog <site>/catalog.json`.
 3. **Brand** by changing values in `tokens.css` (colours, font stacks), never role names.
    - **Gate:** `block_site_check.py tokens <site>/tokens.css`.
-4. **Choose blocks by purpose** from the block catalog in `templates/block-site/README.md`. Use the ten exemplars as
+4. **Choose blocks by purpose** from the block catalog in `templates/block-site/README.md`. Use the thirteen exemplars as
    they are, or write a closed, bounded contract for each new block in `catalog.json`, with a render function in your project's own `blocks.py` (a `RENDER` dict of block id to function, passed with `--blocks`; it may import the renderer's helpers: `from block_site_render import e, a, picture`), and its CSS
    in `blocks.css`. Never edit the plugin's scripts.
    - **Gate:** `block_site_check.py catalog <site>/catalog.json`.

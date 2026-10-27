@@ -177,7 +177,7 @@ def validate(schema, value, root=None, path="$"):
 STYLE_NAME = re.compile(
     r"^(style|styles|class|classes|classname|css|theme|colou?r|background|bg|font|fontsize|fontfamily|fontweight|"
     r"padding|margin|gap|width|height|align|textalign|justify|radius|shadow|opacity|zindex|accent|columns|cols|"
-    r"size|spacing|layout|fullwidth|maxwidth|minwidth|textsize|tone|space)$|"
+    r"spacing|layout|fullwidth|maxwidth|minwidth|textsize|tone|space)$|"
     r"(colou?r|classname|css|style|fontsize|textsize|padding|margin|radius|shadow|spacing|maxwidth|minwidth)$",
     re.IGNORECASE,
 )
@@ -337,6 +337,17 @@ def check_catalog(catalog, block_schema):
             for ref in b.get(key) or []:
                 if ref not in paths:
                     problems.append(f"{where}: {key} names {ref!r}, which is not a prop")
+        nodes = {path[len("props.") :]: node for path, node in walk_props(props)}
+        for ref in b.get("expires") or []:
+            node = nodes.get(ref)
+            if not isinstance(node, dict) or node.get("type") != "string" or not node.get("pattern"):
+                problems.append(f"{where}: expires names {ref!r}, which is not a date prop (a string with a YYYY-MM-DD pattern)")
+                continue
+            for x in node.get("examples") or []:
+                try:
+                    datetime.date.fromisoformat(x)
+                except (TypeError, ValueError):
+                    problems.append(f"{where}: expires names {ref!r}, whose example {x!r} is not a YYYY-MM-DD date")
         for m in b.get("media") or []:
             if m.get("prop") not in paths:
                 problems.append(f"{where}: media names prop {m.get('prop')!r}, which is not a prop")
@@ -696,6 +707,13 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
                     for href in _get(bl["props"], lp):
                         if isinstance(href, str) and not href.startswith(prefix):
                             problems.append(f"{at}: the {variant!r} variant's {lp} must be a {prefix} link, not {href[:60]!r}")
+            for ref in b.get("expires") or []:
+                dates = [d for d in _get(bl["props"], ref) if isinstance(d, str)]
+                past = sorted(d for d in dates if d < today)
+                if dates and len(past) == len(dates):
+                    problems.append(f"{at}: every {ref} has passed ({', '.join(past[-3:])}); the block would render empty, so remove it or add what is coming")
+                elif past:
+                    warnings.append(f"{at}: {len(past)} {ref} value(s) have passed ({', '.join(past[-3:])}); they are left off the page, so remove them")
             for ep in b.get("endpointProps") or []:
                 for url in _get(bl["props"], ep):
                     if isinstance(url, str) and (URL_JUNK.search(url) or not ENDPOINT.match(url)):
@@ -878,17 +896,41 @@ def _roles(block):
     return {m.group(1): " ".join(m.group(2).split()) for m in re.finditer(r"--([a-z0-9-]+):\s*([^;]+);", block)}
 
 
-def token_themes(css):
-    """{'light': roles, 'dark': roles}: every plain :root block in file order (a later
-    one overrides an earlier, as the cascade does), then every [data-theme="dark"]
-    block laid over them. Values are raw text; parse_color reads colours."""
+ROOT_BLOCK = re.compile(r"(?<![\w\])-]):root\s*\{([^}]*)\}")
+
+
+def scheme_order(css):
+    """The site's colour schemes, its default first, from the color-scheme a :root
+    block in tokens.css declares: "light dark" (the kit's), "dark light" (a
+    dark-first site whose light theme is the alternate), "dark" or "light" (one
+    theme only). Unset reads as "light dark", which layout.css's reset declares."""
     code = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
-    light, dark = {}, {}
-    for m in re.finditer(r"(?<![\w\])-]):root\s*\{([^}]*)\}", code):
-        light.update(_roles(m.group(1)))
-    for m in re.finditer(r':root\[data-theme="dark"\]\s*\{([^}]*)\}', code):
-        dark.update(_roles(m.group(1)))
-    return {"light": light, "dark": dict(light, **dark) if dark else {}}
+    val = None
+    for m in ROOT_BLOCK.finditer(code):
+        found = re.search(r"(?:^|[;{\s])color-scheme\s*:\s*([^;}]+)", m.group(1))
+        if found:
+            val = found.group(1)
+    words = [w for w in (val or "light dark").split() if w in ("light", "dark")]
+    return list(dict.fromkeys(words)) or ["light", "dark"]
+
+
+def token_themes(css):
+    """{scheme: roles}, the default scheme first: every plain :root block in file
+    order (a later one overrides an earlier, as the cascade does) is the default;
+    the alternate is its [data-theme="<scheme>"] block laid over them ({} when
+    color-scheme promises one and none is written). Values are raw text."""
+    code = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    order = scheme_order(css)
+    base = {}
+    for m in ROOT_BLOCK.finditer(code):
+        base.update(_roles(m.group(1)))
+    themes = {order[0]: base}
+    for alt in order[1:]:
+        over = {}
+        for m in re.finditer(r':root\[data-theme="' + alt + r'"\]\s*\{([^}]*)\}', code):
+            over.update(_roles(m.group(1)))
+        themes[alt] = dict(base, **over) if over else {}
+    return themes
 
 
 def check_tokens(css):
@@ -897,14 +939,21 @@ def check_tokens(css):
 
     problems, rows = [], []
     themes = token_themes(css)
-    if not themes["light"]:
+    order = list(themes)
+    if not themes[order[0]]:
         return ["no colour roles found in a :root block"], rows
     code = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
-    media_m = re.search(r"prefers-color-scheme:\s*dark\)\s*\{\s*:root[^{]*\{([^}]*)\}", code)
-    attr_m = re.search(r':root\[data-theme="dark"\]\s*\{([^}]*)\}', code)
-    if media_m and attr_m and _roles(media_m.group(1)) != _roles(attr_m.group(1)):
-        problems.append("dark: the prefers-color-scheme block and the [data-theme=\"dark\"] block disagree; they are one theme written twice and must match")
-    light = themes["light"]
+    for alt in order[1:]:
+        media_m = re.search(r"prefers-color-scheme:\s*" + alt + r"\)\s*\{\s*:root[^{]*\{([^}]*)\}", code)
+        attr_m = re.search(r':root\[data-theme="' + alt + r'"\]\s*\{([^}]*)\}', code)
+        if media_m and attr_m and _roles(media_m.group(1)) != _roles(attr_m.group(1)):
+            problems.append(f"{alt}: the prefers-color-scheme block and the [data-theme=\"{alt}\"] block disagree; they are one theme written twice and must match")
+        if attr_m and not media_m:
+            problems.append(
+                f"{alt}: its roles are only under [data-theme=\"{alt}\"], which nothing on a rendered page sets; "
+                f"repeat them under @media (prefers-color-scheme: {alt}) {{ :root:not([data-theme=\"{order[0]}\"]) {{ … }} }} so a reader whose system is {alt} gets them"
+            )
+    light = themes[order[0]]
     if not light.get("font-body"):
         problems.append("--font-body is missing: every page would render in the browser's default serif")
     for name, val in light.items():
@@ -920,7 +969,10 @@ def check_tokens(css):
             problems.append(f"--{name} grows {hi / lo:.2f}× from its min to its max; above {TYPE_SCALE_MAX}× text stops growing at 200% zoom (WCAG 1.4.4)")
     for theme, roles in themes.items():
         if not roles:
-            problems.append(f"{theme}: no [data-theme=\"dark\"] roles found (a site that supports dark mode needs them)")
+            problems.append(
+                f"{theme}: no [data-theme=\"{theme}\"] roles found, but :root's color-scheme puts a {theme} theme second "
+                f"(write its roles, or set color-scheme: {order[0]} for a site that is always {order[0]})"
+            )
             continue
 
         def col(name, theme=theme, roles=roles):
@@ -943,6 +995,17 @@ def check_tokens(css):
             rows.append((theme, fg, bg, r, need, why))
             if r < need:
                 problems.append(f"{theme}: --{fg} {roles[fg]} on --{bg} {roles[bg]} is {r:.2f}:1, needs {need}:1 ({why})")
+        canvas, ink = parse_color(roles.get("canvas", ""), roles), parse_color(roles.get("ink", ""), roles)
+        if canvas and ink:
+            lum = lambda c: sum(w * (v / 255) for w, v in zip((0.2126, 0.7152, 0.0722), c[:3]))  # noqa: E731
+            dark_canvas = lum(canvas) < lum(ink)
+            if dark_canvas != (theme == "dark"):
+                problems.append(
+                    f"{theme}: --canvas {roles['canvas']} is {'darker' if dark_canvas else 'lighter'} than --ink, so these are "
+                    f"{'dark' if dark_canvas else 'light'} roles, but color-scheme names this theme {theme}. A dark-first site "
+                    "sets color-scheme: dark light in :root (or dark, for always dark) and writes its light roles under "
+                    "[data-theme=\"light\"] and @media (prefers-color-scheme: light)"
+                )
         scrim = col("scrim-color")
         weak = roles.get("scrim-weak")
         if scrim is None or not weak or not re.fullmatch(r"[\d.]+%", weak) or not roles.get("scrim-strong"):
@@ -978,6 +1041,8 @@ RTL_STRINGS = {
     "emergency": "للطوارئ فقط",
     "required": "(مطلوب)",
     "open24": "مفتوح 24 ساعة",
+    "credits": "الصور",
+    "pricesAsOf": "الأسعار حتى",
     "days": ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"],
     "months": ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"],
 }
@@ -1083,6 +1148,8 @@ def make_fixtures(blocks, today=None):
         for mode in ("min", "max", "long", "rtl"):
             variant = b["variants"][0 if mode == "min" else -1] if b.get("variants") else None
             blk = {"type": bid, "props": gen(b["props"], mode, "", b, variant)}
+            for ref in b.get("expires") or []:
+                _future_dates(blk["props"], ref, today)
             if variant:
                 blk["variant"] = variant
             seq = [blk]
@@ -1117,10 +1184,38 @@ def make_fixtures(blocks, today=None):
             "nav": [link(i, 20) for i in range(6)],
             "action": {"label": _text(28, "max"), "href": "tel:+12515550100"},
             "footerNav": [link(i, 20) for i in range(8)],
+            "footerNote": _text(160, "max"),
         },
         "assets": {"stress-photo": stress_photo(blocks)},
         "pages": pages,
     }
+
+
+def _future_dates(props, ref, today):
+    """Give every date at ref (a.b, a[].b) a day after today, a week apart, so a
+    fixture's events are never in the past whenever it is generated."""
+    start = datetime.date.fromisoformat(today or datetime.date.today().isoformat())
+    n = 0
+
+    def walk(node, parts):
+        nonlocal n
+        if not parts or not isinstance(node, dict):
+            return
+        key, rest = parts[0], parts[1:]
+        is_list = key.endswith("[]")
+        key = key[:-2] if is_list else key
+        if key not in node:
+            return
+        if not rest:
+            n += 1
+            node[key] = (start + datetime.timedelta(days=7 * n)).isoformat()
+        elif is_list:
+            for item in node[key]:
+                walk(item, rest)
+        else:
+            walk(node[key], rest)
+
+    walk(props, ref.split("."))
 
 
 def stress_photo(blocks):
@@ -1233,6 +1328,27 @@ def self_test():
     row(any("disagree" in b for b in bad), "must fail (tokens): the two copies of the dark theme drifted apart")
     bad, _ = check_tokens(css + "\n:root { --field-border: #e2e2e6; --focus: #e9e9ee; }\n")
     row(any("--field-border" in b for b in bad) and any("--focus" in b for b in bad), "must fail (tokens): a later :root block that overrides a role (every :root is read, in order)")
+    # Dark first, and always dark: color-scheme on :root says which roles are which.
+    kit_themes = token_themes(css)
+    lt, dk = kit_themes["light"], kit_themes["dark"]
+    changed = [k for k in dk if dk[k] != lt.get(k)]
+    decl = lambda d, keys: " ".join(f"--{k}: {d[k]};" for k in keys)  # noqa: E731
+    alt_light = decl(lt, changed)
+    dark_first = (
+        ":root { color-scheme: dark light; " + decl(dk, dk) + " }\n"
+        '@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { ' + alt_light + " } }\n"
+        ':root[data-theme="light"] { ' + alt_light + " }\n"
+    )
+    dp, drows = check_tokens(dark_first)
+    row(not dp and len(drows) == len(trows), "positive: a dark-first palette (color-scheme: dark light) checks its dark roles in :root and its light ones as the alternate", "; ".join(dp[:2]))
+    ap, arows = check_tokens(":root { color-scheme: dark; " + decl(dk, dk) + " }\n")
+    row(not ap and len(arows) == len(trows) // 2, "positive: an always-dark palette (color-scheme: dark) needs no light theme", "; ".join(ap[:2]))
+    mp, _ = check_tokens(":root { " + decl(dk, dk) + " }\n" + ':root[data-theme="dark"] { --focus: #9db9ff; }\n@media (prefers-color-scheme: dark) { :root { --focus: #9db9ff; } }\n')
+    row(any("darker than --ink" in x for x in mp), "must fail (tokens): dark roles in :root with no color-scheme (read as light, which they are not)", "; ".join(mp[:2]))
+    np_, _ = check_tokens(":root { color-scheme: dark light; " + decl(dk, dk) + " }\n")
+    row(any('no [data-theme="light"] roles' in x for x in np_), "must fail (tokens): color-scheme promises a light theme that is not written", "; ".join(np_[:2]))
+    op, _ = check_tokens(":root { color-scheme: dark light; " + decl(dk, dk) + " }\n" + ':root[data-theme="light"] { ' + alt_light + " }\n")
+    row(any("nothing on a rendered page sets" in x for x in op), "must fail (tokens): an alternate theme only under [data-theme], which no reader's system selects", "; ".join(op[:2]))
     ok_turn, _ = check_tokens(css.replace("--accent: #2f5bd3;", "--accent: hsl(0.62turn 64% 50%);", 1))
     row(not any("cannot read" in b for b in ok_turn), "tokens: an hsl() hue in turn units is read, not a crash", "; ".join(ok_turn[:2]))
     row(parse_color("hsl(nonsense 1 2)") is None, "tokens: an unreadable colour is reported, not a crash")
@@ -1315,6 +1431,7 @@ def self_test():
         catalog_case("level-1 block not placed first", edit("hero-full", lambda b: b["placement"].update(position="any")), "must be 'first'")
         catalog_case("assetProps names no prop", edit("story-split", lambda b: b.update(assetProps=["photo"])), "which is not a prop")
         catalog_case("media prop not in assetProps", edit("story-split", lambda b: b.update(assetProps=[])), "must also be listed in assetProps")
+        catalog_case("expires naming a prop that is not a date", edit("events-list", lambda b: b.update(expires=["heading"])), "not a date prop")
         catalog_case("tone default not allowed", edit("features-grid", lambda b: b["tone"].update(default="inverse")), "is not in tone.allowed")
         catalog_case("notAdjacentTo names an unknown block", edit("cta-banner", lambda b: b["placement"].update(notAdjacentTo=["hero-giant"])), "unknown block")
         catalog_case("more than three variants", edit("cta-banner", lambda b: b.update(variants=["a", "b", "c", "d"])), "more than 3")
@@ -1362,7 +1479,7 @@ def self_test():
         manifest_case("a block's required fact is missing", lambda m: m["business"].pop("hours"), "does not give")
         manifest_case("an in-page link to no anchor", lambda m: B(m)[0]["props"]["actions"][0].update(href="#nowhere"), "has as its anchor")
         manifest_case("a link to an anchor another page lacks", lambda m: B(m)[0]["props"]["actions"][0].update(href="/visit/#nowhere"), "has no anchor")
-        manifest_case("a nav link to a missing page", lambda m: m["chrome"]["nav"][0].update(href="/menu/"), "not a page")
+        manifest_case("a nav link to a missing page", lambda m: m["chrome"]["nav"][0].update(href="/catering/"), "not a page")
         manifest_case("an in-page link in the header", lambda m: m["chrome"]["nav"][0].update(href="#visit"), "on every page")
         manifest_case("a javascript: link", lambda m: B(m)[0]["props"]["actions"][0].update(href="javascript:alert(1)"), "a link is a path")
         manifest_case("an anchor used twice", lambda m: B(m)[1].update(anchor="visit"), "used more than once")
@@ -1452,6 +1569,16 @@ def self_test():
         manifest_case("a template slot left in the facts ([Business Name])", lambda m: m["business"].update(name="[Business Name]"), "placeholder")
         manifest_case("a template slot left in the address (<Street address>)", lambda m: m["business"]["address"].update(street="<Street address>"), "placeholder")
         manifest_case("a stat source of N/A", lambda m: B(m)[3]["props"]["items"][0].update(source="N/A"), "placeholder")
+        V = lambda m: m["pages"][1]["blocks"]  # noqa: E731  (/visit/)
+        manifest_case(
+            "an events list whose every event has passed (it would render empty)",
+            lambda m: V(m).append({"type": "events-list", "props": {"heading": "Coming up", "events": [{"date": "2020-01-10", "title": "Quiz night"}]}}),
+            "would render empty",
+        )
+        ev = copy.deepcopy(example)
+        V(ev).append({"type": "events-list", "props": {"heading": "Coming up", "events": [{"date": "2020-01-10", "title": "Quiz night"}, {"date": "2099-01-10", "title": "Fish fry"}]}})
+        pe, we = check_manifest(ev, blocks, mschema)
+        row(not pe and any("have passed" in x for x in we), "warns: a past event beside a coming one (it is left off the page)", "; ".join(pe[:2]))
         e24 = copy.deepcopy(example)
         e24["business"]["hours"].append({"days": ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], "opens": "00:00", "closes": "23:59", "kind": "emergency"})
         p24, _ = check_manifest(e24, blocks, mschema)
@@ -1529,7 +1656,7 @@ def main(argv):
         photo = os.path.join(os.path.dirname(os.path.abspath(argv[3])), STRESS_PHOTO["src"])
         write_stress_photo(photo)
         print(f"block_site_check fixtures: wrote {len(fx['pages'])} stress pages to {argv[3]} and the stress photo to {photo}")
-        print("  next: block_site_render.py render <that file> --catalog <catalog> --out <dir>, then device_matrix.mjs --dir <dir> --manifest <that file>")
+        print("  next: block_site_render.py render <that file> --catalog <catalog> [--blocks <your blocks.py>] --out <a folder of its own>, then device_matrix.mjs --dir <that folder> --manifest <that file>")
         return 0
     print(__doc__)
     return 2

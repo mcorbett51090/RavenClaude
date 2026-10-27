@@ -14,6 +14,14 @@
 
 @layer tokens {
   :root {
+    /* Which theme is the default, and whether there is another. "light dark":
+       these roles are light and the dark ones below are the alternate. A
+       dark-first site writes "dark light", puts its DARK roles here and its
+       light ones under prefers-color-scheme: light and [data-theme="light"];
+       an always-dark site writes "dark" and needs no other block. It also sets
+       the native controls (a date picker's icon) to match. block_site_check.py
+       tokens reads it. */
+    color-scheme: light dark;
     /* Type, 320px → 1440px. Generated: knowledge/block-layout-system-2026.md §3. */
     --step-n2: clamp(0.6944rem, 0.6757rem + 0.0937vw, 0.76rem);
     --step-n1: clamp(0.8333rem, 0.8rem + 0.1667vw, 0.95rem);

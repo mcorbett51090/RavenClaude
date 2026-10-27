@@ -379,7 +379,15 @@ async function layoutProbe(options) {
             boxless &&
             /^(block|flex|grid|flow-root)$/.test(ds.display) &&
             !d.matches(
-              "ul,ol,li,dl,dd,blockquote,figure,fieldset,details,summary,table,td,th,pre,label,button,a,nav,form",
+              "li,dl,dd,blockquote,figure,fieldset,details,summary,table,td,th,pre,label,button,a,nav,form",
+            ) &&
+            // A list's indent holds its markers; with no markers it is padding
+            // with nothing to show for it, like any other wrapper's.
+            !(
+              d.matches("ul,ol") &&
+              [...d.children].some(
+                (li) => cs(li).display === "list-item" && cs(li).listStyleType !== "none",
+              )
             ) &&
             Math.abs(dr.left - r.left) <= opts.edgeTolerance &&
             d.textContent.trim()
@@ -674,19 +682,29 @@ async function layoutProbe(options) {
       const kids = [...g.children].filter(
         (k) => visible(k) && !["absolute", "fixed"].includes(cs(k).position),
       );
-      // Zero-width tracks between real ones: items span columns the template does
-      // not define, so the grid silently has fewer real columns than its CSS says.
+      // A 0px column that still takes its gaps: what follows it (or the row's
+      // end) sits a gap off its line. auto-fit's empty tracks are 0px too, but
+      // they collapse with their gutters, so the real columns still fill the row.
       const tracks = s.gridTemplateColumns
         .split(/\s+/)
         .filter((t) => /px$/.test(t))
         .map(parseFloat);
       const gap = parseFloat(s.columnGap) || 0;
-      if (kids.length && tracks.length > 1 && gap > 0 && tracks.some((t) => t < 0.5)) {
-        add(
-          "grid-span",
-          g,
-          `columns resolve to ${tracks.map((t) => Math.round(t)).join(" / ")}px: items span tracks the grid does not define (is this grid the container its own @container rule queries?)`,
-        );
+      const zero = tracks.map((t) => t < 0.5);
+      if (kids.length && tracks.length > 1 && gap > 0 && zero.some(Boolean)) {
+        const real = tracks.filter((t) => t >= 0.5);
+        const inner =
+          g.clientWidth - parseFloat(s.paddingInlineStart) - parseFloat(s.paddingInlineEnd);
+        const trailing = zero.indexOf(true) > zero.lastIndexOf(false);
+        const collapsed =
+          trailing &&
+          Math.abs(real.reduce((x, y) => x + y, 0) + gap * (real.length - 1) - inner) <= 1;
+        if (!collapsed)
+          add(
+            "grid-span",
+            g,
+            `columns resolve to ${tracks.map((t) => Math.round(t)).join(" / ")}px: a 0px column still takes its ${Math.round(gap)}px gaps, so what comes after it sits off its line (an empty optional column, or items spanning tracks the template does not define); leave the column out of the template when it is empty, or use auto-fit, which collapses an empty track and its gutters`,
+          );
       }
       if (kids.length < 3 || g.hasAttribute("data-ragged")) continue;
       // Only a grid of LIKE items can strand one: a form's fields and its button

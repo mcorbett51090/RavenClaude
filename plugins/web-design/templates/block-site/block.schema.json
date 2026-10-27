@@ -216,6 +216,12 @@
             "items": {
               "enum": ["business-own", "commissioned", "licensed-stock", "generated"]
             }
+          },
+          "minCol": {
+            "description": "The frame is one column of an auto-fit grid (layout.css .auto-grid) whose columns are at least this many rem wide: sizes then follows the column count at each width, not the whole slot.",
+            "type": "number",
+            "minimum": 8,
+            "maximum": 40
           }
         }
       }
@@ -256,6 +262,13 @@
       "items": {
         "type": "string",
         "minLength": 10
+      }
+    },
+    "expires": {
+      "description": "Props that hold a date (YYYY-MM-DD) after which their item is over, such as an event's date: a past one is left off the page, the checker warns, and a block whose every item has passed is refused (it would render empty).",
+      "type": "array",
+      "items": {
+        "type": "string"
       }
     }
   },

@@ -15,8 +15,8 @@ its own geometry. The reasoning, the numbers and the pitfalls are in
 | `blocks.css` | each exemplar block's CSS, keyed by `[data-block]`, plus the site header, menu and footer | add your blocks' CSS |
 | `block.schema.json` | the shape every block contract must have | no |
 | `site-manifest.schema.json` | the shape of a site manifest: facts, chrome, assets, pages | no |
-| `catalog.json` | ten exemplar block contracts, one entry per block | copy entries for new blocks |
-| `example.manifest.json` | a three-page site (home, visit, contact) that uses all ten blocks and the site chrome | — |
+| `catalog.json` | thirteen exemplar block contracts, one entry per block | copy entries for new blocks |
+| `example.manifest.json` | a four-page site (home, menu, visit, contact) that uses twelve of the thirteen blocks and the site chrome (`events-list` is in the stress fixtures, whose dates are always to come) | — |
 
 The tools are in [`../../scripts/`](../../scripts/): `block_site_check.py` (the contract, as exit codes),
 `block_site_render.py` (manifest → static HTML), `layout-probe.js` and `device_matrix.mjs` (the rendered page,
@@ -43,10 +43,17 @@ Every step ends at a gate that must pass before the next one starts.
 2. **Set the brand in `tokens.css`.** Change the colour values (never the role names), the font stacks and, if you
    need to, the type base, ratios and grid widths (regenerate the scales with knowledge §3). For a brand web font,
    follow the comment above `--font-body`: `font-display: swap`, one preload, and a metric-matched fallback.
+   - **Dark first, or always dark.** `color-scheme` on `:root` says which roles are which. The kit's `light dark`
+     means the `:root` roles are light and the dark ones are the alternate. A dark-first brand writes `dark light`,
+     puts its dark roles in `:root` and its light ones under `@media (prefers-color-scheme: light)` and
+     `[data-theme="light"]`. An always-dark brand writes `dark` and needs no other block. The same value sets the
+     native controls (a date picker's icon) and the renderer's `color-scheme` and `theme-color` meta.
    - **Gate:** `block_site_check.py tokens site/tokens.css`. It reads the colour roles from the file itself (hex,
      `rgb()`, `hsl()`, `oklch()`, `oklab()`) and checks every pairing a block can produce, in light and dark: text
      4.5:1, form-control edges and focus rings 3:1, text in a card on a dark band, and light copy over the photo scrim
-     on a white pixel. It also checks that the two copies of the dark theme match, that every type step grows less
+     on a white pixel, in each theme `color-scheme` names. It refuses roles that do not match their theme (dark
+     roles read as light) and an alternate theme only under `[data-theme]`, which no rendered page sets. It also
+     checks that the two copies of the alternate theme match, that every type step grows less
      than 2.5× (so 200% zoom works), and that a font stack is set.
 3. **Choose blocks from [the catalog](#the-block-catalog).** Pick by purpose, never by look. Copy an exemplar contract
    from `catalog.json` for each block you need and fill it in: closed props, every string and list bounded, its slots,
@@ -71,7 +78,8 @@ Every step ends at a gate that must pass before the next one starts.
    `shareImage` (an asset with alt, 1200px wide, for link previews) and `icon`. Mark an emergency-only line's hours
    `"kind": "emergency"`: they show under their own heading and are never published as opening hours.
    - **Another language.** The renderer writes some words itself (Menu, Get directions, Call, day and month names,
-     Closed, Special days, (required), Skip to content). Give them in the site's language in `strings`, and a page in
+     Closed, Special days, (required), Skip to content, Photos, Prices as of). Give them in the site's language in
+     `strings`, and a page in
      a second language its own `strings` and `alternates` (hreflang). One manifest per language, each with its own
      `basePath` and `chrome`, is the cleaner shape for a whole second-language site.
    - **Gate:** `block_site_check.py manifest site/site.manifest.json --catalog site/catalog.json`. Read its warnings
@@ -114,7 +122,7 @@ Every step ends at a gate that must pass before the next one starts.
 
 ## The block catalog
 
-The canonical set of section blocks for small-business and marketing sites. **Ten are written out as exemplar
+The canonical set of section blocks for small-business and marketing sites. **Thirteen are written out as exemplar
 contracts** in `catalog.json` (marked ✓), each with a render function in `block_site_render.py` and CSS in
 `blocks.css`. The others are specified here, so a new contract starts from a decided shape rather than a blank file.
 Add a row as you add a block.
@@ -134,17 +142,19 @@ How to read a row:
 | ✓ `story-split` | about or history beside a photo / more than 4 short paragraphs | 2 | surface · canvas | content | switcher at 44rem; prose measure | ≤ 4 paragraphs of ≤ 420 | 4/3, ≤ 704px wide (stacked) | no invented origin story |
 | ✓ `stats-band` | 2–4 numbers that matter / numbers nobody can source | 2 | canvas · surface · inverse | content | switcher at 36rem (never `auto-grid`) | 2–4 items; value ≤ 8, label ≤ 32, source ≤ 120 | — | every number has a source, shown under it |
 | ✓ `testimonial` | one quote with attribution / quotes without permission | 2 | surface · canvas | content | figure at the prose measure | quote ≤ 280, name ≤ 80, context ≤ 80, `permission: true` | — | quoted word for word, with permission, and where and when |
-| `price-list` | menu or service prices, exactly as published | 2 | canvas · surface | content | grid with a subgrid row per item; tabular numbers | ≤ 40 items; name ≤ 60, price ≤ 12, note ≤ 120 | — | prices exactly as published, dated |
+| ✓ `price-list` | one section of a menu, a drinks list or a price sheet / offerings without prices → `features-grid`; a long menu → one block per section | 2 | canvas · surface | content | rows two up past 48rem (`auto-fill`, `data-ragged`); each row a name and a price that never breaks, tabular numbers | ≤ 30 items; name ≤ 48, price ≤ 14, detail ≤ 48, description ≤ 160; `asOf` date | — | prices as rung up, with currency; `asOf` is the day they were checked |
 | `services-list` | 3–8 services with a line each | 2 | canvas · surface | content | count-aware `.cards`, or a two-column subgrid list | ≤ 8 items | optional icon enum | — |
 | `team-grid` | people who agreed to be shown | 2 | canvas · surface | content | count-aware `.cards` | ≤ 6 people; name ≤ 48, role ≤ 48, bio ≤ 200 | 1/1 `half-content`, `maxWidth` 600: two to a row at most widths, and an odd last photo card keeps that width, centred | only people who consented; business-own or commissioned photos |
-| `gallery-grid` | 3–12 photos of the place or the work | 2 | canvas · surface | wide | `.auto-grid` of frames marked `data-ragged` (no masonry: mixed ratios leave ragged column bottoms) | 3–12 images | 4/3 or 1/1 frames, lazy | business-own photos; alt written while looking |
+| ✓ `gallery-grid` | 3–12 photos of the place or the work / one photo → `story-split` | 2 | canvas · surface | content (the heading's line: on `wide` the photos sit a few px outside it and read as misaligned) | `.auto-grid` at `minCol` 16rem, marked `data-ragged` (no masonry: mixed ratios leave ragged column bottoms); auto-fit's empty tracks collapse | 3–12 images, caption ≤ 100 | 4/3 frames, lazy; `sizes` per column count (`minCol`); business-own or commissioned only | photos of this place; alt written while looking |
+| ✓ `events-list` | upcoming dated events / opening hours → `hours-location`; a one-off closure → `business.specialHours` | 2 | surface · canvas | content | one date column for every event (subgrid); the date above its title under 30rem | 1–12 events; title ≤ 60, body ≤ 200; date and start time | — | confirmed events on their real dates; `expires`: a past one is left off the page and warned, and a list of only past ones is refused |
 | ✓ `faq-list` | 3–8 real questions customers ask | 2 | surface · canvas | content | stack of `details`; prose measure | 3–8 items; question ≤ 100, answer ≤ 400 | — | FAQPage JSON-LD only if Google still shows it for the type |
 | ✓ `hours-location` | address, hours, special days and directions for a place customers visit / a service-area business → show the area | 2 | canvas · surface | content | switcher at 40rem; hours as a subgrid `dl` with `align-content: start` | heading ≤ 60, note ≤ 160; `requires` address and hours | — | hours from the business's structured hours, the same source as the JSON-LD |
 | ✓ `contact-form` | a real, delivered form / no endpoint provisioned yet → say how to reach the business | 2 | surface · canvas | content | stack; prose measure | 1–8 fields from a fixed set; labels ≤ 40 | — | posts to an endpoint the business reads; never promises a reply time; needs a security review |
 | ✓ `cta-banner` | one closing action / directly after a hero, or two in a row | 2 | inverse · surface | content | cluster with space-between | heading ≤ 48, label ≤ 28 | — | the action does what its label says (`call` is a `tel:` link) |
 
 The **site header and footer** are not blocks. They come from the manifest's `chrome` (a nav of ≤ 6 links of
-≤ 20 characters, one action, ≤ 8 footer links) and its `business` facts, and are the same on every page. The header's
+≤ 20 characters, one action, ≤ 8 footer links, and an optional `footerNote`: one line every footer carries, such as
+an age limit or a licence number) and its `business` facts, and are the same on every page. The header's
 nav becomes a menu below the width its links need. The renderer works that width out from the labels, in rem (so it
 moves with a reader's font size) and counting wide glyphs such as Japanese at 1em, and the device matrix's `nav-wrap`
 check proves it, header row included.

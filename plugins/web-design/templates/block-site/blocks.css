@@ -28,7 +28,10 @@
   .muted {
     color: var(--ink-muted);
   }
-  ul[role="list"] {
+  /* A list used for layout (cards, rows, events): no markers, so no indent.
+     role="list" keeps it a list for VoiceOver, which drops list semantics
+     from a list with list-style: none. */
+  :is(ul, ol)[role="list"] {
     list-style: none;
     padding: 0;
   }
@@ -122,6 +125,9 @@
   .site-footer .site-nav a {
     padding-inline: 0;
   }
+  .site-footer__note {
+    font-weight: 600;
+  }
   /* Up to eight links: a column, which has no in-between state where a row of
      them breaks onto a second line (the probe's nav-wrap check). */
   .site-footer .site-nav ul {
@@ -213,6 +219,82 @@
   }
   .faq details > p {
     padding-block-end: var(--space-xs);
+  }
+
+  /* ─── price-list: a name and its price on one line, the price never broken;
+     rows two up where the slot is wide ───────────────────────────────────── */
+  .price-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+    gap: var(--space-m) var(--space-xl);
+  }
+  .price-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--space-s);
+    row-gap: var(--space-3xs);
+    align-content: start;
+    align-items: baseline;
+  }
+  .price-item > :not(.price-item__name, .price-item__price) {
+    grid-column: 1 / -1;
+  }
+  .price-item__name {
+    font-size: var(--step-0);
+  }
+  .price-item__price {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-align: end;
+  }
+  .price-item__detail {
+    font-size: var(--step-n1);
+  }
+  .price-list__as-of {
+    font-size: var(--step-n1);
+  }
+
+  /* ─── gallery-grid: one column of an auto-fit grid per photo; its contract's
+     minCol is the grid's --min-col (written by the renderer), so sizes follows
+     the column count ───────────────────────────────────────────────────────── */
+  .gallery__item {
+    gap: var(--space-2xs);
+  }
+  .gallery__item figcaption {
+    font-size: var(--step-n1);
+  }
+
+  /* ─── events-list: one date column for every event (subgrid), so every title
+     starts on the same line; under 30rem the date goes above its title ────── */
+  .events {
+    display: grid;
+    grid-template-columns: fit-content(40%) minmax(0, 1fr);
+    gap: var(--space-m) var(--space-l);
+  }
+  .event {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: baseline;
+  }
+  .event__when {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .event__what {
+    --stack-gap: var(--space-3xs);
+  }
+  .event h3 {
+    font-size: var(--step-1);
+  }
+  @container (max-width: 30rem) {
+    .events {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .event {
+      row-gap: var(--space-3xs);
+    }
   }
 
   /* ─── hours-location: one label column for the weekly rows AND the special

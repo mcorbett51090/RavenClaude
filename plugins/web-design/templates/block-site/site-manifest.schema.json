@@ -139,6 +139,12 @@
           "minLength": 1,
           "maxLength": 40,
           "description": "Photos, before the credits of the photos on a page"
+        },
+        "pricesAsOf": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Prices as of, before the day a price list was checked"
         }
       }
     },
@@ -346,6 +352,12 @@
               }
             }
           }
+        },
+        "footerNote": {
+          "description": "One line every page's footer carries: an age limit, a cash-only rule, a licence number. Not marketing copy.",
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 160
         }
       }
     },
@@ -587,6 +599,12 @@
                 "minLength": 1,
                 "maxLength": 40,
                 "description": "Photos, before the credits of the photos on a page"
+              },
+              "pricesAsOf": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Prices as of, before the day a price list was checked"
               }
             }
           },

@@ -1250,6 +1250,26 @@ const sec = (inner, tone = "canvas") =>
   `<section data-block="m" data-tone="${tone}"><div>${inner}</div></section>`;
 const MUTATIONS = [
   {
+    expect: "grid-span",
+    vp: "laptop",
+    why: "an optional middle column left empty: its gaps push the price a gap off its line",
+    html: {
+      extra: sec(
+        `<div style="display: grid; grid-template-columns: 1fr auto auto; column-gap: 1.5rem"><span>Harbour pale ale</span><span></span><span>$7</span></div>`,
+      ),
+    },
+  },
+  {
+    expect: "off-grid",
+    vp: "laptop",
+    why: "a list with its markers removed and the browser's 40px indent kept",
+    html: {
+      extra: sec(
+        `<ol style="list-style: none"><li>Trivia night, Tuesday</li><li>Live music, Friday</li><li>Release party, Saturday</li></ol>`,
+      ),
+    },
+  },
+  {
     expect: "overlap",
     vp: "iphone",
     why: "a badge over the end of a card's last line, clear of its first",
@@ -1644,6 +1664,16 @@ const MUTATIONS = [
 // Shapes that LOOK like a defect and are not: each must produce none of the ids
 // it names. A probe that fires on correct pages gets switched off.
 const CLEAN = [
+  {
+    forbid: ["grid-span"],
+    vp: "desktop",
+    why: "an auto-fit gallery with fewer photos than columns (its empty tracks collapse with their gutters)",
+    html: {
+      extra: sec(
+        `<div class="auto-grid" data-ragged style="--min-col: 14rem">${[1, 2, 3].map((i) => `<div class="frame"><img src="/story.png" width="1200" height="900" alt="Photo ${i}"></div>`).join("")}</div>`,
+      ),
+    },
+  },
   {
     forbid: ["overlap"],
     vp: "iphone",

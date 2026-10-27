@@ -48,7 +48,7 @@
    Cascade layers: block CSS goes in @layer blocks. The `contract` layer is last,
    so a block cannot accidentally move itself off the grid or change the section
    rhythm. Blocks tune the contract through the custom properties it reads
-   (--ratio, --focal, --min-col, --switch-at, --section-space…), never by
+   (--ratio, --focal, --min-col, --switch-at, --measure, --section-space…), never by
    overriding its rules. Unlayered CSS beats every layer, so keep site CSS
    layered.
    ============================================================================= */
@@ -523,8 +523,10 @@
     text-wrap: pretty; /* no-op where unsupported (Firefox): plain wrap */
   }
   /* Running text keeps a readable measure wherever it lands: in a slot, a wide
-     card or a single centred card. */
-  :where(p, li, dd, blockquote, figcaption) {
+     card or a single centred card. An item of a list used for layout
+     (role="list": price rows, events, cards) is a row, not running text, so it
+     takes its slot's width; its own paragraphs still keep the measure. */
+  :where(p, li:not([role="list"] > li), dd, blockquote, figcaption) {
     max-inline-size: var(--measure);
   }
 

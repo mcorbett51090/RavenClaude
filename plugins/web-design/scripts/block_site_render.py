@@ -77,6 +77,7 @@ UI = {
     "required": "(required)",
     "open24": "Open 24 hours",
     "credits": "Photos",
+    "pricesAsOf": "Prices as of",
     "days": list(DAY_NAME.values()),
     "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
 }
@@ -162,6 +163,13 @@ def special_rows(business, lang, today, ui=None):
         when = f"{sp['label']} ({ui['months'][date.month - 1]}\u00a0{date.day}{year})"
         out.append((when, ui["closed"] if sp.get("closed") else window(sp["opens"], sp["closes"], lang, ui)))
     return out
+
+
+def short_date(iso, ui, today):
+    """Nov 6, or Nov 6, 2027 outside this year: a date that never breaks."""
+    d = datetime.date.fromisoformat(iso)
+    year = f",\u00a0{d.year}" if d.year != int(today[:4]) else ""
+    return f"{ui['months'][d.month - 1]}\u00a0{d.day}{year}"
 
 
 def address_lines(addr):
@@ -254,6 +262,8 @@ def sizes_for(media, asset=None):
     than the frame by the ratio of the two shapes; every width here is scaled by it,
     or the browser picks a file too small for what it draws."""
     slot, mw = media["slot"], media.get("maxWidth")
+    if media.get("minCol") and slot in ("content", "wide"):
+        return auto_grid_sizes(media, asset)
     if slot == "full":
         if media.get("maxHeight") and asset:
             ar = round(asset["width"] / asset["height"], 4)
@@ -281,6 +291,37 @@ def sizes_for(media, asset=None):
         if k > 1.01:
             length = f"calc({length} * {k:.3f})"
         out.append(f"{cond} {length}" if cond else length)
+    return ", ".join(out)
+
+
+def auto_grid_sizes(media, asset=None):
+    """sizes for one column of layout.css's .auto-grid (auto-fit columns at least
+    minCol rem wide) on the content or wide line. The column count changes with the
+    width, so each count gets its own condition, from the kit's tokens: a 16px rem,
+    the gutter clamp(1rem, 0.4286rem + 2.8571vw, 3rem) on each side, the gap
+    clamp(1.5rem, 1.4196rem + 0.4018vw, 1.7812rem), and a 72rem (wide: 90rem) line.
+    Each condition gives the widest the column is drawn while that count holds,
+    2% over, so it never under-asks."""
+    m = media["minCol"] * 16
+    line = (90 if media["slot"] == "wide" else 72) * 16
+    widest = {}
+    starts = {}
+    for vw in range(280, 3201):
+        gutter = min(48, max(16, 6.857 + 0.028571 * vw))
+        gap = min(28.5, max(24, 22.714 + 0.004018 * vw))
+        c = min(line, vw - 2 * gutter)
+        n = max(1, int((c + gap) // (m + gap)))
+        col = (c - (n - 1) * gap) / n
+        widest[n] = max(widest.get(n, 0), col)
+        starts.setdefault(n, vw)
+    k = 1.0
+    if asset and media.get("ratio"):
+        num, den = (int(x) for x in media["ratio"].split(" / "))
+        k = max(1.0, (asset["width"] / asset["height"]) / (num / den))
+    out = []
+    for n in sorted(widest, reverse=True):
+        w = round(widest[n] * 1.02 * k)
+        out.append(f"(min-width: {starts[n]}px) {w}px" if n > 1 else f"min({w}px, calc((100vw - 2rem) * {k:.3f}))" if k > 1.01 else f"min({w}px, 100vw - 2rem)")
     return ", ".join(out)
 
 
@@ -435,6 +476,62 @@ def b_faq_list(p, ctx):
     return out + "</div></div>"
 
 
+def b_price_list(p, ctx):
+    out = f'<div class="stack"><h2 id={a(ctx["hid"])}>{e(p["heading"])}</h2>'
+    if p.get("intro"):
+        out += f'<p class="muted">{e(p["intro"])}</p>'
+    # data-ragged: rows of a menu are not cards; a last row of one is expected.
+    out += '</div><div class="stack"><ul role="list" class="price-list" data-ragged>'
+    for it in p["items"]:
+        out += f'<li class="price-item"><h3 class="price-item__name">{e(it["name"])}</h3><p class="price-item__price"><bdi>{e(it["price"])}</bdi></p>'
+        if it.get("detail"):
+            out += f'<p class="price-item__detail muted">{e(it["detail"])}</p>'
+        if it.get("description"):
+            out += f'<p class="price-item__description">{e(it["description"])}</p>'
+        out += "</li>"
+    out += "</ul>"
+    if p.get("asOf"):
+        out += f'<p class="muted price-list__as-of">{e(ctx["ui"]["pricesAsOf"])} {e(short_date(p["asOf"], ctx["ui"], ctx["today"]))}</p>'
+    return out + "</div>"
+
+
+def b_gallery_grid(p, ctx):
+    media, m = ctx["contract"]["media"][0], ctx["manifest"]
+    out = f'<div class="stack"><h2 id={a(ctx["hid"])}>{e(p["heading"])}</h2>'
+    if p.get("intro"):
+        out += f'<p class="muted">{e(p["intro"])}</p>'
+    out += f'</div><div><ul role="list" class="auto-grid gallery" data-ragged style={a("--min-col: " + str(media["minCol"]) + "rem")}>'
+    for it in p["images"]:
+        asset = m["assets"][it["image"]]
+        frame = f'--ratio: {media["ratio"]}; --frame-radius: var(--radius-m); --focal: {asset.get("focal", "50% 50%")}'
+        out += f'<li><figure class="stack gallery__item"><div class="frame" style={a(frame)}>{picture(m, it["image"], media, False, False)}</div>'
+        if it.get("caption"):
+            out += f'<figcaption class="muted">{e(it["caption"])}</figcaption>'
+        out += "</figure></li>"
+    return out + "</ul></div>"
+
+
+def b_events_list(p, ctx):
+    ui, today, lang = ctx["ui"], ctx["today"], ctx["lang"]
+    out = f'<div class="stack"><h2 id={a(ctx["hid"])}>{e(p["heading"])}</h2>'
+    if p.get("intro"):
+        out += f'<p class="muted">{e(p["intro"])}</p>'
+    out += '</div><div><ol role="list" class="events">'
+    for ev in sorted(p["events"], key=lambda x: (x["date"], x.get("starts", ""))):
+        day = ui["days"][datetime.date.fromisoformat(ev["date"]).weekday()]
+        when = f"{day}, {short_date(ev['date'], ui, today)}"
+        stamp = ev["date"] + (f"T{ev['starts']}" if ev.get("starts") else "")
+        if ev.get("starts"):
+            when += f" · {clock(ev['starts'], lang)}"
+        out += (
+            f'<li class="event"><p class="event__when"><time datetime={a(stamp)}>{e(when)}</time></p>'
+            f'<div class="stack event__what"><h3>{e(ev["title"])}</h3>'
+            + (f'<p class="muted">{e(ev["body"])}</p>' if ev.get("body") else "")
+            + "</div></li>"
+        )
+    return out + "</ol></div>"
+
+
 def b_hours_location(p, ctx):
     m, lang = ctx["manifest"], ctx["lang"]
     b = m["business"]
@@ -498,6 +595,9 @@ RENDER = {
     "stats-band": b_stats_band,
     "testimonial": b_testimonial,
     "faq-list": b_faq_list,
+    "price-list": b_price_list,
+    "gallery-grid": b_gallery_grid,
+    "events-list": b_events_list,
     "hours-location": b_hours_location,
     "contact-form": b_contact_form,
     "cta-banner": b_cta_banner,
@@ -620,7 +720,8 @@ def footer(manifest, page, year, blocks=None):
     return (
         '<footer data-block="site-footer" data-tone="surface" data-space="m" class="site-footer">'
         f'<div class="switcher" style="--switch-at: 40rem">{facts}{nav}</div>'
-        f'<div><p class="muted">© {year} {e(b["name"])}</p></div></footer>'
+        + (f'<div class="stack"><p class="site-footer__note">{e(chrome["footerNote"])}</p>' if chrome.get("footerNote") else "<div>")
+        + f'<p class="muted">© {year} {e(b["name"])}</p></div></footer>'
     )
 
 
@@ -662,7 +763,48 @@ def page_direction(manifest, page):
     return check.text_direction(lang, page.get("dir") or (None if page.get("lang") else manifest.get("dir")))
 
 
-def render_page(manifest, page, blocks, today, renderers=None):
+def theme_meta(css_dir):
+    """<meta> for the browser's own surfaces, from tokens.css: color-scheme (the
+    first paint and the native controls before the stylesheet arrives) and
+    theme-color (the address bar), one per scheme."""
+    path = os.path.join(css_dir or KIT, "tokens.css")
+    try:
+        with open(path, encoding="utf-8") as f:
+            css = f.read()
+    except OSError:
+        return []
+    themes = check.token_themes(css)
+    out = [f'<meta name="color-scheme" content={a(" ".join(themes))}>']
+    for scheme, roles in themes.items():
+        canvas = roles.get("canvas", "")
+        if not canvas or "var(" in canvas or check.parse_color(canvas, roles) is None:
+            continue
+        media = f" media={a(f'(prefers-color-scheme: {scheme})')}" if len(themes) > 1 else ""
+        out.append(f'<meta name="theme-color"{media} content={a(canvas)}>')
+    return out
+
+
+def drop_past(props, refs, today):
+    """A copy of props without the list items whose date at ref (list[].date, or
+    a.list[].date) is before today: a block's render function never sees a past
+    event."""
+    if not refs:
+        return props
+    props = copy.deepcopy(props)
+    for ref in refs:
+        head, sep, field = ref.rpartition("[].")
+        if not sep or "[]" in head:
+            continue
+        *parents, key = head.split(".")
+        node = props
+        for part in parents:
+            node = node.get(part) if isinstance(node, dict) else None
+        if isinstance(node, dict) and isinstance(node.get(key), list):
+            node[key] = [x for x in node[key] if not (isinstance(x, dict) and isinstance(x.get(field), str) and x[field] < today)]
+    return props
+
+
+def render_page(manifest, page, blocks, today, renderers=None, head_extra=()):
     year = today[:4]
     renderers = renderers or RENDER
     lang = page.get("lang") or manifest["lang"]
@@ -679,6 +821,7 @@ def render_page(manifest, page, blocks, today, renderers=None):
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
         f"<title>{e(page['title'])}</title>",
         f'<meta name="description" content={a(page["description"])}>',
+        *head_extra,
     ]
     if page.get("noindex"):
         head.append('<meta name="robots" content="noindex">')
@@ -749,7 +892,8 @@ def render_page(manifest, page, blocks, today, renderers=None):
             attrs += f" data-variant={a(ctx['variant'])}"
         if bl.get("anchor"):
             attrs += f" id={a(bl['anchor'])}"
-        body.append(f"<section {attrs} aria-labelledby={a(ctx['hid'])}>{renderers[bl['type']](bl['props'], ctx)}</section>")
+        props = drop_past(bl["props"], contract.get("expires") or [], today)
+        body.append(f"<section {attrs} aria-labelledby={a(ctx['hid'])}>{renderers[bl['type']](props, ctx)}</section>")
     body += ["</main>", footer(manifest, page, year, blocks), "</body>", "</html>"]
     return "\n".join(head + body) + "\n"
 
@@ -813,7 +957,8 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
     notes = list(warnings)
     today = today or datetime.date.today().isoformat()
     base = base_path(manifest)
-    built = {page["path"]: rebase(render_page(manifest, page, blocks, today, renderers), base) for page in manifest["pages"]}
+    meta = theme_meta(css_dir)
+    built = {page["path"]: rebase(render_page(manifest, page, blocks, today, renderers, meta), base) for page in manifest["pages"]}
     # Whatever a contract or a block function forgot to declare, no page ships
     # code, or a link, form or image that reaches another site unasked.
     unsafe = [f"page {path}: {u}" for path, h in built.items() for u in unsafe_markup(h)]
@@ -1216,7 +1361,7 @@ def self_test():
         must("an aria-labelledby that names nothing", lambda h: h.replace('aria-labelledby="b2', 'aria-labelledby="x2', 1), "names no element")
         must("an image without alt", lambda h: re.sub(r'alt="[^"]*"', "", h, count=1), "has no alt")
         must("an in-page link to nothing", lambda h: h.replace('href="#visit"', 'href="#nowhere"'), "not an id on the page")
-        must("a link to a page that was not rendered", lambda h: h.replace('href="/visit/"', 'href="/menu/"', 1), "not a rendered page")
+        must("a link to a page that was not rendered", lambda h: h.replace('href="/visit/"', 'href="/catering/"', 1), "not a rendered page")
         must("JSON-LD hours that disagree with the rows", lambda h: h.replace('"closes": "14:00"', '"closes": "15:00"'), "differ from")
         must("a stray script", lambda h: h.replace("</main>", "<script>x()</script></main>"), "not JSON-LD")
         must("a page without lang", lambda h: h.replace('lang="en-US"', "", 1), "has no lang")
@@ -1291,6 +1436,27 @@ def self_test():
         sp_, _ = render(example, blocks, stranger, KIT, placeholders=True, today="2026-10-27")
         row(any("did not write" in x for x in sp_) and open(os.path.join(stranger, "index.html"), encoding="utf-8").read() == "not ours",
             "must fail: --out that holds files this renderer did not write is refused, untouched")
+        # A past event is left off the page; the rest render in date order.
+        evm = copy.deepcopy(example)
+        evm["pages"][1]["blocks"].append({"type": "events-list", "props": {"heading": "Coming up", "events": [
+            {"date": "2026-12-31", "starts": "21:00", "title": "New Year's Eve fish fry"},
+            {"date": "2026-10-01", "title": "Quiz night that has passed"},
+            {"date": "2026-11-06", "title": "Pancake fundraiser"}]}})
+        eout = os.path.join(tmp, "events")
+        eprobs, _ = render(evm, blocks, eout, KIT, placeholders=True, today="2026-10-27")
+        ev_html = open(os.path.join(eout, "visit", "index.html"), encoding="utf-8").read() if not eprobs else ""
+        row(
+            "has passed" not in ev_html and ev_html.find("Pancake fundraiser") < ev_html.find("fish fry") and 'datetime="2026-12-31T21:00"' in ev_html,
+            "events: a past one is left off the page; the rest are in date order, each a <time datetime>",
+            "; ".join(eprobs[:2]),
+        )
+        # One column of an auto-fit gallery: sizes follows the column count, never the whole line.
+        gsizes = sizes_for(blocks["gallery-grid"]["media"][0], {"width": 1600, "height": 1200})
+        row(
+            gsizes.count("(min-width:") >= 2 and "1152px" not in gsizes and max(int(x) for x in re.findall(r"\) (\d+)px", gsizes)) < 560,
+            "gallery: sizes gives each column count its own width (no 1152px whole-line ask)",
+            gsizes,
+        )
         # A query string is part of a link, not of the page it names.
         q = copy.deepcopy(example)
         q["chrome"]["nav"][0]["href"] = q["chrome"]["nav"][0]["href"].split("#")[0] + "?from=nav"
@@ -1376,7 +1542,7 @@ def self_test():
         row(
             "<loc>https://www.example.com/shop/visit/</loc>" in sitemap
             and f"<loc>https://www.example.com/shop{sub['pages'][2]['path']}</loc>" not in sitemap
-            and sitemap.count("<loc>") == 2,
+            and sitemap.count("<loc>") == len(sub["pages"]) - 1,
             "sitemap.xml lists every indexable page at its full URL, and leaves out a noindex page",
         )
         row(
@@ -1493,7 +1659,10 @@ def main(argv):
             print(f"block_site_render: --css {css} has no {name}")
             return 2
     if os.path.abspath(css) == os.path.abspath(KIT):
-        print("  ! styles: the kit's own (no tokens.css, layout.css and blocks.css beside the catalog); pass --css DIR for your brand")
+        if os.path.abspath(os.path.dirname(os.path.abspath(catalog)) if not os.path.isdir(catalog) else catalog) == os.path.abspath(KIT):
+            print("  styles: the kit's own, beside the kit's catalog")
+        else:
+            print("  ! styles: the kit's own (no tokens.css, layout.css and blocks.css beside the catalog); pass --css DIR for your brand")
     else:
         print(f"  styles: {css}")
     probs, notes = render(manifest, blocks, out, os.path.dirname(os.path.abspath(manifest_path)), css, placeholders, renderers=renderers)
