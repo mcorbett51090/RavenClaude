@@ -268,9 +268,10 @@ async function reloadShifts(browser, v, theme, url, times) {
 }
 
 // What a closed <details> hides (a site menu, an FAQ answer) is laid out only
-// when it opens, so the probe runs again with every one open. Checks that read
-// what is UNDER an open menu (overlap, anchors, fixed bars) are skipped: a
-// dropdown covers the page by design.
+// when it opens, so the probe runs again with every one open, and reports only
+// what is inside an opened <details> (plus page-level findings, such as the
+// page scrolling sideways). Checks that read what is UNDER an open menu
+// (overlap, anchors, fixed bars) are skipped: a dropdown covers the page by design.
 const OPEN_SKIP = [
   "layout-shift",
   "font-failed",
@@ -289,7 +290,7 @@ async function detailsOpen(page, width) {
   if (!n) return [];
   await page.evaluate(SETTLE);
   const { findings } = await page.evaluate(
-    `${PROBE}\n;layoutProbe(${JSON.stringify({ expectedWidth: width, skip: OPEN_SKIP })})`,
+    `${PROBE}\n;layoutProbe(${JSON.stringify({ expectedWidth: width, skip: OPEN_SKIP, within: "details[data-dm-opened]" })})`,
   );
   await page.evaluate(`(() => {
     for (const d of document.querySelectorAll("details[data-dm-opened]")) { d.open = false; d.removeAttribute("data-dm-opened"); }

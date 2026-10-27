@@ -90,6 +90,10 @@ async function layoutProbe(options) {
       maxPerCheck: 25,
       maxFocus: 80,
       skip: [],
+      // A selector: report only findings on elements inside a match (and
+      // page-level ones). device_matrix.mjs's open-<details> pass uses it, so
+      // an open dropdown covering the footer is not blamed on the footer.
+      within: null,
     },
     options || {},
   );
@@ -98,6 +102,7 @@ async function layoutProbe(options) {
   const stats = { checked: {}, notMeasured: [] };
   const skip = new Set(opts.skip);
   const add = (id, el, msg) => {
+    if (opts.within && el && el.nodeType === 1 && !el.closest(opts.within)) return;
     counts[id] = (counts[id] || 0) + 1;
     if (counts[id] <= opts.maxPerCheck) findings.push({ id, where: el ? path(el) : "page", msg });
   };
