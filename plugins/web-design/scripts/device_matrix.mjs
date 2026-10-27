@@ -1127,7 +1127,7 @@ const MUTATIONS = [
     expect: "nav-wrap",
     vp: "iphone",
     why: "a header whose nav wraps under the brand",
-    html: { head: `<style>.site-header .brand { flex-basis: 100%; }</style>` },
+    html: { head: `<style>.site-header .brand { min-inline-size: 100%; }</style>` },
   },
   {
     expect: "field-contrast",

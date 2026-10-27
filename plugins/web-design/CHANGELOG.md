@@ -42,7 +42,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - It measures all 18 count × width cells of the card grid.
   - A layout shift counts only when it repeats in 5 of 5 loads (the measured reason is in the knowledge file §11).
 - **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
-  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 24 measured
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 25 measured
   pitfalls.
 - **Command:** `/web-design:new-block-site`, gated step by step.
 

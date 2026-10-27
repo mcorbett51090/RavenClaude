@@ -65,7 +65,10 @@
     flex-wrap: wrap;
     gap: var(--space-3xs) var(--space-2xs);
   }
-  .site-nav a {
+  /* Links, not the action button that the open menu also holds: `color:
+     inherit` here would beat .button's label colour (this layer is later), and
+     the menu's "Call us" read ink on the accent at 2.91:1. */
+  .site-nav a:not(.button) {
     display: inline-flex;
     align-items: center;
     min-block-size: var(--target-min);
