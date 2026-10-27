@@ -39,7 +39,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   optional sweep. Its quick rows run five themes with real desktop scrollbars, plus photo-contrast on composited
   pixels (ported from the owner's factory).
   - `--self-test` renders the kit and requires the example and 40 stress pages clean.
-  - It plants 45 defects, covering every check, and checks 7 look-alikes that must pass.
+  - It plants 48 defects, covering every check, and checks 8 look-alikes that must pass.
   - Every state is probed a second time with each `<details>` open (the menu, FAQ answers).
   - It measures all 18 count × width cells of the card grid.
   - A layout shift counts only when it repeats in 5 of 5 loads (the measured reason is in the knowledge file §11).
