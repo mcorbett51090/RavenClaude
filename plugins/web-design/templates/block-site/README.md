@@ -127,7 +127,7 @@ Every step ends at a gate that must pass before the next one starts.
    - the site, everything: `node <plugin>/scripts/device_matrix.mjs --dir dist --manifest site/site.manifest.json
      --full --sweep 320:1600:8` (5 pages took about 6 minutes);
    - the stress pages, one theme: `node <plugin>/scripts/device_matrix.mjs --dir stress/dist --manifest
-     stress/stress.manifest.json --themes light` (48 pages in six themes took 31 minutes; one theme is a sixth).
+     stress/stress.manifest.json --themes light` (52 pages took 26 minutes in one theme).
    Each row's first theme also checks every word for ink, captured at the device's pixel ratio with the text drawn
    and hidden (`text-hidden`: covered, masked or faded out; `text-faint`: drawn well under its colour's contrast,
    so something over it fades it). Each page is laid out once in its print stylesheet, as paper, with its
