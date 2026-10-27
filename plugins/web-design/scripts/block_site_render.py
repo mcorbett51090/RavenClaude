@@ -76,6 +76,7 @@ UI = {
     "emergency": "Emergencies only",
     "required": "(required)",
     "open24": "Open 24 hours",
+    "credits": "Photos",
     "days": list(DAY_NAME.values()),
     "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
 }
@@ -581,7 +582,25 @@ def header(manifest, page, rtl=False):
     return out + "</div></header>"
 
 
-def footer(manifest, page, year):
+def page_credits(manifest, page, blocks):
+    """The credit of every photo this page shows, in page order, once each. A
+    licence that asks for a credit is met on the page that shows the photo."""
+    assets = manifest.get("assets") or {}
+    keys = []
+    for bl in page["blocks"]:
+        for ap in (blocks.get(bl["type"]) or {}).get("assetProps") or []:
+            for key in check._get(bl["props"], ap):
+                if isinstance(key, str) and key in assets:
+                    keys += [key] + ([assets[key]["portrait"]] if assets[key].get("portrait") in assets else [])
+    out = []
+    for k in keys:
+        c = assets[k].get("credit")
+        if c and c not in out:
+            out.append(c)
+    return out
+
+
+def footer(manifest, page, year, blocks=None):
     b = manifest["business"]
     chrome = manifest.get("chrome") or {}
     facts = f'<div class="stack"><p class="site-footer__name">{e(b["name"])}</p>'
@@ -592,6 +611,9 @@ def footer(manifest, page, year):
     if b.get("email"):
         facts += f'<p><a href={a("mailto:" + b["email"])}><span dir="ltr">{e(b["email"])}</span></a></p>'
     facts += "</div>"
+    credits = page_credits(manifest, page, blocks) if blocks else []
+    if credits:
+        facts += f'<p class="site-footer__credits muted">{e(ui_for(manifest, page)["credits"])}: {e(" · ".join(credits))}</p>'
     nav = ""
     if chrome.get("footerNav"):
         nav = f'<nav class="site-nav" aria-label="Footer">{nav_list(chrome["footerNav"], page["path"])}</nav>'
@@ -606,7 +628,6 @@ def base_path(manifest):
     return manifest.get("basePath") or "/"
 
 
-UNSAFE_URL = re.compile(r'(?:href|src|action|srcset|formaction)="\s*(?:[^"]*,\s*)?(?:javascript:|vbscript:|data:|file:|//)', re.IGNORECASE)
 LOCAL_URL = re.compile(r'((?:href|src|action)=")/(?!/)')
 SRCSET_URL = re.compile(r'(srcset=")([^"]*)(")')
 
@@ -681,7 +702,11 @@ def render_page(manifest, page, blocks, today, renderers=None):
             f'<meta property="og:image:alt" content={a(img["alt"])}>',
             '<meta name="twitter:card" content="summary_large_image">',
         ]
-    for alt in page.get("alternates") or []:
+    alternates = list(page.get("alternates") or [])
+    if alternates and not any(x["lang"] == lang for x in alternates):
+        # Each version lists itself too, or a search engine may ignore the set.
+        alternates.insert(0, {"lang": lang, "href": page["path"]})
+    for alt in alternates:
         href = alt["href"]
         if href.startswith("/") and origin:
             href = origin + base_path(manifest) + href.lstrip("/")
@@ -725,7 +750,7 @@ def render_page(manifest, page, blocks, today, renderers=None):
         if bl.get("anchor"):
             attrs += f" id={a(bl['anchor'])}"
         body.append(f"<section {attrs} aria-labelledby={a(ctx['hid'])}>{renderers[bl['type']](bl['props'], ctx)}</section>")
-    body += ["</main>", footer(manifest, page, year), "</body>", "</html>"]
+    body += ["</main>", footer(manifest, page, year, blocks), "</body>", "</html>"]
     return "\n".join(head + body) + "\n"
 
 
@@ -785,17 +810,39 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
             f"no render function for block {t!r}: write one in your blocks file (--blocks), and its CSS in your blocks.css"
             for t in sorted(set(missing))
         ], warnings
+    notes = list(warnings)
+    today = today or datetime.date.today().isoformat()
+    base = base_path(manifest)
+    built = {page["path"]: rebase(render_page(manifest, page, blocks, today, renderers), base) for page in manifest["pages"]}
+    # Whatever a contract or a block function forgot to declare, no page ships
+    # code, or a link, form or image that reaches another site unasked.
+    unsafe = [f"page {path}: {u}" for path, h in built.items() for u in unsafe_markup(h)]
+    if unsafe:
+        return [f"unsafe markup in the rendered HTML: {u}" for u in unsafe], notes
+    hp = check_html(built, manifest)
+    if hp:
+        return hp, notes
+    previous, why = previous_render(out)
+    if why:
+        return [why], notes
+    written = []
+
+    def put(rel):
+        written.append(os.path.normpath(rel))
+        dst = os.path.join(out, rel)
+        os.makedirs(os.path.dirname(dst) or out, exist_ok=True)
+        return dst
+
     os.makedirs(out, exist_ok=True)
     for name in CSS_FILES:
-        shutil.copyfile(os.path.join(css_dir or KIT, name), os.path.join(out, name))
-    notes = list(warnings)
+        shutil.copyfile(os.path.join(css_dir or KIT, name), put(name))
     for src, w, h in asset_files(manifest):
         if re.match(r"^https?://", src):
             continue
         dst = os.path.normpath(os.path.join(out, src.lstrip("/")))
         if not dst.startswith(os.path.normpath(out) + os.sep):
             return [f"asset src {src!r} points outside the output directory"], notes
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        put(os.path.relpath(dst, out))
         here = os.path.join(manifest_dir, src.lstrip("/"))
         if os.path.isfile(here):
             shutil.copyfile(here, dst)
@@ -811,33 +858,155 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
         if not here.startswith(os.path.normpath(manifest_dir) + os.sep) or not dst.startswith(os.path.normpath(out) + os.sep):
             return [f"icon {manifest['icon']!r} points outside the manifest's or the output's directory"], notes
         if os.path.isfile(here):
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copyfile(here, dst)
+            shutil.copyfile(here, put(os.path.relpath(dst, out)))
         else:
             notes.append(f"icon {manifest['icon']}: missing beside the manifest")
-    today = today or datetime.date.today().isoformat()
-    base = base_path(manifest)
-    built = {page["path"]: rebase(render_page(manifest, page, blocks, today, renderers), base) for page in manifest["pages"]}
-    # Whatever a contract or a block function forgot to declare, no page ships a
-    # script URL or a link to another site that reads like a path.
-    unsafe = [f"page {path}: {m.group(0)[:70]}" for path, h in built.items() for m in UNSAFE_URL.finditer(h)]
-    if unsafe:
-        return [f"an unsafe URL in the rendered HTML (javascript:, data:, vbscript:, file: or //host): {u}" for u in unsafe], notes
     for path, page_html in built.items():
-        d = os.path.join(out, path.strip("/"))
-        os.makedirs(d, exist_ok=True)
-        with open(os.path.join(d, "index.html"), "w", encoding="utf-8") as f:
+        with open(put(os.path.join(path.strip("/"), "index.html")), "w", encoding="utf-8") as f:
             f.write(page_html)
     if manifest.get("origin"):
         locs = [manifest["origin"] + base + p["path"].lstrip("/") for p in manifest["pages"] if not p.get("noindex")]
-        with open(os.path.join(out, "sitemap.xml"), "w", encoding="utf-8") as f:
+        with open(put("sitemap.xml"), "w", encoding="utf-8") as f:
             f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n')
             f.write("".join(f"  <url><loc>{e(u)}</loc></url>\n" for u in locs))
             f.write("</urlset>\n")
+    stale = sorted(set(previous) - set(written))
+    for rel in stale:
+        f = os.path.normpath(os.path.join(out, rel))
+        if f.startswith(os.path.normpath(out) + os.sep) and os.path.isfile(f):
+            os.remove(f)
+            d = os.path.dirname(f)
+            while d != os.path.normpath(out) and os.path.isdir(d) and not os.listdir(d):
+                os.rmdir(d)
+                d = os.path.dirname(d)
+    if stale:
+        notes.append(f"removed {len(stale)} file(s) the last render wrote and this one does not: {', '.join(stale[:4])}{' …' if len(stale) > 4 else ''}")
+    with open(os.path.join(out, STAMP), "w", encoding="utf-8") as f:
+        json.dump({"files": sorted(set(written))}, f, indent=0)
     return [], notes
 
 
+# The list of files a render wrote, kept in its output, so the next render can
+# remove a page that is gone from the manifest (and never a file it did not write).
+STAMP = ".block-site-render.json"
+
+
+def previous_render(out):
+    """(files the last render wrote here, None), or ([], why this directory is refused)."""
+    if not os.path.isdir(out) or not os.listdir(out):
+        return [], None
+    try:
+        with open(os.path.join(out, STAMP), encoding="utf-8") as f:
+            files = json.load(f)["files"]
+        if isinstance(files, list) and all(isinstance(x, str) for x in files):
+            return files, None
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    return [], (
+        f"--out {out} already holds files this renderer did not write (no {STAMP}); give a new or empty directory. "
+        "A later render into it removes the pages it wrote that are gone from the manifest, and never touches your own files"
+    )
+
+
 # ─── checks on the rendered HTML ─────────────────────────────────────────────
+
+# Every attribute a browser reads as a URL, and the schemes a page may use.
+URL_ATTRS = {"href", "src", "action", "formaction", "poster", "cite", "data", "background", "ping", "longdesc", "manifest", "xlink:href", "codebase", "icon"}
+SRCSET_ATTRS = {"srcset", "imagesrcset"}
+SAFE_SCHEMES = {"https", "mailto", "tel"}
+CODE_TAGS = {"base", "object", "embed", "applet", "frame", "frameset", "portal"}
+SCRIPT_SCHEME = re.compile(r"(?:java|vb|live)script:", re.IGNORECASE)
+
+
+def url_problem(url):
+    """Why a URL in the page is unsafe, read the way a browser reads it, or None."""
+    if re.search(r"[\\\x00-\x1f\x7f]", url):
+        return "a backslash, tab, newline or control character (a browser reads /\\host and /<tab>/host as //host)"
+    v = url.strip(" \x0c")
+    if v.startswith("//"):
+        return "//host, another site that reads like a path"
+    m = re.match(r"([A-Za-z][A-Za-z0-9+.-]*):", v)
+    if m and m.group(1).lower() not in SAFE_SCHEMES:
+        return f"the {m.group(1)}: scheme (a page uses https:, mailto:, tel: or a path)"
+    return None
+
+
+class _Audit(HTMLParser):
+    """Reads the page the way a browser does (attribute values with their
+    character references decoded, any quoting), and lists what could run code or
+    send a reader or their data to another site."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.found = []
+        self._style = False
+        self._script = None
+
+    def handle_starttag(self, tag, attrs):
+        d = {k: (v or "") for k, v in attrs}
+        if tag in CODE_TAGS:
+            self.found.append(f"<{tag}>")
+        if tag == "script":
+            self._script = d.get("type", "")
+            if self._script != "application/ld+json":
+                self.found.append("a <script> that is not JSON-LD")
+        if tag == "meta" and d.get("http-equiv", "").lower() == "refresh":
+            self.found.append("<meta http-equiv=refresh>")
+        if tag in ("animate", "set") and d.get("attributename", "").lower() in ("href", "xlink:href"):
+            self.found.append(f"<{tag}> that rewrites a link")
+        self._style = tag == "style"
+        for k, v in d.items():
+            if k.startswith("on"):
+                self.found.append(f"<{tag} {k}=…> (an event handler)")
+            elif k == "srcdoc":
+                self.found.append(f"<{tag} srcdoc> (a page inside the page)")
+            elif k in URL_ATTRS:
+                why = url_problem(v)
+                if why:
+                    self.found.append(f"<{tag} {k}={v[:50]!r}>: {why}")
+            elif k in SRCSET_ATTRS:
+                for cand in v.split(","):
+                    url = cand.strip().split(" ")[0] if cand.strip() else ""
+                    why = url and url_problem(url)
+                    if why:
+                        self.found.append(f"<{tag} {k}> candidate {url[:50]!r}: {why}")
+            elif k == "style":
+                self._css(v, f"<{tag} style>")
+
+    handle_startendtag = handle_starttag
+
+    def handle_endtag(self, tag):
+        if tag == "style":
+            self._style = False
+        if tag == "script":
+            self._script = None
+
+    def handle_data(self, data):
+        if self._style:
+            self._css(data, "<style>")
+
+    def _css(self, text, where):
+        if "@import" in text.lower():
+            self.found.append(f"{where}: @import")
+        for m in re.finditer(r"url\(\s*['\"]?([^'\")]*)", text, re.IGNORECASE):
+            why = url_problem(m.group(1))
+            if why:
+                self.found.append(f"{where} url({m.group(1)[:50]!r}): {why}")
+
+
+def unsafe_markup(page_html):
+    """What in a rendered page could run code or reach another site unasked.
+    Whatever a contract or a block function forgot, this is read before writing."""
+    audit = _Audit()
+    audit.feed(page_html)
+    audit.close()
+    found = list(audit.found)
+    # A parser can disagree with a browser on broken markup; a script scheme
+    # anywhere outside the JSON-LD, once decoded, is refused whatever the parse.
+    outside = re.sub(r'<script type="application/ld\+json">.*?</script>', "", page_html, flags=re.DOTALL)
+    if SCRIPT_SCHEME.search(re.sub(r"[\t\n\r]", "", html.unescape(outside))) and not any("script" in f for f in found):
+        found.append("a javascript:, vbscript: or livescript: URL")
+    return found
 
 
 class _Doc(HTMLParser):
@@ -923,6 +1092,7 @@ def check_html(pages, manifest):
                 problems.append(f"{at}: link to {href}, which is not an id on the page")
             if href and href.startswith("/") and not href.startswith("//"):
                 target, _, frag = href.partition("#")
+                target = target.split("?")[0]
                 if target not in docs:
                     problems.append(f"{at}: link to {href}, which is not a rendered page")
                 elif frag and frag not in {t[1].get("id") for t in docs[target].tags}:
@@ -1069,8 +1239,76 @@ def self_test():
         jout = os.path.join(tmp, "js")
         jprobs, _ = render(example, blocks, jout, KIT, placeholders=True, today="2026-10-27", renderers=bad)
         row(
-            any("unsafe URL" in x for x in jprobs) and not os.path.exists(os.path.join(jout, "index.html")),
-            "must fail: a block function that writes a javascript: link is refused, and nothing is written",
+            any("unsafe markup" in x for x in jprobs) and not os.listdir(jout) if os.path.isdir(jout) else any("unsafe markup" in x for x in jprobs),
+            "must fail: a block function that writes a javascript: link is refused, and nothing is written (not even the stylesheets)",
+        )
+        # The forms a regex misses: the audit reads the page the way a browser does.
+        for what, extra, want in [
+            ("a single-quoted javascript: link", "<a href='javascript:alert(1)'>x</a>", "javascript: scheme"),
+            ("an entity-encoded javascript: link", '<a href="java&#115;cript:alert(2)">x</a>', "javascript: scheme"),
+            ("a javascript: link with a tab inside", '<a href="java\tscript:alert(2)">x</a>', "control character"),
+            ("an event handler", '<img src="/a.jpg" alt="" width="1" height="1" onerror="alert(3)">', "event handler"),
+            ("an iframe srcdoc", '<iframe title="x" srcdoc="&lt;script&gt;alert(4)&lt;/script&gt;"></iframe>', "srcdoc"),
+            ("a form that posts to /\\host", '<form action="/\\collector.example/leads"></form>', "backslash"),
+            ("a base element", '<base href="https://other.example/">', "<base>"),
+            ("a stylesheet image from another site", '<span style="background:url(//tracker.example/p.gif)"></span>', "//host"),
+            ("an http: image", '<img src="http://cdn.example.com/a.jpg" alt="" width="1" height="1">', "http: scheme"),
+            ("a meta refresh", '<meta http-equiv="refresh" content="0;url=https://other.example/">', "refresh"),
+        ]:
+            bad = dict(RENDER)
+            bad["page-header"] = lambda p, ctx, extra=extra: f'<div><h1 id={a(ctx["hid"])}>{e(p["title"])}</h1>{extra}</div>'
+            xprobs, _ = render(example, blocks, os.path.join(tmp, "x-" + str(abs(hash(what)))), KIT, placeholders=True, today="2026-10-27", renderers=bad)
+            row(any(want in x for x in xprobs), f"must fail: a block function that writes {what}", "" if xprobs else "rendered")
+        # A re-render removes the page that left the manifest, and only a file it wrote.
+        rr = os.path.join(tmp, "rerender")
+        render(example, blocks, rr, KIT, placeholders=True, today="2026-10-27")
+        with open(os.path.join(rr, "_headers"), "w", encoding="utf-8") as f:
+            f.write("/*\n  X-Frame-Options: DENY\n")
+        fewer = copy.deepcopy(example)
+        fewer["pages"] = [p for p in fewer["pages"] if p["path"] != "/contact/"]
+        for pg in fewer["pages"]:
+            for bl in pg["blocks"]:
+                for k, v in list(bl["props"].items()):
+                    if v == "/contact/":
+                        bl["props"][k] = "/visit/"
+                for item in bl["props"].get("actions") or []:
+                    if str(item.get("href", "")).startswith("/contact/"):
+                        item["href"] = "/visit/"
+        for key in ("nav", "footerNav"):
+            fewer["chrome"][key] = [x for x in fewer["chrome"].get(key) or [] if not x["href"].startswith("/contact/")]
+        if fewer["chrome"].get("action", {}).get("href", "").startswith("/contact/"):
+            fewer["chrome"]["action"]["href"] = "/visit/"
+        rprobs, _ = render(fewer, blocks, rr, KIT, placeholders=True, today="2026-10-27")
+        row(
+            not rprobs and not os.path.exists(os.path.join(rr, "contact", "index.html")) and os.path.exists(os.path.join(rr, "_headers")),
+            "a re-render removes a page gone from the manifest, and keeps a file it did not write",
+            "; ".join(rprobs[:2]),
+        )
+        stranger = os.path.join(tmp, "stranger")
+        os.makedirs(stranger)
+        with open(os.path.join(stranger, "index.html"), "w", encoding="utf-8") as f:
+            f.write("not ours")
+        sp_, _ = render(example, blocks, stranger, KIT, placeholders=True, today="2026-10-27")
+        row(any("did not write" in x for x in sp_) and open(os.path.join(stranger, "index.html"), encoding="utf-8").read() == "not ours",
+            "must fail: --out that holds files this renderer did not write is refused, untouched")
+        # A query string is part of a link, not of the page it names.
+        q = copy.deepcopy(example)
+        q["chrome"]["nav"][0]["href"] = q["chrome"]["nav"][0]["href"].split("#")[0] + "?from=nav"
+        qprobs, _ = render(q, blocks, os.path.join(tmp, "query"), KIT, placeholders=True, today="2026-10-27")
+        row(not qprobs, "positive: a link with a query string resolves to its page", "; ".join(qprobs[:2]))
+        # Credits are shown on the page that shows the photo; each page lists itself in its hreflang set.
+        cr = copy.deepcopy(example)
+        cr["assets"]["counter"]["credit"] = "Photo: Jane Doe for the diner"
+        cr["pages"][0]["alternates"] = [{"lang": "es", "href": "https://example.es/"}, {"lang": "x-default", "href": "/"}]
+        cout = os.path.join(tmp, "credit")
+        cprobs2, _ = render(cr, blocks, cout, KIT, placeholders=True, today="2026-10-27")
+        chome = open(os.path.join(cout, "index.html"), encoding="utf-8").read() if not cprobs2 else ""
+        cvisit = open(os.path.join(cout, "visit", "index.html"), encoding="utf-8").read() if not cprobs2 else ""
+        row(
+            "Photos: Photo: Jane Doe for the diner" in chome and "Jane Doe" not in cvisit
+            and f'hreflang="{cr["lang"]}"' in chome and 'hreflang="x-default"' in chome,
+            "a photo's credit is shown on the page that shows it; a page lists itself and x-default in its hreflang set",
+            "; ".join(cprobs2[:2]),
         )
         # Another language: the renderer's own words come from strings; emergency
         # hours are shown apart and never published as opening hours; hreflang.
@@ -1266,12 +1504,8 @@ def main(argv):
     if probs:
         print(f"block_site_render: refused, {len(probs)} problem(s); nothing was written")
         return 1
-    pages = {p["path"]: open(os.path.join(out, p["path"].strip("/"), "index.html"), encoding="utf-8").read() for p in manifest["pages"]}
-    hp = check_html(pages, manifest)
-    for x in hp:
-        print(f"  ✗ {x}")
-    print(f"block_site_render: wrote {len(pages)} page(s) to {out}{'' if not hp else f', with {len(hp)} problem(s) in the HTML'}")
-    return 1 if hp else 0
+    print(f"block_site_render: wrote {len(manifest['pages'])} page(s) to {out}")
+    return 0
 
 
 if __name__ == "__main__":

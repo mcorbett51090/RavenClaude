@@ -351,8 +351,10 @@ def check_catalog(catalog, block_schema):
 
 # ─── manifest ────────────────────────────────────────────────────────────────
 
-PLACEHOLDER_CASED = re.compile(r"\b(TODO|TBD|TBC|XXX|FIXME)\b")  # upper-case words only: 'Todos Santos' is a place
-PLACEHOLDER_ANY = re.compile(r"lorem ipsum|\{\{[^}]*\}\}", re.IGNORECASE)
+# Upper-case words only ('Todos Santos' is a place), and a template's slot
+# written as [Business Name] or <Street address>.
+PLACEHOLDER_CASED = re.compile(r"\b(TODO|TBD|TBC|XXX|FIXME)\b|\[[A-Z][A-Za-z .'/-]{1,40}\]|<[A-Z][A-Za-z .'/-]{1,40}>")
+PLACEHOLDER_ANY = re.compile(r"lorem ipsum|\{\{[^}]*\}\}|^\s*(n/a|\?+)\s*\Z", re.IGNORECASE)
 DARK = {"inverse", "media"}
 # How wide a frame on each grid line can be drawn, in CSS px, when its contract
 # gives no maxWidth: full is capped at 1280 (2560 source pixels, a QHD desktop at
@@ -361,8 +363,11 @@ SLOT_MAX_WIDTH = {"full": 1280, "wide": 1440, "content": 1152, "half-content": 5
 DENSITY = 2  # sources are sized for 2x; above 2x the eye cannot tell, and apple.com caps there too
 PORTRAIT_MAX_WIDTH = 480  # the renderer serves a portrait crop at (max-width: 30em) and (orientation: portrait)
 # "/" but never "//": //host is a link to another site that reads like a path.
-ENDPOINT = re.compile(r"^(https://[^\s#]+|/(?!/)[^\s#]*)\Z")
-SAFE_HREF = re.compile(r"^(/(?!/)|#|https://|mailto:[^@\s]+@|tel:\+?[0-9][0-9 ()-]{3,})")
+# A browser reads a backslash as a slash (/\host is //host) and drops tabs and
+# newlines from a URL (/<tab>/host is //host too), so neither may appear anywhere.
+ENDPOINT = re.compile(r"^(https://[^\s#\\]+|/(?![/\\])[^\s#\\]*)\Z")
+SAFE_HREF = re.compile(r"^(/(?![/\\])|#|https://|mailto:[^@\s]+@|tel:\+?[0-9][0-9 ()-]{3,})")
+URL_JUNK = re.compile(r"[\\\x00-\x1f\x7f]|^\s|\s\Z")
 # A prop whose name says it is a link must be declared as one, or nothing checks it.
 LINKISH = re.compile(r"(href|url|link|action|src)$", re.IGNORECASE)
 # Country calling codes for the countries a business is most likely in; another
@@ -460,9 +465,11 @@ def _minutes(hhmm):
 
 
 def check_hours(business):
-    """Weekly hours that cannot be rendered truthfully: an empty or overlapping window."""
+    """Weekly hours that cannot be rendered truthfully: an empty or overlapping window.
+    Opening hours and emergency-only hours are separate schedules: a 24/7
+    emergency line beside weekday opening hours overlaps nothing."""
     problems = []
-    windows = {d: [] for d in DAY_ORDER}
+    windows = {}
     for i, h in enumerate(business.get("hours") or []):
         o, c = _minutes(h["opens"]), _minutes(h["closes"])
         if o == c:
@@ -477,10 +484,11 @@ def check_hours(business):
             if c < o:
                 spans.append((DAY_ORDER[(DAY_ORDER.index(d) + 1) % 7], 0, c))
             for day, start, end in spans:
-                for j, (o2, e2) in windows[day]:
+                seen_here = windows.setdefault((h.get("kind", "open"), day), [])
+                for j, (o2, e2) in seen_here:
                     if j != i and start < e2 and o2 < end:
                         problems.append(f"business.hours[{i}]: {day} overlaps business.hours[{j}]")
-                windows[day].append((i, (start, end)))
+                seen_here.append((i, (start, end)))
     seen = set()
     for i, sp in enumerate(business.get("specialHours") or []):
         try:
@@ -532,6 +540,9 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
 
     def check_href(at, where, href, anchors):
         if not isinstance(href, str):
+            return
+        if URL_JUNK.search(href):
+            problems.append(f"{at}: {where} is {href[:60]!r}; a link holds no backslash, tab, newline or other control character, and no edge spaces (a browser reads /\\host as //host, another site)")
             return
         if not SAFE_HREF.match(href):
             problems.append(f"{at}: {where} is {href[:60]!r}; a link is a path (/…), an in-page #anchor, https://, mailto: or a tel: number")
@@ -644,6 +655,13 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
                     if not a:
                         continue
                     (decorative_ok if m["slot"] == "full" else content_use).add(key)
+                    allowed = m.get("provenance")
+                    for k2 in [key] + ([a["portrait"]] if a.get("portrait") in assets else []):
+                        if allowed and assets[k2]["provenance"] not in allowed:
+                            problems.append(
+                                f"{at}: asset {k2!r} is {assets[k2]['provenance']}, but this frame shows the place itself and takes only "
+                                f"{' or '.join(allowed)} photos (the block's truth rules; use a block whose frame allows it, or a photo of the place)"
+                            )
                     widest = max([a["width"]] + [x["width"] for x in a.get("sources") or []])
                     scale = _need_scale(widest, widest * a["height"] / a["width"], box_w, box_h)
                     if scale > 1.02:
@@ -680,8 +698,8 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
                             problems.append(f"{at}: the {variant!r} variant's {lp} must be a {prefix} link, not {href[:60]!r}")
             for ep in b.get("endpointProps") or []:
                 for url in _get(bl["props"], ep):
-                    if isinstance(url, str) and not ENDPOINT.match(url):
-                        problems.append(f"{at}: {ep} is {url[:60]!r}; a form posts to https:// or a path on this site, never an #anchor, mailto: or tel:")
+                    if isinstance(url, str) and (URL_JUNK.search(url) or not ENDPOINT.match(url)):
+                        problems.append(f"{at}: {ep} is {url[:60]!r}; a form posts to https:// or a path on this site, never an #anchor, mailto:, tel: or a URL holding a backslash or control character")
             if i > 0:
                 prev = seq[i - 1]
                 pb = blocks.get(prev["type"])
@@ -720,6 +738,8 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
         if assets[key]["alt"] == "":
             problems.append(f"asset {key!r} has empty alt but is shown as content; write the alt while looking at the image (\"\" is only for a decorative backdrop)")
     for key, a in assets.items():
+        if a["provenance"] == "licensed-stock" and not a.get("credit"):
+            warnings.append(f"asset {key!r} is licensed-stock with no credit; most licences ask for one, and the renderer shows it when given")
         if PLACEHOLDER_CASED.search(a.get("alt", "")):
             problems.append(f"asset {key!r}: alt holds placeholder text")
         widths = [x["width"] for x in a.get("sources") or []]
@@ -1098,9 +1118,20 @@ def make_fixtures(blocks, today=None):
             "action": {"label": _text(28, "max"), "href": "tel:+12515550100"},
             "footerNav": [link(i, 20) for i in range(8)],
         },
-        "assets": {"stress-photo": copy.deepcopy(STRESS_PHOTO)},
+        "assets": {"stress-photo": stress_photo(blocks)},
         "pages": pages,
     }
+
+
+def stress_photo(blocks):
+    """The stress photo, with a provenance every frame in the catalog accepts:
+    a fixture stands in for the photos the real site will have."""
+    photo = copy.deepcopy(STRESS_PHOTO)
+    allowed = [set(m["provenance"]) for b in blocks.values() for m in b.get("media") or [] if m.get("provenance")]
+    common = set.intersection(*allowed) if allowed else set()
+    if common and photo["provenance"] not in common:
+        photo["provenance"] = sorted(common)[0]
+    return photo
 
 
 # The worst photo for light copy: near white, with faint bands so it is not flat.
@@ -1411,6 +1442,29 @@ def self_test():
         mm["assets"]["counter"].update(width=600, height=1600)
         _, w = check_manifest(mm, blocks, mschema)
         row(any("loses" in x for x in w), "warns: a crop that loses most of the image")
+        C = lambda m: m["pages"][2]["blocks"][1]["props"]  # noqa: E731  (the contact form)
+        manifest_case("a form that posts to /\\host (a browser reads it as //host, another site)", lambda m: C(m).update(action="/\\collector.example/leads"), "never an #anchor")
+        manifest_case("a link with a tab in it (a browser drops it: /<tab>/host is //host)", lambda m: m["chrome"]["nav"][0].update(href="/\t/x.example"), "control character")
+        manifest_case("an asset src that loads from another site (\\host)", lambda m: m["assets"]["counter"].update(src="\\tracker.example/counter.jpg"), "does not match")
+        manifest_case("an asset src over http://", lambda m: m["assets"]["counter"].update(src="http://cdn.example.com/counter.jpg"), "does not match")
+        manifest_case("a stock photo as the hero, presented as the place", lambda m: m["assets"]["dining-room"].update(provenance="licensed-stock"), "takes only business-own or commissioned")
+        manifest_case("a generated portrait crop of the hero", lambda m: m["assets"]["dining-room-portrait"].update(provenance="generated"), "takes only business-own or commissioned")
+        manifest_case("a template slot left in the facts ([Business Name])", lambda m: m["business"].update(name="[Business Name]"), "placeholder")
+        manifest_case("a template slot left in the address (<Street address>)", lambda m: m["business"]["address"].update(street="<Street address>"), "placeholder")
+        manifest_case("a stat source of N/A", lambda m: B(m)[3]["props"]["items"][0].update(source="N/A"), "placeholder")
+        e24 = copy.deepcopy(example)
+        e24["business"]["hours"].append({"days": ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], "opens": "00:00", "closes": "23:59", "kind": "emergency"})
+        p24, _ = check_manifest(e24, blocks, mschema)
+        row(not p24, "positive: a 24/7 emergency line beside weekday opening hours overlaps nothing (separate schedules)", "; ".join(p24[:2]))
+        xd = copy.deepcopy(example)
+        xd["pages"][0]["alternates"] = [{"lang": "x-default", "href": "/"}, {"lang": "es", "href": "https://example.es/"}]
+        pxd, _ = check_manifest(xd, blocks, mschema)
+        row(not pxd, "positive: hreflang x-default is a valid alternate", "; ".join(pxd[:2]))
+        mm = copy.deepcopy(example)
+        mm["assets"]["counter"].update(provenance="licensed-stock")
+        mm["assets"]["counter"].pop("credit", None)
+        _, w = check_manifest(mm, blocks, mschema)
+        row(any("no credit" in x for x in w), "warns: licensed stock with no credit")
         tidy = copy.deepcopy(example)
         B(tidy)[1]["props"]["items"][0]["body"] = "Todos Santos is a town, not a placeholder."
         p2, _ = check_manifest(tidy, blocks, mschema)

@@ -77,7 +77,8 @@
           "slot": "full",
           "priority": true,
           "maxWidth": 1280,
-          "maxHeight": 704
+          "maxHeight": 704,
+          "provenance": ["business-own", "commissioned"]
         }
       ],
       "a11y": [
