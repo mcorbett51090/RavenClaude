@@ -1099,7 +1099,7 @@ const MUTATIONS = [
     html: {
       head: `<style>@layer overrides { .switcher > .frame { align-self: stretch !important; } }</style>`,
       extra: sec(
-        `<div class="switcher" style="--switch-at: 44rem"><div class="frame" style="--ratio: 4 / 3"><img src="/story.png" width="1200" height="900" alt="The counter"></div><div class="prose stack"><p>${PROSE}</p><p>${PROSE}</p><p>${PROSE}</p><p>${PROSE}</p></div></div>`,
+        `<div class="switcher" style="--switch-at: 44rem"><div class="frame" style="--ratio: 4 / 3"><img src="/story.png" width="1200" height="900" alt="The counter"></div><div class="prose stack" style="min-block-size: 40rem"><p>${PROSE}</p><p>${PROSE}</p><p>${PROSE}</p><p>${PROSE}</p></div></div>`,
       ),
     },
   },
@@ -1196,6 +1196,16 @@ const MUTATIONS = [
     },
   },
   {
+    expect: "image-oversized",
+    vp: "laptop",
+    why: "a srcset whose sizes ask for the widest file when a smaller one covers the box",
+    html: {
+      extra: sec(
+        `<div class="frame" style="--ratio: 1; inline-size: 150px"><img src="/s400.png" srcset="/s400.png 400w, /story.png 1200w, /landscape.png 2560w" sizes="100vw" width="2560" height="1440" alt="Wrong sizes"></div>`,
+      ),
+    },
+  },
+  {
     expect: "word-broken",
     vp: "laptop",
     why: "a figure in a box too narrow for it",
@@ -1235,6 +1245,16 @@ const MUTATIONS = [
 // Shapes that LOOK like a defect and are not: each must produce none of the ids
 // it names. A probe that fires on correct pages gets switched off.
 const CLEAN = [
+  {
+    forbid: ["image-oversized", "image-upscaled"],
+    vp: "iphone",
+    why: "at DPR 3 the browser takes the next candidate up (2560w for a 1062px need): the spacing, not the sizes",
+    html: {
+      extra: sec(
+        `<div class="frame" style="--ratio: 16 / 9; inline-size: 354px"><img src="/landscape.png" srcset="/s400.png 400w, /landscape.png 2560w" sizes="354px" width="2560" height="1440" alt="Right sizes"></div>`,
+      ),
+    },
+  },
   {
     forbid: ["overflow"],
     vp: "iphone",

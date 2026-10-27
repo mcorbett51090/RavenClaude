@@ -49,7 +49,10 @@
  *   image-broken    an image that did not load
  *   image-distorted an image stretched off its natural aspect ratio (object-fit: fill)
  *   image-upscaled  the file is enlarged to fill its box at min(DPR, 2)x: blurry
- *   image-oversized the file is more than 3x the pixels its box needs: wasted bytes
+ *   image-oversized the file is more than 3x the pixels its box needs at 2x: wasted
+ *                   bytes. With a srcset, only when a smaller candidate would still
+ *                   cover the box at the screen's real density (a DPR-3 phone that
+ *                   takes the next candidate up is the browser being right)
  *   image-gap       an image in a frame or photo band does not fill it
  *   frame-ratio     a box with an aspect-ratio drawn off that ratio (a stretched
  *                   frame cover-crops its photo to a sliver)
@@ -216,6 +219,24 @@ async function layoutProbe(options) {
     const la = lum(a);
     const lb = lum(b);
     return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  };
+  // The candidate widths (w descriptors) of the srcset the browser is using for
+  // an image: the first <source> whose media matches, else the img's own.
+  const srcsetWidths = (img) => {
+    let set = img.getAttribute("srcset") || "";
+    if (img.parentElement && img.parentElement.tagName === "PICTURE") {
+      for (const so of img.parentElement.querySelectorAll("source")) {
+        if (!so.media || matchMedia(so.media).matches) {
+          set = so.getAttribute("srcset") || set;
+          break;
+        }
+      }
+    }
+    return set
+      .split(",")
+      .map((c) => /\s(\d+)w\s*$/.exec(c.trim()))
+      .filter(Boolean)
+      .map((m) => Number(m[1]));
   };
   const opacity = (el) => {
     let a = 1;
@@ -904,7 +925,17 @@ async function layoutProbe(options) {
             `a ${fw}×${fh} file drawn ${Math.round(dw)}×${Math.round(dh)} CSS px is enlarged ${scale.toFixed(2)}× at ${DENSITY}x: blurry (supply at least ${Math.ceil(dw * DENSITY)}×${Math.ceil(dh * DENSITY)} for this crop)`,
           );
         }
-        if (fw >= 1000 && scale > 0 && 1 / scale > opts.oversize) {
+        // With a srcset, the browser takes the smallest candidate that covers the
+        // drawn width at the screen's REAL density (3x on many phones). If that is
+        // the file, the weight comes from the candidates' spacing and the density,
+        // not from a wrong sizes: only a smaller candidate that would have done
+        // makes it oversized.
+        const cands = srcsetWidths(img);
+        const needW = dw * DPR;
+        const covering = cands.filter((w) => w >= needW * 0.98);
+        const fair =
+          cands.length && fw <= (covering.length ? Math.min(...covering) : Math.max(...cands));
+        if (!fair && fw >= 1000 && scale > 0 && 1 / scale > opts.oversize) {
           add(
             "image-oversized",
             img,
