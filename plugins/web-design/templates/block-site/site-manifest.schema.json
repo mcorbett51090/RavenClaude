@@ -145,6 +145,38 @@
           "minLength": 1,
           "maxLength": 40,
           "description": "Prices as of, before the day a price list was checked"
+        },
+        "navLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Main: the header nav's landmark label"
+        },
+        "footerNavLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Footer: the footer nav's landmark label"
+        },
+        "date": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 40,
+          "pattern": "\\{day\\}",
+          "description": "{month} {day}: the order a date is written in ({day}, {month}; French {day} {month})"
+        },
+        "dateYear": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 40,
+          "pattern": "\\{year\\}",
+          "description": "{month} {day}, {year}: a date outside this year (French {day} {month} {year})"
+        },
+        "choose": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "description": "Choose one: the empty first option of a choice field"
         }
       }
     },
@@ -605,6 +637,38 @@
                 "minLength": 1,
                 "maxLength": 40,
                 "description": "Prices as of, before the day a price list was checked"
+              },
+              "navLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Main: the header nav's landmark label"
+              },
+              "footerNavLabel": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Footer: the footer nav's landmark label"
+              },
+              "date": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 40,
+                "pattern": "\\{day\\}",
+                "description": "{month} {day}: the order a date is written in ({day}, {month}; French {day} {month})"
+              },
+              "dateYear": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 40,
+                "pattern": "\\{year\\}",
+                "description": "{month} {day}, {year}: a date outside this year (French {day} {month} {year})"
+              },
+              "choose": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40,
+                "description": "Choose one: the empty first option of a choice field"
               }
             }
           },
@@ -639,6 +703,16 @@
       "items": {
         "type": "string",
         "maxLength": 300
+      }
+    },
+    "knownPaths": {
+      "description": "Pages another manifest serves on the same host (one manifest per language: the French site links to the English /book/). Links to them pass the checks and keep their path under a basePath.",
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "string",
+        "pattern": "^/(?![/\\\\])[^\\s\\\\?#]*$",
+        "maxLength": 200
       }
     }
   }

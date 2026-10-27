@@ -354,6 +354,11 @@ def check_catalog(catalog, block_schema):
                 if ref not in paths:
                     problems.append(f"{where}: {key} names {ref!r}, which is not a prop")
         nodes = {path[len("props.") :]: node for path, node in walk_props(props)}
+        for rule in b.get("requireIf") or []:
+            items = rule.get("items", "")
+            for k in list(rule.get("when") or {}) + list(rule.get("require") or []):
+                if f"{items}.{k}" not in paths:
+                    problems.append(f"{where}: requireIf names {items}.{k}, which is not a prop")
         for ref in b.get("expires") or []:
             node = nodes.get(ref)
             if not isinstance(node, dict) or node.get("type") != "string" or not node.get("pattern"):
@@ -365,6 +370,9 @@ def check_catalog(catalog, block_schema):
                 except (TypeError, ValueError):
                     problems.append(f"{where}: expires names {ref!r}, whose example {x!r} is not a YYYY-MM-DD date")
         for m in b.get("media") or []:
+            for v in m.get("variantRatio") or {}:
+                if v not in (b.get("variants") or []):
+                    problems.append(f"{where}: media variantRatio names {v!r}, which is not one of its variants")
             if m.get("prop") not in paths:
                 problems.append(f"{where}: media names prop {m.get('prop')!r}, which is not a prop")
             elif m.get("prop") not in (b.get("assetProps") or []):
@@ -587,7 +595,7 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
             return
         if href.startswith("/") and not href.startswith("//"):
             target = href.split("#")[0].split("?")[0]
-            if target and target not in paths:
+            if target and target not in paths and target not in set(manifest.get("knownPaths") or []):
                 problems.append(f"{at}: {where} links to {href}, which is not a page in this manifest")
             frag = href.split("#", 1)[1] if "#" in href else ""
             page = next((p for p in manifest["pages"] if p["path"] == target), None)
@@ -631,6 +639,11 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
             warnings.append(
                 f"{where} is in {lang!r} but has no strings: its menu, directions, day and month names and other labels render in English"
                 + (" (give the page its own strings)" if page.get("lang") and page["lang"] != manifest["lang"] else " (give the manifest strings)")
+            )
+        if page.get("lang") and page["lang"] != manifest["lang"] and (chrome.get("nav") or chrome.get("action") or chrome.get("footerNote")):
+            warnings.append(
+                f"{where} is in {page['lang']!r}, but the header and footer labels are the site's ({manifest['lang']!r}): they are marked "
+                f"lang={manifest['lang']!r} so they are read right; for a header in the page's language, give the language its own manifest (README, Another language)"
             )
         for i, alt in enumerate(page.get("alternates") or []):
             if alt["href"].startswith("/") and alt["href"].split("#")[0] not in paths:
@@ -678,7 +691,7 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
                     elif key not in assets:
                         problems.append(f"{at}: {ap} names asset {key!r}, which the manifest does not have")
             for m in b.get("media") or []:
-                num, den = (int(x) for x in m["ratio"].split(" / "))
+                num, den = (int(x) for x in (m.get("variantRatio") or {}).get(bl.get("variant", (b.get("variants") or [None])[0]), m["ratio"]).split(" / "))
                 box_w = m.get("maxWidth") or SLOT_MAX_WIDTH.get(m["slot"], 1152)
                 box_h = m.get("maxHeight") or box_w * den / num
                 for key in _get(bl["props"], m["prop"]):
@@ -730,6 +743,20 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
             for spath, v in _strings(bl["props"], "props"):
                 if spath.endswith(".asOf") and ISO_DATE.match(v) and v > today:
                     warnings.append(f"{at}: {spath} is {v}, after today; it is the day the facts were checked, which has to have come")
+            for rule in b.get("requireIf") or []:
+                head = rule["items"].removesuffix("[]")
+                for j, item in enumerate(_get(bl["props"], rule["items"])):
+                    if not isinstance(item, dict):
+                        continue
+                    kind = " and ".join(f"{k} {v!r}" for k, v in rule["when"].items())
+                    if all(item.get(k) == v for k, v in rule["when"].items()):
+                        for need in rule["require"]:
+                            if need not in item:
+                                problems.append(f"{at}: {head}[{j}] has {kind}, so it needs {need}")
+                    elif rule.get("otherwiseForbid"):
+                        for need in rule["require"]:
+                            if need in item:
+                                problems.append(f"{at}: {head}[{j}] has {need}, which only an item with {kind} takes")
             for ref in b.get("expires") or []:
                 dates = [d for d in _get(bl["props"], ref) if isinstance(d, str)]
                 past = sorted(d for d in dates if d < today)
@@ -981,6 +1008,7 @@ def token_themes(css):
 
 def check_tokens(css):
     sys.path.insert(0, HERE)
+    sys.dont_write_bytecode = True  # no __pycache__ left in the plugin
     from contrast_ratio import contrast_ratio  # same math as the plugin's contrast checker
 
     problems, rows = [], []
@@ -998,6 +1026,27 @@ def check_tokens(css):
             problems.append(
                 f"{alt}: its roles are only under [data-theme=\"{alt}\"], which nothing on a rendered page sets; "
                 f"repeat them under @media (prefers-color-scheme: {alt}) {{ :root:not([data-theme=\"{order[0]}\"]) {{ … }} }} so a reader whose system is {alt} gets them"
+            )
+    # A theme block for a scheme this site does not have as its alternate (the
+    # kit's dark blocks left in an always-dark or light-only site) still applies
+    # to some readers, and nothing above checks it.
+    for sel, body, around in css_blocks(code):
+        roles = _roles(body)
+        media = re.search(r"prefers-color-scheme:\s*(light|dark)", " ".join(around))
+        attr = re.fullmatch(r':root\[data-theme="(light|dark)"\]', sel)
+        scheme = (media or attr).group(1) if (media or attr) and roles and ":root" in sel else None
+        if not scheme or scheme in order[1:]:
+            continue
+        where = f"{sel} inside @media (prefers-color-scheme: {scheme})" if media else sel
+        if scheme not in order:
+            problems.append(
+                f"{where} sets colour roles, but color-scheme: {' '.join(order)} has no {scheme} theme: a reader whose "
+                f"system or toggle is {scheme} gets them, and nothing checks them. Delete the block, or add {scheme} to color-scheme"
+            )
+        elif any(themes[scheme].get(k) != v for k, v in roles.items()):
+            problems.append(
+                f"{where} sets colour roles that differ from :root's, but {scheme} is this site's default theme, so :root "
+                f"is checked and a reader whose system is {scheme} gets these instead. Delete the block (an always-{scheme} site needs only :root)"
             )
     light = themes[order[0]]
     if not light.get("font-body"):
@@ -1089,6 +1138,11 @@ RTL_STRINGS = {
     "open24": "مفتوح 24 ساعة",
     "credits": "الصور",
     "pricesAsOf": "الأسعار حتى",
+    "choose": "اختر",
+    "navLabel": "الرئيسية",
+    "footerNavLabel": "التذييل",
+    "date": "{day} {month}",
+    "dateYear": "{day} {month} {year}",
     "days": ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"],
     "months": ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"],
 }
@@ -1112,11 +1166,16 @@ def _text(n, mode):
 FIXTURE_LINK = {"tel:": "tel:+12515550100", "https://": "https://example.com/", "/": "/", "mailto:": "mailto:hello@example.com"}
 
 
-def gen(schema, mode, path, block, variant=None):
+def gen(schema, mode, path, block, variant=None, idx=None):
+    """A value for schema at its min, max, long or rtl content. Inside a list, an
+    enum takes its values in turn by the item's index, so every kind a field or
+    an icon can be is rendered once the list is full, not only the first and last."""
     t = schema.get("type")
     if "const" in schema:
         return schema["const"]
     if "enum" in schema:
+        if mode != "min" and idx is not None:
+            return schema["enum"][idx % len(schema["enum"])]
         return schema["enum"][0 if mode == "min" else -1]
     if path in (block.get("assetProps") or []):
         return "stress-photo"
@@ -1133,12 +1192,23 @@ def gen(schema, mode, path, block, variant=None):
                 continue
             if k == "variant":
                 continue
-            out[k] = gen(v, mode, f"{path}.{k}" if path else k, block, variant)
+            out[k] = gen(v, mode, f"{path}.{k}" if path else k, block, variant, idx)
+        for rule in block.get("requireIf") or []:
+            if rule["items"] != path:
+                continue
+            props = schema.get("properties") or {}
+            if all(out.get(k) == v for k, v in rule["when"].items()):
+                for need in rule["require"]:
+                    if need not in out and need in props:
+                        out[need] = gen(props[need], "max" if mode == "min" else mode, f"{path}.{need}", block, variant)
+            elif rule.get("otherwiseForbid"):
+                for need in rule["require"]:
+                    out.pop(need, None)
         return out
     if t == "array":
         n = schema.get("minItems", 1) if mode == "min" else schema.get("maxItems", 3)
         item_path = f"{path}[]"
-        return [gen(schema.get("items", {"type": "string", "maxLength": 20}), mode, item_path, block, variant) for _ in range(max(n, 0))]
+        return [gen(schema.get("items", {"type": "string", "maxLength": 20}), mode, item_path, block, variant, i) for i in range(max(n, 0))]
     if t == "string" and schema.get("examples"):
         return schema["examples"][0 if mode == "min" else -1]
     if t == "string":
@@ -1343,6 +1413,13 @@ def self_test():
     fx = make_fixtures(blocks)
     fp, _ = check_manifest(fx, blocks, mschema)
     row(not fp and len(fx["pages"]) == 4 * len(blocks), f"positive: generated stress fixtures pass ({len(fx['pages'])} pages)", "; ".join(fp[:2]))
+    form_max = next(p for p in fx["pages"] if p["path"] == "/stress/contact-form/max/")["blocks"][-1]["props"]["fields"]
+    kinds = blocks["contact-form"]["props"]["properties"]["fields"]["items"]["properties"]["kind"]["enum"]
+    row(
+        sorted({f["kind"] for f in form_max}) == sorted(kinds) and all(("options" in f) == (f["kind"] == "choice") for f in form_max),
+        "fixtures: a full list takes every enum value in turn (every field kind is stressed), and a choice gets its options",
+        json.dumps([f["kind"] for f in form_max]),
+    )
     rtl = [p for p in fx["pages"] if p["path"].endswith("/rtl/")]
     row(rtl and all(p.get("dir") == "rtl" and p.get("lang") == "ar" for p in rtl), "fixtures: rtl pages are dir=rtl lang=ar, so mirroring is tested")
     row(len(fx["chrome"]["nav"]) == 6 and all(len(x["label"]) == 20 for x in fx["chrome"]["nav"]), "fixtures: the header carries its worst case (6 links of 20 characters)")
@@ -1389,6 +1466,13 @@ def self_test():
     row(not dp and len(drows) == len(trows), "positive: a dark-first palette (color-scheme: dark light) checks its dark roles in :root and its light ones as the alternate", "; ".join(dp[:2]))
     ap, arows = check_tokens(":root { color-scheme: dark; " + decl(dk, dk) + " }\n")
     row(not ap and len(arows) == len(trows) // 2, "positive: an always-dark palette (color-scheme: dark) needs no light theme", "; ".join(ap[:2]))
+    always = ":root { color-scheme: dark; " + decl(dict(dk, accent="#a3bdff"), dk) + " }\n"
+    lp, _ = check_tokens(always + '@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { ' + decl(dk, dk) + " } }\n")
+    row(any("differ from :root" in x for x in lp), "must fail (tokens): an always-dark site that kept the kit's dark block (dark-system readers get unchecked roles)", "; ".join(lp[:2]))
+    lp, _ = check_tokens(always + ':root[data-theme="light"] { ' + alt_light + " }\n")
+    row(any("has no light theme" in x for x in lp), "must fail (tokens): an always-dark site with a leftover light theme block", "; ".join(lp[:2]))
+    lp, _ = check_tokens(always + '@media (prefers-color-scheme: dark) { :root { --accent: #a3bdff; } }\n')
+    row(not lp, "positive: an always-dark site whose dark block repeats :root exactly", "; ".join(lp[:2]))
     mp, _ = check_tokens(":root { " + decl(dk, dk) + " }\n" + ':root[data-theme="dark"] { --focus: #9db9ff; }\n@media (prefers-color-scheme: dark) { :root { --focus: #9db9ff; } }\n')
     row(any("darker than --ink" in x for x in mp), "must fail (tokens): dark roles in :root with no color-scheme (read as light, which they are not)", "; ".join(mp[:2]))
     np_, _ = check_tokens(":root { color-scheme: dark light; " + decl(dk, dk) + " }\n")
@@ -1618,6 +1702,8 @@ def self_test():
         _, fw = check_manifest(fa, blocks, mschema)
         row(any("after today" in x for x in fw), "warns: prices checked on a day that has not come (asOf in the future)")
         C = lambda m: m["pages"][2]["blocks"][1]["props"]  # noqa: E731  (the contact form)
+        manifest_case("a choice field with no options", lambda m: C(m)["fields"].append({"kind": "choice", "label": "Service"}), "so it needs options")
+        manifest_case("options on a field that is not a choice", lambda m: C(m)["fields"][0].update(options=["a", "b"]), "only an item with kind 'choice'")
         manifest_case("a form that posts to /\\host (a browser reads it as //host, another site)", lambda m: C(m).update(action="/\\collector.example/leads"), "never an #anchor")
         manifest_case("a link with a tab in it (a browser drops it: /<tab>/host is //host)", lambda m: m["chrome"]["nav"][0].update(href="/\t/x.example"), "control character")
         manifest_case("an asset src that loads from another site (\\host)", lambda m: m["assets"]["counter"].update(src="\\tracker.example/counter.jpg"), "does not match")

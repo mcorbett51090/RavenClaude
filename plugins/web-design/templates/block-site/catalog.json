@@ -1,5 +1,5 @@
 {
-  "description": "The kit's exemplar block contracts (ten), one entry per block, each shaped by block.schema.json. block_site_check.py reads this file or a directory of <id>/block.json files; split it into that form when the catalog grows, so each block's contract sits beside its component.",
+  "description": "The kit's exemplar block contracts (thirteen), one entry per block, each shaped by block.schema.json. block_site_check.py reads this file or a directory of <id>/block.json files; split it into that form when the catalog grows, so each block's contract sits beside its component.",
   "blocks": [
     {
       "id": "hero-full",
@@ -537,7 +537,7 @@
       "id": "gallery-grid",
       "version": "1.0.0",
       "title": "Photo gallery",
-      "summary": "Three to twelve photos of the place or the work, each with alt written while looking at it. Not for one photo (story-split) or for stock images.",
+      "summary": "Three to twelve photos of the place or the work, each with alt written while looking at it: landscape, square or portrait frames, three or four to a row by count. Not for one photo (story-split) or for stock images.",
       "category": "media",
       "headingLevel": 2,
       "placement": {
@@ -594,7 +594,11 @@
           "slot": "content",
           "minCol": 16,
           "maxWidth": 548,
-          "provenance": ["business-own", "commissioned"]
+          "provenance": ["business-own", "commissioned"],
+          "variantRatio": {
+            "square": "1 / 1",
+            "portrait": "4 / 5"
+          }
         }
       ],
       "a11y": [
@@ -605,7 +609,8 @@
       },
       "truth": [
         "Photos of this place or this business's work only, never stock presented as the place."
-      ]
+      ],
+      "variants": ["landscape", "square", "portrait"]
     },
     {
       "id": "events-list",
@@ -778,7 +783,16 @@
               "required": ["kind", "label"],
               "properties": {
                 "kind": {
-                  "enum": ["name", "email", "phone", "message", "date", "party-size"]
+                  "enum": [
+                    "name",
+                    "email",
+                    "phone",
+                    "message",
+                    "date",
+                    "party-size",
+                    "time",
+                    "choice"
+                  ]
                 },
                 "label": {
                   "type": "string",
@@ -787,6 +801,17 @@
                 },
                 "required": {
                   "type": "boolean"
+                },
+                "options": {
+                  "description": "The choices a choice field offers (a service, a stylist), in the order shown.",
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 12,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
                 }
               }
             }
@@ -802,6 +827,16 @@
       },
       "truth": [
         "Posts to an endpoint the business provisioned and reads; never promises a reply time the business did not give."
+      ],
+      "requireIf": [
+        {
+          "items": "fields[]",
+          "when": {
+            "kind": "choice"
+          },
+          "require": ["options"],
+          "otherwiseForbid": true
+        }
       ]
     },
     {

@@ -41,7 +41,10 @@
   .site-header {
     position: relative;
   }
+  /* The header is chrome, not a section: its block has no rhythm space
+     (data-space="none"), and the bar carries a small padding of its own. */
   .site-header__bar {
+    padding-block: var(--space-xs);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -105,6 +108,11 @@
   }
   .site-menu > nav ul {
     flex-direction: column;
+  }
+  /* In the open menu the links sit on the content line, like the action below
+     them; their own padding would set them 8px in. */
+  .site-menu > nav a:not(.button) {
+    padding-inline: 0;
   }
   /* The header's action moves into the open menu where the menu shows, so a
      narrow header is one row: brand and Menu. */
@@ -258,6 +266,14 @@
   /* ─── gallery-grid: one column of an auto-fit grid per photo; its contract's
      minCol is the grid's --min-col (written by the renderer), so sizes follows
      the column count ───────────────────────────────────────────────────────── */
+  /* At most --cols columns (the renderer picks 3 or 4 from the photo count,
+     so six photos are 3+3, not 4+2), each at least --gallery-min wide. */
+  .gallery {
+    --min-col: max(
+      var(--gallery-min, 16rem),
+      (100% - (var(--cols, 4) - 1) * var(--grid-gap, var(--space-m))) / var(--cols, 4)
+    );
+  }
   .gallery__item {
     gap: var(--space-2xs);
   }

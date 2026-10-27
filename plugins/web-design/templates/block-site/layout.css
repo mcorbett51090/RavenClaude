@@ -321,15 +321,21 @@
   [data-block][data-space="none"] {
     --section-space: 0;
   }
+  /* A short screen (a phone on its side, 375–440px tall) cannot spend a fifth
+     of its height above and below every heading: the rhythm steps down to s. */
+  @media (max-height: 32rem) {
+    [data-block]:not([data-space="none"]) {
+      --section-space: var(--section-s);
+    }
+  }
   /* Two neighbours on the same tone share one gap: siblings, siblings with one
-     non-rendered element between them (a script), and across the header / main /
-     footer boundary. */
+     non-rendered element between them (a script), and across the main / footer
+     boundary. Not under the header: it is compact chrome, and the first block
+     keeps its own space above its heading. */
   [data-tone="canvas"] + [data-tone="canvas"],
   [data-tone="surface"] + [data-tone="surface"],
   [data-tone="canvas"] + :is(script, template, style, link) + [data-tone="canvas"],
   [data-tone="surface"] + :is(script, template, style, link) + [data-tone="surface"],
-  [data-tone="canvas"] + main > [data-tone="canvas"]:first-child,
-  [data-tone="surface"] + main > [data-tone="surface"]:first-child,
   main:has(> [data-tone="canvas"]:last-child) + [data-tone="canvas"],
   main:has(> [data-tone="surface"]:last-child) + [data-tone="surface"] {
     padding-block-start: 0;

@@ -39,6 +39,7 @@
  *   input-zoom      a text field under 16px, which iOS zooms on focus
  *   orphan-row      a grid of like items whose last row holds one narrow item
  *                   under fuller rows (a grid marked data-ragged opts out)
+ *   fold            the page's h1 does not end inside the first screen
  *   grid-span       a grid with zero-width columns: items span tracks the grid does
  *                   not define (a container query that cannot match, because the
  *                   grid IS the container it queries)
@@ -1182,6 +1183,22 @@ async function layoutProbe(options) {
   });
 
   // ── chrome-share ─────────────────────────────────────────────────────────
+  // ── fold: the page's h1 is on the first screen ────────────────────────────
+  // A landing page whose heading starts below the first screen (a tall header
+  // and a tall band on a phone on its side) opens on chrome and a photo.
+  await run("fold", () => {
+    window.scrollTo({ left: 0, top: 0, behavior: "instant" });
+    const h1 = [...document.querySelectorAll("h1")].find((x) => visible(x));
+    stats.checked.fold = h1 ? 1 : 0;
+    if (!h1) return;
+    const r = h1.getBoundingClientRect();
+    if (r.bottom > H + 1)
+      add(
+        "fold",
+        h1,
+        `the page's h1 ends ${Math.round(r.bottom - H)}px below the first screen (${H}px tall): shorten the header or the band on short screens`,
+      );
+  });
   await run("chrome-share", () => {
     let covered = 0;
     for (const el of document.body.querySelectorAll("*")) {

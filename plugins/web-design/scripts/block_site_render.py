@@ -57,6 +57,7 @@ from html.parser import HTMLParser
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.dont_write_bytecode = True  # importing the checker must not leave __pycache__ in the plugin
 import block_site_check as check  # noqa: E402  (same directory; the contract lives there)
 
 KIT = check.KIT
@@ -78,6 +79,13 @@ UI = {
     "open24": "Open 24 hours",
     "credits": "Photos",
     "pricesAsOf": "Prices as of",
+    "choose": "Choose one",
+    "navLabel": "Main",
+    "footerNavLabel": "Footer",
+    # {day} {month} {year}: the order a date is written in. Spaces become no-break
+    # spaces, so a date never breaks. French: "{day} {month}", "{day} {month} {year}".
+    "date": "{month} {day}",
+    "dateYear": "{month} {day}, {year}",
     "days": list(DAY_NAME.values()),
     "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
 }
@@ -159,17 +167,22 @@ def special_rows(business, lang, today, ui=None):
     for sp in current_special(business, today):
         date = datetime.date.fromisoformat(sp["date"])
         # The date never breaks; it carries its year once the year is not this one.
-        year = f",\u00a0{date.year}" if date.year != this_year else ""
-        when = f"{sp['label']} ({ui['months'][date.month - 1]}\u00a0{date.day}{year})"
+        when = f"{sp['label']} ({date_text(date, ui, date.year != this_year)})"
         out.append((when, ui["closed"] if sp.get("closed") else window(sp["opens"], sp["closes"], lang, ui)))
     return out
 
 
+def date_text(d, ui, with_year):
+    """A date in the order the page's language writes it (strings date and
+    dateYear), with no-break spaces, so it never breaks across lines."""
+    fmt = ui["dateYear"] if with_year else ui["date"]
+    return fmt.format(day=d.day, month=ui["months"][d.month - 1], year=d.year).replace(" ", "\u00a0")
+
+
 def short_date(iso, ui, today):
-    """Nov 6, or Nov 6, 2027 outside this year: a date that never breaks."""
+    """Nov 6, or Nov 6, 2027 outside this year."""
     d = datetime.date.fromisoformat(iso)
-    year = f",\u00a0{d.year}" if d.year != int(today[:4]) else ""
-    return f"{ui['months'][d.month - 1]}\u00a0{d.day}{year}"
+    return date_text(d, ui, d.year != int(today[:4]))
 
 
 def address_lines(addr):
@@ -181,11 +194,30 @@ def address_lines(addr):
     return lines
 
 
-def tel_href(phone):
-    """The number without its extension: a dialer that does not understand an
-    extension parameter would otherwise dial its digits as part of the number. The
-    page shows the extension (phone_text)."""
-    return "tel:" + check.phone_parts(phone)[0]
+def tel_href(phone, country=None):
+    """The number without its extension (a dialer that does not understand an
+    extension parameter would dial its digits as part of the number; the page
+    shows it, phone_text), and with its country's calling code, so it dials from
+    a phone on another network too: (504) 555-0142 in the US is +15045550142, and
+    020 7946 0000 in the UK is +442079460000 (the trunk 0 is not dialled after it)."""
+    number = check.phone_parts(phone)[0]
+    cc = check.CALLING.get((country or "").upper())
+    if cc and not number.startswith("+"):
+        national = number
+        if national.startswith("0") and (country or "").upper() not in KEEPS_TRUNK_ZERO:
+            national = national[1:]
+        if cc == "1" and len(national) == 11 and national.startswith("1"):
+            national = national[1:]  # 1-504-555-0142: the 1 is the calling code
+        number = "+" + cc + national
+    return "tel:" + number
+
+
+# Italy dials its leading 0 after +39 too.
+KEEPS_TRUNK_ZERO = {"IT"}
+
+
+def business_tel(b):
+    return tel_href(b["phone"], (b.get("address") or {}).get("countryCode"))
 
 
 def phone_text(phone):
@@ -294,35 +326,45 @@ def sizes_for(media, asset=None):
     return ", ".join(out)
 
 
+GUTTER = "clamp(1rem, 0.4286rem + 2.8571vw, 3rem)"  # tokens.css --gutter
+
+
+def gallery_cols(count):
+    """The most columns a gallery of `count` photos takes, so its rows come out
+    even (6 is 3+3, 8 is 4+4) or as near as they can (5 is 3+2, 7 is 4+3)."""
+    return 4 if count % 4 == 0 or count in (7, 10, 11) else 3
+
+
 def auto_grid_sizes(media, asset=None):
     """sizes for one column of layout.css's .auto-grid (auto-fit columns at least
-    minCol rem wide) on the content or wide line. The column count changes with the
-    width, so each count gets its own condition, from the kit's tokens: a 16px rem,
-    the gutter clamp(1rem, 0.4286rem + 2.8571vw, 3rem) on each side, the gap
-    clamp(1.5rem, 1.4196rem + 0.4018vw, 1.7812rem), and a 72rem (wide: 90rem) line.
-    Each condition gives the widest the column is drawn while that count holds,
-    2% over, so it never under-asks."""
+    minCol rem wide, at most media['cols'] of them) on the content or wide line.
+    The column count changes with the width, so each count gets its own
+    condition, worked out from the kit's tokens (a 16px rem, the gutter, the gap
+    clamp(1.5rem, …, 1.7812rem), a 72rem or 90rem line). Within a count the
+    width is the same calc() the layout makes, with the smallest gap and 2% over,
+    so it follows the column down to the narrowest screen in that count and
+    never under-asks."""
     m = media["minCol"] * 16
-    most = media.get("items") or 99  # auto-fit collapses empty tracks: n photos are never in more than n columns
-    line = (90 if media["slot"] == "wide" else 72) * 16
-    widest = {}
+    most = media.get("cols") or 99
+    line = 90 if media["slot"] == "wide" else 72
     starts = {}
     for vw in range(280, 3201):
         gutter = min(48, max(16, 6.857 + 0.028571 * vw))
         gap = min(28.5, max(24, 22.714 + 0.004018 * vw))
-        c = min(line, vw - 2 * gutter)
+        c = min(line * 16, vw - 2 * gutter)
         n = max(1, min(most, int((c + gap) // (m + gap))))
-        col = (c - (n - 1) * gap) / n
-        widest[n] = max(widest.get(n, 0), col)
         starts.setdefault(n, vw)
     k = 1.0
     if asset and media.get("ratio"):
         num, den = (int(x) for x in media["ratio"].split(" / "))
         k = max(1.0, (asset["width"] / asset["height"]) / (num / den))
+    line_px = f"min({line}rem, 100vw - 2 * {GUTTER})"
     out = []
-    for n in sorted(widest, reverse=True):
-        w = round(widest[n] * 1.02 * k)
-        out.append(f"(min-width: {starts[n]}px) {w}px" if n > 1 else f"min({w}px, calc((100vw - 2rem) * {k:.3f}))" if k > 1.01 else f"min({w}px, 100vw - 2rem)")
+    for n in sorted(starts, reverse=True):
+        if n > 1:
+            out.append(f"(min-width: {starts[n]}px) calc(({line_px} - {n - 1} * 1.5rem) / {n} * {1.02 * k:.3f})")
+        else:
+            out.append(f"calc({line_px} * {1.02 * k:.3f})")
     return ", ".join(out)
 
 
@@ -501,11 +543,17 @@ def b_gallery_grid(p, ctx):
     out = f'<div class="stack"><h2 id={a(ctx["hid"])}>{e(p["heading"])}</h2>'
     if p.get("intro"):
         out += f'<p class="muted">{e(p["intro"])}</p>'
-    out += f'</div><div><ul role="list" class="auto-grid gallery" data-ragged style={a("--min-col: " + str(media["minCol"]) + "rem")}>'
+    cols = min(len(p["images"]), gallery_cols(len(p["images"])))
+    # The frame's shape is the variant's (portrait photos stay whole); the grid
+    # takes at most `cols` columns, which sizes is told too.
+    ratio = (media.get("variantRatio") or {}).get(ctx["variant"], media["ratio"])
+    fm = dict(media, ratio=ratio, cols=cols)
+    grid = f"--gallery-min: {media['minCol']}rem; --cols: {cols}"
+    out += f'</div><div><ul role="list" class="auto-grid gallery" data-ragged style={a(grid)}>'
     for it in p["images"]:
         asset = m["assets"][it["image"]]
-        frame = f'--ratio: {media["ratio"]}; --frame-radius: var(--radius-m); --focal: {asset.get("focal", "50% 50%")}'
-        out += f'<li><figure class="stack gallery__item"><div class="frame" style={a(frame)}>{picture(m, it["image"], dict(media, items=len(p["images"])), False, False)}</div>'
+        frame = f'--ratio: {ratio}; --frame-radius: var(--radius-m); --focal: {asset.get("focal", "50% 50%")}'
+        out += f'<li><figure class="stack gallery__item"><div class="frame" style={a(frame)}>{picture(m, it["image"], fm, False, False)}</div>'
         if it.get("caption"):
             out += f'<figcaption class="muted">{e(it["caption"])}</figcaption>'
         out += "</figure></li>"
@@ -547,7 +595,7 @@ def b_hours_location(p, ctx):
     out += f'<div class="cluster"><a class="button" href={a(maps)}><span>{e(ui["directions"])}<span class="visually-hidden"> {e(ui["opensMap"])}</span></span></a>'
     if b.get("phone"):
         # One span: a button is a flex box, and a text run beside a span would get the gap twice.
-        out += f'<a class="button" data-variant="ghost" href={a(tel_href(b["phone"]))}><span>{e(ui["call"])} {phone_text(b["phone"])}</span></a>'
+        out += f'<a class="button" data-variant="ghost" href={a(business_tel(b))}><span>{e(ui["call"])} {phone_text(b["phone"])}</span></a>'
     out += '</div></div><div><div class="hours-table"><dl class="hours">'
     out += "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in hours_rows(b, lang, ui)) + "</dl>"
     emergency = hours_rows(b, lang, ui, kind="emergency")
@@ -566,6 +614,8 @@ FIELD = {
     "message": ('rows="6"', "textarea"),
     "date": ('type="date"', "input"),
     "party-size": ('type="number" inputmode="numeric" min="1" max="99"', "input"),
+    "time": ('type="time"', "input"),
+    "choice": ("", "select"),
 }
 
 
@@ -579,7 +629,14 @@ def b_contact_form(p, ctx):
         name = f["kind"] if [x["kind"] for x in p["fields"]].count(f["kind"]) == 1 else f"{f['kind']}-{i + 1}"
         req = " required" if f.get("required") else ""
         label = e(f["label"]) + (f' <span class="muted">{e((ctx.get("ui") or UI)["required"])}</span>' if f.get("required") else "")
-        control = f"<textarea id={a(fid)} name={a(name)} {attrs}{req}></textarea>" if tag == "textarea" else f"<input id={a(fid)} name={a(name)} {attrs}{req}>"
+        if tag == "select":
+            # A first, empty option: a required choice must be made, never defaulted.
+            opts = f'<option value="">{e((ctx.get("ui") or UI)["choose"])}</option>' + "".join(f"<option>{e(o)}</option>" for o in f.get("options") or [])
+            control = f"<select id={a(fid)} name={a(name)}{req}>{opts}</select>"
+        elif tag == "textarea":
+            control = f"<textarea id={a(fid)} name={a(name)} {attrs}{req}></textarea>"
+        else:
+            control = f"<input id={a(fid)} name={a(name)} {attrs}{req}>"
         out += f'<div class="field"><label for={a(fid)}>{label}</label>{control}</div>'
     return out + f'<div><button class="button" type="submit">{e(p["submitLabel"])}</button></div></form></div>'
 
@@ -655,28 +712,36 @@ def nav_breakpoint(manifest):
     return round(width * 1.1 + gaps, 2)
 
 
-def nav_list(links, current):
+def nav_list(links, current, attrs=""):
     items = "".join(
         f'<li><a href={a(x["href"])}{CURRENT if x["href"] == current else ""}>{e(x["label"])}</a></li>' for x in links
     )
-    return f'<ul role="list">{items}</ul>'
+    return f'<ul role="list"{attrs}>{items}</ul>'
+
+
+def chrome_lang(manifest, page):
+    """' lang="…"' for the site's chrome on a page in another language, else ''."""
+    return f" lang={a(manifest['lang'])}" if (page.get("lang") or manifest["lang"]) != manifest["lang"] else ""
 
 
 def header(manifest, page, rtl=False):
     ui = ui_for(manifest, page)
     chrome = manifest.get("chrome") or {}
     links = chrome.get("nav") or []
-    out = '<header data-block="site-header" data-tone="canvas" data-space="s" class="site-header"><div class="site-header__bar">'
+    out = '<header data-block="site-header" data-tone="canvas" data-space="none" class="site-header"><div class="site-header__bar">'
     home = "/" if any(p["path"] == "/" for p in manifest["pages"]) else manifest["pages"][0]["path"]
     out += f'<a class="brand" href={a(home)}>{e(manifest["business"]["name"])}</a>'
     action = ""
+    # On a page in another language the chrome's labels are still the site's:
+    # marked so, a screen reader reads them in their own language.
+    cl = chrome_lang(manifest, page)
     if chrome.get("action"):
-        action = f'<a class="button" href={a(chrome["action"]["href"])}>{label(chrome["action"]["label"], rtl)}</a>'
+        action = f'<a class="button" href={a(chrome["action"]["href"])}{cl}>{label(chrome["action"]["label"], rtl)}</a>'
     if links:
-        out += f'<nav class="site-nav site-nav--inline" aria-label="Main">{nav_list(links, page["path"])}</nav>'
+        out += f'<nav class="site-nav site-nav--inline" aria-label={a(ui["navLabel"])}>{nav_list(links, page["path"], cl)}</nav>'
         out += (
             f'<details class="site-menu"><summary class="button" data-variant="ghost">{e(ui["menu"])}</summary>'
-            f'<nav class="site-nav" aria-label="Main">{nav_list(links, page["path"])}{action}</nav></details>'
+            f'<nav class="site-nav" aria-label={a(ui["navLabel"])}>{nav_list(links, page["path"], cl)}{action}</nav></details>'
         )
     if action:
         out += action.replace('class="button"', 'class="button site-header__action"', 1)
@@ -708,7 +773,7 @@ def footer(manifest, page, year, blocks=None):
     if b.get("address"):
         facts += "<address>" + "<br>".join(e(x) for x in address_lines(b["address"])) + "</address>"
     if b.get("phone"):
-        facts += f'<p><a href={a(tel_href(b["phone"]))}>{phone_text(b["phone"])}</a></p>'
+        facts += f'<p><a href={a(business_tel(b))}>{phone_text(b["phone"])}</a></p>'
     if b.get("email"):
         facts += f'<p><a href={a("mailto:" + b["email"])}><span dir="ltr">{e(b["email"])}</span></a></p>'
     facts += "</div>"
@@ -716,12 +781,14 @@ def footer(manifest, page, year, blocks=None):
     if credits:
         facts += f'<p class="site-footer__credits muted">{e(ui_for(manifest, page)["credits"])}: {e(" · ".join(credits))}</p>'
     nav = ""
+    ui = ui_for(manifest, page)
+    cl = chrome_lang(manifest, page)
     if chrome.get("footerNav"):
-        nav = f'<nav class="site-nav" aria-label="Footer">{nav_list(chrome["footerNav"], page["path"])}</nav>'
+        nav = f'<nav class="site-nav" aria-label={a(ui["footerNavLabel"])}>{nav_list(chrome["footerNav"], page["path"], cl)}</nav>'
     return (
         '<footer data-block="site-footer" data-tone="surface" data-space="m" class="site-footer">'
         f'<div class="switcher" style="--switch-at: 40rem">{facts}{nav}</div>'
-        + (f'<div class="stack"><p class="site-footer__note">{e(chrome["footerNote"])}</p>' if chrome.get("footerNote") else "<div>")
+        + (f'<div class="stack"><p class="site-footer__note"{cl}>{e(chrome["footerNote"])}</p>' if chrome.get("footerNote") else "<div>")
         + f'<p class="muted">© {year} {e(b["name"])}</p></div></footer>'
     )
 
@@ -734,12 +801,20 @@ LOCAL_URL = re.compile(r'((?:href|src|action)=")/(?!/)')
 SRCSET_URL = re.compile(r'(srcset=")([^"]*)(")')
 
 
-def rebase(page_html, base):
+def rebase(page_html, base, known=()):
     """Prefix every site-root URL (href, src, action and srcset entries) with the
-    base path, for a site served under a subpath. The manifest stays base-less."""
+    base path, for a site served under a subpath. The manifest stays base-less. A
+    knownPaths page (another manifest's, on the same host) is left as written."""
     if base == "/":
         return page_html
-    out = LOCAL_URL.sub(lambda m: m.group(1) + base, page_html)
+    known = tuple(known)
+
+    def prefix(m):
+        rest = page_html[m.end() : m.end() + 400].split('"', 1)[0]
+        path = "/" + rest.split("#")[0].split("?")[0]
+        return m.group(0) if path in known else m.group(1) + base
+
+    out = LOCAL_URL.sub(prefix, page_html)
     return SRCSET_URL.sub(
         lambda m: m.group(1) + ", ".join(base + x.lstrip("/") if x.startswith("/") and not x.startswith("//") else x for x in m.group(2).split(", ")) + m.group(3),
         out,
@@ -968,7 +1043,7 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
     today = today or datetime.date.today().isoformat()
     base = base_path(manifest)
     meta = theme_meta(css_dir)
-    built = {page["path"]: rebase(render_page(manifest, page, blocks, today, renderers, meta), base) for page in manifest["pages"]}
+    built = {page["path"]: rebase(render_page(manifest, page, blocks, today, renderers, meta), base, manifest.get("knownPaths") or []) for page in manifest["pages"]}
     # Whatever a contract or a block function forgot to declare, no page ships
     # code, or a link, form or image that reaches another site unasked.
     unsafe = [f"page {path}: {u}" for path, h in built.items() for u in unsafe_markup(h)]
@@ -994,12 +1069,17 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
             why = asset_problem(here)
             if why:
                 return [f"asset {src}: {why}"], notes
+            real = image_size(here)
+            # The manifest's size decides sizes, srcset and every blur check: a file
+            # that is not that size makes all of them wrong.
+            if real and (real[0] != w or abs(real[1] - h) > 1):
+                return [f"asset {src} is {real[0]}×{real[1]}, but the manifest says {w}×{h}; give its real size"], notes
             plan.append((os.path.relpath(dst, out), ("copy", here)))
         elif placeholders:
             plan.append((os.path.relpath(dst, out), ("placeholder", (w, h))))
             notes.append(f"{src}: missing, wrote a placeholder gradient (never publish it)")
         else:
-            notes.append(f"{src}: missing beside the manifest; the page will show a broken image")
+            return [f"asset {src} is missing beside the manifest; supply it, or render a draft with --placeholders"], notes
     if manifest.get("icon"):
         # The schema already refuses ../ and a leading /; this guards a port of it too.
         here = os.path.normpath(os.path.join(manifest_dir, manifest["icon"]))
@@ -1107,6 +1187,42 @@ MAGIC = {
     ".jpeg": (b"\xff\xd8\xff",),
     ".gif": (b"GIF87a", b"GIF89a"),
 }
+
+
+def image_size(path):
+    """(width, height) read from the file's own header (PNG, JPEG, GIF, WebP), or
+    None for a format this does not read (AVIF, SVG)."""
+    with open(path, "rb") as f:
+        data = f.read(1 << 20)
+    if data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR":
+        return int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return int.from_bytes(data[6:8], "little"), int.from_bytes(data[8:10], "little")
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        kind = data[12:16]
+        if kind == b"VP8 ":
+            return int.from_bytes(data[26:28], "little") & 0x3FFF, int.from_bytes(data[28:30], "little") & 0x3FFF
+        if kind == b"VP8L":
+            b = int.from_bytes(data[21:25], "little")
+            return (b & 0x3FFF) + 1, ((b >> 14) & 0x3FFF) + 1
+        if kind == b"VP8X":
+            return int.from_bytes(data[24:27], "little") + 1, int.from_bytes(data[27:30], "little") + 1
+        return None
+    if data[:3] == b"\xff\xd8\xff":
+        i = 2
+        while i + 9 < len(data):
+            if data[i] != 0xFF:
+                i += 1
+                continue
+            marker = data[i + 1]
+            if marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
+                return int.from_bytes(data[i + 7 : i + 9], "big"), int.from_bytes(data[i + 5 : i + 7], "big")
+            if marker in (0xD8, 0x01) or 0xD0 <= marker <= 0xD7:
+                i += 2
+                continue
+            i += 2 + int.from_bytes(data[i + 2 : i + 4], "big")
+        return None
+    return None
 
 
 def asset_problem(path):
@@ -1365,7 +1481,7 @@ def check_html(pages, manifest):
             if href and href.startswith("/") and not href.startswith("//"):
                 target, _, frag = href.partition("#")
                 target = target.split("?")[0]
-                if target not in docs:
+                if target not in docs and target not in set(manifest.get("knownPaths") or []):
                     problems.append(f"{at}: link to {href}, which is not a rendered page")
                 elif frag and frag not in {t[1].get("id") for t in docs[target].tags}:
                     problems.append(f"{at}: link to {href}, but {target} has no id {frag!r}")
@@ -1400,6 +1516,32 @@ def check_html(pages, manifest):
 
 
 # ─── self-test ───────────────────────────────────────────────────────────────
+
+
+def sizes_at(sizes, vw):
+    """The width a sizes attribute gives at a viewport vw px wide (16px rem, no
+    vh): the first entry whose (min-width) holds, its math evaluated. For the
+    self-test's own sizes, so a value can be checked against a measured box."""
+    entries, depth, cur = [], 0, ""
+    for ch in sizes:
+        depth += ch == "("
+        depth -= ch == ")"
+        if ch == "," and depth == 0:
+            entries.append(cur.strip())
+            cur = ""
+        else:
+            cur += ch
+    entries.append(cur.strip())
+    for entry in entries:
+        m = re.match(r"\(min-width: (\d+)px\) (.*)", entry)
+        if m and vw < int(m.group(1)):
+            continue
+        expr = m.group(2) if m else entry
+        expr = re.sub(r"([\d.]+)rem", r"(\1*16)", expr)
+        expr = re.sub(r"([\d.]+)vw", r"(\1*" + str(vw) + "/100)", expr)
+        expr = expr.replace("px", "").replace("calc(", "(").replace("clamp(", "_clamp(")
+        return eval(expr, {"__builtins__": {}}, {"min": min, "max": max, "_clamp": lambda a, b, c: max(a, min(b, c))})  # noqa: S307  (our own sizes text)
+    return None
 
 
 def self_test():
@@ -1452,6 +1594,10 @@ def self_test():
             "a maps link encodes its query: a suite number's # does not cut the city off",
         )
         row(tel_href("(251) 555-0100 ext. 12") == "tel:2515550100", "an extension is shown on the page, never dialled as part of the number")
+        row(
+            tel_href("(504) 555-0142", "US") == "tel:+15045550142" and tel_href("020 7946 0000", "GB") == "tel:+442079460000" and tel_href("06 1234 5678", "IT") == "tel:+390612345678",
+            "a tel: link carries the country's calling code (the UK trunk 0 dropped, Italy's kept), so it dials from any network",
+        )
         row(
             "* 1.200" in sizes_for({"slot": "half-content", "ratio": "4 / 3"}, {"width": 2560, "height": 1600})
             and "calc" not in sizes_for({"slot": "half-content", "ratio": "4 / 3"}, {"width": 1600, "height": 1200}),
@@ -1559,12 +1705,21 @@ def self_test():
             am["assets"]["counter"].pop("sources", None)
             ap, _ = render(am, blocks, os.path.join(tmp, "asset-" + name), adir, placeholders=True, today="2026-10-27")
             row(any(want in x for x in ap), f"must fail: an asset that is not the image its name says ({name})", "; ".join(ap[:2]) or "rendered")
+        # The manifest's size is the file's: srcset, sizes and every blur check rest on it.
+        check.write_png(os.path.join(adir, "images", "small.png"), 400, 300, lambda y: (120, 100, 80))
+        sm = copy.deepcopy(example)
+        sm["assets"]["counter"].update(src="images/small.png", width=1600, height=1200)
+        sm["assets"]["counter"].pop("sources", None)
+        sp2, _ = render(sm, blocks, os.path.join(tmp, "small"), adir, placeholders=True, today="2026-10-27")
+        row(any("is 400×300, but the manifest says 1600×1200" in x for x in sp2), "must fail: a photo whose real size is not the manifest's (400×300 said to be 1600×1200)", "; ".join(sp2[:2]))
+        mp2, _ = render(example, blocks, os.path.join(tmp, "missing"), adir, placeholders=False, today="2026-10-27")
+        row(any("is missing beside the manifest" in x for x in mp2), "must fail: a missing photo without --placeholders (it would ship a broken image)", "; ".join(mp2[:2]))
         # Nested expiry paths are dropped too.
         dp = drop_past({"days": [{"events": [{"date": "2026-10-01", "t": "old"}, {"date": "2026-11-01", "t": "new"}]}]}, ["days[].events[].date"], "2026-10-27")
         row([x["t"] for x in dp["days"][0]["events"]] == ["new"], "a past item at a nested expires path (days[].events[].date) is dropped", json.dumps(dp))
         # A gallery of three photos is never more than three columns wide.
-        three = sizes_for(dict(blocks["gallery-grid"]["media"][0], items=3), {"width": 1600, "height": 1200})
-        row(int(re.findall(r"\) (\d+)px", three)[0]) > 360, "gallery: three photos at 1280px are three columns (auto-fit collapses the fourth), and sizes says so", three)
+        three = sizes_for(dict(blocks["gallery-grid"]["media"][0], cols=3), {"width": 1600, "height": 1200})
+        row(sizes_at(three, 1280) > 360, "gallery: three photos at 1280px are three columns, and sizes says so", f"{sizes_at(three, 1280):.0f}px: {three}")
         # A re-render removes the page that left the manifest, and only a file it wrote.
         rr = os.path.join(tmp, "rerender")
         render(example, blocks, rr, KIT, placeholders=True, today="2026-10-27")
@@ -1634,12 +1789,39 @@ def self_test():
             "; ".join(eprobs[:2]),
         )
         # One column of an auto-fit gallery: sizes follows the column count, never the whole line.
-        gsizes = sizes_for(blocks["gallery-grid"]["media"][0], {"width": 1600, "height": 1200})
+        gm = blocks["gallery-grid"]["media"][0]
+        gsizes = sizes_for(dict(gm, cols=4), {"width": 1600, "height": 1200})
+        # The real column at 594px (a phone in landscape, two columns) is 261px.
+        at594, at1280 = sizes_at(gsizes, 594), sizes_at(gsizes, 1280)
         row(
-            gsizes.count("(min-width:") >= 2 and "1152px" not in gsizes and max(int(x) for x in re.findall(r"\) (\d+)px", gsizes)) < 560,
-            "gallery: sizes gives each column count its own width (no 1152px whole-line ask)",
-            gsizes,
+            gsizes.count("(min-width:") >= 2 and 255 < at594 < 285 and 255 < at1280 < 290,
+            "gallery: sizes follows the column at every width (261px at 594, two columns; 266px at 1280, four)",
+            f"{at594:.0f}px at 594, {at1280:.0f}px at 1280: {gsizes}",
         )
+        # A page in another language: its dates in its own order, its landmarks in
+        # its words, and the site's own chrome marked with the site's language.
+        fr = copy.deepcopy(example)
+        fr["pages"][1].update(lang="fr", strings={"date": "{day} {month}", "dateYear": "{day} {month} {year}", "navLabel": "Principal", "closed": "Fermé",
+                                                  "months": ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."]})
+        fr["business"]["specialHours"] = [{"date": "2027-01-01", "label": "Jour de l'an", "closed": True}]
+        frout = os.path.join(tmp, "fr")
+        frp, _ = render(fr, blocks, frout, KIT, placeholders=True, today="2026-10-27")
+        frv = open(os.path.join(frout, "visit", "index.html"), encoding="utf-8").read() if not frp else ""
+        row(
+            "1\u00a0janv.\u00a02027" in frv and 'aria-label="Principal"' in frv and f'<ul role="list" lang="{fr["lang"]}">' in frv,
+            "a page in another language writes its dates in its own order and its landmark labels in its words, and marks the site's chrome with the site's language",
+            "; ".join(frp[:2]),
+        )
+        # One manifest per language: the French site, under /fr/, links to the
+        # English /visit/ it does not render, and the link keeps its path.
+        kn = copy.deepcopy(example)
+        kn["basePath"] = "/fr/"
+        kn["pages"] = [p for p in kn["pages"] if p["path"] != "/visit/"]
+        kn["knownPaths"] = ["/visit/"]
+        knout = os.path.join(tmp, "known")
+        knp, _ = render(kn, blocks, knout, KIT, placeholders=True, today="2026-10-27")
+        knh = open(os.path.join(knout, "index.html"), encoding="utf-8").read() if not knp else ""
+        row(not knp and 'href="/visit/"' in knh and 'href="/fr/contact/"' in knh, "knownPaths: a link to another manifest's page passes and keeps its path under a basePath", "; ".join(knp[:2]))
         # A query string is part of a link, not of the page it names.
         q = copy.deepcopy(example)
         q["chrome"]["nav"][0]["href"] = q["chrome"]["nav"][0]["href"].split("#")[0] + "?from=nav"

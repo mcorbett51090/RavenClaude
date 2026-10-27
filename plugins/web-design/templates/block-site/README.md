@@ -37,7 +37,8 @@ node $S/device_matrix.mjs --dir /tmp/site --manifest $K/example.manifest.json   
 
 Every step ends at a gate that must pass before the next one starts.
 
-1. **Copy the kit** into your project, for example `site/`: the three stylesheets, the two schemas and `catalog.json`.
+1. **Copy the kit** into your project, for example `site/`: the three stylesheets and `catalog.json`. The two
+   schemas stay in the plugin: they are the contract every site is checked against, and the tools read them there.
    Pages load the stylesheets in this order: `tokens.css`, `layout.css`, `blocks.css` (the renderer does this).
    - **Gate:** `python3 <plugin>/scripts/block_site_check.py catalog site/catalog.json` passes on the copy.
 2. **Set the brand in `tokens.css`.** Change the colour values (never the role names), the font stacks and, if you
@@ -46,7 +47,9 @@ Every step ends at a gate that must pass before the next one starts.
    - **Dark first, or always dark.** `color-scheme` on `:root` says which roles are which. The kit's `light dark`
      means the `:root` roles are light and the dark ones are the alternate. A dark-first brand writes `dark light`,
      puts its dark roles in `:root` and its light ones under `@media (prefers-color-scheme: light)` and
-     `[data-theme="light"]`. An always-dark brand writes `dark` and needs no other block. The same value sets the
+     `[data-theme="light"]`. An always-dark brand writes `dark`, puts its dark roles in `:root` and deletes the kit's two
+     dark blocks: left in, they would give readers whose system is dark the kit's colours, unchecked, so the gate
+     refuses a leftover theme block that differs from `:root`. The same value sets the
      native controls (a date picker's icon) and the renderer's `color-scheme` and `theme-color` meta.
    - **Gate:** `block_site_check.py tokens site/tokens.css`. It reads the colour roles from the file itself (hex,
      `rgb()`, `hsl()`, `oklch()`, `oklab()`) and checks every pairing a block can produce, in light and dark: text
@@ -58,8 +61,10 @@ Every step ends at a gate that must pass before the next one starts.
 3. **Choose blocks from [the catalog](#the-block-catalog).** Pick by purpose, never by look. Copy an exemplar contract
    from `catalog.json` for each block you need and fill it in: closed props, every string and list bounded, its slots,
    media boxes, the facts it `requires`, a11y and truth. A media box's `maxWidth` is the widest the frame is ever drawn,
-   at any width and any item count: a photo card in `.cards` is at most half the slot (576px), because an odd last
-   photo card keeps a column's width, centred, instead of stretching. A string with a `pattern` needs `examples`
+   at any width and any item count. Measure it rather than reason it: a photo card in `.cards` two to a row is half
+   the slot (576px), but in the one-column state just below the switch it is the whole slot, 586px at a 708px
+   screen, so its `maxWidth` is 600. A frame that is one column of an auto-fit grid names the grid's `minCol`, and
+   `sizes` follows the column count. A frame whose shape a variant changes lists it in `variantRatio`. A string with a `pattern` needs `examples`
    (values that match), so the fixtures can fill it. Keep the contracts in one `catalog.json`, or split them into
    `catalog/<id>/block.json` beside each component once the catalog grows; the checker reads either form.
    - **Gate:** `block_site_check.py catalog site/catalog.json`. It refuses props it cannot prove closed and bounded
@@ -78,13 +83,19 @@ Every step ends at a gate that must pass before the next one starts.
    `shareImage` (an asset with alt, 1200px wide, for link previews) and `icon`. Mark an emergency-only line's hours
    `"kind": "emergency"`: they show under their own heading and are never published as opening hours.
    - **Another language.** The renderer writes some words itself (Menu, Get directions, Call, day and month names,
-     Closed, Special days, (required), Skip to content, Photos, Prices as of). Give them in the site's language in
-     `strings`, and a page in
-     a second language its own `strings` and `alternates` (hreflang). One manifest per language, each with its own
-     `basePath` and `chrome`, is the cleaner shape for a whole second-language site.
+     Closed, Special days, (required), Skip to content, Photos, Prices as of, Choose one, the Main and Footer
+     landmark labels) and the order a date is written in (`date`: `{day} {month}` in French, `dateYear`). Give them
+     in the site's language in `strings`. Two shapes for a second language:
+     - **A page or two** in the same manifest: the page's own `lang`, `strings` and `alternates` (hreflang). The
+       header and footer labels stay the site's; they are marked with the site's `lang`, so a screen reader reads
+       them right, and the checker says so.
+     - **A whole site**: one manifest per language, each with its own `basePath` (`/fr/`), `chrome` in its language
+       and `alternates`. A link to a page the other manifest serves goes in `knownPaths` (`["/book/"]`): it passes
+       the checks and keeps its path.
    - **Gate:** `block_site_check.py manifest site/site.manifest.json --catalog site/catalog.json`. Read its warnings
      too: they include any photo too small, at 2x, for the box it is drawn in, and a non-English page without
-     strings.
+     strings. Every `tel:` link the renderer writes carries the country's calling code (from the address), so it
+     dials from any network.
 6. **Render** with `block_site_render.py render site/site.manifest.json --catalog site/catalog.json --blocks
    site/blocks.py --out dist` (the flags go in any order), or with your framework: one component per block type, in manifest order, with `tone` and `space` from
    the manifest or the contract's defaults. The stylesheets come from beside the catalog (your branded copy), and the
@@ -95,9 +106,14 @@ Every step ends at a gate that must pass before the next one starts.
      mailto and tel in any URL). It then checks its own HTML: one h1, no skipped heading level, unique ids, every
      label and link resolves, every image has alt and dimensions, and the JSON-LD parses with hours that match the
      rows shown. A refusal writes nothing.
-   - **`--out` is the renderer's folder.** It records the files it wrote (`.block-site-render.json`), and the next
-     render removes those that are gone from the manifest, so an old page never keeps publishing old facts. It never
-     touches a file it did not write, and it refuses a folder that already holds files and no record.
+   - **`--out` is the renderer's folder.** It records what it wrote, with a digest of each file, BESIDE the folder
+     (`dist` → `.dist.block-site-render.json`, so the record is never published). The next render removes the pages
+     that are gone from the manifest, so an old page never keeps publishing old facts. It never removes or
+     overwrites a file it did not write, or one changed since (by hand, or by another render into a subfolder), and
+     it refuses a folder that already holds files and no record.
+   - **Photos are what the manifest says.** A photo's bytes must be the image its name says (an SVG carrying script
+     is refused), and its real width and height must be the manifest's: `srcset`, `sizes` and every blur check rest
+     on them. A missing photo is refused; `--placeholders` draws a gradient for a draft.
    - **Credits.** A photo's `credit` is shown in the footer of each page that shows it. A media frame may list the
      provenances it accepts: the hero takes only `business-own` or `commissioned`, never stock or a generated image
      presented as the place.
@@ -112,11 +128,16 @@ Every step ends at a gate that must pass before the next one starts.
      --full --sweep 320:1600:8` (5 pages took about 6 minutes);
    - the stress pages, one theme: `node <plugin>/scripts/device_matrix.mjs --dir stress/dist --manifest
      stress/stress.manifest.json --themes light` (48 pages in six themes took 31 minutes; one theme is a sixth).
-   Each row's first theme also checks every word for ink (`text-hidden`: covered, masked or faded out), each page
-   is laid out once in its print stylesheet, and an image, font or media file that answers 4xx is `resource-failed`
-   (`--no-ink` and `--no-print` skip the first two for a quicker look, never for the gate).
-   A site with a `basePath` is served and tested only under it, as its host serves it. Save visual baselines with `--shots`, look at element
-   screenshots at 390 and 1280px in both themes, then check on a real iPhone and iPad.
+   Each row's first theme also checks every word for ink, captured at the device's pixel ratio with the text drawn
+   and hidden (`text-hidden`: covered, masked or faded out; `text-faint`: drawn well under its colour's contrast,
+   so something over it fades it). Each page is laid out once in its print stylesheet, as paper, with its
+   backgrounds dropped. An image, font or media file that answers 4xx is `resource-failed`, and a page whose h1
+   ends below the first screen is `fold`. (`--no-ink` and `--no-print` skip the captures for a quicker look, never
+   for the gate.) A site with a `basePath` is served and tested only under it, as its host serves it. On a one-theme
+   site light and dark render the same, as do the two more-contrast themes, so name the ones it has:
+   `--themes dark,forced,contrast-dark,motion` for an always-dark brand.
+   Save visual baselines with `--shots`, then look: `--block-shots DIR` writes one PNG per block, header and footer
+   at 390 and 1280px in light and dark. Then check on a real iPhone and iPad.
    - **Gate:** zero findings, and the screenshots look right. A run that cannot load a page's stylesheet stops with
      a reason instead of measuring the browser's defaults.
 
@@ -145,11 +166,11 @@ How to read a row:
 | ✓ `price-list` | one section of a menu, a drinks list or a price sheet / offerings without prices → `features-grid`; a long menu → one block per section | 2 | canvas · surface | content | rows two up past 48rem (`auto-fill`, `data-ragged`); each row a name and a price that never breaks, tabular numbers | ≤ 30 items; name ≤ 48, price ≤ 14, detail ≤ 48, description ≤ 160; `asOf` date | — | prices as rung up, with currency; `asOf` is the day they were checked |
 | `services-list` | 3–8 services with a line each | 2 | canvas · surface | content | count-aware `.cards`, or a two-column subgrid list | ≤ 8 items | optional icon enum | — |
 | `team-grid` | people who agreed to be shown | 2 | canvas · surface | content | count-aware `.cards` | ≤ 6 people; name ≤ 48, role ≤ 48, bio ≤ 200 | 1/1 `half-content`, `maxWidth` 600: two to a row at most widths, and an odd last photo card keeps that width, centred | only people who consented; business-own or commissioned photos |
-| ✓ `gallery-grid` | 3–12 photos of the place or the work / one photo → `story-split` | 2 | canvas · surface | content (the heading's line: on `wide` the photos sit a few px outside it and read as misaligned) | `.auto-grid` at `minCol` 16rem, marked `data-ragged` (no masonry: mixed ratios leave ragged column bottoms); auto-fit's empty tracks collapse | 3–12 images, caption ≤ 100 | 4/3 frames, lazy; `sizes` per column count (`minCol`); business-own or commissioned only | photos of this place; alt written while looking |
+| ✓ `gallery-grid` | 3–12 photos of the place or the work / one photo → `story-split` | 2 | canvas · surface | content (the heading's line: on `wide` the photos sit a few px outside it and read as misaligned) | `.auto-grid` at `minCol` 16rem, capped at 3 columns (4 from seven photos), marked `data-ragged` (no masonry: mixed ratios leave ragged column bottoms); auto-fit's empty tracks collapse | 3–12 images, caption ≤ 100; variant `landscape` (4/3), `square` (1/1) or `portrait` (4/5) | lazy; `sizes` per width from the column count and `minCol`; business-own or commissioned only | photos of this place; alt written while looking |
 | ✓ `events-list` | upcoming dated events / opening hours → `hours-location`; a one-off closure → `business.specialHours` | 2 | surface · canvas | content | one date column for every event (subgrid); the date above its title under 30rem | 1–12 events; title ≤ 60, body ≤ 200; date and start time | — | confirmed events on their real dates; `expires`: a past one is left off the page and warned, and a list of only past ones is refused |
 | ✓ `faq-list` | 3–8 real questions customers ask | 2 | surface · canvas | content | stack of `details`; prose measure | 3–8 items; question ≤ 100, answer ≤ 400 | — | FAQPage JSON-LD only if Google still shows it for the type |
 | ✓ `hours-location` | address, hours, special days and directions for a place customers visit / a service-area business → show the area | 2 | canvas · surface | content | switcher at 40rem; hours as a subgrid `dl` with `align-content: start` | heading ≤ 60, note ≤ 160; `requires` address and hours | — | hours from the business's structured hours, the same source as the JSON-LD |
-| ✓ `contact-form` | a real, delivered form / no endpoint provisioned yet → say how to reach the business | 2 | surface · canvas | content | stack; prose measure | 1–8 fields from a fixed set; labels ≤ 40 | — | posts to an endpoint the business reads; never promises a reply time; needs a security review |
+| ✓ `contact-form` | a real, delivered form / no endpoint provisioned yet → say how to reach the business | 2 | surface · canvas | content | stack; prose measure | 1–8 fields: `name`, `email`, `phone`, `message`, `date`, `time`, `party-size`, or `choice` with 2–12 `options` (a select; `options` only on a choice); labels ≤ 40 | — | posts to an endpoint the business reads; never promises a reply time; needs a security review |
 | ✓ `cta-banner` | one closing action / directly after a hero, or two in a row | 2 | inverse · surface | content | cluster with space-between | heading ≤ 48, label ≤ 28 | — | the action does what its label says (`call` is a `tel:` link) |
 
 The **site header and footer** are not blocks. They come from the manifest's `chrome` (a nav of ≤ 6 links of

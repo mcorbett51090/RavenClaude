@@ -27,33 +27,42 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - `tokens.css` declares `color-scheme`, which names the default theme: `light dark`, a dark-first `dark light`, or
     one theme only. The tokens gate checks the themes it names.
 - **`scripts/block_site_check.py`** (stdlib): `catalog`, `manifest`, `tokens` and `fixtures`, with a `--self-test`
-  of 127 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
+  of 138 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
   sizes for the box each is drawn in, and reads `oklch()` and other colour syntaxes. Every `tel:` link must dial the
   business's phone, a contract's `variantLinks` holds a variant to its label (`call` is a `tel:` link), and
   `endpointProps` must be a real form endpoint. A link, endpoint or asset path with a backslash or a control
   character is refused (a browser reads `/\host` as `//host`). A media frame may list the photo provenances it
-  accepts, and a contract may mark props that expire (an event's date).
+  accepts, and a contract may mark props that expire (an event's date) or that one value requires (`requireIf`: a
+  `choice` field needs its `options`). Every `YYYY-MM-DD` value must be a real date. Stress fixtures cycle every enum
+  value. The tokens gate reads the default theme only from top-level or `@layer` `:root` blocks, and refuses a theme
+  block left for a scheme the site does not have.
 - **`scripts/block_site_render.py`** (stdlib): the reference renderer, from manifest to static HTML, with HTML checks
   and a `--self-test` that breaks each of them. CI runs it. It uses the stylesheets beside the project's catalog,
   loads the project's own block functions with `--blocks`, writes `sitemap.xml`, link previews and an icon, and serves
   under a `basePath`. Before it writes anything it reads each page with an HTML parser and refuses code or a URL that
-  reaches another site unasked, and runs its HTML checks. It records what it wrote, so the next render removes a page
-  gone from the manifest. It shows photo credits, writes `color-scheme` and `theme-color` meta, and leaves past
-  events off the page.
-- **`scripts/layout-probe.js`**: 34 rendered-page checks in a dependency-free async browser function, including
+  reaches another site unasked, and anything a browser's parser could read differently (a repeated attribute, SVG
+  outside a short allow-list), and runs its HTML checks. It records what it wrote beside the output folder, with a
+  digest of each file, so the next render removes a page gone from the manifest and never touches a file it did not
+  write. It checks each photo's bytes and reads its real size, shows photo credits, writes `color-scheme` and
+  `theme-color` meta, leaves past events off the page, gives a gallery `sizes` per width from its photo count, marks
+  chrome in another language with its `lang`, and writes every `tel:` link with the country calling code.
+- **`scripts/layout-probe.js`**: 35 rendered-page checks in a dependency-free async browser function, including
   figures split across lines and the contrast of field edges and focus rings.
 - **`scripts/device_matrix.mjs`**: runs the probe across 28 viewports, ±1px around every `@media` width, and an
   optional sweep. Its quick rows run six themes with real desktop scrollbars, plus photo-contrast on composited
   pixels (ported from the owner's factory). `text-hidden` finds words no reader can see (covered, masked or faded
   out) by capturing each page with its text drawn and hidden; any image, font or media file that 404s is
-  `resource-failed`; a `basePath` site is served only under its path; and each page is laid out once in print.
+  `resource-failed`; a `basePath` site is served only under its path; and each page is laid out once in print, as
+  paper. The ink capture runs at the device's pixel ratio, and `text-faint` finds text a translucent layer fades.
+  The probe's `fold` reports an h1 that ends below the first screen. `--block-shots DIR` writes a PNG per block at
+  390 and 1280px in light and dark.
   - `--self-test` renders the kit and requires the example and 40 stress pages clean.
   - It plants 62 defects, covering every check, and checks 13 look-alikes that must pass (110 rows).
   - Every state is probed a second time with each `<details>` open (the menu, FAQ answers).
   - It measures all 18 count × width cells of the card grid.
   - A layout shift counts only when it repeats in 5 of 5 loads (the measured reason is in the knowledge file §11).
 - **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
-  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 47 measured
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 62 measured
   pitfalls.
 - **Command:** `/web-design:new-block-site`, gated step by step.
 

@@ -19,9 +19,10 @@
  *     --no-ink                   skip the text-hidden capture (faster)
  *     --no-print                 skip the print pass
  *     --shots DIR                a FULL-PAGE PNG per page × viewport × theme, for
- *                                visual-regression baselines. For the "look at it"
- *                                step, screenshot elements instead (Playwright's
- *                                locator.screenshot()): a full page shrinks detail.
+ *                                visual-regression baselines
+ *     --block-shots DIR          a PNG per block, header and footer at 390px and
+ *                                1280px in light and dark: the "look at it" step
+ *                                (a full page shrinks detail away)
  *     --json FILE                write every finding as JSON
  *     --chrome PATH              a Chromium binary (else CHROME_BIN, else Playwright's)
  *   node device_matrix.mjs --self-test
@@ -950,11 +951,55 @@ async function textInk(page, stats) {
   );
 }
 
+// ─── block screenshots: the "look at it" step ───────────────────────────────
+// One PNG per block, header and footer, at a phone (390px) and a laptop
+// (1280px), in light and dark: detail a full-page image shrinks away.
+async function blockShots(chromium, launch, urls, themes, dir) {
+  mkdirSync(dir, { recursive: true });
+  const browser = await chromium.launch(launch);
+  let n = 0;
+  try {
+    for (const vpId of ["iphone", "laptop"]) {
+      const v = VIEWPORTS.find((x) => x.id === vpId);
+      for (const theme of themes.filter((t) => t === "light" || t === "dark")) {
+        const ctx = await newStateContext(browser, v, theme);
+        const page = await ctx.newPage();
+        for (const url of urls) {
+          await load(page, url);
+          await page.evaluate(SETTLE);
+          const slug = new URL(url).pathname.replace(/[^a-z0-9]+/gi, "_") || "_";
+          const blocks = page.locator(
+            "body > header[data-block], main > [data-block], body > footer[data-block]",
+          );
+          const count = await blocks.count();
+          for (let i = 0; i < count; i++) {
+            const id = (await blocks.nth(i).getAttribute("data-block")) || "block";
+            await blocks.nth(i).screenshot({
+              path: join(
+                dir,
+                `${slug}__${v.id}-${v.w}__${theme}__${String(i + 1).padStart(2, "0")}-${id}.png`,
+              ),
+              animations: "disabled",
+              caret: "hide",
+            });
+            n++;
+          }
+        }
+        await ctx.close();
+      }
+    }
+  } finally {
+    await browser.close();
+  }
+  return n;
+}
+
 // ─── print ───────────────────────────────────────────────────────────────────
 // An A4 page at 96 dpi, less a browser's default margins: the width a printed
 // page is laid out at. Print is measured once per page, in the print stylesheet.
 const PRINT = { id: "print-a4", w: 718, h: 1000 };
 const PRINT_SKIP = [
+  "fold",
   "target-size",
   "images",
   "layout-shift",
@@ -1328,7 +1373,7 @@ function page({ head = "", top = "", extra = "", cards = 5 } = {}) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Self-test</title><link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/layout.css"><link rel="stylesheet" href="/blocks.css">${head}</head><body>
 ${top}
-<header data-block="site-header" data-tone="canvas" data-space="s" class="site-header"><div class="site-header__bar"><a class="brand" href="/">Diner</a><nav class="site-nav" aria-label="Main"><ul role="list"><li><a href="/">Home</a></li><li><a href="/menu/">Menu</a></li></ul></nav></div></header>
+<header data-block="site-header" data-tone="canvas" data-space="none" class="site-header"><div class="site-header__bar"><a class="brand" href="/">Diner</a><nav class="site-nav" aria-label="Main"><ul role="list"><li><a href="/">Home</a></li><li><a href="/menu/">Menu</a></li></ul></nav></div></header>
 <main id="main">
 <section data-block="hero-full" data-tone="media" data-space="l" aria-labelledby="h1">
   <div data-slot="backdrop"><picture><source media="(max-width: 30em) and (orientation: portrait)" srcset="/portrait.png" width="1200" height="1800"><img src="/landscape.png" width="2560" height="1440" alt=""></picture></div>
@@ -1347,6 +1392,12 @@ ${extra}
 const sec = (inner, tone = "canvas") =>
   `<section data-block="m" data-tone="${tone}"><div>${inner}</div></section>`;
 const MUTATIONS = [
+  {
+    expect: "fold",
+    vp: "iphone-land",
+    why: "a landing page whose h1 starts below a phone-on-its-side's first screen",
+    html: { head: `<style>[data-block="hero-full"] { padding-block-start: 30rem; }</style>` },
+  },
   {
     expect: "grid-span",
     vp: "laptop",
@@ -2483,6 +2534,7 @@ async function main(argv) {
     else if (a === "--no-ink") args.noInk = true;
     else if (a === "--no-print") args.noPrint = true;
     else if (a === "--shots") args.shots = resolve(next());
+    else if (a === "--block-shots") args.blockShots = resolve(next());
     else if (a === "--json") args.json = resolve(next());
     else if (a === "--chrome") args.chrome = next();
     else {
@@ -2570,6 +2622,10 @@ async function main(argv) {
       print: !args.noPrint,
     });
     if (args.json) writeFileSync(args.json, JSON.stringify(result, null, 2));
+    if (args.blockShots) {
+      const n = await blockShots(pw.chromium, launch, urls, args.themes, args.blockShots);
+      console.log(`device-matrix: ${n} block screenshot(s) in ${args.blockShots}`);
+    }
     return report(result);
   } catch (e) {
     console.error(`device-matrix: could not run: ${e && e.message}`);

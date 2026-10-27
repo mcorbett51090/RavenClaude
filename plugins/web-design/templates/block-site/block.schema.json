@@ -222,6 +222,14 @@
             "type": "number",
             "minimum": 8,
             "maximum": 40
+          },
+          "variantRatio": {
+            "description": "A frame shape per variant, where a variant changes it (a portrait gallery): variant name to 'w / h'. The others use ratio.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]* / [1-9][0-9]*$"
+            }
           }
         }
       }
@@ -269,6 +277,34 @@
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "requireIf": {
+      "description": "Props an item must have when it is of a kind, and must not have otherwise: a choice field needs its options, and no other field may carry any.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["items", "when", "require"],
+        "properties": {
+          "items": {
+            "type": "string",
+            "description": "The list the rule is about, as a prop path: fields[]."
+          },
+          "when": {
+            "type": "object",
+            "description": "Prop values that make an item of this kind: {\"kind\": \"choice\"}."
+          },
+          "require": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "otherwiseForbid": {
+            "type": "boolean"
+          }
+        }
       }
     }
   },
