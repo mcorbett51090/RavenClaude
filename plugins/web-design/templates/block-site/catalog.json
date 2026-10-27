@@ -485,7 +485,7 @@
             "description": "The day the prices were last checked against the till; shown under the list.",
             "type": "string",
             "pattern": "^20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
-            "examples": ["2026-10-01", "2027-03-15"],
+            "examples": ["2026-09-01", "2026-01-15"],
             "format": "date"
           },
           "items": {
@@ -663,6 +663,12 @@
                   "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
                   "examples": ["19:00", "23:30"]
                 },
+                "ends": {
+                  "type": "string",
+                  "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+                  "examples": ["21:00", "23:59"],
+                  "description": "When it ends, on the same day"
+                },
                 "title": {
                   "type": "string",
                   "minLength": 3,
@@ -671,6 +677,17 @@
                 "body": {
                   "type": "string",
                   "maxLength": 200
+                },
+                "price": {
+                  "type": "string",
+                  "maxLength": 20,
+                  "description": "As the business writes it: £35, Free, £20 a child"
+                },
+                "href": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Where to book or read more; the event's title becomes the link"
                 }
               }
             }
@@ -685,7 +702,8 @@
       },
       "truth": [
         "Only events the business has confirmed, on their real dates. A past event is left off the page, and the checker asks for it to be removed."
-      ]
+      ],
+      "linkProps": ["events[].href"]
     },
     {
       "id": "hours-location",
@@ -812,6 +830,12 @@
                     "minLength": 1,
                     "maxLength": 40
                   }
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 100000,
+                  "description": "The most a party-size field accepts (99 when left out): 500 for a catering enquiry"
                 }
               }
             }
@@ -835,6 +859,15 @@
             "kind": "choice"
           },
           "require": ["options"],
+          "otherwiseForbid": true
+        },
+        {
+          "items": "fields[]",
+          "when": {
+            "kind": "party-size"
+          },
+          "require": [],
+          "allow": ["max"],
           "otherwiseForbid": true
         }
       ]

@@ -45,7 +45,7 @@ blocks, their CSS, a four-page example and a reference renderer
 ([`scripts/block_site_render.py`](../../scripts/block_site_render.py)). Render the example first; it takes two minutes
 and shows the whole path working. Then follow the kit's README, which has eight steps with a gate on each:
 
-1. **Copy the kit** (three stylesheets, two schemas, `catalog.json`).
+1. **Copy the kit** (three stylesheets and `catalog.json`; the two schemas stay in the plugin, where the tools read them).
    - **Gate:** `block_site_check.py catalog` passes on the copy.
 2. **Brand it** by changing values in `tokens.css`, never role names.
    - **Gate:** `block_site_check.py tokens tokens.css`. It checks every colour pairing a block can produce in light

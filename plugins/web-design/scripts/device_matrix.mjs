@@ -6,7 +6,8 @@
  * USAGE
  *   node device_matrix.mjs --dir dist                     a built site, served locally
  *   node device_matrix.mjs --url http://localhost:4321/   a running server (repeatable)
- *     --pages /,/menu/,/visit/   paths to test (default: / only)
+ *     --pages /,/menu/,/visit/   paths to test (default: / only); with --manifest,
+ *                                the manifest's pages to test (default: all of them)
  *     --manifest FILE            test every page a site manifest lists (repeatable)
  *     --quick                    one viewport per device class (default)
  *     --full                     every row of adaptive-layout's device table
@@ -427,7 +428,7 @@ async function detailsOpen(page, width) {
   return findings.map((x) => ({ ...x, msg: `${x.msg} (with every <details> open)` }));
 }
 
-async function newStateContext(browser, v, theme) {
+async function newStateContext(browser, v, theme, defaultScheme = "light") {
   const ctx = await browser.newContext({
     viewport: { width: v.w, height: v.h },
     deviceScaleFactor: v.dpr,
@@ -435,6 +436,9 @@ async function newStateContext(browser, v, theme) {
     hasTouch: v.mobile,
     reducedMotion: "reduce",
     ...THEMES[theme],
+    // Motion runs in the site's own default scheme: a dark-first site's first
+    // view is dark with its animations on.
+    ...(theme === "motion" ? { colorScheme: defaultScheme } : {}),
   });
   await ctx.addInitScript(CLS_OBSERVER);
   await ctx.route(ANALYTICS, (r) => r.abort());
@@ -567,10 +571,18 @@ const PHOTO_HIDE = `(async () => {
     + 'text-decoration-color:transparent!important;caret-color:transparent!important}'
     + ':root{scroll-behavior:auto!important}';
   document.head.appendChild(s);
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  return [...document.querySelectorAll('[data-dm-photo]')]
+  // Two frames are enough on an idle machine; a loaded one can need more, so look
+  // again for up to about a second before calling the hide missed.
+  const missed = () => [...document.querySelectorAll('[data-dm-photo]')]
     .filter((el) => !/^rgba\\(0, 0, 0, 0\\)$|^transparent$/.test(getComputedStyle(el).webkitTextFillColor))
     .map((el) => el.tagName.toLowerCase() + ' ' + getComputedStyle(el).webkitTextFillColor);
+  let m = [];
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    m = missed();
+    if (!m.length) break;
+  }
+  return m;
 })()`;
 const PHOTO_UNHIDE = `(() => { for (const s of document.querySelectorAll('style[data-dm-photo-hide]')) s.remove();
   for (const el of document.querySelectorAll('[data-dm-photo]')) el.removeAttribute('data-dm-photo'); })()`;
@@ -722,10 +734,16 @@ const INK_HIDE = `(async () => {
     + ':root [data-dm-ink-clip]{-webkit-background-clip:border-box!important;background-clip:border-box!important}'
     + ':root{scroll-behavior:auto!important}';
   document.head.appendChild(s);
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  return [...document.querySelectorAll('[data-dm-ink]:not([data-dm-ink-clip])')]
+  const missed = () => [...document.querySelectorAll('[data-dm-ink]:not([data-dm-ink-clip])')]
     .filter((el) => !/^rgba\\(0, 0, 0, 0\\)$|^transparent$/.test(getComputedStyle(el).webkitTextFillColor))
     .map((el) => el.tagName.toLowerCase() + ' ' + getComputedStyle(el).webkitTextFillColor);
+  let m = [];
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    m = missed();
+    if (!m.length) break;
+  }
+  return m;
 })()`;
 const INK_UNHIDE = `(() => { for (const s of document.querySelectorAll('style[data-dm-ink-hide]')) s.remove();
   for (const el of document.querySelectorAll('[data-dm-ink]')) { el.removeAttribute('data-dm-ink'); el.removeAttribute('data-dm-ink-clip'); } })()`;
@@ -1129,7 +1147,13 @@ async function runMatrix({
     const p0 = await probeCtx.newPage();
     await load(p0, urls[0]);
     const bp = await p0.evaluate(BREAKPOINTS);
+    // color-scheme on :root names the default theme first (tokens.css).
+    const defaultScheme = await p0.evaluate(() =>
+      /^\s*dark\b/.test(getComputedStyle(document.documentElement).colorScheme) ? "dark" : "light",
+    );
     await probeCtx.close();
+    if (defaultScheme === "dark" && themes.includes("motion"))
+      notes.add("motion: run in dark, the site's default scheme (color-scheme on :root)");
     const edgeWidths = new Set();
     for (const w of bp.media) for (const d of [-1, 0, 1]) if (w + d >= 280) edgeWidths.add(w + d);
     const edges = [...edgeWidths].map((w) => ({
@@ -1168,7 +1192,7 @@ async function runMatrix({
     };
     for (const v of rows) {
       for (const theme of v.themes) {
-        const ctx = await newStateContext(browser, v, theme);
+        const ctx = await newStateContext(browser, v, theme, defaultScheme);
         const page = await ctx.newPage();
         const resources = watchResources(page);
         for (const url of urls) {
@@ -1645,7 +1669,7 @@ const MUTATIONS = [
     vp: "laptop",
     html: {
       extra: sec(
-        `<div class="frame" style="--ratio: 1; inline-size: 150px"><img src="/landscape.png" width="2560" height="1440" alt="A huge file in a thumbnail"></div>`,
+        `<div class="frame" style="--ratio: 1; inline-size: 150px"><img src="/huge.png" width="2560" height="1440" alt="A huge file in a thumbnail"></div>`,
       ),
     },
   },
@@ -1771,7 +1795,7 @@ const MUTATIONS = [
     why: "a srcset whose sizes ask for the widest file when a smaller one covers the box",
     html: {
       extra: sec(
-        `<div class="frame" style="--ratio: 1; inline-size: 150px"><img src="/s400.png" srcset="/s400.png 400w, /story.png 1200w, /landscape.png 2560w" sizes="100vw" width="2560" height="1440" alt="Wrong sizes"></div>`,
+        `<div class="frame" style="--ratio: 1; inline-size: 150px"><img src="/s400.png" srcset="/s400.png 400w, /story.png 1200w, /huge.png 2560w" sizes="100vw" width="2560" height="1440" alt="Wrong sizes"></div>`,
       ),
     },
   },
@@ -1851,6 +1875,16 @@ const CLEAN = [
     html: {
       extra: sec(
         `<div class="frame" style="--ratio: 16 / 9; inline-size: 354px"><img src="/landscape.png" srcset="/s400.png 400w, /landscape.png 2560w" sizes="354px" width="2560" height="1440" alt="Right sizes"></div>`,
+      ),
+    },
+  },
+  {
+    forbid: ["image-oversized"],
+    vp: "laptop",
+    why: "the photo band's own file reused in a thumbnail: already loaded for the band, so no bytes are wasted",
+    html: {
+      extra: sec(
+        `<div class="frame" style="--ratio: 1; inline-size: 150px"><img src="/landscape.png" width="2560" height="1440" alt="The band's photo, small"></div>`,
       ),
     },
   },
@@ -1976,6 +2010,7 @@ async function selfTest(chromium, launch) {
     (p) => p.path,
   );
   writeFileSync(join(dir, "landscape.png"), png(2560, 1440, [92, 70, 52]));
+  writeFileSync(join(dir, "huge.png"), png(2560, 1440, [70, 92, 52]));
   writeFileSync(join(dir, "portrait.png"), png(1200, 1800, [92, 70, 52]));
   writeFileSync(join(dir, "story.png"), png(1200, 900, [140, 120, 96]));
   writeFileSync(join(dir, "s400.png"), png(400, 300, [140, 120, 96]));
@@ -2569,6 +2604,7 @@ async function main(argv) {
     return 2;
   }
   const prefixes = [];
+  const fromManifests = [];
   for (const m of args.manifests) {
     if (!existsSync(m)) {
       console.error(`device-matrix: no such manifest ${m}`);
@@ -2578,10 +2614,23 @@ async function main(argv) {
     // A site served under a subpath is tested there: its links say /clinic/….
     const prefix = doc.basePath || "/";
     if (prefix !== "/") prefixes.push(prefix);
-    const fromManifest = doc.pages.map((p) => prefix + p.path.replace(/^\//, ""));
-    args.pages = [...(args.pages || []), ...fromManifest];
+    for (const p of doc.pages)
+      fromManifests.push({ path: p.path, url: prefix + p.path.replace(/^\//, "") });
   }
-  const pages = args.pages || ["/"];
+  // With a manifest, --pages picks some of its pages (as the manifest writes the
+  // path, or with its basePath); without one, it names the paths to test.
+  let pages = args.pages || ["/"];
+  if (fromManifests.length) {
+    pages = [];
+    for (const want of args.pages || fromManifests.map((x) => x.url)) {
+      const hit = fromManifests.find((x) => x.path === want || x.url === want);
+      if (!hit) {
+        console.error(`device-matrix: --pages ${want} is not a page of the manifest`);
+        return 2;
+      }
+      pages.push(hit.url);
+    }
+  }
   const pw = loadPlaywright();
   if (!pw) {
     console.error(

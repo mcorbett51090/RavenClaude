@@ -88,12 +88,21 @@ UI = {
     "dateYear": "{month} {day}, {year}",
     "days": list(DAY_NAME.values()),
     "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    # A 12-hour clock's suffixes. strings.clock ("12" or "24") picks the clock;
+    # left out, English is 12-hour and every other language 24-hour.
+    "am": "AM",
+    "pm": "PM",
 }
+# English outside North America writes the day first (14 November) and am/pm in
+# lower case (GOV.UK style guide). A site's strings still win over these.
+DAY_FIRST = re.compile(r"^en-(GB|IE|AU|NZ|ZA|IN|SG|HK|MT|NG|KE|PK)$", re.IGNORECASE)
+DAY_FIRST_UI = {"date": "{day} {month}", "dateYear": "{day} {month} {year}", "am": "am", "pm": "pm"}
 
 
 def ui_for(manifest, page):
-    """English, under the site's strings, under this page's."""
-    return {**UI, **(manifest.get("strings") or {}), **(page.get("strings") or {})}
+    """English (in the page's region's order), under the site's strings, under this page's."""
+    region = DAY_FIRST_UI if DAY_FIRST.match(page.get("lang") or manifest["lang"]) else {}
+    return {**UI, **region, **(manifest.get("strings") or {}), **(page.get("strings") or {})}
 SCHEMA_DAY = {k: f"https://schema.org/{v}" for k, v in DAY_NAME.items()}
 PORTRAIT_MEDIA = "(max-width: 30em) and (orientation: portrait)"
 GHOST = ' data-variant="ghost"'
@@ -110,11 +119,12 @@ def a(value):
 # ─── facts ───────────────────────────────────────────────────────────────────
 
 
-def clock(hhmm, lang):
+def clock(hhmm, lang, ui=None):
+    ui = ui or UI
     h, m = (int(x) for x in hhmm.split(":"))
-    if not lang.lower().startswith("en"):
+    if (ui.get("clock") or ("12" if lang.lower().startswith("en") else "24")) == "24":
         return f"{h:02d}:{m:02d}"
-    suffix = "AM" if h < 12 else "PM"
+    suffix = ui["am"] if h < 12 else ui["pm"]
     return f"{(h % 12) or 12}:{m:02d}\u00a0{suffix}"  # 8:00 PM never breaks
 
 
@@ -152,23 +162,35 @@ def window(opens, closes, lang, ui=None):
         return ui["open24"]
     # One range never breaks across lines ("8:00 PM –" / "6:00 AM"); a list of
     # ranges breaks after its commas.
-    return f"{clock(opens, lang)}\u00a0–\u00a0{clock(closes, lang)}"
+    return f"{clock(opens, lang, ui)}\u00a0–\u00a0{clock(closes, lang, ui)}"
 
 
 def current_special(business, today):
-    """Special days from today on: a past holiday is not shown, or emitted."""
-    return [sp for sp in business.get("specialHours") or [] if sp["date"] >= today]
+    """Special days that have not ended: a past holiday is not shown, or emitted."""
+    return [sp for sp in business.get("specialHours") or [] if (sp.get("until") or sp["date"]) >= today]
 
 
-def special_rows(business, lang, today, ui=None):
+def special_label(sp, lang):
+    """(label, its language when it is not this page's): labels[lang], else the label."""
+    own = (sp.get("labels") or {}).get(lang)
+    return (own, None) if own else (sp["label"], "site")
+
+
+def special_rows(business, lang, today, ui=None, site_lang=None):
+    """[(label, value, lang of the label or None)] for the special days to come."""
     ui = ui or UI
     out = []
     this_year = int(today[:4])
     for sp in current_special(business, today):
-        date = datetime.date.fromisoformat(sp["date"])
-        # The date never breaks; it carries its year once the year is not this one.
-        when = f"{sp['label']} ({date_text(date, ui, date.year != this_year)})"
-        out.append((when, ui["closed"] if sp.get("closed") else window(sp["opens"], sp["closes"], lang, ui)))
+        start = datetime.date.fromisoformat(sp["date"])
+        end = datetime.date.fromisoformat(sp["until"]) if sp.get("until") else start
+        # A date never breaks; it carries its year once the year is not this one.
+        when = date_text(start, ui, start.year != this_year or end.year != start.year)
+        if end != start:
+            when += "\u00a0–\u00a0" + date_text(end, ui, end.year != this_year)
+        label, whose = special_label(sp, lang)
+        marked = site_lang if whose and site_lang and site_lang != lang else None
+        out.append((f"{label} ({when})", ui["closed"] if sp.get("closed") else window(sp["opens"], sp["closes"], lang, ui), marked))
     return out
 
 
@@ -241,6 +263,14 @@ def label(text, rtl):
     return f"<span>{out + e(text[at:])}</span>"  # one flex item in a button
 
 
+def postal_address(ad):
+    out = {"@type": "PostalAddress", "addressLocality": ad["city"], "addressCountry": ad["countryCode"]}
+    for src, dst in (("street", "streetAddress"), ("region", "addressRegion"), ("postalCode", "postalCode")):
+        if ad.get(src):
+            out[dst] = ad[src]
+    return out
+
+
 def json_ld(manifest, page_url, today=None):
     today = today or datetime.date.today().isoformat()
     b = manifest["business"]
@@ -248,15 +278,11 @@ def json_ld(manifest, page_url, today=None):
     if manifest.get("origin"):
         data["url"] = manifest["origin"] + base_path(manifest)
     if b.get("phone"):
-        data["telephone"] = b["phone"]
+        data["telephone"] = business_tel(b)[len("tel:") :]  # +441614960734: what every tel: link dials
     if b.get("email"):
         data["email"] = b["email"]
     if b.get("address"):
-        ad = b["address"]
-        data["address"] = {"@type": "PostalAddress", "addressLocality": ad["city"], "addressCountry": ad["countryCode"]}
-        for src, dst in (("street", "streetAddress"), ("region", "addressRegion"), ("postalCode", "postalCode")):
-            if ad.get(src):
-                data["address"][dst] = ad[src]
+        data["address"] = postal_address(b["address"])
     if b.get("hours"):
         data["openingHoursSpecification"] = [
             {"@type": "OpeningHoursSpecification", "dayOfWeek": [SCHEMA_DAY[d] for d in h["days"]], "opens": h["opens"], "closes": h["closes"]}
@@ -269,7 +295,7 @@ def json_ld(manifest, page_url, today=None):
             {
                 "@type": "OpeningHoursSpecification",
                 "validFrom": sp["date"],
-                "validThrough": sp["date"],
+                "validThrough": sp.get("until") or sp["date"],
                 "opens": "00:00" if sp.get("closed") else sp["opens"],
                 "closes": "00:00" if sp.get("closed") else sp["closes"],
             }
@@ -278,6 +304,34 @@ def json_ld(manifest, page_url, today=None):
     # No "<" at all inside the script element: then no fact can end it early or
     # open the parser's escaped states ("<!--", "<script").
     return json.dumps(data, ensure_ascii=False, indent=1).replace("<", "\\u003c")
+
+
+def events_ld(manifest, page, page_url, today):
+    """schema.org Events for the events-list blocks on a page (those to come), at
+    the business's address, or None. Same escaping as json_ld."""
+    b = manifest["business"]
+    place = {"@type": "Place", "name": b["name"]}
+    if b.get("address"):
+        place["address"] = postal_address(b["address"])
+    graph = []
+    for bl in page["blocks"]:
+        if bl["type"] != "events-list":
+            continue
+        for ev in sorted(bl["props"].get("events") or [], key=lambda x: (x["date"], x.get("starts", ""))):
+            if ev["date"] < today:
+                continue
+            item = {"@type": "Event", "name": ev["title"], "startDate": ev["date"] + (f"T{ev['starts']}" if ev.get("starts") else "")}
+            if ev.get("starts") and ev.get("ends"):
+                item["endDate"] = f"{ev['date']}T{ev['ends']}"
+            item.update(eventStatus="https://schema.org/EventScheduled", eventAttendanceMode="https://schema.org/OfflineEventAttendanceMode", location=place)
+            if ev.get("body"):
+                item["description"] = ev["body"]
+            if ev.get("href"):
+                item["url"] = (page_url.rstrip("/") + "/" + ev["href"].lstrip("/")) if page_url and ev["href"].startswith("/") else ev["href"]
+            graph.append(item)
+    if not graph:
+        return None
+    return json.dumps({"@context": "https://schema.org", "@graph": graph}, ensure_ascii=False, indent=1).replace("<", "\\u003c")
 
 
 # ─── images ──────────────────────────────────────────────────────────────────
@@ -571,10 +625,14 @@ def b_events_list(p, ctx):
         when = f"{day}, {short_date(ev['date'], ui, today)}"
         stamp = ev["date"] + (f"T{ev['starts']}" if ev.get("starts") else "")
         if ev.get("starts"):
-            when += f" · {clock(ev['starts'], lang)}"
+            when += f" · {clock(ev['starts'], lang, ui)}"
+            if ev.get("ends"):
+                when += f"\u00a0–\u00a0{clock(ev['ends'], lang, ui)}"
+        title = f'<a href={a(ev["href"])}>{e(ev["title"])}</a>' if ev.get("href") else e(ev["title"])
         out += (
             f'<li class="event"><p class="event__when"><time datetime={a(stamp)}>{e(when)}</time></p>'
-            f'<div class="stack event__what"><h3>{e(ev["title"])}</h3>'
+            f'<div class="stack event__what"><h3>{title}</h3>'
+            + (f'<p class="event__price"><bdi>{e(ev["price"])}</bdi></p>' if ev.get("price") else "")
             + (f'<p class="muted">{e(ev["body"])}</p>' if ev.get("body") else "")
             + "</div></li>"
         )
@@ -588,7 +646,9 @@ def b_hours_location(p, ctx):
     query = ", ".join(lines + [b["address"]["countryCode"]])
     maps = "https://www.google.com/maps/search/?" + urllib.parse.urlencode({"api": "1", "query": query})
     out = f'<div class="switcher" style="--switch-at: 40rem"><div class="stack"><h2 id={a(ctx["hid"])}>{e(p["heading"])}</h2>'
-    out += "<address>" + "<br>".join(e(x) for x in lines) + "</address>"
+    # Each line isolated: "14 Tib Street" in a right-to-left page would otherwise
+    # read "Tib Street 14".
+    out += "<address>" + "<br>".join(f"<bdi>{e(x)}</bdi>" for x in lines) + "</address>"
     if p.get("note"):
         out += f'<p class="muted">{e(p["note"])}</p>'
     ui = ctx.get("ui") or UI
@@ -601,9 +661,11 @@ def b_hours_location(p, ctx):
     emergency = hours_rows(b, lang, ui, kind="emergency")
     if emergency:
         out += f'<h3>{e(ui["emergency"])}</h3><dl class="hours">' + "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in emergency) + "</dl>"
-    special = special_rows(b, lang, ctx["today"], ui)
+    special = special_rows(b, lang, ctx["today"], ui, m.get("lang"))
     if special:
-        out += f'<h3>{e(ui["specialDays"])}</h3><dl class="hours">' + "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in special) + "</dl>"
+        out += f'<h3>{e(ui["specialDays"])}</h3><dl class="hours">' + "".join(
+            f"<div><dt>{f'<bdi lang={a(whose)}>{e(lab)}</bdi>' if whose else e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val, whose in special
+        ) + "</dl>"
     return out + "</div></div></div>"
 
 
@@ -613,7 +675,7 @@ FIELD = {
     "phone": ('type="tel" autocomplete="tel"', "input"),
     "message": ('rows="6"', "textarea"),
     "date": ('type="date"', "input"),
-    "party-size": ('type="number" inputmode="numeric" min="1" max="99"', "input"),
+    "party-size": ('type="number" inputmode="numeric" min="1"', "input"),
     "time": ('type="time"', "input"),
     "choice": ("", "select"),
 }
@@ -626,6 +688,11 @@ def b_contact_form(p, ctx):
     for i, f in enumerate(p["fields"]):
         fid = f"{ctx['bid']}-f{i + 1}"
         attrs, tag = FIELD[f["kind"]]
+        if f["kind"] == "party-size":
+            attrs += f' max={a(f.get("max", 99))}'
+        elif f["kind"] == "date":
+            # A date to come: the day the page is rendered is the earliest it takes.
+            attrs += f" min={a(ctx['today'])}"
         name = f["kind"] if [x["kind"] for x in p["fields"]].count(f["kind"]) == 1 else f"{f['kind']}-{i + 1}"
         req = " required" if f.get("required") else ""
         label = e(f["label"]) + (f' <span class="muted">{e((ctx.get("ui") or UI)["required"])}</span>' if f.get("required") else "")
@@ -713,8 +780,13 @@ def nav_breakpoint(manifest):
 
 
 def nav_list(links, current, attrs=""):
+    # A link in another language (العربية on an English page) says so, and sets its
+    # own direction inside the list.
     items = "".join(
-        f'<li><a href={a(x["href"])}{CURRENT if x["href"] == current else ""}>{e(x["label"])}</a></li>' for x in links
+        f'<li><a href={a(x["href"])}{CURRENT if x["href"] == current else ""}'
+        + (f' lang={a(x["lang"])} hreflang={a(x["lang"])} dir="auto"' if x.get("lang") else "")
+        + f">{e(x['label'])}</a></li>"
+        for x in links
     )
     return f'<ul role="list"{attrs}>{items}</ul>'
 
@@ -735,6 +807,11 @@ def header(manifest, page, rtl=False):
     links = chrome.get("nav") or []
     out = '<header data-block="site-header" data-tone="canvas" data-space="none" class="site-header"><div class="site-header__bar">'
     home = "/" if any(p["path"] == "/" for p in manifest["pages"]) else manifest["pages"][0]["path"]
+    # On a page in another language, the home of that language when the site has one.
+    plang = page.get("lang") or manifest["lang"]
+    if plang != manifest["lang"]:
+        own = sorted((x["path"] for x in manifest["pages"] if x.get("lang") == plang), key=lambda q: (q.count("/"), q))
+        home = own[0] if own else home
     out += f'<a class="brand" href={a(home)}>{e(header_name(manifest))}</a>'
     action = ""
     # On a page in another language the chrome's labels are still the site's:
@@ -774,9 +851,9 @@ def page_credits(manifest, page, blocks):
 def footer(manifest, page, year, blocks=None):
     b = manifest["business"]
     chrome = manifest.get("chrome") or {}
-    facts = f'<div class="stack"><p class="site-footer__name">{e(b["name"])}</p>'
+    facts = f'<div class="stack"><p class="site-footer__name"><bdi>{e(b["name"])}</bdi></p>'
     if b.get("address"):
-        facts += "<address>" + "<br>".join(e(x) for x in address_lines(b["address"])) + "</address>"
+        facts += "<address>" + "<br>".join(f"<bdi>{e(x)}</bdi>" for x in address_lines(b["address"])) + "</address>"
     if b.get("phone"):
         facts += f'<p><a href={a(business_tel(b))}>{phone_text(b["phone"])}</a></p>'
     if b.get("email"):
@@ -793,8 +870,8 @@ def footer(manifest, page, year, blocks=None):
     return (
         '<footer data-block="site-footer" data-tone="surface" data-space="m" class="site-footer">'
         f'<div class="switcher" style="--switch-at: 40rem">{facts}{nav}</div>'
-        + (f'<div class="stack"><p class="site-footer__note"{cl}>{e(chrome["footerNote"])}</p>' if chrome.get("footerNote") else "<div>")
-        + f'<p class="muted">© {year} {e(b["name"])}</p></div></footer>'
+        + (f'<div class="stack"><p class="site-footer__note" dir="auto"{cl}>{e(chrome["footerNote"])}</p>' if chrome.get("footerNote") else "<div>")
+        + f'<p class="muted">© {year} <bdi>{e(b["name"])}</bdi></p></div></footer>'
     )
 
 
@@ -956,6 +1033,9 @@ def render_page(manifest, page, blocks, today, renderers=None, head_extra=()):
         "}</style>"
     )
     head.append(f'<script type="application/ld+json">{json_ld(manifest, origin, today)}</script>')
+    evld = events_ld(manifest, page, origin and origin + base_path(manifest), today)
+    if evld:
+        head.append(f'<script type="application/ld+json">{evld}</script>')
     head.append("</head>")
     ui = ui_for(manifest, page)
     body = ["<body>", f'<a class="skip-link button" href="#main">{e(ui["skip"])}</a>', header(manifest, page, direction == "rtl"), '<main id="main">']
@@ -1981,10 +2061,73 @@ def self_test():
             {"date": "2026-01-01", "label": "New Year's Day", "closed": True},
             {"date": "2027-01-01", "label": "New Year's Day", "closed": True},
         ]
+        # A run of days is one row; a label in the page's language is used, and the
+        # site's label on another page is marked as the site's language.
+        rd = {"specialHours": [{"date": "2027-02-15", "until": "2027-03-01", "label": "Ramadan hours", "labels": {"ar": "ساعات رمضان"}, "opens": "11:00", "closes": "23:00"}]}
+        en_rows = special_rows(rd, "en-GB", "2026-10-27", ui_for({"lang": "en-GB"}, {}), "en-GB")
+        ar_rows = special_rows(rd, "ar", "2026-10-27", ui_for({"lang": "en-GB"}, {"lang": "ar"}), "en-GB")
+        fr_rows = special_rows(rd, "fr", "2026-10-27", ui_for({"lang": "en-GB"}, {"lang": "fr"}), "en-GB")
+        row(
+            len(en_rows) == 1
+            and en_rows[0][0] == "Ramadan hours (15\u00a0Feb\u00a02027\u00a0–\u00a01\u00a0Mar\u00a02027)"
+            and en_rows[0][1] == "11:00\u00a0am\u00a0–\u00a011:00\u00a0pm"
+            and ar_rows[0][0].startswith("ساعات رمضان") and ar_rows[0][2] is None
+            and fr_rows[0][2] == "en-GB",
+            "special days: a run is one row; en-GB writes the day first and am/pm; a page's own label is used, the site's is marked",
+            repr((en_rows, ar_rows[0][2], fr_rows[0][2])),
+        )
+        ld_run = json.loads(json_ld({"business": {**example["business"], **rd}, "lang": "en-GB"}, None, "2026-10-27"))
+        row(ld_run["specialOpeningHoursSpecification"][0]["validThrough"] == "2027-03-01", "a run of special days is one OpeningHoursSpecification, validFrom to validThrough")
+        row(clock("14:30", "en-GB", {**UI, "clock": "24"}) == "14:30" and clock("14:30", "en", UI) == "2:30\u00a0PM", "strings.clock picks a 24-hour clock in English; English defaults to 12")
+        # Facts written in the site's script are isolated on a right-to-left page.
+        arm = copy.deepcopy(example)
+        arm["business"]["address"]["street"] = "14 Tib Street"
+        arm["chrome"]["footerNote"] = "Our kitchen handles nuts."
+        arm["chrome"]["nav"].append({"label": "العربية", "href": "/ar/", "lang": "ar"})
+        arpage = copy.deepcopy(arm["pages"][2])
+        arpage.update(path="/ar/", lang="ar", strings={"menu": "القائمة"})
+        arm["pages"].append(arpage)
+        aout2 = os.path.join(tmp, "ar-iso")
+        apr, _ = render(arm, blocks, aout2, KIT, placeholders=True, today="2026-10-27")
+        ah = open(os.path.join(aout2, "ar", "index.html"), encoding="utf-8").read() if not apr else ""
+        eh = open(os.path.join(aout2, "index.html"), encoding="utf-8").read() if not apr else ""
+        row(
+            "<bdi>14 Tib Street</bdi>" in ah and 'class="site-footer__note" dir="auto"' in ah
+            and 'lang="ar" hreflang="ar" dir="auto">العربية</a>' in eh
+            and 'class="brand" href="/ar/"' in ah,
+            "rtl: the address is isolated, the footer note sets its own direction, a link in another language is marked, and the brand leads home in the page's language",
+            "; ".join(apr[:2]),
+        )
+        # The form: a party size up to the field's max, a date to come.
+        fm = copy.deepcopy(example)
+        for pg in fm["pages"]:
+            for bl in pg["blocks"]:
+                if bl["type"] == "contact-form":
+                    bl["props"]["fields"] = [{"kind": "party-size", "label": "Guests", "max": 500}, {"kind": "date", "label": "Event date"}]
+        fout = os.path.join(tmp, "form-limits")
+        fpr, _ = render(fm, blocks, fout, KIT, placeholders=True, today="2026-10-27")
+        fh = "".join(open(os.path.join(dp, f), encoding="utf-8").read() for dp, _, fs in os.walk(fout) for f in fs if f == "index.html") if not fpr else ""
+        row('max="500"' in fh and 'type="date" min="2026-10-27"' in fh, "form: party size takes the field's max (a catering enquiry of 150); a date field starts at the day it is rendered", "; ".join(fpr[:2]))
+        # Events: an end time, a price, a link on the title, and schema.org Events.
+        evx = copy.deepcopy(example)
+        evx["pages"][1]["blocks"].append({"type": "events-list", "props": {"heading": "Classes", "events": [
+            {"date": "2026-11-14", "starts": "14:00", "ends": "16:00", "title": "Sourdough basics", "price": "£35", "href": "/contact/", "body": "Bring an apron."}]}})
+        xout = os.path.join(tmp, "events-x")
+        xpr, _ = render(evx, blocks, xout, KIT, placeholders=True, today="2026-10-27")
+        xh = open(os.path.join(xout, "visit", "index.html"), encoding="utf-8").read() if not xpr else ""
+        lds = [json.loads(x) for x in re.findall(r'<script type="application/ld\+json">(.*?)</script>', xh, re.S)]
+        evs = [g for d in lds for g in d.get("@graph", []) if g.get("@type") == "Event"]
+        row(
+            '<h3><a href="/contact/">Sourdough basics</a></h3>' in xh and "£35" in xh and "2:00\u00a0PM\u00a0–\u00a04:00\u00a0PM" in xh
+            and evs and evs[0]["startDate"] == "2026-11-14T14:00" and evs[0]["endDate"] == "2026-11-14T16:00",
+            "events: an end time, a price, the title as the link, and a schema.org Event for each one to come",
+            "; ".join(xpr[:2]) or repr(evs)[:200],
+        )
+        row(json.loads(json_ld(example, None, "2026-10-27"))["telephone"] == "+12515550100", "JSON-LD gives the phone as every tel: link dials it (+1…)")
         rows_ = special_rows(sd["business"], "en", "2026-10-27")
         ld = json.loads(json_ld(sd, None, "2026-10-27"))
         row(
-            rows_ == [("New Year's Day (Jan\u00a01,\u00a02027)", "Closed")] and len(ld.get("specialOpeningHoursSpecification", [])) == 1,
+            [r[:2] for r in rows_] == [("New Year's Day (Jan\u00a01,\u00a02027)", "Closed")] and len(ld.get("specialOpeningHoursSpecification", [])) == 1,
             "a past special day is left out of the page and the JSON-LD; a later year's carries its year",
             repr(rows_),
         )

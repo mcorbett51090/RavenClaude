@@ -27,7 +27,7 @@ measured). The canonical block list is [The block catalog](#the-block-catalog) b
 ```shell
 K=<plugin>/templates/block-site; S=<plugin>/scripts
 python3 $S/block_site_render.py render $K/example.manifest.json --catalog $K/catalog.json --out /tmp/site --placeholders
-python3 -m http.server -d /tmp/site 8000      # open http://localhost:8000
+python3 -m http.server -d /tmp/site 8000      # open http://localhost:8000 (a basePath site: see step 6)
 node $S/device_matrix.mjs --dir /tmp/site --manifest $K/example.manifest.json   # needs Playwright
 ```
 
@@ -69,7 +69,7 @@ Every step ends at a gate that must pass before the next one starts.
    `catalog/<id>/block.json` beside each component once the catalog grows; the checker reads either form.
    - **Gate:** `block_site_check.py catalog site/catalog.json`. It refuses props it cannot prove closed and bounded
      (`$ref`, `anyOf`, type lists), styling props, and a `variant` written into props.
-4. **Build each block to the anatomy** (below): a render function in your project's own `blocks.py` (a `RENDER` dict of block id to function, passed with `--blocks`; it may import the renderer's helpers: `from block_site_render import e, a, picture`), and its CSS in your `blocks.css`. Never edit the
+4. **Build each block to the anatomy** (below): a render function in your project's own `blocks.py` (a `RENDER` dict of block id to function, passed with `--blocks`; it may import the renderer's helpers: `from block_site_render import e, a, picture`), and its CSS in your `blocks.css`. `picture()` writes the `srcset` and the `sizes` from the contract's media entry, so never write `sizes` by hand: one media entry is one frame shape, and a block whose photos have different shapes needs one entry per shape (or one shape, as `gallery-grid` keeps: mixed portrait and square frames in one grid leave ragged rows, which the kit leaves out on purpose). Never edit the
    plugin's scripts: an update replaces them. The CSS goes in
    `@layer blocks`, reads only tokens, never sets grid placement, section padding or colours, and changes layout
    with `@container` queries, never `@media`.
@@ -81,14 +81,21 @@ Every step ends at a gate that must pass before the next one starts.
    every `tel:` link on the site must dial it. Set `lang`; `dir` follows the language's script unless you set it.
    Set `origin` (canonical URLs, JSON-LD and `sitemap.xml`), `basePath` if the site is served under a subpath,
    `shareImage` (an asset with alt, 1200px wide, for link previews) and `icon`. Mark an emergency-only line's hours
-   `"kind": "emergency"`: they show under their own heading and are never published as opening hours.
+   `"kind": "emergency"`: they show under their own heading and are never published as opening hours. A run of
+   special days (Ramadan hours, a summer fortnight) is one entry with `until`, shown as one row; give its `labels` in
+   each other language a page is written in (`"labels": {"ar": "…"}`).
+   - **Dates, times and a region.** `lang` sets them: `en-GB`, `en-AU`, `en-IE` and the other English outside North
+     America write the day first (14 Nov) and `am`/`pm`; `strings.clock` (`"12"` or `"24"`) picks the clock, and
+     `strings.am`/`strings.pm` its suffixes.
    - **Another language.** The renderer writes some words itself (Menu, Get directions, Call, day and month names,
      Closed, Special days, (required), Skip to content, Photos, Prices as of, Choose one, the Main and Footer
      landmark labels) and the order a date is written in (`date`: `{day} {month}` in French, `dateYear`). Give them
      in the site's language in `strings`. Two shapes for a second language:
      - **A page or two** in the same manifest: the page's own `lang`, `strings` and `alternates` (hreflang). The
        header and footer labels stay the site's; they are marked with the site's `lang`, so a screen reader reads
-       them right, and the checker says so.
+       them right, and the checker says so. Address lines, the business name and the footer note are isolated, so
+       "14 Tib Street" stays in order on a right-to-left page. Give the nav link to the other language its `lang`
+       (`{"label": "العربية", "href": "/ar/", "lang": "ar"}`); on that language's pages the brand leads to its home.
      - **A whole site**: one manifest per language, each with its own `basePath` (`/fr/`), `chrome` in its language
        and `alternates`. A link to a page the other manifest serves goes in `knownPaths` (`["/book/"]`): it passes
        the checks and keeps its path.
@@ -97,7 +104,9 @@ Every step ends at a gate that must pass before the next one starts.
      strings. Every `tel:` link the renderer writes carries the country's calling code (from the address), so it
      dials from any network.
 6. **Render** with `block_site_render.py render site/site.manifest.json --catalog site/catalog.json --blocks
-   site/blocks.py --out dist` (the flags go in any order), or with your framework: one component per block type, in manifest order, with `tone` and `space` from
+   site/blocks.py --out dist` (the flags go in any order; to look at a `basePath` site, serve it under its path:
+   `mkdir -p preview && ln -s "$PWD/dist" preview/cafe && python3 -m http.server -d preview 8000`, then open
+   `/cafe/`), or with your framework: one component per block type, in manifest order, with `tone` and `space` from
    the manifest or the contract's defaults. The stylesheets come from beside the catalog (your branded copy), and the
    run prints which it used: a line saying "the kit's own" means your brand did not reach `dist`.
    - **Gate:** the renderer runs the manifest check first and refuses on any problem. Before it writes a file it reads
@@ -168,10 +177,10 @@ How to read a row:
 | `services-list` | 3–8 services with a line each | 2 | canvas · surface | content | count-aware `.cards`, or a two-column subgrid list | ≤ 8 items | optional icon enum | — |
 | `team-grid` | people who agreed to be shown | 2 | canvas · surface | content | count-aware `.cards` | ≤ 6 people; name ≤ 48, role ≤ 48, bio ≤ 200 | 1/1 `half-content`, `maxWidth` 600: two to a row at most widths, and an odd last photo card keeps that width, centred | only people who consented; business-own or commissioned photos |
 | ✓ `gallery-grid` | 3–12 photos of the place or the work / one photo → `story-split` | 2 | canvas · surface | content (the heading's line: on `wide` the photos sit a few px outside it and read as misaligned) | `.auto-grid` at `minCol` 16rem, capped at 3 columns (4 from seven photos), marked `data-ragged` (no masonry: mixed ratios leave ragged column bottoms); auto-fit's empty tracks collapse | 3–12 images, caption ≤ 100; variant `landscape` (4/3), `square` (1/1) or `portrait` (4/5) | lazy; `sizes` per width from the column count and `minCol`; business-own or commissioned only | photos of this place; alt written while looking |
-| ✓ `events-list` | upcoming dated events / opening hours → `hours-location`; a one-off closure → `business.specialHours` | 2 | surface · canvas | content | one date column for every event (subgrid); the date above its title under 30rem | 1–12 events; title ≤ 60, body ≤ 200; date and start time | — | confirmed events on their real dates; `expires`: a past one is left off the page and warned, and a list of only past ones is refused |
+| ✓ `events-list` | upcoming dated events / opening hours → `hours-location`; a one-off closure → `business.specialHours` | 2 | surface · canvas | content | one date column for every event (subgrid); the date above its title under 30rem | 1–12 events; title ≤ 60, body ≤ 200, price ≤ 20; date, start and end time; an `href` makes the title the link | — | confirmed events on their real dates, each a schema.org Event; `expires`: a past one is left off the page and warned, and a list of only past ones is refused |
 | ✓ `faq-list` | 3–8 real questions customers ask | 2 | surface · canvas | content | stack of `details`; prose measure | 3–8 items; question ≤ 100, answer ≤ 400 | — | FAQPage JSON-LD only if Google still shows it for the type |
 | ✓ `hours-location` | address, hours, special days and directions for a place customers visit / a service-area business → show the area | 2 | canvas · surface | content | switcher at 40rem; hours as a subgrid `dl` with `align-content: start` | heading ≤ 60, note ≤ 160; `requires` address and hours | — | hours from the business's structured hours, the same source as the JSON-LD |
-| ✓ `contact-form` | a real, delivered form / no endpoint provisioned yet → say how to reach the business | 2 | surface · canvas | content | stack; prose measure | 1–8 fields: `name`, `email`, `phone`, `message`, `date`, `time`, `party-size`, or `choice` with 2–12 `options` (a select; `options` only on a choice); labels ≤ 40 | — | posts to an endpoint the business reads; never promises a reply time; needs a security review |
+| ✓ `contact-form` | a real, delivered form / no endpoint provisioned yet → say how to reach the business | 2 | surface · canvas | content | stack; prose measure | 1–8 fields: `name`, `email`, `phone`, `message`, `date` (from the day it is rendered), `time`, `party-size` (up to its `max`, 99 by default), or `choice` with 2–12 `options` (a select; `options` only on a choice); labels ≤ 40 | — | posts to an endpoint the business reads; never promises a reply time; needs a security review |
 | ✓ `cta-banner` | one closing action / directly after a hero, or two in a row | 2 | inverse · surface | content | cluster with space-between | heading ≤ 48, label ≤ 28 | — | the action does what its label says (`call` is a `tel:` link) |
 
 The **site header and footer** are not blocks. They come from the manifest's `chrome` (a nav of ≤ 6 links of

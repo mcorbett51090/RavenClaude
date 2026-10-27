@@ -304,6 +304,10 @@
   .event h3 {
     font-size: var(--step-1);
   }
+  .event__price {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
   @container (max-width: 30rem) {
     .events {
       grid-template-columns: minmax(0, 1fr);

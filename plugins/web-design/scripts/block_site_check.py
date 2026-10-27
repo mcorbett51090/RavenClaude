@@ -356,7 +356,7 @@ def check_catalog(catalog, block_schema):
         nodes = {path[len("props.") :]: node for path, node in walk_props(props)}
         for rule in b.get("requireIf") or []:
             items = rule.get("items", "")
-            for k in list(rule.get("when") or {}) + list(rule.get("require") or []):
+            for k in list(rule.get("when") or {}) + list(rule.get("require") or []) + list(rule.get("allow") or []):
                 if f"{items}.{k}" not in paths:
                     problems.append(f"{where}: requireIf names {items}.{k}, which is not a prop")
         for ref in b.get("expires") or []:
@@ -551,16 +551,28 @@ def check_hours(business):
                     if j != i and start < e2 and o2 < end:
                         problems.append(f"business.hours[{i}]: {day} overlaps business.hours[{j}]")
                 seen_here.append((i, (start, end)))
-    seen = set()
+    spans = []
     for i, sp in enumerate(business.get("specialHours") or []):
         try:
-            datetime.date.fromisoformat(sp["date"])
+            start = end = datetime.date.fromisoformat(sp["date"])
+            if sp.get("until"):
+                end = datetime.date.fromisoformat(sp["until"])
         except ValueError:
-            problems.append(f"business.specialHours[{i}]: {sp['date']} is not a real date")
+            problems.append(f"business.specialHours[{i}]: {sp.get('until') or sp['date']} is not a real date")
             continue
-        if sp["date"] in seen:
-            problems.append(f"business.specialHours[{i}]: {sp['date']} is listed twice")
-        seen.add(sp["date"])
+        if end < start or (sp.get("until") and end == start):
+            problems.append(f"business.specialHours[{i}]: until {sp['until']} is not after {sp['date']} (a single day needs no until)")
+            continue
+        if (end - start).days > 62:
+            problems.append(f"business.specialHours[{i}]: {sp['date']} to {sp['until']} is more than 62 days; a season that long is the weekly hours, changed for it")
+        for j, (s2, e2) in spans:
+            if start <= e2 and s2 <= end:
+                problems.append(
+                    f"business.specialHours[{i}]: {sp['date']} is listed twice"
+                    if (start, end) == (s2, e2)
+                    else f"business.specialHours[{i}]: {sp['date']}{' to ' + sp['until'] if sp.get('until') else ''} overlaps business.specialHours[{j}]"
+                )
+        spans.append((i, (start, end)))
         timed = "opens" in sp or "closes" in sp
         if sp.get("closed") and timed:
             problems.append(f"business.specialHours[{i}]: closed and opening times at once")
@@ -569,6 +581,18 @@ def check_hours(business):
         elif timed and sp["opens"] == sp["closes"]:
             problems.append(f"business.specialHours[{i}]: opens and closes at the same time")
     return problems
+
+
+def _link_nodes(node, path="manifest"):
+    """(path, object) for every object in the manifest with a label and an href."""
+    if isinstance(node, dict):
+        if "href" in node and "label" in node:
+            yield path, node
+        for k, v in node.items():
+            yield from _link_nodes(v, f"{path}.{k}" if path != "manifest" else k)
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            yield from _link_nodes(v, f"{path}[{i}]")
 
 
 def _need_scale(width, height, box_w, box_h):
@@ -597,8 +621,15 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
                 "(write a vanity number in digits, and an extension as 'ext. 12')"
             )
     for i, sp in enumerate(business.get("specialHours") or []):
-        if sp["date"] < today:
-            warnings.append(f"business.specialHours[{i}]: {sp['date']} ({sp['label']}) has passed; remove it")
+        if (sp.get("until") or sp["date"]) < today:
+            warnings.append(f"business.specialHours[{i}]: {sp.get('until') or sp['date']} ({sp['label']}) has passed; remove it")
+    # A call button that shows a number must dial that number.
+    country = (business.get("address") or {}).get("countryCode")
+    for spath, node in _link_nodes(manifest):
+        run = re.search(r"\+?\(?[0-9][0-9 ().-]{5,}[0-9]", str(node.get("label", "")))
+        if run and str(node.get("href", "")).startswith("tel:") and len(re.sub(r"\D", "", run.group(0))) >= 7:
+            if not business.get("phone") or not same_number("tel:" + run.group(0), business["phone"], country):
+                problems.append(f"{spath}: its label shows {run.group(0)!r}, but it dials {node['href']}; show the number it calls")
 
     def check_href(at, where, href, anchors):
         if not isinstance(href, str):
@@ -676,9 +707,26 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
                 f"{where} is in {page['lang']!r}, but the header and footer labels are the site's ({manifest['lang']!r}): they are marked "
                 f"lang={manifest['lang']!r} so they are read right; for a header in the page's language, give the language its own manifest (README, Another language)"
             )
+        by_path = {p["path"]: p for p in manifest["pages"]}
         for i, alt in enumerate(page.get("alternates") or []):
-            if alt["href"].startswith("/") and alt["href"].split("#")[0] not in paths:
+            target = alt["href"].split("#")[0]
+            if alt["href"].startswith("/") and target not in paths:
                 problems.append(f"{where}: alternates[{i}] links to {alt['href']}, which is not a page in this manifest")
+            elif alt["href"].startswith("/") and alt["lang"] != "x-default":
+                other = by_path[target]
+                if alt["lang"] != (other.get("lang") or manifest["lang"]):
+                    problems.append(f"{where}: alternates[{i}] calls {target} {alt['lang']!r}, but that page is in {other.get('lang') or manifest['lang']!r}")
+                # A search engine ignores a pair that does not point both ways.
+                elif target != page["path"] and not any(x["href"].split("#")[0] == page["path"] for x in other.get("alternates") or []):
+                    problems.append(f"{where}: alternates[{i}] points to {target}, which does not point back to {page['path']} (hreflang pairs must name each other)")
+        # Special days on a page in another language need their label in it.
+        if page.get("lang") and page["lang"] != manifest["lang"] and any(bl["type"] == "hours-location" for bl in page["blocks"]):
+            for i, sp in enumerate(business.get("specialHours") or []):
+                if (sp.get("until") or sp["date"]) >= today and page["lang"] not in (sp.get("labels") or {}):
+                    warnings.append(
+                        f"{where} is in {page['lang']!r}, but business.specialHours[{i}] has no labels.{page['lang']}: "
+                        f"{sp['label']!r} is shown in {manifest['lang']!r}, marked as such"
+                    )
         seq = page["blocks"]
         anchors = {bl["anchor"] for bl in seq if "anchor" in bl} | {"main"}
         names = [bl["anchor"] for bl in seq if "anchor" in bl]
@@ -785,7 +833,7 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
                             if need not in item:
                                 problems.append(f"{at}: {head}[{j}] has {kind}, so it needs {need}")
                     elif rule.get("otherwiseForbid"):
-                        for need in rule["require"]:
+                        for need in rule["require"] + (rule.get("allow") or []):
                             if need in item:
                                 problems.append(f"{at}: {head}[{j}] has {need}, which only an item with {kind} takes")
             for ref in b.get("expires") or []:
@@ -1233,7 +1281,7 @@ def gen(schema, mode, path, block, variant=None, idx=None):
                     if need not in out and need in props:
                         out[need] = gen(props[need], "max" if mode == "min" else mode, f"{path}.{need}", block, variant)
             elif rule.get("otherwiseForbid"):
-                for need in rule["require"]:
+                for need in rule["require"] + (rule.get("allow") or []):
                     out.pop(need, None)
         return out
     if t == "array":
@@ -1652,6 +1700,24 @@ def self_test():
         manifest_case("an anchor used twice", lambda m: B(m)[1].update(anchor="visit"), "used more than once")
         manifest_case("the reserved anchor main", lambda m: B(m)[1].update(anchor="main"), "reserved")
         manifest_case("a portrait crop that is landscape", lambda m: m["assets"]["dining-room-portrait"].update(width=2000, height=1000), "not portrait")
+        manifest_case("a run of special days that ends before it starts", lambda m: m["business"]["specialHours"][0].update(until="2020-01-01"), "is not after")
+        manifest_case(
+            "a run of special days that overlaps a single one",
+            lambda m: m["business"]["specialHours"].append({"date": m["business"]["specialHours"][0]["date"][:8] + "01", "until": m["business"]["specialHours"][0]["date"][:8] + "28", "label": "Autumn hours", "opens": "10:00", "closes": "16:00"}),
+            "overlaps",
+        )
+        manifest_case("a run of special days longer than 62 days (that is the weekly hours)", lambda m: m["business"]["specialHours"][0].update(until=str(datetime.date.fromisoformat(m["business"]["specialHours"][0]["date"]) + datetime.timedelta(days=70))), "more than 62 days")
+        manifest_case(
+            "a max on a field that is not a party size",
+            lambda m: [bl["props"]["fields"][0].update(max=50) for pg in m["pages"] for bl in pg["blocks"] if bl["type"] == "contact-form"],
+            "which only an item with kind 'party-size' takes",
+        )
+        manifest_case("a call button whose label shows another number than it dials", lambda m: m["chrome"].update(action={"label": "Call 0161 496 0999", "href": "tel:+12515550100"}), "its label shows")
+        manifest_case(
+            "an hreflang pair that points only one way",
+            lambda m: (m["pages"].append({**copy.deepcopy(m["pages"][0]), "path": "/es/", "lang": "es", "strings": {"menu": "Menú"}, "alternates": []}), m["pages"][0].update(alternates=[{"lang": "es", "href": "/es/"}])),
+            "does not point back",
+        )
         manifest_case("a special day both closed and open", lambda m: m["business"]["specialHours"][0].update(opens="09:00", closes="12:00"), "closed and opening times")
         manifest_case("two windows on one day overlap", lambda m: m["business"]["hours"].append({"days": ["Mo"], "opens": "13:00", "closes": "15:00"}), "overlaps")
         manifest_case("a window that opens as it closes", lambda m: m["business"]["hours"][1].update(closes="07:30"), "same time")
@@ -1701,7 +1767,7 @@ def self_test():
         uk = copy.deepcopy(example)
         uk["business"].update(phone="+44 (0)20 7946 0958")
         uk["business"]["address"]["countryCode"] = "GB"
-        uk = json.loads(json.dumps(uk).replace('"tel:+12515550100"', '"tel:+442079460958"'))
+        uk = json.loads(json.dumps(uk).replace('"tel:+12515550100"', '"tel:+442079460958"').replace("(251) 555-0100", "020 7946 0958"))
         uk["chrome"]["action"]["href"] = "tel:020 7946 0958"
         ukp, _ = check_manifest(uk, blocks, mschema)
         row(

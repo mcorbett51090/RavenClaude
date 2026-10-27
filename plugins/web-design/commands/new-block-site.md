@@ -14,8 +14,8 @@ Each step ends at a gate; do not start the next step until it passes. Report eac
 1. **Ground the facts.** Gather the business's real name, address, phone, hours, special days, offerings, prices and
    photos from its own pages and listings. Anything you cannot verify goes in the manifest's `ownerTodos`, never in a
    rendered field. Ask the user one question when two readings of the request would build different sites.
-2. **Copy the kit** from `templates/block-site/` into the project (`tokens.css`, `layout.css`, `blocks.css`, the two
-   schemas, `catalog.json`), unless the project already has one. Render the kit's own example once with
+2. **Copy the kit** from `templates/block-site/` into the project (`tokens.css`, `layout.css`, `blocks.css`,
+   `catalog.json`; the two schemas stay in the plugin, where the tools read them), unless the project already has one. Render the kit's own example once with
    `scripts/block_site_render.py render … --placeholders` to see the whole path working.
    - **Gate:** `python3 <plugin>/scripts/block_site_check.py catalog <site>/catalog.json`.
 3. **Brand** by changing values in `tokens.css` (colours, font stacks), never role names.

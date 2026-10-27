@@ -280,7 +280,7 @@
       }
     },
     "requireIf": {
-      "description": "Props an item must have when it is of a kind, and must not have otherwise: a choice field needs its options, and no other field may carry any.",
+      "description": "Props an item must have when it is of a kind (require), or may have only then (allow), and with otherwiseForbid must not have otherwise: a choice field needs its options, and only a party-size field takes a max.",
       "type": "array",
       "items": {
         "type": "object",
@@ -296,6 +296,12 @@
             "description": "Prop values that make an item of this kind: {\"kind\": \"choice\"}."
           },
           "require": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allow": {
             "type": "array",
             "items": {
               "type": "string"

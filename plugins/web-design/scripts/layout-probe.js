@@ -865,6 +865,15 @@ async function layoutProbe(options) {
         }
       }),
     );
+    // The widest box each file is drawn in on this page. A browser may show an
+    // already-loaded bigger candidate rather than fetch a smaller one (Chromium
+    // does, from its memory cache): no extra bytes, so not oversized.
+    const drawnBy = new Map();
+    for (const im of document.images) {
+      if (!im.complete || !im.naturalWidth || !visible(im)) continue;
+      const k = im.currentSrc || im.src;
+      drawnBy.set(k, Math.max(drawnBy.get(k) || 0, im.getBoundingClientRect().width));
+    }
     let n = 0;
     for (const img of document.images) {
       if (!img.hasAttribute("alt"))
@@ -995,7 +1004,8 @@ async function layoutProbe(options) {
         const covering = cands.filter((w) => w >= needW * 0.98);
         const fair =
           cands.length && fw <= (covering.length ? Math.min(...covering) : Math.max(...cands));
-        if (!fair && fw >= 1000 && scale > 0 && 1 / scale > opts.oversize) {
+        const shared = (drawnBy.get(src) || 0) * DENSITY * opts.oversize >= fw;
+        if (!fair && !shared && fw >= 1000 && scale > 0 && 1 / scale > opts.oversize) {
           add(
             "image-oversized",
             img,
