@@ -11,7 +11,8 @@ agents: `web-architect` (catalog, features, tiers, distribution), `frontend-impl
 `content-strategist` fills the content; `visual-designer` owns the token roles blocks consume.
 
 Backing knowledge: [`../../knowledge/block-based-site-composition-2026.md`](../../knowledge/block-based-site-composition-2026.md)
-(prior-art data models, principles, architecture, gates, distribution, AI-agent practices, pitfalls).
+(prior-art data models, principles, architecture, gates, distribution, AI-agent practices, pitfalls, the generation
+projection as built, and a measured per-site cost).
 
 ## When to use
 
@@ -36,9 +37,30 @@ scaffold | check | build`, brief `briefs/block-site-agent-brief.md`):
    alt text while looking at the image. Record each image's provenance (business-own, licensed-stock, generated).
 4. **Check until clean** — the composer prints every problem at once. Fix the manifest, never the composer.
 5. **Build, then gate the rendered output** (floor, budget, type check, drift, provenance), then the browser pass from
-   the [`interface-craft`](../interface-craft/SKILL.md) skill's Step 3 at 390 and 1440 px in both themes.
+   the [`interface-craft`](../interface-craft/SKILL.md) skill's Step 3 at 390 and 1440 px in both themes. Run the
+   device matrix's **photo-contrast** probe on every page with text over a photo. Token pairs cannot score it, and it
+   is where both measured builds failed ([`text-over-photo-contrast-2026.md`](../../knowledge/text-over-photo-contrast-2026.md)).
+   When dark mode is opt-in through `localStorage`, set the key before the page loads, or every "dark" capture is
+   the light theme.
 6. **Iterate only in the manifest** (copy length, variant, block order, image focal point) — at most three rounds.
    Never hand-edit a generated file; the next compose overwrites it and the drift check reports it.
+
+**Generating the content with structured outputs** (factory: `compose-site.mjs projection` → generate →
+`unproject` → `check`). Fix the structure first: pages, block order, variants. Then generate against a projection
+that offers only what a model may write:
+- page and block copy;
+- the business's copy;
+- each existing asset's alt, focal point and credit;
+- a title for each card person;
+- asset keys as enums.
+
+Facts (name, phone, address, hours, links, brand) are never offered. A value the skeleton set stands, and an inverse
+refuses a changed page plan or variant. Then run the full validation. Contract and limits:
+[knowledge §7](../../knowledge/block-based-site-composition-2026.md#7-the-generation-projection-as-built).
+
+**Budget for the visual pass.** Two measured builds cost $5.16 (single tier) and $9.74 (growth tier). The visual pass
+was about half of each bill and found every real defect. Cache reads were 72–74%, so fewer, larger steps cut the bill
+more than a leaner manifest would ([knowledge §8](../../knowledge/block-based-site-composition-2026.md#8-what-one-site-costs-to-build-measured)).
 
 ## Mode B — Design or extend a catalog
 
@@ -109,3 +131,12 @@ merge is not a deployment.
 - **Inherited alt text** describing dishes that are not in the frame. Re-write alt by looking at each photo.
 - **A scaffold that adds a second CTA** before an existing one trips the adjacency rule — upgrade the existing block's
   variant instead.
+- **A hero scrim sized in percent of the hero** stops below the eyebrow on a phone (measured at 1.25:1 on the kit's own
+  example). Anchor a band to the copy (`::before`, `inset-inline: -50vw`, at least 74% under every line) and measure it.
+- **Three feature cards strand one on its row** at 669–874px. Choose the column count from the item count.
+- **A gate exemption proven only by a self-test** matched a path no real build produces. Prove exemptions on a built
+  `dist/`.
+- **Printed URLs derived from list position** moved when the list changed. Derive from the name, allow an explicit
+  slug, and refuse collisions.
+- **A fact written twice** (display hours beside hand-written JSON-LD) drifts. Store it structured once, and derive
+  every rendering from it.

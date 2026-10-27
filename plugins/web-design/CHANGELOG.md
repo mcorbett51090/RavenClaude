@@ -2,6 +2,30 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.21.0] — 2026-10-27
+
+### Added
+
+- **Knowledge:** `text-over-photo-contrast-2026.md`. How to measure text over a photograph, which token-pair checks cannot score:
+  - find each line's boxes and clip them to their clipping ancestors;
+  - resolve the colour through a canvas;
+  - hide the glyphs but keep their shadow and background, and assert the hide landed;
+  - capture the viewport only (a full-document capture grows every `svh` hero) and assert its geometry;
+  - score each line at its 5th-percentile composited pixel against 4.5:1 or 3:1;
+  - block analytics during the run;
+  - prove the probe with a mutation that must fire.
+
+  The fix is a scrim band anchored to the copy rather than the photo. Built and measured in the owner's site factory (RavenPower-website-factory PR #131), where it found the kit's own example at 1.25:1 and a hand-built template at 1.24–3.27:1. WCAG facts re-read from Understanding SC 1.4.3 on 2026-10-27.
+- **`block-based-site-composition-2026.md`:**
+  - §7 is the generation projection as built: what it offers a model, the facts that stand, what the inverse refuses, the round-trip proof, and what is unproven. §5 now lists every documented structured-outputs limit, including the 24-optional and 16-union caps.
+  - §8 is the first measured per-site cost: $5.16 single tier and $9.74 growth tier. The visual pass is about half of each, and cache reads are 72–74%.
+  - Pitfalls 17–23: the hero scrim, a stranded card, dark screenshots, a gate exemption that matched nothing, printed URLs that moved, merge regressions, and one fact written twice.
+
+### Changed
+
+- `block-composed-site` runs the photo-contrast probe in its visual pass. It gains a structured-outputs generation step and a budget note, and five new pitfalls.
+- `adaptive-layout` Step 7 and `accessibility-review` Pass 5 point at the photo-contrast method. Text over a photo that was not measured is reported as not measured, never as passing.
+
 ## [0.20.0] — 2026-10-26
 
 ### Added
