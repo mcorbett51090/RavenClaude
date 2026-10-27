@@ -184,6 +184,12 @@
     overflow: hidden;
     border-radius: var(--frame-radius, 0);
   }
+  /* In a row beside taller copy, a stretched frame loses its ratio (stretch
+     overrides aspect-ratio) and cover-crops the photo to a sliver, enlarged.
+     It sits at the top of the row instead. */
+  :is(.switcher, .with-sidebar, .cluster) > .frame {
+    align-self: start;
+  }
   /* Readable prose. */
   .prose {
     max-inline-size: var(--measure);

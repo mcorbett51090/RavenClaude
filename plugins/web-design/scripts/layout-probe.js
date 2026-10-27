@@ -48,6 +48,8 @@
  *   image-upscaled  the file is enlarged to fill its box at min(DPR, 2)x: blurry
  *   image-oversized the file is more than 3x the pixels its box needs: wasted bytes
  *   image-gap       an image in a frame or photo band does not fill it
+ *   frame-ratio     a box with an aspect-ratio drawn off that ratio (a stretched
+ *                   frame cover-crops its photo to a sliver)
  *   image-no-size   an image with no width/height, no aspect-ratio and no sized
  *                   frame: it will shift the layout when it loads
  *   img-alt         an <img> with no alt attribute (alt="" is a valid choice)
@@ -163,7 +165,10 @@ async function layoutProbe(options) {
       n++;
       out.add(el);
     }
-    return [...out].filter(visible);
+    // Text in a box of 1px or less is visually hidden on purpose (a screen
+    // reader label): its glyphs run on past the box, unseen, and are no one's to
+    // read, overlap or score.
+    return [...out].filter((el) => visible(el) && !tiny(el.getBoundingClientRect()));
   };
   const lineRects = (el) => {
     const range = document.createRange();
@@ -808,6 +813,29 @@ async function layoutProbe(options) {
       }
     }
     stats.checked.images = n;
+    // A frame stretched off its declared ratio (align-items: stretch beside a
+    // taller column overrides aspect-ratio).
+    let fr = 0;
+    for (const el of document.body.querySelectorAll("*")) {
+      const ar = cs(el).aspectRatio;
+      // "auto W / H" is the browser's hint from an img's width and height, which
+      // yields to the box it fills; only an author's ratio is a promise.
+      if (!ar || /auto/.test(ar) || !visible(el)) continue;
+      const m = ar.match(/([\d.]+)\s*\/\s*([\d.]+)/) || ar.match(/^([\d.]+)$/);
+      if (!m) continue;
+      const want = Number(m[1]) / Number(m[2] || 1);
+      const r = el.getBoundingClientRect();
+      if (r.width < 24 || r.height < 24 || !want) continue;
+      fr++;
+      const got = r.width / r.height;
+      if (Math.abs(got - want) / want > 0.02)
+        add(
+          "frame-ratio",
+          el,
+          `declared ${ar} but drawn ${Math.round(r.width)}×${Math.round(r.height)} (${got.toFixed(2)}): something stretched it (align-self: start in a row)`,
+        );
+    }
+    stats.checked["frame-ratio"] = fr;
   });
 
   // ── text-contrast (flat backgrounds; photos are device_matrix.mjs's) ─────

@@ -233,6 +233,8 @@ merge is not a deployment.
 - **`sizes="100vw"` on a cover-cropped band** lies on a narrow, tall screen: the band's height sets the drawn width,
   so the browser picks a file half the size it needs. Give `sizes` the drawn width:
   `max(100vw, min(80vh, 704px) * <ratio>)`.
+- **A photo frame beside taller copy** is stretched off its ratio by the row (`align-items: stretch` beats
+  `aspect-ratio`) and cover-crops the photo to a sliver. Frames in a row align to `start`; `frame-ratio` reports it.
 - **A dark band that re-points only the text colour** leaves a card inside it white text on a white card (1.11:1).
   Re-point every role.
 - **`@media (prefers-contrast: more) { :root { … } }`** loses to the dark theme's `(0,2,0)` selectors, so more

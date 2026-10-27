@@ -225,6 +225,7 @@ Props are closed and bounded, so a card list has a known maximum (six in the kit
 | `nav-wrap` | a row of nav links broken onto two lines | collapse it into a menu below that width |
 | `input-zoom` | form text under 16px | `max(16px, 1rem)` |
 | `orphan-row` | one narrow item alone on the last row | count-aware grid or switcher |
+| `frame-ratio` | a box with an author `aspect-ratio` drawn off it (stretched beside a taller column) | `align-self: start` in a row (the contract sets it for frames in switchers, sidebars and clusters) |
 | `image-distorted`, `image-upscaled`, `image-oversized`, `image-gap`, `image-no-size`, `image-broken`, `img-alt` | stretched; blurry or 3× too heavy for its box at 2x (judged on the decoded file the browser chose); not filling its frame; unsized; missing; unlabelled | frame, a candidate and `sizes` for the drawn box, width/height, alt |
 | `text-contrast` | text under 4.5:1 (3:1 large) on the flat background it is painted on | the tokens; a band re-points every role |
 | `photo-contrast` (device_matrix) | copy over a photo under its bar at the 5th-percentile pixel | the scrim (`--scrim-weak`) |
@@ -267,6 +268,7 @@ Props are closed and bounded, so a card list has a known maximum (six in the kit
 14. **`prefers-contrast: more` on a bare `:root`** did nothing in dark mode (§9).
 15. **The first device matrix measured a desktop layout no browser draws.** Headless Chromium hides scrollbars, but `scrollbar-gutter: stable` still reserved 15px, so the body was 1265px while `clientWidth` said 1280 and a correct full-bleed element read as overflow. Desktop rows now run with real scrollbars **[observed]**.
 16. **The probe excused anything inside an ancestor that clips.** A button cut off by its card, and text spilling 190px out of a fixed-height box, were silent. Only a scroll container excuses clipping now (`clipped`), and text is checked downwards too.
+17. **A frame beside taller copy lost its ratio.** In a switcher row, `align-items: stretch` overrides `aspect-ratio`. With four long paragraphs, the story photo's 4:3 frame became a tall sliver that cover-cropped the photo at 2× enlargement. Only the stress fixtures' longest copy showed it **[observed]**. Frames in a row now align to `start`, and `frame-ratio` reports a stretched frame.
 
 ## Sources
 

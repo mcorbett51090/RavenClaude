@@ -956,6 +956,17 @@ const MUTATIONS = [
     html: { extra: sec(`<img src="/small.png" alt="No dimensions">`) },
   },
   {
+    expect: "frame-ratio",
+    vp: "laptop",
+    why: "a photo frame stretched beside a taller column",
+    html: {
+      head: `<style>@layer overrides { .switcher > .frame { align-self: stretch !important; } }</style>`,
+      extra: sec(
+        `<div class="switcher" style="--switch-at: 44rem"><div class="frame" style="--ratio: 4 / 3"><img src="/story.png" width="1200" height="900" alt="The counter"></div><div class="prose stack"><p>${PROSE}</p><p>${PROSE}</p><p>${PROSE}</p><p>${PROSE}</p></div></div>`,
+      ),
+    },
+  },
+  {
     expect: "image-broken",
     vp: "laptop",
     html: {

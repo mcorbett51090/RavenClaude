@@ -29,16 +29,16 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   sizes for the box each is drawn in, and reads `oklch()` and other colour syntaxes.
 - **`scripts/block_site_render.py`** (stdlib): the reference renderer, from manifest to static HTML, with HTML checks
   and a `--self-test` that breaks each of them. CI runs it.
-- **`scripts/layout-probe.js`**: 29 rendered-page checks in a dependency-free async browser function.
+- **`scripts/layout-probe.js`**: 30 rendered-page checks in a dependency-free async browser function.
 - **`scripts/device_matrix.mjs`**: runs the probe across 28 viewports, ±1px around every `@media` width, and an
   optional sweep. Its quick rows run five themes with real desktop scrollbars, plus photo-contrast on composited
   pixels (ported from the owner's factory).
   - `--self-test` renders the kit and requires the example and 40 stress pages clean.
-  - It plants 38 defects, covering every check, and checks 6 look-alikes that must pass.
+  - It plants 39 defects, covering every check, and checks 6 look-alikes that must pass.
   - It measures all 18 count × width cells of the card grid.
   - A layout shift counts only when it repeats in 3 of 3 loads (the measured reason is in the knowledge file §11).
 - **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
-  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 16 measured
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 17 measured
   pitfalls.
 - **Command:** `/web-design:new-block-site`, gated step by step.
 
