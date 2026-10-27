@@ -2,6 +2,57 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.21.0] — 2026-10-27
+
+### Added
+
+- **Knowledge:** `text-over-photo-contrast-2026.md`. How to measure text over a photograph, which token-pair checks cannot score:
+  - find each line's boxes and clip them to their clipping ancestors;
+  - resolve the colour through a canvas;
+  - hide the glyphs but keep their shadow and background, and assert the hide landed;
+  - capture the viewport only (a full-document capture grows every `svh` hero) and assert its geometry;
+  - score each line at its 5th-percentile composited pixel against 4.5:1 or 3:1;
+  - block analytics during the run;
+  - prove the probe with a mutation that must fire.
+
+  The fix is a scrim band anchored to the copy rather than the photo. Built and measured in the owner's site factory (RavenPower-website-factory PR #131), where it found the kit's own example at 1.25:1 and a hand-built template at 1.24–3.27:1. WCAG facts re-read from Understanding SC 1.4.3 on 2026-10-27.
+- **`block-based-site-composition-2026.md`:**
+  - §7 is the generation projection as built: what it offers a model, the facts that stand, what the inverse refuses, the round-trip proof, and what is unproven. §5 now lists every documented structured-outputs limit, including the 24-optional and 16-union caps.
+  - §8 is the first measured per-site cost: $5.16 single tier and $9.74 growth tier. The visual pass is about half of each, and cache reads are 72–74%.
+  - Pitfalls 17–23: the hero scrim, a stranded card, dark screenshots, a gate exemption that matched nothing, printed URLs that moved, merge regressions, and one fact written twice.
+
+### Changed
+
+- `block-composed-site` runs the photo-contrast probe in its visual pass. It gains a structured-outputs generation step and a budget note, and five new pitfalls.
+- `adaptive-layout` Step 7 and `accessibility-review` Pass 5 point at the photo-contrast method. Text over a photo that was not measured is reported as not measured, never as passing.
+
+## [0.20.0] — 2026-10-26
+
+### Added
+
+- **`skills/adaptive-layout/`** — make a site adapt to desktop, laptop, phone (both orientations), tablet, iPad windows and foldables like iPhone Duo the way Apple and WebKit prescribe: one document and feature detection (iPad sends a Mac UA; iOS 26 freezes the UA OS version), the exact viewport tag, `viewport-fit=cover` only with all four safe-area insets, `vh`-then-`svh`/`lvh`/`dvh` heights, content-driven tiers in `em` plus container queries, `max(16px, 1rem)` form text, WCAG 2.5.8 targets, 2x-capped art direction, optional Viewport Segments enhancement, and a device matrix with ±1px breakpoint boundaries as the proof.
+- **Knowledge:** `apple-adaptive-web-2026.md` — HIG and WebKit guidance with sources (the HIG's device table is gone since 2026-09-09; Safari 26 tints its bars from the page background and edge-fixed elements; every Home Screen site opens as a web app in iOS 26; `rem` ignores iOS Dynamic Type; no `prefers-reduced-transparency` in Safari), apple.com measured at 35 viewports (734/1068 tiers, 833/834 nav, height-aware hero, 2x-capped art direction), the iPhone Duo viewport table from WebKit's Safari 27.1 post (iPhone Duo shipped 2026-10-23, verified against the Apple Newsroom release), Viewport Segments and Device Posture support, multitasking widths and a device test matrix. Retrieved 2026-10-26.
+
+### Changed
+
+- `frontend-implementer`, `visual-designer` and `accessibility-auditor` carry a pointer to `adaptive-layout`; `static-site-implementation` links it for device adaptation; `templates/launch-checklist.md` gains device-matrix, viewport-tag, viewport-unit and real-Safari items.
+
+## [0.19.0] — 2026-10-26
+
+### Added
+
+- **`skills/interface-craft/`** — raise a surface to the craft bar of Apple, Stripe, Cloudflare, Starlink, Tesla and recent game menus: choose a register per surface, apply its sourced moves with their guardrails, verify on the rendered page in both themes at 390 and 1440 px.
+- **`skills/block-composed-site/`** — build many customer sites from a catalog of section blocks selected by purchased features; the agent writes a typed manifest, never markup. Block contract, feature and tier mapping, resolver rules, must-fail gates, drift detection, upgrade rollout, and the pitfalls measured while building the owner's factory block system (RavenPower-website-factory PR #118).
+- **`skills/form-builder/`** — build or upgrade a tool owners use to create their own forms: typed definition model, draft + immutable versions keyed by stable field ids, typed condition trees run by one allow-listed interpreter on client and server, save-time logic checks, a phased field catalog, inbox/CSV/webhooks/CRM, server-recomputed payments.
+- **`skills/visual-builder/`** — make any builder (form, contact card, Wallet pass, page) appealing and easy: same-code preview, click-to-insert with drag as a bonus, menu moves, two disclosure levels, undo as patches, autosave with conflict checks, publish with blast radius, constraint-aware warnings.
+- **Knowledge:** `form-builder-2026.md` and `visual-builder-ux-2026.md` (retrieved 2026-10-26; measured drag-and-drop bundle sizes).
+- **Knowledge:** `interface-craft-reference-brands-2026.md` (Apple, Stripe, Cloudflare, Starlink, SpaceX, Tesla — read from live production CSS/HTML and primary sources), `interface-craft-fundamentals-2026.md` (motion, colour, type, layout, states, process, with sourced numbers), `game-ui-lessons-for-the-web-2026.md` (game menu and HUD craft translated to 2026 web platform features, and what must not be copied), `block-based-site-composition-2026.md` (prior-art data models, architecture, gates, distribution, AI-agent practices, pitfalls). All dated 2026-10-26 with OBS/INF/`[unverified]` labels.
+
+### Changed
+
+- `visual-designer`, `ux-designer`, `frontend-implementer` and `web-architect` carry a short pointer paragraph to the new skills and knowledge.
+- `visual-designer`'s motion opinion no longer asserts ease-in for exits as settled: it names the Material 2 vs Emil Kowalski conflict and states this plugin's default (ease-out both ways, exits ~20% shorter).
+
 ## [0.18.6] — 2026-10-20
 
 ### Fixed (2026-10-20 autonomous repo review, PR #1389)

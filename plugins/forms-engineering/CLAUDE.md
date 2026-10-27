@@ -78,3 +78,4 @@ Every claim in the substrate layer that describes **live, changeable state** shi
 | How do we verify this webhook? | [`../web-commerce/skills/webhook-hardening/SKILL.md`](../web-commerce/skills/webhook-hardening/SKILL.md) |
 | How do we design the idempotency key? | [`../api-engineering/skills/idempotency-key-design/SKILL.md`](../api-engineering/skills/idempotency-key-design/SKILL.md) |
 | Is this a survey rather than a form? | [`../ux-research/CLAUDE.md`](../ux-research/CLAUDE.md) |
+| How do we build the tool owners use to make their own forms (definition model, logic, versioning, editor)? | [`../web-design/skills/form-builder/SKILL.md`](../web-design/skills/form-builder/SKILL.md) and [`../web-design/skills/visual-builder/SKILL.md`](../web-design/skills/visual-builder/SKILL.md) |
