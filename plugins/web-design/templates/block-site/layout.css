@@ -617,9 +617,12 @@
     [data-tone="media"] {
       min-block-size: auto !important;
     }
-    a[href^="http"]::after {
+    /* A text link prints its address; a button does not (the address would
+       squeeze its label inside the outline, "Get di-rec-tion s"). */
+    a[href^="http"]:not(.button)::after {
       content: " (" attr(href) ")";
       font-size: 0.85em;
+      overflow-wrap: anywhere;
     }
   }
 }

@@ -81,9 +81,18 @@ Every step ends at a gate that must pass before the next one starts.
    site/blocks.py --out dist` (the flags go in any order), or with your framework: one component per block type, in manifest order, with `tone` and `space` from
    the manifest or the contract's defaults. The stylesheets come from beside the catalog (your branded copy), and the
    run prints which it used: a line saying "the kit's own" means your brand did not reach `dist`.
-   - **Gate:** the renderer runs the manifest check first and refuses on any problem. It then checks its own HTML:
-     one h1, no skipped heading level, unique ids, every label and link resolves, every image has alt and dimensions,
-     and the JSON-LD parses with hours that match the rows shown.
+   - **Gate:** the renderer runs the manifest check first and refuses on any problem. Before it writes a file it reads
+     each page with an HTML parser, the way a browser does, and refuses anything that could run code or reach another
+     site unasked (an event handler, `srcdoc`, `<base>`, a meta refresh, a backslash or a scheme other than https,
+     mailto and tel in any URL). It then checks its own HTML: one h1, no skipped heading level, unique ids, every
+     label and link resolves, every image has alt and dimensions, and the JSON-LD parses with hours that match the
+     rows shown. A refusal writes nothing.
+   - **`--out` is the renderer's folder.** It records the files it wrote (`.block-site-render.json`), and the next
+     render removes those that are gone from the manifest, so an old page never keeps publishing old facts. It never
+     touches a file it did not write, and it refuses a folder that already holds files and no record.
+   - **Credits.** A photo's `credit` is shown in the footer of each page that shows it. A media frame may list the
+     provenances it accepts: the hero takes only `business-own` or `commissioned`, never stock or a generated image
+     presented as the place.
 7. **Stress it.** `block_site_check.py fixtures site/catalog.json --out stress/stress.manifest.json` writes every
    block at its minimum, its maximum, one unbreakable word at full length, and in Arabic right-to-left. The pages
    carry the longest header and address the schema allows and a near-white stress photo. Render them into their own
@@ -95,7 +104,10 @@ Every step ends at a gate that must pass before the next one starts.
      --full --sweep 320:1600:8` (5 pages took about 6 minutes);
    - the stress pages, one theme: `node <plugin>/scripts/device_matrix.mjs --dir stress/dist --manifest
      stress/stress.manifest.json --themes light` (48 pages in six themes took 31 minutes; one theme is a sixth).
-   A site with a `basePath` is served and tested under it. Save visual baselines with `--shots`, look at element
+   Each row's first theme also checks every word for ink (`text-hidden`: covered, masked or faded out), each page
+   is laid out once in its print stylesheet, and an image, font or media file that answers 4xx is `resource-failed`
+   (`--no-ink` and `--no-print` skip the first two for a quicker look, never for the gate).
+   A site with a `basePath` is served and tested only under it, as its host serves it. Save visual baselines with `--shots`, look at element
    screenshots at 390 and 1280px in both themes, then check on a real iPhone and iPad.
    - **Gate:** zero findings, and the screenshots look right. A run that cannot load a page's stylesheet stops with
      a reason instead of measuring the browser's defaults.

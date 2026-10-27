@@ -16,6 +16,8 @@
  *                                dark, forced, contrast, contrast-dark, motion;
  *                                every theme but motion runs with reduced motion)
  *     --no-photo                 skip the photo-contrast capture (faster)
+ *     --no-ink                   skip the text-hidden capture (faster)
+ *     --no-print                 skip the print pass
  *     --shots DIR                a FULL-PAGE PNG per page × viewport × theme, for
  *                                visual-regression baselines. For the "look at it"
  *                                step, screenshot elements instead (Playwright's
@@ -29,7 +31,13 @@
  *     of those defects to pass. A probe that has never failed proves nothing.
  *
  * Every state is probed twice: as loaded, and with every <details> open (a menu,
- * an FAQ answer), reporting what the opened details hold. On the widest row the
+ * an FAQ answer), reporting what the opened details hold. On each row's first
+ * theme every word is checked for ink (text-hidden: captured with the text drawn
+ * and hidden, so a cover, a ::before/::after layer or a mask that no element
+ * hit-test sees is still found). Any image, font or media file the page asks for
+ * that answers 4xx is resource-failed, and a --dir site built for a basePath is
+ * served ONLY under that path, as its host serves it. Each page is measured once
+ * in its print stylesheet at A4 width. On the widest row the
  * kit's header is measured: a menu switch it can never reach is `nav-hidden`, and
  * the value to pin in chrome.menuBelow is printed. Progress goes to stderr.
  *
@@ -67,6 +75,7 @@ import {
   statSync,
   rmSync,
   copyFileSync,
+  cpSync,
 } from "node:fs";
 import { join, resolve, extname, dirname, normalize, sep } from "node:path";
 import { tmpdir } from "node:os";
@@ -228,6 +237,12 @@ function serve(root, prefixes = []) {
     let p = decodeURIComponent(new URL(req.url, "http://x").pathname);
     const prefix = prefixes.find((x) => x !== "/" && p.startsWith(x));
     if (prefix) p = "/" + p.slice(prefix.length);
+    else if (prefixes.some((x) => x !== "/")) {
+      // A site built for /shop/ lives only there on its host: a root URL such as
+      // /fonts/brand.woff2 in its CSS 404s in production, so it 404s here too.
+      res.writeHead(404, { "content-type": TYPES[".html"] }).end("not under the site's basePath");
+      return;
+    }
     let f = normalize(join(base, p));
     if (f !== base && !f.startsWith(base + sep)) {
       res.writeHead(403).end();
@@ -256,6 +271,46 @@ function serve(root, prefixes = []) {
 }
 
 // ─── the run ─────────────────────────────────────────────────────────────────
+// Files a page asks for after its stylesheets: an image in a CSS url(), a font,
+// a video. One that answers 4xx is a hole in the page the layout checks cannot
+// see (a missing background leaves its text on the wrong colour).
+const RESOURCE_TYPES = new Set(["image", "font", "media"]);
+function watchResources(page) {
+  const failed = new Map();
+  const origin = () => {
+    try {
+      return new URL(page.url()).origin;
+    } catch {
+      return "";
+    }
+  };
+  page.on("response", (r) => {
+    if (
+      RESOURCE_TYPES.has(r.request().resourceType()) &&
+      r.status() >= 400 &&
+      r.url().startsWith(origin())
+    )
+      failed.set(r.url(), `answered ${r.status()}`);
+  });
+  page.on("requestfailed", (q) => {
+    if (
+      RESOURCE_TYPES.has(q.resourceType()) &&
+      q.url().startsWith(origin()) &&
+      !/ERR_ABORTED/.test(q.failure()?.errorText || "")
+    )
+      failed.set(q.url(), `failed (${q.failure()?.errorText || "no answer"})`);
+  });
+  return {
+    reset: () => failed.clear(),
+    findings: () =>
+      [...failed].map(([url, why]) => ({
+        id: "resource-failed",
+        where: new URL(url).pathname,
+        msg: `${new URL(url).pathname} ${why}: an image, font or media file the page asks for (check the path, and a basePath site's root-absolute url())`,
+      })),
+  };
+}
+
 async function probePage(page, expectedWidth, skip = []) {
   await page.evaluate(SETTLE);
   return page.evaluate(`${PROBE}\n;layoutProbe(${JSON.stringify({ expectedWidth, skip })})`);
@@ -569,6 +624,274 @@ const PHOTO_SAMPLE = (b64, cands, dpr) => `(async () => {
   return { geometry, res };
 })()`;
 
+// ─── text a reader can see ───────────────────────────────────────────────────
+// Every word on the page is found by its own range, the page is captured with
+// the text drawn and again with it hidden, and a word whose pixels never change
+// was never visible: something covers it (a badge, a ::before or ::after layer, a
+// sticky bar), a mask fades it out, or it is drawn off its clipping box. Pixels,
+// because no element hit-test sees a pseudo-element, a mask or a partial cover.
+const INK_FIND = `(async () => {
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  for (const img of document.images) if (img.loading === 'lazy') img.loading = 'eager';
+  await Promise.race([
+    Promise.all([...document.images].map((i) => i.decode().catch(() => {}))),
+    new Promise((r) => setTimeout(r, 4000)),
+  ]);
+  const SX = scrollX, SY = scrollY;
+  const vis = (el) => {
+    if (el.closest('[aria-hidden="true"],[hidden],[inert]')) return false;
+    if (el.closest('details:not([open]) > :not(summary)')) return false;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || cs.visibility === 'collapse') return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const path = (el) => {
+    const parts = [];
+    for (let e = el; e && e.nodeType === 1 && parts.length < 4; e = e.parentElement) {
+      let s = e.tagName.toLowerCase();
+      if (e.id) { s += '#' + e.id; parts.unshift(s); break; }
+      if (e.dataset && e.dataset.block) s += '[data-block="' + e.dataset.block + '"]';
+      else { const c = [...e.classList].slice(0, 2).join('.'); if (c) s += '.' + c; }
+      parts.unshift(s);
+    }
+    return parts.join(' > ');
+  };
+  const cv = document.createElement('canvas'); cv.width = cv.height = 1;
+  const cx = cv.getContext('2d', { willReadFrequently: true });
+  const alphaOf = (css) => { cx.clearRect(0, 0, 1, 1); cx.fillStyle = '#000'; cx.fillStyle = css; cx.fillRect(0, 0, 1, 1); return cx.getImageData(0, 0, 1, 1).data[3] / 255; };
+  const clipTo = (el, q) => {
+    for (let a = el; a && a !== document.body; a = a.parentElement) {
+      const cs = getComputedStyle(a);
+      if (cs.overflowX === 'visible' && cs.overflowY === 'visible' && cs.clip === 'auto' && cs.clipPath === 'none') continue;
+      const r = a.getBoundingClientRect();
+      q = { l: Math.max(q.l, r.left + SX), t: Math.max(q.t, r.top + SY), r: Math.min(q.r, r.right + SX), b: Math.min(q.b, r.bottom + SY) };
+    }
+    return q;
+  };
+  const words = [], els = new Map(), meta = [];
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  const range = document.createRange();
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.nodeValue.trim()) continue;
+    const el = n.parentElement;
+    if (!el || el.closest('svg,script,style,noscript,template,canvas,select,textarea') || !vis(el)) continue;
+    const cs = getComputedStyle(el);
+    // Transparent or zero-opacity text is the probe's 'invisible' check.
+    let alpha = alphaOf(cs.webkitTextFillColor || cs.color);
+    for (let a = el; a && a !== document.documentElement; a = a.parentElement) alpha *= Number(getComputedStyle(a).opacity);
+    const clip = cs.backgroundClip === 'text' || cs.webkitBackgroundClip === 'text';
+    if (alpha < 0.02 && !clip) continue;
+    const re = /\\S+/g;
+    for (let m = re.exec(n.nodeValue); m; m = re.exec(n.nodeValue)) {
+      // Letters and digits only: an emoji or a symbol is not drawn in the text colour.
+      if (!/[\\p{L}\\p{N}]/u.test(m[0])) continue;
+      range.setStart(n, m.index); range.setEnd(n, m.index + m[0].length);
+      for (const r of range.getClientRects()) {
+        const q = clipTo(el, { l: r.left + SX, t: r.top + SY, r: r.right + SX, b: r.bottom + SY });
+        if (q.r - q.l < 3 || q.b - q.t < 6) continue;
+        if (!els.has(el)) {
+          els.set(el, meta.length);
+          meta.push({ where: path(el), text: el.textContent.trim().replace(/\\s+/g, ' ').slice(0, 40) });
+          el.setAttribute('data-dm-ink', '');
+          if (clip) el.setAttribute('data-dm-ink-clip', '');
+        }
+        words.push({ e: els.get(el), w: m[0].slice(0, 30), l: q.l, t: q.t, r: q.r, b: q.b });
+      }
+    }
+  }
+  return { words, meta, height: document.documentElement.scrollHeight, W: innerWidth, H: innerHeight };
+})()`;
+// Text drawn by clipping a background to it shows its background: that is
+// switched to the whole box, so the word's pixels still change if it is seen.
+const INK_HIDE = `(async () => {
+  const s = document.createElement('style'); s.setAttribute('data-dm-ink-hide', '');
+  s.textContent = ':root *,:root *::before,:root *::after{-webkit-text-fill-color:transparent!important;'
+    + 'text-decoration-color:transparent!important;text-emphasis-color:transparent!important;'
+    + 'text-shadow:none!important;-webkit-text-stroke-color:transparent!important;caret-color:transparent!important}'
+    + ':root [data-dm-ink-clip]{-webkit-background-clip:border-box!important;background-clip:border-box!important}'
+    + ':root{scroll-behavior:auto!important}';
+  document.head.appendChild(s);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  return [...document.querySelectorAll('[data-dm-ink]:not([data-dm-ink-clip])')]
+    .filter((el) => !/^rgba\\(0, 0, 0, 0\\)$|^transparent$/.test(getComputedStyle(el).webkitTextFillColor))
+    .map((el) => el.tagName.toLowerCase() + ' ' + getComputedStyle(el).webkitTextFillColor);
+})()`;
+const INK_UNHIDE = `(() => { for (const s of document.querySelectorAll('style[data-dm-ink-hide]')) s.remove();
+  for (const el of document.querySelectorAll('[data-dm-ink]')) { el.removeAttribute('data-dm-ink'); el.removeAttribute('data-dm-ink-clip'); } })()`;
+// A pixel counts as ink when the two captures differ by more than this (summed
+// over R, G and B); a word is seen when enough of its box is ink.
+const INK_DELTA = 48;
+const INK_SHARE = 0.015;
+
+/** Words on this page that no reader can see. Returns findings. */
+async function textInk(page, stats) {
+  const found = await page.evaluate(INK_FIND);
+  const { words, meta, W, H } = found;
+  if (!words.length) return [];
+  const scratch = await page.context().newPage();
+  const seen = new Uint8Array(words.length);
+  const scored = new Uint8Array(words.length);
+  const shot = () =>
+    page.screenshot({ type: "png", scale: "css", animations: "disabled", caret: "hide" });
+  const scrollAt = async (y) =>
+    page.evaluate(
+      `(async () => { scrollTo({ left: 0, top: ${y}, behavior: 'instant' }); await ${FRAME}; return scrollY; })()`,
+    );
+  try {
+    // Overlapping viewport-high captures: a word under a sticky bar in one is
+    // clear of it in the next, so only a word covered wherever it can be
+    // scrolled to is reported.
+    const maxY = Math.max(0, found.height - H);
+    const step = Math.max(120, Math.floor(H * 0.6));
+    const ys = [];
+    for (let y = 0; ; y += step) {
+      ys.push(Math.min(y, maxY));
+      if (y >= maxY) break;
+    }
+    const drawn = [];
+    for (const y of ys) {
+      const at = await scrollAt(y);
+      drawn.push({ y: at, png: await shot() });
+    }
+    const missed = await page.evaluate(INK_HIDE);
+    if (missed.length)
+      throw new Error(
+        `hiding the text did NOT land on ${missed.length} element(s) of ${page.url()} (${missed.slice(0, 3).join("; ")}): every word would read as seen`,
+      );
+    try {
+      for (const d of drawn) {
+        const at = await scrollAt(d.y);
+        if (Math.abs(at - d.y) > 0.5) continue;
+        const inView = [];
+        words.forEach((q, i) => {
+          if (q.t >= d.y && q.b <= d.y + H && q.l >= 0 && q.r <= W)
+            inView.push([i, q.l, q.t - d.y, q.r, q.b - d.y]);
+        });
+        if (!inView.length) continue;
+        const hidden = await shot();
+        const res = await scratch.evaluate(
+          async ({ a64, b64, list, W, H, delta }) => {
+            const load = async (b) => {
+              const i = new Image();
+              i.src = "data:image/png;base64," + b;
+              await i.decode();
+              return i;
+            };
+            const [A, B] = await Promise.all([load(a64), load(b64)]);
+            const px = (img) => {
+              const c = document.createElement("canvas");
+              c.width = img.width;
+              c.height = img.height;
+              const x = c.getContext("2d", { willReadFrequently: true });
+              x.drawImage(img, 0, 0);
+              return x.getImageData(0, 0, img.width, img.height).data;
+            };
+            const a = px(A),
+              b = px(B);
+            const k = A.width / W;
+            const out = [];
+            for (const [i, l, t, r, bt] of list) {
+              const x0 = Math.max(0, Math.floor(l * k)),
+                x1 = Math.min(A.width, Math.ceil(r * k));
+              const y0 = Math.max(0, Math.floor(t * k)),
+                y1 = Math.min(A.height, Math.ceil(bt * k));
+              let n = 0,
+                area = 0;
+              for (let y = y0; y < y1; y++)
+                for (let x = x0; x < x1; x++) {
+                  const j = (y * A.width + x) * 4;
+                  area++;
+                  if (
+                    Math.abs(a[j] - b[j]) +
+                      Math.abs(a[j + 1] - b[j + 1]) +
+                      Math.abs(a[j + 2] - b[j + 2]) >
+                    delta
+                  )
+                    n++;
+                }
+              out.push([i, n, area]);
+            }
+            return { k, kh: A.height / H, out };
+          },
+          {
+            a64: d.png.toString("base64"),
+            b64: hidden.toString("base64"),
+            list: inView,
+            W,
+            H,
+            delta: INK_DELTA,
+          },
+        );
+        // ⛔ A capture that is not the viewport puts every word somewhere else.
+        if (Math.abs(res.k - 1) > 0.05 || Math.abs(res.kh - 1) > 0.05)
+          throw new Error(
+            `the ink capture is ${res.k}x the viewport: every text-hidden reading would be misplaced`,
+          );
+        for (const [i, n, area] of res.out) {
+          scored[i] = 1;
+          if (n >= Math.max(3, Math.ceil(area * INK_SHARE))) seen[i] = 1;
+        }
+      }
+    } finally {
+      await page.evaluate(INK_UNHIDE);
+      await page.evaluate("scrollTo({ top: 0, behavior: 'instant' })");
+    }
+  } finally {
+    await scratch.close();
+  }
+  const byEl = new Map();
+  words.forEach((q, i) => {
+    if (!scored[i]) {
+      stats.inkUnscored++;
+      return;
+    }
+    stats.inkWords++;
+    if (seen[i]) return;
+    if (!byEl.has(q.e)) byEl.set(q.e, []);
+    byEl.get(q.e).push(q.w);
+  });
+  return [...byEl].map(([e, ws]) => ({
+    id: "text-hidden",
+    where: meta[e].where,
+    msg: `${ws.length} word(s) of "${meta[e].text}" are never drawn where a reader can see them, wherever the page is scrolled: "${ws.slice(0, 6).join(" ")}"${ws.length > 6 ? " …" : ""} (covered by an element or a ::before/::after layer, masked, or faded out)`,
+  }));
+}
+
+// ─── print ───────────────────────────────────────────────────────────────────
+// An A4 page at 96 dpi, less a browser's default margins: the width a printed
+// page is laid out at. Print is measured once per page, in the print stylesheet.
+const PRINT = { id: "print-a4", w: 718, h: 1000 };
+const PRINT_SKIP = [
+  "target-size",
+  "images",
+  "layout-shift",
+  "font-failed",
+  "chrome-share",
+  "anchor-obscured",
+  "covered",
+  "focus",
+];
+async function printPass(browser, url) {
+  const ctx = await browser.newContext({
+    viewport: { width: PRINT.w, height: PRINT.h },
+    deviceScaleFactor: 1,
+    reducedMotion: "reduce",
+  });
+  try {
+    const page = await ctx.newPage();
+    await load(page, url);
+    await page.emulateMedia({ media: "print" });
+    await page.evaluate(SETTLE);
+    const { findings } = await page.evaluate(
+      `${PROBE}\n;layoutProbe(${JSON.stringify({ expectedWidth: PRINT.w, skip: PRINT_SKIP })})`,
+    );
+    return findings;
+  } finally {
+    await ctx.close();
+  }
+}
+
 const MAX_PHOTO_SHOTS = 12;
 const FRAME = `new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))`;
 
@@ -647,12 +970,15 @@ async function runMatrix({
   shots,
   launch,
   photo = true,
+  ink = true,
+  print = true,
   progress = false,
 }) {
   const browser = await chromium.launch(launch);
   const findings = [];
   const notes = new Set();
   const photoStats = { photoTexts: 0, photoUnscored: 0, minPhoto: Infinity, minPhotoAt: "" };
+  const inkStats = { inkWords: 0, inkUnscored: 0 };
   let states = 0;
   try {
     // Breakpoint edges from the first URL's own CSS.
@@ -701,7 +1027,9 @@ async function runMatrix({
       for (const theme of v.themes) {
         const ctx = await newStateContext(browser, v, theme);
         const page = await ctx.newPage();
+        const resources = watchResources(page);
         for (const url of urls) {
+          resources.reset();
           await load(page, url);
           let { findings: f, stats } = await probePage(page, v.w);
           states++;
@@ -734,9 +1062,18 @@ async function runMatrix({
             notes.add(
               "photo-contrast: not scored in forced colours (glyphs paint in the forced colour and cannot be hidden for the capture)",
             );
+          // Covered, masked and faded words: in the first theme of every row (a
+          // cover is a matter of layout, which the width changes and the theme
+          // does not), never in forced colours, where glyphs cannot be hidden.
+          if (ink && theme === v.themes[0] && theme !== "forced")
+            f = f.concat(await textInk(page, inkStats));
           f = f.concat(await detailsOpen(page, v.w));
+          f = f.concat(resources.findings());
           if (v.w === navWidth && !navChecked.has(url)) {
             navChecked.add(url);
+            if (print)
+              for (const x of await printPass(browser, url))
+                findings.push({ ...x, url, vp: `${PRINT.id} ${PRINT.w}px`, theme: "print" });
             const fit = await page.evaluate(NAV_FIT);
             if (fit) {
               const pin = Math.ceil((fit.need + 0.5) * 2) / 2;
@@ -793,6 +1130,14 @@ async function runMatrix({
     if (shiftNotes.length)
       notes.add(
         `layout shift that did not repeat in ${SHIFT_LOADS} of ${SHIFT_LOADS} loads, on ${shiftNotes.length} page state(s): not findings (see the header). ${shiftNotes.slice(0, 3).join("; ")}${shiftNotes.length > 3 ? "; …" : ""}`,
+      );
+    if (inkStats.inkWords || inkStats.inkUnscored)
+      notes.add(
+        `text-hidden: ${inkStats.inkWords} word placement(s) checked for ink${inkStats.inkUnscored ? `; ${inkStats.inkUnscored} not checked (wider or taller than the viewport, or off it)` : ""}`,
+      );
+    if (print)
+      notes.add(
+        `print: each page measured once in its print stylesheet at ${PRINT.w}px (A4 less margins)`,
       );
     if (photoStats.photoTexts)
       notes.add(
@@ -904,6 +1249,16 @@ ${extra}
 const sec = (inner, tone = "canvas") =>
   `<section data-block="m" data-tone="${tone}"><div>${inner}</div></section>`;
 const MUTATIONS = [
+  {
+    expect: "overlap",
+    vp: "iphone",
+    why: "a badge over the end of a card's last line, clear of its first",
+    html: {
+      extra: sec(
+        `<article class="card stack" style="position: relative"><h3>Biscuits</h3><p>We have made biscuits by hand every morning since 1945, on the same counter, with the same recipe card. Come early on a Saturday.</p><span style="position: absolute; inset-inline-end: 1rem; inset-block-end: 1rem; padding: 0.5rem 1rem; background: var(--accent); color: var(--on-accent); font-weight: 700">New this week</span></article>`,
+      ),
+    },
+  },
   {
     expect: "overflow",
     vp: "iphone",
@@ -1290,6 +1645,17 @@ const MUTATIONS = [
 // it names. A probe that fires on correct pages gets switched off.
 const CLEAN = [
   {
+    forbid: ["overlap"],
+    vp: "iphone",
+    why: "a card made one link by a stretched, empty ::after (a hit area, not paint)",
+    html: {
+      head: `<style>.whole { position: relative; } .whole a::after { content: ""; position: absolute; inset: 0; }</style>`,
+      extra: sec(
+        `<article class="card stack whole"><h3><a href="/menu/">The griddle menu</a></h3><p>Pancakes, hash browns and eggs any way, all morning and into the afternoon.</p></article>`,
+      ),
+    },
+  },
+  {
     forbid: ["image-oversized", "image-upscaled"],
     vp: "iphone",
     why: "at DPR 3 the browser takes the next candidate up (2560w for a 1062px need): the spacing, not the sizes",
@@ -1390,6 +1756,8 @@ async function selfTest(chromium, launch) {
     "--placeholders",
   ]);
   py([CHECK, "fixtures", join(KIT_DIR, "catalog.json"), "--out", join(src, "stress.json")]);
+  // Into its own folder (a render into a folder another render wrote removes
+  // that render's pages), then copied beside the example to share one server.
   py([
     RENDER,
     "render",
@@ -1397,8 +1765,9 @@ async function selfTest(chromium, launch) {
     "--catalog",
     join(KIT_DIR, "catalog.json"),
     "--out",
-    dir,
+    join(src, "stress-dist"),
   ]);
+  cpSync(join(src, "stress-dist"), dir, { recursive: true });
   const exampleManifest = JSON.parse(readFileSync(join(KIT_DIR, "example.manifest.json"), "utf8"));
   const example = exampleManifest.pages.map((p) => p.path);
   // The example with a menu switch the header can never reach (nav-hidden must fire).
@@ -1455,6 +1824,65 @@ async function selfTest(chromium, launch) {
     join(dir, "shop"),
     "--placeholders",
   ]);
+  // Words no reader can see: a decorative layer, a badge and a mask over the copy.
+  const INK_CASES = [
+    {
+      why: "a ::after layer drawn over the copy",
+      html: {
+        head: `<style>.veiled { position: relative; } .veiled::after { content: ""; position: absolute; inset: 0; background: var(--surface); }</style>`,
+        extra: sec(
+          `<div class="card veiled"><p>Copy a decorative layer covers at every width</p></div>`,
+        ),
+      },
+    },
+    {
+      why: "a badge over the last line of a card",
+      html: {
+        extra: sec(
+          `<div class="card stack" style="position: relative"><h3>Weekend brunch</h3><p>Served from nine until two on Saturdays and Sundays, with the full griddle menu and the last line under a badge</p><span aria-hidden="true" style="position: absolute; inset-inline: 0; inset-block-end: 0; block-size: 3.2em; background: var(--accent)"></span></div>`,
+        ),
+      },
+    },
+    {
+      why: "a mask that fades the second paragraph out",
+      html: {
+        extra: sec(
+          `<div class="prose stack" style="-webkit-mask-image: linear-gradient(black 0 40%, transparent 40%); mask-image: linear-gradient(black 0 40%, transparent 40%)"><p>${PROSE}</p><p>The second paragraph, which the mask fades to nothing.</p></div>`,
+        ),
+      },
+    },
+  ];
+  INK_CASES.forEach((m, i) => writeFileSync(join(dir, `ink${i}.html`), page(m.html)));
+  // Look-alikes: all seen, so none may be reported.
+  writeFileSync(
+    join(dir, "ink-ok.html"),
+    page({
+      head: `<style>.site-header { position: sticky; inset-block-start: 0; z-index: 5; background: var(--canvas); }</style>`,
+      top: `<a class="skip-link button" href="#main">Skip to content</a>`,
+      extra: sec(
+        `<div class="stack"><h2 style="background: linear-gradient(90deg, #7c2d12, #1e3a8a); -webkit-background-clip: text; background-clip: text; color: transparent">A heading drawn in its gradient</h2>` +
+          `<p>Cheers 🍺🍻 from the taproom</p><p><span class="visually-hidden">Read only by a screen reader</span>Seen by everyone</p>` +
+          `<div class="card" style="position: relative"><p>Under a light veil that still shows the words</p><span aria-hidden="true" style="position: absolute; inset: 0; background: rgb(255 255 255 / 0.4)"></span></div>` +
+          `<p>${PROSE} ${PROSE} ${PROSE}</p></div>`,
+      ),
+    }),
+  );
+  writeFileSync(
+    join(dir, "res.html"),
+    page({ head: `<style>.card { background-image: url(/missing-texture.png); }</style>` }),
+  );
+  writeFileSync(
+    join(dir, "print-wide.html"),
+    page({ head: `<style>@media print { .card { inline-size: 900px; } }</style>` }),
+  );
+  cpSync(join(dir, "shop"), join(dir, "shop-rooturl"), { recursive: true });
+  mkdirSync(join(dir, "shop-rooturl", "img"), { recursive: true });
+  writeFileSync(join(dir, "shop-rooturl", "img", "texture.png"), png(64, 64, [240, 236, 228]));
+  writeFileSync(
+    join(dir, "shop-rooturl", "blocks.css"),
+    readFileSync(join(dir, "shop-rooturl", "blocks.css"), "utf8") +
+      "\n.site-footer { background-image: url(/img/texture.png); }\n",
+  );
   writeFileSync(
     join(dir, "gradient.html"),
     page({
@@ -1691,6 +2119,31 @@ async function selfTest(chromium, launch) {
         );
         await ctx.close();
       }
+      // text-hidden: each cover, layer and mask is found; the look-alikes are not.
+      for (const [i, m] of INK_CASES.entries()) {
+        for (const vp of ["iphone", "laptop"]) {
+          const { ctx, pg } = await at(vp, `${origin}/ink${i}.html`);
+          const st = { inkWords: 0, inkUnscored: 0 };
+          const f = await textInk(pg, st);
+          row(
+            f.some((x) => x.id === "text-hidden"),
+            `must fail: text-hidden (${m.why}) @ ${vp}`,
+            `${st.inkWords} words checked; got ${f.map((x) => x.msg).join(" | ") || "nothing"}`,
+          );
+          await ctx.close();
+        }
+      }
+      for (const vp of ["reflow-320", "iphone", "laptop"]) {
+        const { ctx, pg } = await at(vp, `${origin}/ink-ok.html`);
+        const st = { inkWords: 0, inkUnscored: 0 };
+        const f = await textInk(pg, st);
+        row(
+          !f.length && st.inkWords > 50,
+          `must pass: text-hidden look-alikes (a sticky header, a skip link, a gradient-clipped heading, emoji, a visually-hidden span, a light veil) @ ${vp}`,
+          f.map((x) => `${x.where}: ${x.msg}`).join(" | ") || `only ${st.inkWords} words checked`,
+        );
+        await ctx.close();
+      }
       // photo-contrast: on the stress hero (copy over a near-white photo), both the
       // factory's mutation and a scrim too thin to hold must be reported.
       for (const [why, css] of [
@@ -1809,6 +2262,54 @@ async function selfTest(chromium, launch) {
       ])) === 0,
       "harness: a site built for a basePath (/shop/) is served and tested there from --dir, and is clean",
     );
+    row(
+      (await main([
+        "--dir",
+        join(dir, "shop-rooturl"),
+        "--manifest",
+        join(src, "shop.json"),
+        "--pages",
+        "/shop/",
+        "--themes",
+        "light",
+        "--no-photo",
+        "--no-ink",
+        "--no-print",
+      ])) === 1,
+      "must fail: a basePath site whose CSS asks for a root URL (/img/…, a 404 on its host) is resource-failed, though the file is in --dir",
+    );
+    {
+      const run = await runMatrix({
+        chromium,
+        launch,
+        urls: [`${origin}/res.html`],
+        viewports: quick.filter((v) => v.id === "laptop"),
+        themes: ["light"],
+        sweep: null,
+        photo: false,
+        ink: false,
+        print: false,
+      });
+      row(
+        run.findings.some((f) => f.id === "resource-failed"),
+        "must fail: resource-failed (a background image the CSS asks for answers 404)",
+        run.findings.map((f) => f.id).join(", ") || "nothing",
+      );
+    }
+    {
+      const pb = await chromium.launch(launch);
+      let wide;
+      try {
+        wide = await printPass(pb, `${origin}/print-wide.html`);
+      } finally {
+        await pb.close();
+      }
+      row(
+        wide.some((f) => f.id === "overflow"),
+        "must fail: overflow in print (a print rule that makes a card wider than the page)",
+        wide.map((f) => f.id).join(", ") || "nothing",
+      );
+    }
   } finally {
     server.close();
     rmSync(dir, { recursive: true, force: true });
@@ -1841,6 +2342,8 @@ async function main(argv) {
         .split(",")
         .map((s) => s.trim());
     else if (a === "--no-photo") args.noPhoto = true;
+    else if (a === "--no-ink") args.noInk = true;
+    else if (a === "--no-print") args.noPrint = true;
     else if (a === "--shots") args.shots = resolve(next());
     else if (a === "--json") args.json = resolve(next());
     else if (a === "--chrome") args.chrome = next();
@@ -1925,6 +2428,8 @@ async function main(argv) {
       sweep: args.sweep,
       shots: args.shots,
       photo: !args.noPhoto,
+      ink: !args.noInk,
+      print: !args.noPrint,
     });
     if (args.json) writeFileSync(args.json, JSON.stringify(result, null, 2));
     return report(result);

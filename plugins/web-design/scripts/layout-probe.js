@@ -1196,37 +1196,75 @@ async function layoutProbe(options) {
         ...document.querySelectorAll("a[href],button,input,select,textarea,summary"),
       ]),
     ].filter((el) => visible(el) && !el.closest("[data-slot='backdrop']") && !fixedish(el));
-    const done = new Set();
+    const isControl = (el) => el.matches("a,button,input,select,textarea,summary");
+    const boxes = (el) =>
+      (isControl(el) ? [el.getBoundingClientRect()] : lineRects(el)).filter((r) => !tiny(r));
+    // A stretched link's empty ::before/::after over a card is a hit area, not
+    // paint: the card's text is still seen (text-hidden measures paint).
+    const hitArea = (hit) =>
+      ["::before", "::after"].some((pe) => {
+        const p = getComputedStyle(hit, pe);
+        return (
+          p.content !== "none" &&
+          /absolute|fixed/.test(p.position) &&
+          rgba(p.backgroundColor)[3] === 0 &&
+          p.backgroundImage === "none"
+        );
+      });
+    // Every line, at ten points across its glyphs: a badge over the end of the
+    // last line misses the centre of the first one.
+    const XS = [0.1, 0.3, 0.5, 0.7, 0.9];
+    const YS = [0.35, 0.7];
+    const pending = new Map(subjects.map((el) => [el, null]));
     const maxY = Math.max(0, document.documentElement.scrollHeight - H);
     let n = 0;
     for (let y = 0; ; y = Math.min(maxY, y + Math.round(H * 0.8))) {
       jump(0, y);
-      for (const el of subjects) {
-        if (done.has(el)) continue;
-        const rect = el.matches("a,button,input,select,textarea,summary")
-          ? el.getBoundingClientRect()
-          : lineRects(el)[0];
-        if (!rect || tiny(rect)) {
-          done.add(el);
-          continue;
+      for (const [el, left] of pending) {
+        const rects = boxes(el);
+        const todo = left || new Set(rects.map((_, i) => i));
+        for (const i of [...todo]) {
+          const r = rects[i];
+          if (!r) {
+            todo.delete(i);
+            continue;
+          }
+          if (r.top < 0 || r.bottom > H) continue;
+          let barred = false;
+          let over = null;
+          for (const fy of YS) {
+            for (const fx of XS) {
+              const px = r.left + r.width * fx;
+              const py = r.top + r.height * fy;
+              if (px < 0 || px >= W) continue;
+              const hit = document.elementFromPoint(px, py);
+              if (!hit || hit === el || el.contains(hit) || hit.contains(el)) continue;
+              if (fixedish(hit)) {
+                barred = true; // under a bar at this scroll position: try the next one
+                break;
+              }
+              if (el.closest("label") && el.closest("label").contains(hit)) continue;
+              if (hitArea(hit)) continue;
+              over = [hit, px, py];
+              break;
+            }
+            if (barred || over) break;
+          }
+          if (barred) continue;
+          todo.delete(i);
+          n++;
+          if (over) {
+            add(
+              "overlap",
+              el,
+              `${path(over[0])} is painted over ${rects.length > 1 ? `line ${i + 1} of ${rects.length}` : "it"} at (${Math.round(over[1])}, ${Math.round(over[2])})`,
+            );
+            todo.clear();
+            break;
+          }
         }
-        const px = rect.left + rect.width / 2;
-        const py = rect.top + rect.height / 2;
-        if (py < 0 || py >= H || px < 0 || px >= W) continue;
-        done.add(el);
-        n++;
-        const hit = document.elementFromPoint(px, py);
-        if (!hit || hit === el || el.contains(hit) || hit.contains(el)) continue;
-        if (fixedish(hit)) {
-          done.delete(el); // under a bar at this scroll position: try the next one
-          continue;
-        }
-        if (el.closest("label") && el.closest("label").contains(hit)) continue;
-        add(
-          "overlap",
-          el,
-          `${path(hit)} is painted over it at (${Math.round(px)}, ${Math.round(py)})`,
-        );
+        if (todo.size) pending.set(el, todo);
+        else pending.delete(el);
       }
       if (y >= maxY) break;
     }
