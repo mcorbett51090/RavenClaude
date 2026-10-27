@@ -32,8 +32,10 @@
  * clean page (padding and font size arrive one frame late; one bundled
  * stylesheet did not change the rate; the mechanism is not known). A shift the
  * page itself causes repeats on every load. So a page state that shifts is
- * reloaded twice in fresh contexts: shifting in 3 of 3 loads is a finding, and
- * fewer is printed as a note with its count, never hidden.
+ * reloaded in fresh contexts: shifting in 5 of 5 loads is a finding, and fewer
+ * is printed as a note with its count, never hidden. (It was 3 of 3 until a run
+ * on a loaded machine, two other browsers busy, reached 3 of 3 on a page that
+ * shifted in 0 of 12 loads once the machine was quiet.)
  *
  * Needs Playwright (`npm i -D playwright`, then `npx playwright install chromium`)
  * resolvable from the current directory. Exit: 0 clean, 1 findings, 2 could not run.
@@ -239,6 +241,9 @@ async function load(page, url) {
   if (!res || res.status() < 200 || res.status() > 299)
     throw new Error(`${url} answered ${res ? res.status() : "nothing"}; check --pages`);
 }
+
+// A layout shift is a finding only when it repeats in every one of this many loads.
+const SHIFT_LOADS = 5;
 
 /** Reload a page that shifted in fresh contexts; count the loads that shift again. */
 async function reloadShifts(browser, v, theme, url, times) {
@@ -559,15 +564,17 @@ async function runMatrix({
           states++;
           for (const n of stats.notMeasured || []) notes.add(n);
           if (f.some((x) => x.id === "layout-shift")) {
-            const shifted = 1 + (await reloadShifts(browser, v, theme, url, 2));
-            if (shifted < 3) {
+            const shifted = 1 + (await reloadShifts(browser, v, theme, url, SHIFT_LOADS - 1));
+            if (shifted < SHIFT_LOADS) {
               f = f.filter((x) => x.id !== "layout-shift");
               notes.add(
-                `layout shift on ${new URL(url).pathname} @ ${v.id} ${theme} in ${shifted} of 3 loads: not reproducible, so not a finding (see the header)`,
+                `layout shift on ${new URL(url).pathname} @ ${v.id} ${theme} in ${shifted} of ${SHIFT_LOADS} loads: not reproducible, so not a finding (see the header)`,
               );
             } else {
               f = f.map((x) =>
-                x.id === "layout-shift" ? { ...x, msg: `${x.msg}; shifted in 3 of 3 loads` } : x,
+                x.id === "layout-shift"
+                  ? { ...x, msg: `${x.msg}; shifted in ${SHIFT_LOADS} of ${SHIFT_LOADS} loads` }
+                  : x,
               );
             }
           }
@@ -1322,7 +1329,9 @@ async function selfTest(chromium, launch) {
         const { findings } = await probePage(pg, v.w);
         let hit = findings.some((f) => f.id === m.expect);
         if (hit && m.expect === "layout-shift")
-          hit = (await reloadShifts(browser, v, "light", `${origin}/m${i}.html`, 2)) === 2;
+          hit =
+            (await reloadShifts(browser, v, "light", `${origin}/m${i}.html`, SHIFT_LOADS - 1)) ===
+            SHIFT_LOADS - 1;
         row(
           hit,
           `must fail: ${m.expect}${m.why ? ` (${m.why})` : ""} @ ${v.id}`,

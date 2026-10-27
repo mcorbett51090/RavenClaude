@@ -231,7 +231,7 @@ Props are closed and bounded, so a card list has a known maximum (six in the kit
 | `photo-contrast` (device_matrix) | copy over a photo under its bar at the 5th-percentile pixel | the scrim (`--scrim-weak`) |
 | `focus-hidden`, `focus-clipped` | no visible focus indicator, or one a clipping ancestor cuts off | the contract's focus ring; put a linked photo's ring on its frame |
 | `anchor-obscured`, `covered` | an in-page link's target, or the page's end, stays under a fixed or sticky bar | `scroll-margin-top`; pad the page's end by the bar's height |
-| `layout-shift` | CLS over 0.01, **in 3 of 3 loads** | reserve space; see §11 |
+| `layout-shift` | CLS over 0.01, **in 5 of 5 loads** | reserve space; see §11 |
 | `font-failed` | a web font failed, or is used but not loaded | the URL, `font-display`, preload |
 | `chrome-share` | fixed or sticky bars over 30% of the height | shrink or un-stick on short viewports |
 
@@ -240,7 +240,8 @@ Props are closed and bounded, so a card list has a known maximum (six in the kit
 - **Headless Chromium sometimes paints a first frame missing some author styles.**
   - In about 4–8% of loads of a clean page, the first frame lacked some author values: a link had `padding: 0px` and `font-size: 16px` where the next frame had 9.29px and 18.57px. That is a CLS of 0.021 **[observed: 1–2 of 24 loads, 2 of 6, and 16 of 16 when a script forced layout at DOMContentLoaded]**.
   - It is not the stylesheet arriving late: `layout.css` finished at about 16ms and first paint came at 72–80ms. A single bundled stylesheet did not change the rate.
-  - **The mechanism is not known**, and it is not claimed. A shift the page itself causes repeats on every load, so the runner reloads a page that shifted twice in fresh contexts. Shifting in 3 of 3 loads is a finding, and fewer is printed as a note with its count.
+  - **The mechanism is not known**, and it is not claimed. A shift the page itself causes repeats on every load, so the runner reloads a page that shifted in fresh contexts. Shifting in 5 of 5 loads is a finding, and fewer is printed as a note with its count.
+  - **The rate rises with CPU load.** The rule was 3 of 3 until a self-test, run while two other headless browsers were busy, reached 3 of 3 on a stress page. With the machine quiet, that page shifted in 0 of 12 loads, and its first animation frame already had every author style **[observed]**. The shift was the header's menu button drawn without its padding for one frame (49px, then 108px wide).
 - **Geometry cannot judge taste.** The stretched hours rows (§4), and a scrim band visible outside the photo before the backdrop fix (§1), were caught by looking at screenshots. Step 7 is not optional.
 - **Contrast over photos** is a different measurement: [`text-over-photo-contrast-2026.md`](text-over-photo-contrast-2026.md).
 - **Hover and open states** are not rendered by the probe. Focus is: every focusable element is focused and its ring measured. Test menus, `details` and dialogs open as separate states.
