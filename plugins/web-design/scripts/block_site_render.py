@@ -303,6 +303,7 @@ def auto_grid_sizes(media, asset=None):
     Each condition gives the widest the column is drawn while that count holds,
     2% over, so it never under-asks."""
     m = media["minCol"] * 16
+    most = media.get("items") or 99  # auto-fit collapses empty tracks: n photos are never in more than n columns
     line = (90 if media["slot"] == "wide" else 72) * 16
     widest = {}
     starts = {}
@@ -310,7 +311,7 @@ def auto_grid_sizes(media, asset=None):
         gutter = min(48, max(16, 6.857 + 0.028571 * vw))
         gap = min(28.5, max(24, 22.714 + 0.004018 * vw))
         c = min(line, vw - 2 * gutter)
-        n = max(1, int((c + gap) // (m + gap)))
+        n = max(1, min(most, int((c + gap) // (m + gap))))
         col = (c - (n - 1) * gap) / n
         widest[n] = max(widest.get(n, 0), col)
         starts.setdefault(n, vw)
@@ -504,7 +505,7 @@ def b_gallery_grid(p, ctx):
     for it in p["images"]:
         asset = m["assets"][it["image"]]
         frame = f'--ratio: {media["ratio"]}; --frame-radius: var(--radius-m); --focal: {asset.get("focal", "50% 50%")}'
-        out += f'<li><figure class="stack gallery__item"><div class="frame" style={a(frame)}>{picture(m, it["image"], media, False, False)}</div>'
+        out += f'<li><figure class="stack gallery__item"><div class="frame" style={a(frame)}>{picture(m, it["image"], dict(media, items=len(p["images"])), False, False)}</div>'
         if it.get("caption"):
             out += f'<figcaption class="muted">{e(it["caption"])}</figcaption>'
         out += "</figure></li>"
@@ -785,22 +786,31 @@ def theme_meta(css_dir):
 
 
 def drop_past(props, refs, today):
-    """A copy of props without the list items whose date at ref (list[].date, or
-    a.list[].date) is before today: a block's render function never sees a past
-    event."""
+    """A copy of props without the list items whose date at ref (list[].date,
+    a.list[].date, days[].events[].date…) is before today: a block's render
+    function never sees a past item."""
     if not refs:
         return props
     props = copy.deepcopy(props)
+
+    def walk(node, parts):
+        if not isinstance(node, dict) or not parts:
+            return
+        key, rest = parts[0], parts[1:]
+        if key.endswith("[]"):
+            items = node.get(key[:-2])
+            if not isinstance(items, list):
+                return
+            if len(rest) == 1:
+                node[key[:-2]] = [x for x in items if not (isinstance(x, dict) and isinstance(x.get(rest[0]), str) and x[rest[0]] < today)]
+            else:
+                for x in items:
+                    walk(x, rest)
+        else:
+            walk(node.get(key), rest)
+
     for ref in refs:
-        head, sep, field = ref.rpartition("[].")
-        if not sep or "[]" in head:
-            continue
-        *parents, key = head.split(".")
-        node = props
-        for part in parents:
-            node = node.get(part) if isinstance(node, dict) else None
-        if isinstance(node, dict) and isinstance(node.get(key), list):
-            node[key] = [x for x in node[key] if not (isinstance(x, dict) and isinstance(x.get(field), str) and x[field] < today)]
+        walk(props, ref.split("."))
     return props
 
 
@@ -970,29 +980,23 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
     previous, why = previous_render(out)
     if why:
         return [why], notes
-    written = []
-
-    def put(rel):
-        written.append(os.path.normpath(rel))
-        dst = os.path.join(out, rel)
-        os.makedirs(os.path.dirname(dst) or out, exist_ok=True)
-        return dst
-
-    os.makedirs(out, exist_ok=True)
-    for name in CSS_FILES:
-        shutil.copyfile(os.path.join(css_dir or KIT, name), put(name))
+    # The whole plan first: (path in out, how to make it). Nothing is written
+    # until every path is known to be free or this renderer's own.
+    plan = [(name, ("copy", os.path.join(css_dir or KIT, name))) for name in CSS_FILES]
     for src, w, h in asset_files(manifest):
         if re.match(r"^https?://", src):
             continue
         dst = os.path.normpath(os.path.join(out, src.lstrip("/")))
         if not dst.startswith(os.path.normpath(out) + os.sep):
             return [f"asset src {src!r} points outside the output directory"], notes
-        put(os.path.relpath(dst, out))
         here = os.path.join(manifest_dir, src.lstrip("/"))
         if os.path.isfile(here):
-            shutil.copyfile(here, dst)
+            why = asset_problem(here)
+            if why:
+                return [f"asset {src}: {why}"], notes
+            plan.append((os.path.relpath(dst, out), ("copy", here)))
         elif placeholders:
-            placeholder(dst, w, h)
+            plan.append((os.path.relpath(dst, out), ("placeholder", (w, h))))
             notes.append(f"{src}: missing, wrote a placeholder gradient (never publish it)")
         else:
             notes.append(f"{src}: missing beside the manifest; the page will show a broken image")
@@ -1003,54 +1007,128 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
         if not here.startswith(os.path.normpath(manifest_dir) + os.sep) or not dst.startswith(os.path.normpath(out) + os.sep):
             return [f"icon {manifest['icon']!r} points outside the manifest's or the output's directory"], notes
         if os.path.isfile(here):
-            shutil.copyfile(here, put(os.path.relpath(dst, out)))
+            why = asset_problem(here)
+            if why:
+                return [f"icon {manifest['icon']}: {why}"], notes
+            plan.append((os.path.relpath(dst, out), ("copy", here)))
         else:
             notes.append(f"icon {manifest['icon']}: missing beside the manifest")
     for path, page_html in built.items():
-        with open(put(os.path.join(path.strip("/"), "index.html")), "w", encoding="utf-8") as f:
-            f.write(page_html)
+        plan.append((os.path.join(path.strip("/"), "index.html"), ("text", page_html)))
     if manifest.get("origin"):
         locs = [manifest["origin"] + base + p["path"].lstrip("/") for p in manifest["pages"] if not p.get("noindex")]
-        with open(put("sitemap.xml"), "w", encoding="utf-8") as f:
-            f.write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n')
-            f.write("".join(f"  <url><loc>{e(u)}</loc></url>\n" for u in locs))
-            f.write("</urlset>\n")
-    stale = sorted(set(previous) - set(written))
-    for rel in stale:
+        sitemap = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            + "".join(f"  <url><loc>{e(u)}</loc></url>\n" for u in locs)
+            + "</urlset>\n"
+        )
+        plan.append(("sitemap.xml", ("text", sitemap)))
+    plan = [(os.path.normpath(rel), how) for rel, how in plan]
+    # A file already at a planned path is overwritten only if it is what the
+    # last render wrote there, unchanged since: anything else is someone's.
+    theirs = [rel for rel, _ in plan if os.path.isfile(os.path.join(out, rel)) and previous.get(rel) != file_digest(os.path.join(out, rel))]
+    if theirs:
+        return [
+            f"--out {out} has {len(theirs)} file(s) at paths this render writes that the last render did not write, or that changed since "
+            f"({', '.join(theirs[:4])}{' …' if len(theirs) > 4 else ''}); move them, or render into a new folder"
+        ], notes
+    os.makedirs(out, exist_ok=True)
+    written = {}
+    for rel, (kind, arg) in plan:
+        dst = os.path.join(out, rel)
+        os.makedirs(os.path.dirname(dst) or out, exist_ok=True)
+        if kind == "copy":
+            shutil.copyfile(arg, dst)
+        elif kind == "placeholder":
+            placeholder(dst, *arg)
+        else:
+            with open(dst, "w", encoding="utf-8") as f:
+                f.write(arg)
+        written[rel] = file_digest(dst)
+    removed, kept = [], []
+    for rel in sorted(set(previous) - set(written)):
         f = os.path.normpath(os.path.join(out, rel))
-        if f.startswith(os.path.normpath(out) + os.sep) and os.path.isfile(f):
-            os.remove(f)
-            d = os.path.dirname(f)
-            while d != os.path.normpath(out) and os.path.isdir(d) and not os.listdir(d):
-                os.rmdir(d)
-                d = os.path.dirname(d)
-    if stale:
-        notes.append(f"removed {len(stale)} file(s) the last render wrote and this one does not: {', '.join(stale[:4])}{' …' if len(stale) > 4 else ''}")
-    with open(os.path.join(out, STAMP), "w", encoding="utf-8") as f:
-        json.dump({"files": sorted(set(written))}, f, indent=0)
+        if not f.startswith(os.path.normpath(out) + os.sep) or not os.path.isfile(f):
+            continue
+        if file_digest(f) != previous[rel]:
+            kept.append(rel)  # rewritten since, by hand or by another render: not ours to remove
+            continue
+        os.remove(f)
+        removed.append(rel)
+        d = os.path.dirname(f)
+        while d != os.path.normpath(out) and os.path.isdir(d) and not os.listdir(d):
+            os.rmdir(d)
+            d = os.path.dirname(d)
+    if removed:
+        notes.append(f"removed {len(removed)} file(s) the last render wrote and this one does not: {', '.join(removed[:4])}{' …' if len(removed) > 4 else ''}")
+    if kept:
+        notes.append(f"left {len(kept)} file(s) the last render wrote, because they changed since: {', '.join(kept[:4])}")
+    with open(stamp_path(out), "w", encoding="utf-8") as f:
+        json.dump({"files": written}, f, indent=0, sort_keys=True)
     return [], notes
 
 
-# The list of files a render wrote, kept in its output, so the next render can
-# remove a page that is gone from the manifest (and never a file it did not write).
-STAMP = ".block-site-render.json"
+def file_digest(path):
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def stamp_path(out):
+    """The record of what a render wrote: BESIDE the output folder (dist ->
+    .dist.block-site-render.json), so it is never published with the site."""
+    out = os.path.abspath(out)
+    return os.path.join(os.path.dirname(out), "." + os.path.basename(out) + ".block-site-render.json")
 
 
 def previous_render(out):
-    """(files the last render wrote here, None), or ([], why this directory is refused)."""
+    """({path: sha256} the last render wrote here, None), or ({}, why this folder is refused)."""
     if not os.path.isdir(out) or not os.listdir(out):
-        return [], None
+        return {}, None
     try:
-        with open(os.path.join(out, STAMP), encoding="utf-8") as f:
+        with open(stamp_path(out), encoding="utf-8") as f:
             files = json.load(f)["files"]
-        if isinstance(files, list) and all(isinstance(x, str) for x in files):
+        if isinstance(files, dict) and all(isinstance(k, str) and isinstance(v, str) for k, v in files.items()):
             return files, None
     except (OSError, ValueError, KeyError, TypeError):
         pass
-    return [], (
-        f"--out {out} already holds files this renderer did not write (no {STAMP}); give a new or empty directory. "
-        "A later render into it removes the pages it wrote that are gone from the manifest, and never touches your own files"
+    return {}, (
+        f"--out {out} already holds files this renderer did not write (no {os.path.basename(stamp_path(out))} beside it); "
+        "give a new or empty folder. A later render into it removes the pages it wrote that are gone from the manifest, "
+        "and never touches a file it did not write"
     )
+
+
+# Raster formats by their first bytes, and the text an SVG must not carry: an
+# asset is served from the site's own origin, so a page or a script named like
+# an image would run there.
+MAGIC = {
+    ".png": (b"\x89PNG\r\n\x1a\n",),
+    ".jpg": (b"\xff\xd8\xff",),
+    ".jpeg": (b"\xff\xd8\xff",),
+    ".gif": (b"GIF87a", b"GIF89a"),
+}
+
+
+def asset_problem(path):
+    """Why a file is not the image its name says, or None."""
+    ext = os.path.splitext(path)[1].lower()
+    with open(path, "rb") as f:
+        head = f.read(512)
+    if ext in MAGIC:
+        return None if head.startswith(MAGIC[ext]) else f"its bytes are not a {ext[1:].upper()} image"
+    if ext == ".webp":
+        return None if head[:4] == b"RIFF" and head[8:12] == b"WEBP" else "its bytes are not a WebP image"
+    if ext == ".avif":
+        return None if head[4:12] in (b"ftypavif", b"ftypavis") else "its bytes are not an AVIF image"
+    if ext == ".svg":
+        with open(path, encoding="utf-8", errors="replace") as f:
+            text = f.read()
+        if re.search(r"<\s*(script|foreignobject|iframe|object|embed)\b|\bon[a-z]+\s*=|javascript:|<!entity", text, re.IGNORECASE):
+            return "an SVG that carries script, an event handler or embedded HTML (it would run on the site's origin)"
+        return None
+    if ext == ".ico":
+        return None
+    return f"{ext or 'no extension'} is not an image type the site serves (jpg, png, webp, avif, gif, svg)"
 
 
 # ─── checks on the rendered HTML ─────────────────────────────────────────────
@@ -1059,8 +1137,15 @@ def previous_render(out):
 URL_ATTRS = {"href", "src", "action", "formaction", "poster", "cite", "data", "background", "ping", "longdesc", "manifest", "xlink:href", "codebase", "icon"}
 SRCSET_ATTRS = {"srcset", "imagesrcset"}
 SAFE_SCHEMES = {"https", "mailto", "tel"}
-CODE_TAGS = {"base", "object", "embed", "applet", "frame", "frameset", "portal"}
+CODE_TAGS = {"base", "object", "embed", "applet", "frame", "frameset", "portal", "template", "math", "xmp", "plaintext", "noembed", "noframes"}
+# Elements whose content a browser and this parser can read differently (raw
+# text in one, markup in the other: an SVG <title> holds HTML in a browser).
+HEAD_ONLY = {"title", "style", "meta", "link"}
+# Inside <svg>, drawing only: title, desc and foreignObject can hold HTML.
+SVG_OK = {"svg", "g", "path", "circle", "ellipse", "line", "polyline", "polygon", "rect", "defs", "lineargradient", "radialgradient", "stop", "clippath", "symbol", "use"}
 SCRIPT_SCHEME = re.compile(r"(?:java|vb|live)script:", re.IGNORECASE)
+TAGLIKE = re.compile(r"<[A-Za-z/!?]")
+HANDLER = re.compile(r"[\s/\"']on[a-z]+\s*=", re.IGNORECASE)
 
 
 def url_problem(url):
@@ -1077,29 +1162,56 @@ def url_problem(url):
 
 
 class _Audit(HTMLParser):
-    """Reads the page the way a browser does (attribute values with their
-    character references decoded, any quoting), and lists what could run code or
-    send a reader or their data to another site."""
+    """Reads the page the way a browser does (attribute values decoded, any
+    quoting, the first of two same-named attributes), lists what could run code
+    or send a reader or their data to another site, and refuses whatever this
+    parser and a browser could read differently: a duplicated attribute, text
+    that looks like a tag, a raw-text element outside <head>, an SVG element
+    that can hold HTML, a comment or declaration a browser ends elsewhere."""
 
     def __init__(self):
-        super().__init__(convert_charrefs=True)
+        super().__init__(convert_charrefs=False)
         self.found = []
-        self._style = False
-        self._script = None
+        self._raw = None  # the raw-text element we are inside
+        self._head = False
+        self._svg = 0
 
-    def handle_starttag(self, tag, attrs):
-        d = {k: (v or "") for k, v in attrs}
+    def _start(self, tag, attrs, closed):
+        raw = self.get_starttag_text() or ""
+        names = [k for k, _ in attrs]
+        dup = sorted({k for k in names if names.count(k) > 1})
+        if dup:
+            self.found.append(f"<{tag}> with {', '.join(dup)} twice (a browser uses the first, a checker may read the last)")
+        d = {}
+        for k, v in attrs:
+            d.setdefault(k, v or "")
+        if tag == "head":
+            self._head = True
+        elif tag == "body":
+            self._head = False
         if tag in CODE_TAGS:
             self.found.append(f"<{tag}>")
+        if tag in HEAD_ONLY and not self._head:
+            self.found.append(f"<{tag}> outside <head> (inside SVG it holds HTML; a block's CSS goes in blocks.css)")
+        if self._svg and tag not in SVG_OK:
+            self.found.append(f"<{tag}> inside <svg> (an icon is drawing elements only: title, desc and foreignObject can hold HTML)")
+        if tag == "use" and not (d.get("href") or d.get("xlink:href") or "").startswith("#"):
+            self.found.append("<use> of anything but an in-page #symbol")
+        if tag == "svg" and not closed:
+            self._svg += 1
         if tag == "script":
-            self._script = d.get("type", "")
-            if self._script != "application/ld+json":
+            if d.get("type", "") != "application/ld+json":
                 self.found.append("a <script> that is not JSON-LD")
         if tag == "meta" and d.get("http-equiv", "").lower() == "refresh":
             self.found.append("<meta http-equiv=refresh>")
-        if tag in ("animate", "set") and d.get("attributename", "").lower() in ("href", "xlink:href"):
-            self.found.append(f"<{tag}> that rewrites a link")
-        self._style = tag == "style"
+        if tag in ("script", "style", "title", "textarea") and not closed:
+            self._raw = tag
+        # The tag as written, decoded: whatever the attribute parse made of it.
+        flat = re.sub(r"[\t\n\r]", "", html.unescape(raw))
+        if SCRIPT_SCHEME.search(flat):
+            self.found.append(f"<{tag}> carries a javascript:, vbscript: or livescript: URL")
+        if HANDLER.search(flat) and not any(k.startswith("on") for k in d):
+            self.found.append(f"<{tag}> reads as carrying an event handler ({raw[:50]!r})")
         for k, v in d.items():
             if k.startswith("on"):
                 self.found.append(f"<{tag} {k}=…> (an event handler)")
@@ -1118,17 +1230,36 @@ class _Audit(HTMLParser):
             elif k == "style":
                 self._css(v, f"<{tag} style>")
 
-    handle_startendtag = handle_starttag
+    def handle_starttag(self, tag, attrs):
+        self._start(tag, attrs, False)
+
+    def handle_startendtag(self, tag, attrs):
+        self._start(tag, attrs, True)
 
     def handle_endtag(self, tag):
-        if tag == "style":
-            self._style = False
-        if tag == "script":
-            self._script = None
+        if tag == self._raw:
+            self._raw = None
+        if tag == "svg" and self._svg:
+            self._svg -= 1
+        if tag == "head":
+            self._head = False
 
     def handle_data(self, data):
-        if self._style:
+        if self._raw == "style":
             self._css(data, "<style>")
+        elif self._raw != "script" and TAGLIKE.search(data):
+            # This parser read it as text; a browser may read a tag there.
+            self.found.append(f"markup this check read as text, which a browser may read as a tag: {data[TAGLIKE.search(data).start():][:50]!r} (escape it)")
+
+    def handle_comment(self, data):
+        if "<" in data or "--!" in data or data.startswith(">") or data.startswith("->"):
+            self.found.append(f"a comment a browser may end elsewhere: {data[:40]!r}")
+
+    def handle_pi(self, data):
+        self.found.append(f"a processing instruction <?{data[:30]}")
+
+    def unknown_decl(self, data):
+        self.found.append(f"a declaration <![{data[:30]}")
 
     def _css(self, text, where):
         if "@import" in text.lower():
@@ -1145,13 +1276,9 @@ def unsafe_markup(page_html):
     audit = _Audit()
     audit.feed(page_html)
     audit.close()
-    found = list(audit.found)
-    # A parser can disagree with a browser on broken markup; a script scheme
-    # anywhere outside the JSON-LD, once decoded, is refused whatever the parse.
-    outside = re.sub(r'<script type="application/ld\+json">.*?</script>', "", page_html, flags=re.DOTALL)
-    if SCRIPT_SCHEME.search(re.sub(r"[\t\n\r]", "", html.unescape(outside))) and not any("script" in f for f in found):
-        found.append("a javascript:, vbscript: or livescript: URL")
-    return found
+    if audit.rawdata:
+        audit.found.append(f"markup left unread at the end of the page: {audit.rawdata[:40]!r}")
+    return list(audit.found)
 
 
 class _Doc(HTMLParser):
@@ -1404,6 +1531,40 @@ def self_test():
             bad["page-header"] = lambda p, ctx, extra=extra: f'<div><h1 id={a(ctx["hid"])}>{e(p["title"])}</h1>{extra}</div>'
             xprobs, _ = render(example, blocks, os.path.join(tmp, "x-" + str(abs(hash(what)))), KIT, placeholders=True, today="2026-10-27", renderers=bad)
             row(any(want in x for x in xprobs), f"must fail: a block function that writes {what}", "" if xprobs else "rendered")
+        # What a parser and a browser read differently is refused, not guessed at.
+        for what, extra, want in [
+            ("an attribute twice (a browser takes the first)", '<a href="//evil.example/" href="/visit/">x</a>', "twice"),
+            ("an image inside an SVG title (it runs in a browser)", '<svg viewBox="0 0 1 1"><title><img src=x onerror=alert(1)></title></svg>', "inside <svg>"),
+            ("a style element inside an SVG", '<svg viewBox="0 0 1 1"><style><img src=x onerror=alert(1)></style></svg>', "outside <head>"),
+            ("a comment a browser ends early", "<!--!><img src=x onerror=alert(1)>-->", "comment"),
+            ("an event handler after a slash", "<img/onerror=alert(1) src=x alt=\"\" width=1 height=1>", "event handler"),
+        ]:
+            bad = dict(RENDER)
+            bad["page-header"] = lambda p, ctx, extra=extra: f'<div><h1 id={a(ctx["hid"])}>{e(p["title"])}</h1>{extra}</div>'
+            xprobs, _ = render(example, blocks, os.path.join(tmp, "y-" + str(abs(hash(what)))), KIT, placeholders=True, today="2026-10-27", renderers=bad)
+            row(any(want in x for x in xprobs), f"must fail: a block function that writes {what}", "; ".join(xprobs[:2]) or "rendered")
+        okjs = copy.deepcopy(example)
+        okjs["pages"][1]["blocks"][2]["props"]["items"][0]["answer"] = "Yes. The menu works without JavaScript: every page is plain HTML."
+        jp, _ = render(okjs, blocks, os.path.join(tmp, "okjs"), KIT, placeholders=True, today="2026-10-27")
+        row(not jp, "positive: copy that mentions JavaScript: is text, not a URL", "; ".join(jp[:2]))
+        # An asset is served from the site's origin: it must be the image its name says.
+        adir = os.path.join(tmp, "assets-src")
+        os.makedirs(os.path.join(adir, "images"))
+        for name, data in [("page.jpg", b"<html><script>alert(1)</script>"), ("logo.svg", b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>')]:
+            with open(os.path.join(adir, "images", name), "wb") as f:
+                f.write(data)
+        for name, want in [("page.jpg", "not a JPG"), ("logo.svg", "carries script")]:
+            am = copy.deepcopy(example)
+            am["assets"]["counter"]["src"] = "images/" + name
+            am["assets"]["counter"].pop("sources", None)
+            ap, _ = render(am, blocks, os.path.join(tmp, "asset-" + name), adir, placeholders=True, today="2026-10-27")
+            row(any(want in x for x in ap), f"must fail: an asset that is not the image its name says ({name})", "; ".join(ap[:2]) or "rendered")
+        # Nested expiry paths are dropped too.
+        dp = drop_past({"days": [{"events": [{"date": "2026-10-01", "t": "old"}, {"date": "2026-11-01", "t": "new"}]}]}, ["days[].events[].date"], "2026-10-27")
+        row([x["t"] for x in dp["days"][0]["events"]] == ["new"], "a past item at a nested expires path (days[].events[].date) is dropped", json.dumps(dp))
+        # A gallery of three photos is never more than three columns wide.
+        three = sizes_for(dict(blocks["gallery-grid"]["media"][0], items=3), {"width": 1600, "height": 1200})
+        row(int(re.findall(r"\) (\d+)px", three)[0]) > 360, "gallery: three photos at 1280px are three columns (auto-fit collapses the fourth), and sizes says so", three)
         # A re-render removes the page that left the manifest, and only a file it wrote.
         rr = os.path.join(tmp, "rerender")
         render(example, blocks, rr, KIT, placeholders=True, today="2026-10-27")
@@ -1429,6 +1590,28 @@ def self_test():
             "a re-render removes a page gone from the manifest, and keeps a file it did not write",
             "; ".join(rprobs[:2]),
         )
+        # A page another writer replaced since is not removed; a file placed by hand
+        # where this render would write is not overwritten.
+        rr3 = os.path.join(tmp, "rerender3")
+        render(example, blocks, rr3, KIT, placeholders=True, today="2026-10-27")
+        with open(os.path.join(rr3, "contact", "index.html"), "w", encoding="utf-8") as f:
+            f.write("written by another render")
+        _, n3 = render(fewer, blocks, rr3, KIT, placeholders=True, today="2026-10-27")
+        row(
+            open(os.path.join(rr3, "contact", "index.html"), encoding="utf-8").read() == "written by another render" and any("changed since" in x for x in n3),
+            "a page another writer replaced since the last render is left, not removed",
+        )
+        rr4 = os.path.join(tmp, "rerender4")
+        render(fewer, blocks, rr4, KIT, placeholders=True, today="2026-10-27")
+        os.makedirs(os.path.join(rr4, "contact"))
+        with open(os.path.join(rr4, "contact", "index.html"), "w", encoding="utf-8") as f:
+            f.write("placed by hand")
+        p4, _ = render(example, blocks, rr4, KIT, placeholders=True, today="2026-10-27")
+        row(
+            any("did not write" in x for x in p4) and open(os.path.join(rr4, "contact", "index.html"), encoding="utf-8").read() == "placed by hand",
+            "must fail: a file placed by hand where a render would write is refused, untouched",
+        )
+        row(not os.path.exists(os.path.join(rr4, ".block-site-render.json")) and os.path.isfile(stamp_path(rr4)), "the record of what a render wrote sits beside the folder, never published with it")
         stranger = os.path.join(tmp, "stranger")
         os.makedirs(stranger)
         with open(os.path.join(stranger, "index.html"), "w", encoding="utf-8") as f:

@@ -375,8 +375,8 @@
           "src": {
             "type": "string",
             "maxLength": 300,
-            "pattern": "^(https://[^\\s\\\\]+|(?![A-Za-z][A-Za-z0-9+.-]*:)(?![/\\\\]{2})(?!(.*/)?\\.\\.(/|$))[^\\s\\\\?#]+)$",
-            "description": "A file path beside the manifest (images/x.jpg) or an https:// URL. Never //host, a backslash, .. or another scheme."
+            "pattern": "^(https://[^\\s\\\\]+|(?![A-Za-z][A-Za-z0-9+.-]*:)(?![/\\\\]{2})(?!(.*/)?\\.\\.(/|$))[^\\s\\\\?#]+\\.([jJ][pP][eE]?[gG]|[pP][nN][gG]|[wW][eE][bB][pP]|[aA][vV][iI][fF]|[gG][iI][fF]|[sS][vV][gG]))$",
+            "description": "An image file beside the manifest (images/x.jpg: jpg, png, webp, avif, gif or svg), or an https:// URL. Never //host, a backslash, .. or another scheme."
           },
           "alt": {
             "description": "Written while looking at the image. \"\" only for a decorative image.",
@@ -414,7 +414,7 @@
                 "src": {
                   "type": "string",
                   "maxLength": 300,
-                  "pattern": "^(https://[^\\s\\\\]+|(?![A-Za-z][A-Za-z0-9+.-]*:)(?![/\\\\]{2})(?!(.*/)?\\.\\.(/|$))[^\\s\\\\?#]+)$"
+                  "pattern": "^(https://[^\\s\\\\]+|(?![A-Za-z][A-Za-z0-9+.-]*:)(?![/\\\\]{2})(?!(.*/)?\\.\\.(/|$))[^\\s\\\\?#]+\\.([jJ][pP][eE]?[gG]|[pP][nN][gG]|[wW][eE][bB][pP]|[aA][vV][iI][fF]|[gG][iI][fF]|[sS][vV][gG]))$"
                 },
                 "width": {
                   "type": "integer",

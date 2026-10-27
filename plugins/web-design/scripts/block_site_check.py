@@ -104,11 +104,23 @@ def _rx(pattern):
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+\Z")
 
 
+ISO_DATE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
+
+
+def _real_date(value):
+    try:
+        datetime.date.fromisoformat(value)
+        return True
+    except ValueError:
+        return False
+
+
 def validate(schema, value, root=None, path="$"):
     """Return a list of 'path: message' strings. Supports: type, properties,
     required, additionalProperties (bool or schema), propertyNames, enum, const,
     minLength, maxLength, pattern, items, minItems, maxItems, uniqueItems,
-    minimum, maximum, $ref (#/$defs/...), format: email. Booleans never equal
+    minimum, maximum, $ref (#/$defs/...), format: email and date (and any
+    YYYY-MM-DD value must be a real date). Booleans never equal
     numbers, and patterns read ASCII to the true end of the string."""
     root = root if root is not None else schema
     errs = []
@@ -132,6 +144,10 @@ def validate(schema, value, root=None, path="$"):
             errs.append(f"{path}: {len(value)} characters, more than {schema['maxLength']}")
         if "pattern" in schema and not _rx(schema["pattern"]).search(value):
             errs.append(f"{path}: {json.dumps(value)} does not match {schema['pattern']}")
+        # A value shaped like a date is a real one: 2027-02-30 would pass any
+        # pattern, then crash whatever reads it as a date.
+        if (schema.get("format") == "date" or ISO_DATE.match(value)) and not _real_date(value):
+            errs.append(f"{path}: {json.dumps(value)} is not a real date (YYYY-MM-DD)")
         if schema.get("format") == "email" and not EMAIL.match(value):
             errs.append(f"{path}: {json.dumps(value)} is not an email address")
     if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -363,8 +379,12 @@ def check_catalog(catalog, block_schema):
 # ─── manifest ────────────────────────────────────────────────────────────────
 
 # Upper-case words only ('Todos Santos' is a place), and a template's slot
-# written as [Business Name] or <Street address>.
-PLACEHOLDER_CASED = re.compile(r"\b(TODO|TBD|TBC|XXX|FIXME)\b|\[[A-Z][A-Za-z .'/-]{1,40}\]|<[A-Z][A-Za-z .'/-]{1,40}>")
+# written as [Business Name] or <Street address>: a bracket that names a slot,
+# not [GF] on a menu or an editor's [They] in a quote.
+SLOT_WORDS = r"name|address|street|city|phone|email|business|company|date|title|description|insert|your|number|zip|postcode|state|price|link|url|image|photo|logo|tagline|headline|text|here"
+PLACEHOLDER_CASED = re.compile(
+    r"\b(TODO|TBD|TBC|XXX|FIXME)\b|[\[<](?=[^\]>]{0,40}\b(?i:" + SLOT_WORDS + r")\b)[A-Z][A-Za-z .'/-]{1,40}[\]>]"
+)
 PLACEHOLDER_ANY = re.compile(r"lorem ipsum|\{\{[^}]*\}\}|^\s*(n/a|\?+)\s*\Z", re.IGNORECASE)
 DARK = {"inverse", "media"}
 # How wide a frame on each grid line can be drawn, in CSS px, when its contract
@@ -707,6 +727,9 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
                     for href in _get(bl["props"], lp):
                         if isinstance(href, str) and not href.startswith(prefix):
                             problems.append(f"{at}: the {variant!r} variant's {lp} must be a {prefix} link, not {href[:60]!r}")
+            for spath, v in _strings(bl["props"], "props"):
+                if spath.endswith(".asOf") and ISO_DATE.match(v) and v > today:
+                    warnings.append(f"{at}: {spath} is {v}, after today; it is the day the facts were checked, which has to have come")
             for ref in b.get("expires") or []:
                 dates = [d for d in _get(bl["props"], ref) if isinstance(d, str)]
                 past = sorted(d for d in dates if d < today)
@@ -896,7 +919,30 @@ def _roles(block):
     return {m.group(1): " ".join(m.group(2).split()) for m in re.finditer(r"--([a-z0-9-]+):\s*([^;]+);", block)}
 
 
-ROOT_BLOCK = re.compile(r"(?<![\w\])-]):root\s*\{([^}]*)\}")
+def css_blocks(code):
+    """(selector, body, the at-rules around it) for every rule block in a
+    stylesheet with its comments stripped, nested @layer and @media included."""
+    out, stack, start = [], [], 0
+    for i, ch in enumerate(code):
+        if ch == "{":
+            stack.append((code[start:i].strip(), i + 1))
+            start = i + 1
+        elif ch == "}":
+            if stack:
+                prelude, body_at = stack.pop()
+                if not prelude.startswith("@"):
+                    out.append((prelude, code[body_at:i], tuple(p for p, _ in stack)))
+            start = i + 1
+        elif ch == ";":
+            start = i + 1
+    return out
+
+
+def _themed_blocks(code, selector):
+    """Bodies of the blocks whose selector is exactly `selector`, at the top
+    level or inside @layer only: a :root inside @media (prefers-contrast…) is
+    a mode, not the default theme, and must not mask it."""
+    return [body for sel, body, around in css_blocks(code) if sel == selector and all(a.startswith("@layer") for a in around)]
 
 
 def scheme_order(css):
@@ -906,8 +952,8 @@ def scheme_order(css):
     theme only). Unset reads as "light dark", which layout.css's reset declares."""
     code = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
     val = None
-    for m in ROOT_BLOCK.finditer(code):
-        found = re.search(r"(?:^|[;{\s])color-scheme\s*:\s*([^;}]+)", m.group(1))
+    for body in _themed_blocks(code, ":root"):
+        found = re.search(r"(?:^|[;{\s])color-scheme\s*:\s*([^;}]+)", body)
         if found:
             val = found.group(1)
     words = [w for w in (val or "light dark").split() if w in ("light", "dark")]
@@ -922,13 +968,13 @@ def token_themes(css):
     code = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
     order = scheme_order(css)
     base = {}
-    for m in ROOT_BLOCK.finditer(code):
-        base.update(_roles(m.group(1)))
+    for body in _themed_blocks(code, ":root"):
+        base.update(_roles(body))
     themes = {order[0]: base}
     for alt in order[1:]:
         over = {}
-        for m in re.finditer(r':root\[data-theme="' + alt + r'"\]\s*\{([^}]*)\}', code):
-            over.update(_roles(m.group(1)))
+        for body in _themed_blocks(code, f':root[data-theme="{alt}"]'):
+            over.update(_roles(body))
         themes[alt] = dict(base, **over) if over else {}
     return themes
 
@@ -1349,6 +1395,8 @@ def self_test():
     row(any('no [data-theme="light"] roles' in x for x in np_), "must fail (tokens): color-scheme promises a light theme that is not written", "; ".join(np_[:2]))
     op, _ = check_tokens(":root { color-scheme: dark light; " + decl(dk, dk) + " }\n" + ':root[data-theme="light"] { ' + alt_light + " }\n")
     row(any("nothing on a rendered page sets" in x for x in op), "must fail (tokens): an alternate theme only under [data-theme], which no reader's system selects", "; ".join(op[:2]))
+    masked, _ = check_tokens(css.replace("--ink-muted: #55565e;", "--ink-muted: #9a9a9a;", 1) + "\n@media (prefers-contrast: more) { :root { --ink-muted: #333; } }\n")
+    row(any("--ink-muted" in x for x in masked), "must fail (tokens): a :root inside @media (a mode) does not stand in for the default theme it would mask", "; ".join(masked[:2]))
     ok_turn, _ = check_tokens(css.replace("--accent: #2f5bd3;", "--accent: hsl(0.62turn 64% 50%);", 1))
     row(not any("cannot read" in b for b in ok_turn), "tokens: an hsl() hue in turn units is read, not a crash", "; ".join(ok_turn[:2]))
     row(parse_color("hsl(nonsense 1 2)") is None, "tokens: an unreadable colour is reported, not a crash")
@@ -1559,6 +1607,16 @@ def self_test():
         mm["assets"]["counter"].update(width=600, height=1600)
         _, w = check_manifest(mm, blocks, mschema)
         row(any("loses" in x for x in w), "warns: a crop that loses most of the image")
+        manifest_case("an asset that is not an image file (images/menu.html, served from the site's origin)", lambda m: m["assets"]["counter"].update(src="images/menu.html"), "does not match")
+        manifest_case("an impossible date (Feb 30)", lambda m: m["pages"][3]["blocks"][1]["props"].update(asOf="2026-02-30"), "not a real date")
+        gf = copy.deepcopy(example)
+        gf["pages"][3]["blocks"][1]["props"]["items"][0]["detail"] = "[GF] [VG] with grits"
+        gp, _ = check_manifest(gf, blocks, mschema)
+        row(not gp, "positive: dietary codes in brackets ([GF] [VG]) are copy, not a template slot", "; ".join(gp[:2]))
+        fa = copy.deepcopy(example)
+        fa["pages"][3]["blocks"][1]["props"]["asOf"] = "2099-01-01"
+        _, fw = check_manifest(fa, blocks, mschema)
+        row(any("after today" in x for x in fw), "warns: prices checked on a day that has not come (asOf in the future)")
         C = lambda m: m["pages"][2]["blocks"][1]["props"]  # noqa: E731  (the contact form)
         manifest_case("a form that posts to /\\host (a browser reads it as //host, another site)", lambda m: C(m).update(action="/\\collector.example/leads"), "never an #anchor")
         manifest_case("a link with a tab in it (a browser drops it: /<tab>/host is //host)", lambda m: m["chrome"]["nav"][0].update(href="/\t/x.example"), "control character")

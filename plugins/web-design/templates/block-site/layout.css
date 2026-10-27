@@ -105,6 +105,13 @@
 
 /* ─── primitives: intrinsic layouts every block composes from ───────────────── */
 @layer primitives {
+  /* A text link takes the accent, the role the tokens gate scores for links on
+     every surface (a band re-points it); nav, footer and button links set their
+     own in @layer blocks. Without this they took the browser's blue. */
+  :where(a:not(.button)) {
+    color: var(--accent);
+    text-underline-offset: 0.15em;
+  }
   body {
     background: var(--canvas);
     color: var(--ink);
@@ -593,7 +600,7 @@
       --rule: darkgray;
       --field-border: dimgray;
       --accent: black;
-      --on-accent: white;
+      --on-accent: black;
       --on-inverse: black;
       --on-inverse-muted: dimgray;
       --inverse-surface: white;
@@ -621,6 +628,18 @@
     }
     [data-tone="media"] {
       min-block-size: auto !important;
+    }
+    /* Paper drops backgrounds (unless a reader asks for them), so nothing may
+       rely on one: every text prints black, on nothing. A tag on --accent with
+       --on-accent text printed white on white. */
+    *,
+    *::before,
+    *::after {
+      background-color: transparent !important;
+      background-image: none !important;
+      color: black !important;
+      text-shadow: none !important;
+      box-shadow: none !important;
     }
     /* A text link prints its address; a button does not (the address would
        squeeze its label inside the outline, "Get di-rec-tion s"). */

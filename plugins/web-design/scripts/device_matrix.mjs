@@ -631,6 +631,12 @@ const PHOTO_SAMPLE = (b64, cands, dpr) => `(async () => {
 // sticky bar), a mask fades it out, or it is drawn off its clipping box. Pixels,
 // because no element hit-test sees a pseudo-element, a mask or a partial cover.
 const INK_FIND = `(async () => {
+  // A focused control can move (a skip link slides in on focus): nothing is
+  // focused, and every finite transition has ended, before a word is found.
+  if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+  for (const an of document.getAnimations()) {
+    try { if (an.effect && an.effect.getComputedTiming().endTime !== Infinity) an.finish(); } catch (e) {}
+  }
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
   for (const img of document.images) if (img.loading === 'lazy') img.loading = 'eager';
   await Promise.race([
@@ -659,7 +665,8 @@ const INK_FIND = `(async () => {
   };
   const cv = document.createElement('canvas'); cv.width = cv.height = 1;
   const cx = cv.getContext('2d', { willReadFrequently: true });
-  const alphaOf = (css) => { cx.clearRect(0, 0, 1, 1); cx.fillStyle = '#000'; cx.fillStyle = css; cx.fillRect(0, 0, 1, 1); return cx.getImageData(0, 0, 1, 1).data[3] / 255; };
+  const rgbaOf = (css) => { cx.clearRect(0, 0, 1, 1); cx.fillStyle = '#000'; cx.fillStyle = css; cx.fillRect(0, 0, 1, 1); const d = cx.getImageData(0, 0, 1, 1).data; return [d[0], d[1], d[2], d[3] / 255]; };
+  const alphaOf = (css) => rgbaOf(css)[3];
   const clipTo = (el, q) => {
     for (let a = el; a && a !== document.body; a = a.parentElement) {
       const cs = getComputedStyle(a);
@@ -692,7 +699,9 @@ const INK_FIND = `(async () => {
         if (q.r - q.l < 3 || q.b - q.t < 6) continue;
         if (!els.has(el)) {
           els.set(el, meta.length);
-          meta.push({ where: path(el), text: el.textContent.trim().replace(/\\s+/g, ' ').slice(0, 40) });
+          const size = parseFloat(cs.fontSize), weight = Number(cs.fontWeight) || 400;
+          meta.push({ where: path(el), text: el.textContent.trim().replace(/\\s+/g, ' ').slice(0, 40),
+            fill: rgbaOf(cs.webkitTextFillColor || cs.color), large: size >= 24 || (size >= 18.66 && weight >= 700), clip });
           el.setAttribute('data-dm-ink', '');
           if (clip) el.setAttribute('data-dm-ink-clip', '');
         }
@@ -723,6 +732,18 @@ const INK_UNHIDE = `(() => { for (const s of document.querySelectorAll('style[da
 // over R, G and B); a word is seen when enough of its box is ink.
 const INK_DELTA = 48;
 const INK_SHARE = 0.015;
+// A word whose strongest pixel reaches less than this share of the luminance
+// step its colour should make, and lands under its contrast bar, is faint.
+// Whole-pixel stems reach 0.9 and more; a 40% white veil leaves 0.6.
+const FAINT_REACH = 0.75;
+const LIN_TABLE = Array.from({ length: 256 }, (_, v) => {
+  v /= 255;
+  return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+});
+const lum = ([r, g, b]) =>
+  0.2126 * LIN_TABLE[Math.round(r)] +
+  0.7152 * LIN_TABLE[Math.round(g)] +
+  0.0722 * LIN_TABLE[Math.round(b)];
 
 /** Words on this page that no reader can see. Returns findings. */
 async function textInk(page, stats) {
@@ -732,8 +753,13 @@ async function textInk(page, stats) {
   const scratch = await page.context().newPage();
   const seen = new Uint8Array(words.length);
   const scored = new Uint8Array(words.length);
-  const shot = () =>
-    page.screenshot({ type: "png", scale: "css", animations: "disabled", caret: "hide" });
+  // text-faint: the best each word measured, over every capture it is whole in.
+  const reach = new Float64Array(words.length).fill(-1);
+  const drawnAt = new Float64Array(words.length).fill(-1);
+  // At the device's own pixel ratio: a glyph's stem is then whole pixels, so
+  // its strongest pixel shows the colour it is really drawn in (text-faint).
+  const dpr = await page.evaluate("devicePixelRatio");
+  const shot = () => page.screenshot({ type: "png", animations: "disabled", caret: "hide" });
   const scrollAt = async (y) =>
     page.evaluate(
       `(async () => { scrollTo({ left: 0, top: ${y}, behavior: 'instant' }); await ${FRAME}; return scrollY; })()`,
@@ -790,6 +816,12 @@ async function textInk(page, stats) {
             const a = px(A),
               b = px(B);
             const k = A.width / W;
+            const LIN = Array.from({ length: 256 }, (_, v) => {
+              v /= 255;
+              return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            });
+            const Y = (d, j) =>
+              0.2126 * LIN[d[j]] + 0.7152 * LIN[d[j + 1]] + 0.0722 * LIN[d[j + 2]];
             const out = [];
             for (const [i, l, t, r, bt] of list) {
               const x0 = Math.max(0, Math.floor(l * k)),
@@ -797,11 +829,29 @@ async function textInk(page, stats) {
               const y0 = Math.max(0, Math.floor(t * k)),
                 y1 = Math.min(A.height, Math.ceil(bt * k));
               let n = 0,
-                area = 0;
+                area = 0,
+                step = -1,
+                la = 0,
+                lb = 0,
+                lo = 1,
+                hi = 0;
+              const hist = [new Uint32Array(256), new Uint32Array(256), new Uint32Array(256)];
               for (let y = y0; y < y1; y++)
                 for (let x = x0; x < x1; x++) {
                   const j = (y * A.width + x) * 4;
                   area++;
+                  const ya = Y(a, j),
+                    yb = Y(b, j);
+                  if (Math.abs(ya - yb) > step) {
+                    step = Math.abs(ya - yb);
+                    la = ya;
+                    lb = yb;
+                  }
+                  lo = Math.min(lo, yb);
+                  hi = Math.max(hi, yb);
+                  hist[0][b[j]]++;
+                  hist[1][b[j + 1]]++;
+                  hist[2][b[j + 2]]++;
                   if (
                     Math.abs(a[j] - b[j]) +
                       Math.abs(a[j + 1] - b[j + 1]) +
@@ -810,7 +860,12 @@ async function textInk(page, stats) {
                   )
                     n++;
                 }
-              out.push([i, n, area]);
+              const median = (h) => {
+                let c = 0;
+                for (let v = 0; v < 256; v++) if ((c += h[v]) * 2 >= area) return v;
+                return 255;
+              };
+              out.push([i, n, area, la, lb, hist.map(median), hi - lo, y1 - y0]);
             }
             return { k, kh: A.height / H, out };
           },
@@ -823,14 +878,31 @@ async function textInk(page, stats) {
             delta: INK_DELTA,
           },
         );
-        // ⛔ A capture that is not the viewport puts every word somewhere else.
-        if (Math.abs(res.k - 1) > 0.05 || Math.abs(res.kh - 1) > 0.05)
+        // ⛔ A capture that is not the viewport at the device's ratio puts every word
+        // somewhere else.
+        if (Math.abs(res.k - dpr) > 0.05 || Math.abs(res.kh - dpr) > 0.05)
           throw new Error(
-            `the ink capture is ${res.k}x the viewport: every text-hidden reading would be misplaced`,
+            `the ink capture is ${res.k}x the viewport at dpr ${dpr}: every text-hidden reading would be misplaced`,
           );
-        for (const [i, n, area] of res.out) {
+        for (const [i, n, area, la, lb, bg, spread, tall] of res.out) {
           scored[i] = 1;
           if (n >= Math.max(3, Math.ceil(area * INK_SHARE))) seen[i] = 1;
+          const m = meta[words[i].e];
+          // On a flat background, in glyphs tall enough to have whole pixels: how
+          // much of the step from background to text colour the strongest pixel
+          // reaches. A veil, an opacity or a filter over the text lowers it.
+          if (m.clip || spread > 0.2 || tall < 24) continue;
+          const [fr, fg, fb, fa] = m.fill;
+          const want = Math.abs(
+            lum([
+              fa * fr + (1 - fa) * bg[0],
+              fa * fg + (1 - fa) * bg[1],
+              fa * fb + (1 - fa) * bg[2],
+            ]) - lum(bg),
+          );
+          if (want < 0.02) continue;
+          reach[i] = Math.max(reach[i], Math.abs(la - lb) / want);
+          drawnAt[i] = Math.max(drawnAt[i], (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05));
         }
       }
     } finally {
@@ -851,11 +923,31 @@ async function textInk(page, stats) {
     if (!byEl.has(q.e)) byEl.set(q.e, []);
     byEl.get(q.e).push(q.w);
   });
-  return [...byEl].map(([e, ws]) => ({
-    id: "text-hidden",
+  const faint = new Map();
+  words.forEach((q, i) => {
+    if (!seen[i] || reach[i] < 0) return;
+    stats.faintWords++;
+    const need = meta[q.e].large ? 3 : 4.5;
+    if (reach[i] < FAINT_REACH && drawnAt[i] < need) {
+      if (!faint.has(q.e)) faint.set(q.e, []);
+      faint.get(q.e).push([q.w, drawnAt[i], reach[i]]);
+    }
+  });
+  const faintFindings = [...faint].map(([e, ws]) => ({
+    id: "text-faint",
     where: meta[e].where,
-    msg: `${ws.length} word(s) of "${meta[e].text}" are never drawn where a reader can see them, wherever the page is scrolled: "${ws.slice(0, 6).join(" ")}"${ws.length > 6 ? " …" : ""} (covered by an element or a ::before/::after layer, masked, or faded out)`,
+    msg: `${ws.length} word(s) of "${meta[e].text}" are drawn at about ${Math.min(...ws.map((x) => x[1])).toFixed(2)}:1 against what is behind them, under the ${meta[e].large ? 3 : 4.5}:1 they need: their strongest pixel reaches ${Math.round(Math.min(...ws.map((x) => x[2])) * 100)}% of the step their colour should make, so something over them fades them (a veil, an opacity, a filter): "${ws
+      .slice(0, 5)
+      .map((x) => x[0])
+      .join(" ")}"`,
   }));
+  return faintFindings.concat(
+    [...byEl].map(([e, ws]) => ({
+      id: "text-hidden",
+      where: meta[e].where,
+      msg: `${ws.length} word(s) of "${meta[e].text}" are never drawn where a reader can see them, wherever the page is scrolled: "${ws.slice(0, 6).join(" ")}"${ws.length > 6 ? " …" : ""} (covered by an element or a ::before/::after layer, masked, or faded out)`,
+    })),
+  );
 }
 
 // ─── print ───────────────────────────────────────────────────────────────────
@@ -882,6 +974,12 @@ async function printPass(browser, url) {
     const page = await ctx.newPage();
     await load(page, url);
     await page.emulateMedia({ media: "print" });
+    // Paper drops backgrounds; emulation paints them. Drop them as paper does,
+    // so text that relied on one is measured on white.
+    await page.addStyleTag({
+      content:
+        ":root *,:root *::before,:root *::after{background-color:transparent!important;background-image:none!important}html{background:#fff!important}",
+    });
     await page.evaluate(SETTLE);
     const { findings } = await page.evaluate(
       `${PROBE}\n;layoutProbe(${JSON.stringify({ expectedWidth: PRINT.w, skip: PRINT_SKIP })})`,
@@ -978,7 +1076,7 @@ async function runMatrix({
   const findings = [];
   const notes = new Set();
   const photoStats = { photoTexts: 0, photoUnscored: 0, minPhoto: Infinity, minPhotoAt: "" };
-  const inkStats = { inkWords: 0, inkUnscored: 0 };
+  const inkStats = { inkWords: 0, inkUnscored: 0, faintWords: 0 };
   let states = 0;
   try {
     // Breakpoint edges from the first URL's own CSS.
@@ -1133,7 +1231,7 @@ async function runMatrix({
       );
     if (inkStats.inkWords || inkStats.inkUnscored)
       notes.add(
-        `text-hidden: ${inkStats.inkWords} word placement(s) checked for ink${inkStats.inkUnscored ? `; ${inkStats.inkUnscored} not checked (wider or taller than the viewport, or off it)` : ""}`,
+        `text-hidden: ${inkStats.inkWords} word placement(s) checked for ink, ${inkStats.faintWords} on a flat background measured for text-faint${inkStats.inkUnscored ? `; ${inkStats.inkUnscored} not checked (wider or taller than the viewport, or off it)` : ""}`,
       );
     if (print)
       notes.add(
@@ -1874,6 +1972,16 @@ async function selfTest(chromium, launch) {
       },
     },
     {
+      why: "a white veil at 85% over a card's copy (it reads at about 1.4:1)",
+      expect: "text-faint",
+      html: {
+        head: `<style>.veiled { position: relative; } .veiled::after { content: ""; position: absolute; inset: 0; background: rgb(255 255 255 / 0.85); pointer-events: none; }</style>`,
+        extra: sec(
+          `<div class="card veiled stack"><h3>Weekend brunch</h3><p>Served from nine until two on Saturdays and Sundays.</p></div>`,
+        ),
+      },
+    },
+    {
       why: "a mask that fades the second paragraph out",
       html: {
         extra: sec(
@@ -1892,7 +2000,7 @@ async function selfTest(chromium, launch) {
       extra: sec(
         `<div class="stack"><h2 style="background: linear-gradient(90deg, #7c2d12, #1e3a8a); -webkit-background-clip: text; background-clip: text; color: transparent">A heading drawn in its gradient</h2>` +
           `<p>Cheers 🍺🍻 from the taproom</p><p><span class="visually-hidden">Read only by a screen reader</span>Seen by everyone</p>` +
-          `<div class="card" style="position: relative"><p>Under a light veil that still shows the words</p><span aria-hidden="true" style="position: absolute; inset: 0; background: rgb(255 255 255 / 0.4)"></span></div>` +
+          `<div class="card" style="position: relative"><p>Under a light veil that still shows the words</p><span aria-hidden="true" style="position: absolute; inset: 0; background: rgb(255 255 255 / 0.1)"></span></div>` +
           `<p>${PROSE} ${PROSE} ${PROSE}</p></div>`,
       ),
     }),
@@ -2153,11 +2261,11 @@ async function selfTest(chromium, launch) {
       for (const [i, m] of INK_CASES.entries()) {
         for (const vp of ["iphone", "laptop"]) {
           const { ctx, pg } = await at(vp, `${origin}/ink${i}.html`);
-          const st = { inkWords: 0, inkUnscored: 0 };
+          const st = { inkWords: 0, inkUnscored: 0, faintWords: 0 };
           const f = await textInk(pg, st);
           row(
-            f.some((x) => x.id === "text-hidden"),
-            `must fail: text-hidden (${m.why}) @ ${vp}`,
+            f.some((x) => x.id === (m.expect || "text-hidden")),
+            `must fail: ${m.expect || "text-hidden"} (${m.why}) @ ${vp}`,
             `${st.inkWords} words checked; got ${f.map((x) => x.msg).join(" | ") || "nothing"}`,
           );
           await ctx.close();
@@ -2165,11 +2273,11 @@ async function selfTest(chromium, launch) {
       }
       for (const vp of ["reflow-320", "iphone", "laptop"]) {
         const { ctx, pg } = await at(vp, `${origin}/ink-ok.html`);
-        const st = { inkWords: 0, inkUnscored: 0 };
+        const st = { inkWords: 0, inkUnscored: 0, faintWords: 0 };
         const f = await textInk(pg, st);
         row(
           !f.length && st.inkWords > 50,
-          `must pass: text-hidden look-alikes (a sticky header, a skip link, a gradient-clipped heading, emoji, a visually-hidden span, a light veil) @ ${vp}`,
+          `must pass: text-hidden and text-faint look-alikes (a sticky header, a skip link, a gradient-clipped heading, emoji, a visually-hidden span, a 10% veil, small muted text) @ ${vp}`,
           f.map((x) => `${x.where}: ${x.msg}`).join(" | ") || `only ${st.inkWords} words checked`,
         );
         await ctx.close();
