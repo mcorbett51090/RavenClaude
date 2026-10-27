@@ -42,7 +42,10 @@
  *   grid-span       a grid with zero-width columns: items span tracks the grid does
  *                   not define (a container query that cannot match, because the
  *                   grid IS the container it queries)
- *   nav-wrap        a row of navigation links broken onto more than one line
+ *   nav-wrap        a row of navigation links broken onto more than one line, or
+ *                   a site header's items (brand, nav, action) on more than one row
+ *   word-broken     a figure ($125,000, 12:30) or a word no hyphenation can split,
+ *                   broken across lines by overflow-wrap: its box is too narrow
  *   image-broken    an image that did not load
  *   image-distorted an image stretched off its natural aspect ratio (object-fit: fill)
  *   image-upscaled  the file is enlarged to fill its box at min(DPR, 2)x: blurry
@@ -58,6 +61,9 @@
  *                   scores that on composited pixels (photo-contrast).
  *   focus-hidden    a focusable element with no visible focus indicator
  *   focus-clipped   its focus ring is cut off by a clipping ancestor
+ *   focus-contrast  its focus ring is under 3:1 against what it is drawn on
+ *   field-contrast  a form control's edge (border or fill) is under 3:1 against
+ *                   what it sits on (SC 1.4.11)
  *   anchor-obscured an in-page link's target lands under a fixed or sticky bar
  *   covered         content at the end of the page stays under a fixed bar
  *   layout-shift    cumulative layout shift above opts.clsThreshold (needs the
@@ -206,6 +212,26 @@ async function layoutProbe(options) {
     const lb = lum(b);
     return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
   };
+  const opacity = (el) => {
+    let a = 1;
+    for (let e = el; e && e !== document.documentElement; e = e.parentElement)
+      a *= Number(cs(e).opacity);
+    return a;
+  };
+  // The flat colour behind an element: its own and its ancestors' backgrounds,
+  // composited down to the first opaque one (white if none is).
+  const backdrop = (el) => {
+    const layers = [];
+    for (let e = el; e; e = e.parentElement) {
+      const c = rgba(cs(e).backgroundColor);
+      if (c[3] > 0) layers.push(c);
+      if (c[3] >= 1) break;
+    }
+    let base = [255, 255, 255, 1];
+    for (let i = layers.length - 1; i >= 0; i--) base = over(layers[i], base);
+    return base;
+  };
+  const forced = matchMedia("(forced-colors: active)").matches;
   const run = async (id, fn) => {
     if (skip.has(id)) return;
     try {
@@ -677,7 +703,89 @@ async function layoutProbe(options) {
           `${links.length} links broken over ${tops.size} lines: collapse it into a menu below this width`,
         );
     }
+    // A site header is one row (brand, nav, action): an item wrapping under the
+    // others means the nav should have become a menu at a wider width.
+    for (const hdr of document.querySelectorAll("header, [role='banner']")) {
+      if (!visible(hdr) || hdr.closest("main, article, section")) continue;
+      for (const row of hdr.querySelectorAll("*")) {
+        const s = cs(row);
+        if (
+          !/flex/.test(s.display) ||
+          s.flexDirection.startsWith("column") ||
+          s.flexWrap === "nowrap"
+        )
+          continue;
+        if (row.closest("nav") || !visible(row)) continue;
+        const kids = [...row.children]
+          .filter((k) => visible(k) && !["absolute", "fixed"].includes(cs(k).position))
+          .map((k) => k.getBoundingClientRect())
+          .sort((a, b) => a.top - b.top);
+        if (kids.length < 2) continue;
+        v++;
+        let lines = 1;
+        let bottom = kids[0].bottom;
+        for (const r of kids.slice(1)) {
+          if (r.top >= bottom - 1) {
+            lines++;
+            bottom = r.bottom;
+          } else bottom = Math.max(bottom, r.bottom);
+        }
+        if (lines > 1)
+          add(
+            "nav-wrap",
+            row,
+            `the header's ${kids.length} items broke onto ${lines} rows: the nav should become a menu below this width`,
+          );
+      }
+    }
     stats.checked["nav-wrap"] = v;
+  });
+
+  // ── word-broken: a figure, or a word no hyphenation can split, broken across
+  //    lines ("$125,0" / "00"). overflow-wrap: anywhere breaks anything that does
+  //    not fit; a box that narrow is the defect. ──────────────────────────────
+  await run("word-broken", () => {
+    // Scripts written without spaces break between characters by design.
+    const spaceless =
+      /[\u0e00-\u0eff\u1000-\u109f\u1100-\u11ff\u1780-\u17ff\u2e80-\ua4cf\uac00-\ud7af\uf900-\ufaff\ufe30-\ufe4f\uff00-\uffef]/;
+    const range = document.createRange();
+    let n = 0;
+    for (const el of textOwners()) {
+      const s = cs(el);
+      const hyphenates = s.hyphens === "auto" || s.webkitHyphens === "auto";
+      for (const node of el.childNodes) {
+        if (node.nodeType !== 3) continue;
+        for (const m of node.nodeValue.matchAll(/\S+/g)) {
+          const w = m[0];
+          if (w.length < 2 || w.length > 24 || spaceless.test(w)) continue;
+          // A word a hyphenation dictionary can split gets a hyphen where it breaks.
+          if (hyphenates && !/\d/.test(w)) continue;
+          n++;
+          range.setStart(node, m.index);
+          range.setEnd(node, m.index + w.length);
+          const rects = [...range.getClientRects()].filter((r) => r.width > 0);
+          if (rects.length < 2) continue;
+          const top0 = rects[0].top;
+          const half = rects[0].height / 2;
+          if (!rects.some((r) => Math.abs(r.top - top0) > half)) continue;
+          let at = -1;
+          for (let i = 1; i < w.length && at < 0; i++) {
+            range.setStart(node, m.index + i);
+            range.setEnd(node, m.index + i + 1);
+            const r = range.getClientRects()[0];
+            if (r && Math.abs(r.top - top0) > half) at = i;
+          }
+          // After a hyphen, dash or slash is an ordinary place to break a line.
+          if (at > 0 && /[-\u2010-\u2014/]/.test(w[at - 1])) continue;
+          add(
+            "word-broken",
+            el,
+            `"${w}" is split across lines${at > 0 ? ` after "${w.slice(0, at)}"` : ""}: its box is too narrow for it at this size (give it room, or keep a figure whole with white-space: nowrap)`,
+          );
+        }
+      }
+    }
+    stats.checked["word-broken"] = n;
   });
 
   // ── images ───────────────────────────────────────────────────────────────
@@ -847,24 +955,6 @@ async function layoutProbe(options) {
       const r = m.getBoundingClientRect();
       if (r.width >= 48 && r.height >= 48) media.push({ el: m, r });
     }
-    const opacity = (el) => {
-      let a = 1;
-      for (let e = el; e && e !== document.documentElement; e = e.parentElement)
-        a *= Number(cs(e).opacity);
-      return a;
-    };
-    const backdrop = (el) => {
-      const layers = [];
-      for (let e = el; e; e = e.parentElement) {
-        const c = rgba(cs(e).backgroundColor);
-        if (c[3] > 0) layers.push(c);
-        if (c[3] >= 1) break;
-      }
-      let base = [255, 255, 255, 1];
-      for (let i = layers.length - 1; i >= 0; i--) base = over(layers[i], base);
-      return base;
-    };
-    const forced = matchMedia("(forced-colors: active)").matches;
     let n = 0;
     for (const el of textOwners()) {
       if (el.closest("[data-tone='media']") || el.matches(":disabled")) continue;
@@ -910,6 +1000,36 @@ async function layoutProbe(options) {
         );
     }
     stats.checked["text-contrast"] = n;
+  });
+
+  // ── field-contrast: a form control's edge against what it sits on ────────
+  await run("field-contrast", () => {
+    if (forced) return; // the browser draws controls in system colours
+    let n = 0;
+    const sel =
+      "input:not([type=hidden],[type=checkbox],[type=radio],[type=range],[type=color],[type=submit],[type=button],[type=reset],[type=image],[type=file]),select,textarea";
+    for (const f of document.querySelectorAll(sel)) {
+      if (!visible(f) || f.disabled || f.closest("[data-tone='media']")) continue;
+      n++;
+      const s = cs(f);
+      const outside = backdrop(f.parentElement);
+      const fill = over(rgba(s.backgroundColor), outside);
+      // The edge that identifies the control: its border (on its fill), or its
+      // fill against the page, whichever shows more.
+      let edge = ratio(fill, outside);
+      for (const side of ["Top", "Right", "Bottom", "Left"]) {
+        if ((parseFloat(s[`border${side}Width`]) || 0) < 1) continue;
+        const b = over(rgba(s[`border${side}Color`]), fill);
+        edge = Math.max(edge, ratio(b, outside));
+      }
+      if (edge < 3 - 0.005)
+        add(
+          "field-contrast",
+          f,
+          `its edge is ${edge.toFixed(2)}:1 against what it sits on, needs 3:1: a reader cannot see where to type (SC 1.4.11)`,
+        );
+    }
+    stats.checked["field-contrast"] = n;
   });
 
   // ── layout-shift ─────────────────────────────────────────────────────────
@@ -1086,6 +1206,13 @@ async function layoutProbe(options) {
     for (const el of els) {
       el.focus({ focusVisible: true });
       if (document.activeElement !== el || !el.matches(":focus-visible")) continue;
+      // The ring may be transitioning in (under reduced motion the kit gives every
+      // property a 0.01ms transition): read it at its end, not at its start.
+      for (const an of document.getAnimations()) {
+        const t = an.effect && an.effect.target;
+        if (t && (t === el || t.contains(el)) && an.effect.getComputedTiming().endTime !== Infinity)
+          an.finish();
+      }
       n++;
       // The ring may be drawn on the element or, for a linked photo, on its frame.
       let owner = null;
@@ -1106,6 +1233,18 @@ async function layoutProbe(options) {
         continue;
       }
       const os = cs(owner);
+      if (!forced && !owner.closest("[data-tone='media']")) {
+        // An outline is drawn outside the box (offset >= 0), on the parent's colour.
+        const behind = backdrop(parseFloat(os.outlineOffset) >= 0 ? owner.parentElement : owner);
+        const ring = over(rgba(os.outlineColor), behind);
+        const r = ratio(ring, behind);
+        if (r < 3 - 0.005)
+          add(
+            "focus-contrast",
+            el,
+            `its focus ring is ${r.toFixed(2)}:1 against what it is drawn on, needs 3:1 (SC 1.4.11)`,
+          );
+      }
       const grow = parseFloat(os.outlineOffset) + parseFloat(os.outlineWidth);
       const or = owner.getBoundingClientRect();
       const ring = { l: or.left - grow, r: or.right + grow, t: or.top - grow, b: or.bottom + grow };

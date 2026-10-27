@@ -300,7 +300,10 @@ def check_catalog(catalog, block_schema):
         if tone.get("allowed") and tone.get("default") not in tone["allowed"]:
             problems.append(f"{where}: tone.default {tone.get('default')!r} is not in tone.allowed")
         paths = prop_paths(props)
-        for key in ("assetProps", "linkProps"):
+        for v in b.get("variantLinks") or {}:
+            if v not in (b.get("variants") or []):
+                problems.append(f"{where}: variantLinks names {v!r}, which is not one of its variants")
+        for key in ("assetProps", "linkProps", "endpointProps"):
             for ref in b.get(key) or []:
                 if ref not in paths:
                     problems.append(f"{where}: {key} names {ref!r}, which is not a prop")
@@ -327,8 +330,42 @@ DARK = {"inverse", "media"}
 SLOT_MAX_WIDTH = {"full": 1280, "wide": 1440, "content": 1152, "half-content": 576, "third-content": 384}
 DENSITY = 2  # sources are sized for 2x; above 2x the eye cannot tell, and apple.com caps there too
 PORTRAIT_MAX_WIDTH = 480  # the renderer serves a portrait crop at (max-width: 30em) and (orientation: portrait)
+ENDPOINT = re.compile(r"^(https://[^\s#]+|/[^\s#]*)\Z")
 SAFE_HREF = re.compile(r"^(/|#|https://|mailto:[^@\s]+@|tel:\+?[0-9][0-9 ()-]{3,})")
 DAY_ORDER = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
+EXTENSION = re.compile(r"\s*(?:ext\.?|x)\s*([0-9]{1,6})\Z", re.IGNORECASE)
+# Primary language subtags written right to left; a script subtag (-Arab, -Latn…) wins.
+RTL_LANGS = {"ar", "arc", "ckb", "dv", "fa", "he", "ks", "ps", "sd", "ug", "ur", "yi"}
+
+
+def phone_parts(phone):
+    """(number, extension) of a phone as printed: number keeps a leading + and its
+    digits only, so tel: dials exactly it; extension is its digits or ''."""
+    m = EXTENSION.search(phone)
+    ext, main = (m.group(1), phone[: m.start()]) if m else ("", phone)
+    digits = re.sub(r"[^0-9]", "", main)
+    return ("+" if main.strip().startswith("+") else "") + digits, ext
+
+
+def same_number(tel_href, phone):
+    """True when a tel: link dials the business's number: the same digits, allowing
+    one side to carry the country code the other leaves out."""
+    a = re.sub(r"[^0-9]", "", re.split(r"[;,]", tel_href[4:], maxsplit=1)[0])
+    b = re.sub(r"[^0-9]", "", phone_parts(phone)[0])
+    return min(len(a), len(b)) >= 7 and (a.endswith(b) or b.endswith(a))
+
+
+def text_direction(lang, explicit=None):
+    """The dir a page gets: the manifest's own, else the language's script."""
+    if explicit:
+        return explicit
+    parts = lang.split("-")
+    scripts = {p.title() for p in parts[1:] if len(p) == 4}
+    if scripts & {"Arab", "Hebr", "Thaa", "Syrc", "Nkoo", "Adlm", "Rohg"}:
+        return "rtl"
+    if scripts:
+        return "ltr"
+    return "rtl" if parts[0].lower() in RTL_LANGS else "ltr"
 
 
 def _get(props, path):
@@ -372,16 +409,28 @@ def check_hours(business):
     for i, h in enumerate(business.get("hours") or []):
         o, c = _minutes(h["opens"]), _minutes(h["closes"])
         if o == c:
-            problems.append(f"business.hours[{i}]: opens and closes at the same time ({h['opens']}); leave a closed day out instead")
+            problems.append(
+                f"business.hours[{i}]: opens and closes at the same time ({h['opens']}); leave a closed day out, "
+                "or write open all day as 00:00 to 23:59"
+            )
             continue
-        end = c if c > o else 24 * 60  # a window past midnight runs to the end of its day
         for d in h["days"]:
-            for j, (o2, e2) in windows[d]:
-                if o < e2 and o2 < end:
-                    problems.append(f"business.hours[{i}]: {d} overlaps business.hours[{j}]")
-            windows[d].append((i, (o, end)))
+            # A window past midnight runs to the end of its day, then on into the next.
+            spans = [(d, o, c if c > o else 24 * 60)]
+            if c < o:
+                spans.append((DAY_ORDER[(DAY_ORDER.index(d) + 1) % 7], 0, c))
+            for day, start, end in spans:
+                for j, (o2, e2) in windows[day]:
+                    if j != i and start < e2 and o2 < end:
+                        problems.append(f"business.hours[{i}]: {day} overlaps business.hours[{j}]")
+                windows[day].append((i, (start, end)))
     seen = set()
     for i, sp in enumerate(business.get("specialHours") or []):
+        try:
+            datetime.date.fromisoformat(sp["date"])
+        except ValueError:
+            problems.append(f"business.specialHours[{i}]: {sp['date']} is not a real date")
+            continue
         if sp["date"] in seen:
             problems.append(f"business.specialHours[{i}]: {sp['date']} is listed twice")
         seen.add(sp["date"])
@@ -413,6 +462,13 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
     for dup in sorted({p for p in paths if paths.count(p) > 1}):
         problems.append(f"page path {dup} appears more than once")
     problems += check_hours(business)
+    if business.get("phone"):
+        number, _ext = phone_parts(business["phone"])
+        if not 7 <= len(number.lstrip("+")) <= 15:
+            problems.append(
+                f"business.phone {business['phone']!r} has {len(number.lstrip('+'))} digits; a number has 7 to 15 "
+                "(write a vanity number in digits, and an extension as 'ext. 12')"
+            )
     for i, sp in enumerate(business.get("specialHours") or []):
         if sp["date"] < today:
             warnings.append(f"business.specialHours[{i}]: {sp['date']} ({sp['label']}) has passed; remove it")
@@ -422,6 +478,13 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
             return
         if not SAFE_HREF.match(href):
             problems.append(f"{at}: {where} is {href[:60]!r}; a link is a path (/…), an in-page #anchor, https://, mailto: or a tel: number")
+            return
+        if href.startswith("tel:"):
+            # One source for the number: a typed copy goes stale when the business's changes.
+            if not business.get("phone"):
+                problems.append(f"{at}: {where} calls {href}, but the business facts list no phone")
+            elif not same_number(href, business["phone"]):
+                problems.append(f"{at}: {where} calls {href}, not the business's phone {business['phone']!r}")
             return
         if href.startswith("/") and not href.startswith("//"):
             target = href.split("#")[0].split("?")[0]
@@ -448,10 +511,16 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
     ):
         warnings.append("chrome links to an email address the business facts do not list")
 
+    for spath, s in _strings(chrome, "chrome"):
+        if PLACEHOLDER_CASED.search(s) or PLACEHOLDER_ANY.search(s):
+            problems.append(f"{spath} holds placeholder text {s[:40]!r}")
     decorative_ok = set()
     content_use = set()
     for page in manifest["pages"]:
         where = f"page {page['path']}"
+        for key in ("title", "description"):
+            if PLACEHOLDER_CASED.search(page[key]) or PLACEHOLDER_ANY.search(page[key]):
+                problems.append(f"{where}: {key} holds placeholder text {page[key][:40]!r}")
         seq = page["blocks"]
         anchors = {bl["anchor"] for bl in seq if "anchor" in bl} | {"main"}
         names = [bl["anchor"] for bl in seq if "anchor" in bl]
@@ -528,6 +597,17 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
             for lp in b.get("linkProps") or []:
                 for href in _get(bl["props"], lp):
                     check_href(at, lp, href, anchors)
+            variant = bl.get("variant", (b.get("variants") or [None])[0])
+            prefix = (b.get("variantLinks") or {}).get(variant)
+            if prefix:
+                for lp in b.get("linkProps") or []:
+                    for href in _get(bl["props"], lp):
+                        if isinstance(href, str) and not href.startswith(prefix):
+                            problems.append(f"{at}: the {variant!r} variant's {lp} must be a {prefix} link, not {href[:60]!r}")
+            for ep in b.get("endpointProps") or []:
+                for url in _get(bl["props"], ep):
+                    if isinstance(url, str) and not ENDPOINT.match(url):
+                        problems.append(f"{at}: {ep} is {url[:60]!r}; a form posts to https:// or a path on this site, never an #anchor, mailto: or tel:")
             if i > 0:
                 prev = seq[i - 1]
                 pb = blocks.get(prev["type"])
@@ -613,10 +693,28 @@ def _oklab_to_srgb(L, a, b):
     return tuple(min(255.0, max(0.0, enc(min(1.0, max(0.0, c))) * 255)) for c in lin)
 
 
+HUE_UNIT = {"deg": 1.0, "turn": 360.0, "grad": 0.9, "rad": 180 / math.pi, "": 1.0}
+
+
+def _hue(tok):
+    m = re.fullmatch(r"(-?[\d.]+)(deg|turn|grad|rad|)", tok.strip())
+    if not m:
+        raise ValueError(tok)
+    return float(m.group(1)) * HUE_UNIT[m.group(2)]
+
+
 def parse_color(value, roles=None, depth=0):
     """A CSS colour value to (r, g, b, alpha) in 0-255, or None if it is not one this reads.
-    Reads #hex, rgb()/rgba(), hsl()/hsla(), oklch(), oklab() and var(--role). Out-of-gamut
-    oklch is clipped to sRGB, as a browser without a wide-gamut screen paints it."""
+    Reads #hex, rgb()/rgba(), hsl()/hsla(), oklch(), oklab() and var(--role), with any hue
+    unit. Out-of-gamut oklch is clipped to sRGB, as a browser without a wide-gamut screen
+    paints it."""
+    try:
+        return _parse_color(value, roles, depth)
+    except (ValueError, IndexError, ZeroDivisionError):
+        return None
+
+
+def _parse_color(value, roles, depth):
     v = value.strip().lower()
     m = re.fullmatch(r"var\(--([a-z0-9-]+)\)", v)
     if m and roles is not None and depth < 8 and m.group(1) in roles:
@@ -648,7 +746,7 @@ def parse_color(value, roles=None, depth=0):
     if fn.startswith("hsl"):
         if len(parts) == 4:
             alpha = _num(parts.pop())
-        h, sat, light = float(parts[0].replace("deg", "")) % 360, _num(parts[1]), _num(parts[2])
+        h, sat, light = _hue(parts[0]) % 360, _num(parts[1]), _num(parts[2])
         c = (1 - abs(2 * light - 1)) * sat
         x = c * (1 - abs((h / 60) % 2 - 1))
         r, g, b = [(c, x, 0), (x, c, 0), (0, c, x), (0, x, c), (x, 0, c), (c, 0, x)][int(h // 60) % 6]
@@ -658,7 +756,7 @@ def parse_color(value, roles=None, depth=0):
         return None
     L = _num(parts[0])
     if fn == "oklch":
-        C, H = _num(parts[1], 0.4), float(parts[2].replace("deg", ""))
+        C, H = _num(parts[1], 0.4), _hue(parts[2])
         a, b = C * math.cos(math.radians(H)), C * math.sin(math.radians(H))
     else:
         a, b = _num(parts[1], 0.4), _num(parts[2], 0.4)
@@ -674,14 +772,16 @@ def _roles(block):
 
 
 def token_themes(css):
-    """{'light': roles, 'dark': roles}: the first :root block in @layer tokens, then
-    the dark overrides laid over it. Values are raw text; parse_color reads colours."""
+    """{'light': roles, 'dark': roles}: every plain :root block in file order (a later
+    one overrides an earlier, as the cascade does), then every [data-theme="dark"]
+    block laid over them. Values are raw text; parse_color reads colours."""
     code = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
-    light_m = re.search(r":root\s*\{([^}]*)\}", code)
-    dark_m = re.search(r':root\[data-theme="dark"\]\s*\{([^}]*)\}', code)
-    light = _roles(light_m.group(1)) if light_m else {}
-    dark = dict(light, **_roles(dark_m.group(1))) if dark_m else {}
-    return {"light": light, "dark": dark}
+    light, dark = {}, {}
+    for m in re.finditer(r"(?<![\w\])-]):root\s*\{([^}]*)\}", code):
+        light.update(_roles(m.group(1)))
+    for m in re.finditer(r':root\[data-theme="dark"\]\s*\{([^}]*)\}', code):
+        dark.update(_roles(m.group(1)))
+    return {"light": light, "dark": dict(light, **dark) if dark else {}}
 
 
 def check_tokens(css):
@@ -776,7 +876,10 @@ def _text(n, mode):
     return s[0].upper() + s[1:] if s else s
 
 
-def gen(schema, mode, path, block):
+FIXTURE_LINK = {"tel:": "tel:+12515550100", "https://": "https://example.com/", "/": "/", "mailto:": "mailto:hello@example.com"}
+
+
+def gen(schema, mode, path, block, variant=None):
     t = schema.get("type")
     if "const" in schema:
         return schema["const"]
@@ -784,8 +887,11 @@ def gen(schema, mode, path, block):
         return schema["enum"][0 if mode == "min" else -1]
     if path in (block.get("assetProps") or []):
         return "stress-photo"
+    if path in (block.get("endpointProps") or []):
+        return "https://forms.example.com/stress"
     if path in (block.get("linkProps") or []):
-        return "#main"
+        prefix = (block.get("variantLinks") or {}).get(variant)
+        return FIXTURE_LINK.get(prefix, "#main")
     if t == "object":
         out = {}
         req = set(schema.get("required", []))
@@ -794,12 +900,12 @@ def gen(schema, mode, path, block):
                 continue
             if k == "variant":
                 continue
-            out[k] = gen(v, mode, f"{path}.{k}" if path else k, block)
+            out[k] = gen(v, mode, f"{path}.{k}" if path else k, block, variant)
         return out
     if t == "array":
         n = schema.get("minItems", 1) if mode == "min" else schema.get("maxItems", 3)
         item_path = f"{path}[]"
-        return [gen(schema.get("items", {"type": "string", "maxLength": 20}), mode, item_path, block) for _ in range(max(n, 0))]
+        return [gen(schema.get("items", {"type": "string", "maxLength": 20}), mode, item_path, block, variant) for _ in range(max(n, 0))]
     if t == "string":
         if "pattern" in schema:
             if "%" in schema["pattern"]:
@@ -849,9 +955,10 @@ def make_fixtures(blocks, today=None):
     pages = []
     for bid, b in sorted(blocks.items()):
         for mode in ("min", "max", "long", "rtl"):
-            blk = {"type": bid, "props": gen(b["props"], mode, "", b)}
-            if b.get("variants"):
-                blk["variant"] = b["variants"][0 if mode == "min" else -1]
+            variant = b["variants"][0 if mode == "min" else -1] if b.get("variants") else None
+            blk = {"type": bid, "props": gen(b["props"], mode, "", b, variant)}
+            if variant:
+                blk["variant"] = variant
             seq = [blk]
             if b.get("headingLevel") != 1:
                 lead = next((x for x, xb in sorted(blocks.items()) if xb.get("headingLevel") == 1), None)
@@ -985,6 +1092,11 @@ def self_test():
     row(any("dark: --focus" in b for b in bad), "must fail (tokens): a dark-theme focus ring that vanishes on the dark canvas")
     bad, _ = check_tokens(css.replace("--accent: #8fb0ff;", "--accent: #8fb1ff;", 1))
     row(any("disagree" in b for b in bad), "must fail (tokens): the two copies of the dark theme drifted apart")
+    bad, _ = check_tokens(css + "\n:root { --field-border: #e2e2e6; --focus: #e9e9ee; }\n")
+    row(any("--field-border" in b for b in bad) and any("--focus" in b for b in bad), "must fail (tokens): a later :root block that overrides a role (every :root is read, in order)")
+    ok_turn, _ = check_tokens(css.replace("--accent: #2f5bd3;", "--accent: hsl(0.62turn 64% 50%);", 1))
+    row(not any("cannot read" in b for b in ok_turn), "tokens: an hsl() hue in turn units is read, not a crash", "; ".join(ok_turn[:2]))
+    row(parse_color("hsl(nonsense 1 2)") is None, "tokens: an unreadable colour is reported, not a crash")
 
     tmp = tempfile.mkdtemp(prefix="block-site-check-")
     try:
@@ -1091,6 +1203,31 @@ def self_test():
         manifest_case("two srcset candidates of one width", lambda m: m["assets"]["counter"]["sources"].append({"src": "x.jpg", "width": 800}), "share a width")
         manifest_case("a path with a trailing newline", lambda m: m["pages"][1].update(path="/visit/\n"), "does not match")
         manifest_case("a date in another script's digits", lambda m: m["business"]["specialHours"][0].update(date="٢٠٢٦-١١-٢٦"), "does not match")
+        manifest_case("a date that is not in the calendar", lambda m: m["business"]["specialHours"][0].update(date="2026-11-31"), "not a real date")
+        manifest_case(
+            "an overnight window that runs into the next day's",
+            lambda m: m["business"].update(hours=[{"days": ["Fr"], "opens": "18:00", "closes": "02:00"}, {"days": ["Sa"], "opens": "00:30", "closes": "03:00"}]),
+            "Sa overlaps",
+        )
+        manifest_case("a vanity phone number (tel: would dial its digits only)", lambda m: m["business"].update(phone="1-800-FLOWERS"), "does not match")
+        manifest_case("a tel: link to a number that is not the business's", lambda m: m["business"].update(phone="(251) 555-0199"), "not the business's phone")
+        manifest_case("a tel: link with no phone in the facts", lambda m: m["business"].pop("phone"), "list no phone")
+
+        def call_to_page(m):
+            cta = next(b for b in B(m) if b["type"] == "cta-banner")
+            cta.update(variant="call")
+            cta["props"]["action"] = {"label": "Call us now", "href": "/visit/"}
+
+        manifest_case("a 'call' variant whose button opens a page", call_to_page, "must be a tel: link")
+
+        def form_to_anchor(m):
+            next(b for p in m["pages"] for b in p["blocks"] if b["type"] == "contact-form")["props"]["action"] = "#main"
+
+        manifest_case("a form that posts to an in-page anchor", form_to_anchor, "a form posts to")
+        manifest_case("placeholder text in a page title", lambda m: m["pages"][0].update(title="TODO home title"), "title holds placeholder")
+        manifest_case("placeholder text in the chrome", lambda m: m["chrome"]["action"].update(label="XXX call"), "chrome.action.label holds placeholder")
+        ok_ext, _ = check_manifest({**copy.deepcopy(example), "business": {**example["business"], "phone": "(251) 555-0100 ext. 12"}}, blocks, mschema)
+        row(not ok_ext, "positive: a phone with an extension is a valid fact, and the tel: links still match it", "; ".join(ok_ext[:2]))
         mm = copy.deepcopy(example)
         mm["assets"]["counter"].update(width=1100, height=825)
         _, w = check_manifest(mm, blocks, mschema)
@@ -1160,6 +1297,7 @@ def main(argv):
             print("block_site_check fixtures: the catalog fails its own check; run `catalog` first")
             return 1
         fx = make_fixtures(blocks)
+        os.makedirs(os.path.dirname(os.path.abspath(argv[3])), exist_ok=True)
         with open(argv[3], "w", encoding="utf-8") as f:
             json.dump(fx, f, ensure_ascii=False, indent=2)
             f.write("\n")

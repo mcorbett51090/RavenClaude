@@ -154,7 +154,22 @@
       "uniqueItems": true
     },
     "linkProps": {
-      "description": "Prop paths whose values are links, internal ones checked against the manifest's pages.",
+      "description": "Prop paths whose values are links, internal ones checked against the manifest's pages. A tel: link must dial the business's own phone.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "variantLinks": {
+      "description": "What a variant promises about its links: variant name to the prefix every linkProps value must start with when that variant is chosen, e.g. {\"call\": \"tel:\"}. A 'call' button that opens a page is a lie the label tells.",
+      "type": "object",
+      "additionalProperties": {
+        "enum": ["tel:", "mailto:", "https://", "/"]
+      }
+    },
+    "endpointProps": {
+      "description": "Prop paths whose values are where a form posts: https:// or a path on this site (not necessarily a page). Never an #anchor, mailto: or tel:.",
       "type": "array",
       "items": {
         "type": "string"

@@ -61,7 +61,8 @@ Every step ends at a gate that must pass before the next one starts.
 5. **Write the manifest from verified facts** (`site-manifest.schema.json`). Anything you cannot verify goes in
    `ownerTodos`, never in a rendered field. Write image alt text while looking at each image, and give every asset its
    real `width`/`height`, a focal point, smaller `sources` of the same crop for `srcset`, and a `portrait` crop for a
-   full-bleed photo that crops badly on a phone.
+   full-bleed photo that crops badly on a phone. Write the phone as printed, in digits (`(251) 555-0100 ext. 12`):
+   every `tel:` link on the site must dial it. Set `lang`; `dir` follows the language's script unless you set it.
    - **Gate:** `block_site_check.py manifest site.manifest.json --catalog site/catalog.json`. Read its warnings too:
      they include any photo too small, at 2x, for the box it is drawn in.
 6. **Render** with `block_site_render.py render site.manifest.json --catalog site/catalog.json --out dist`, or with
@@ -113,8 +114,9 @@ How to read a row:
 
 The **site header and footer** are not blocks. They come from the manifest's `chrome` (a nav of ≤ 6 links of
 ≤ 20 characters, one action, ≤ 8 footer links) and its `business` facts, and are the same on every page. The header's
-nav becomes a menu below the width its links need. The renderer works that width out from the labels, and the device
-matrix's `nav-wrap` check proves it.
+nav becomes a menu below the width its links need. The renderer works that width out from the labels, in rem (so it
+moves with a reader's font size) and counting wide glyphs such as Japanese at 1em, and the device matrix's `nav-wrap`
+check proves it, header row included.
 
 Rules every block follows (checked by `block_site_check.py` and `layout-probe.js`, not just written here):
 
@@ -127,6 +129,11 @@ Rules every block follows (checked by `block_site_check.py` and `layout-probe.js
 5. **Media declares its ratio, its slot and the largest box it is drawn in.** Together they decide its frame, its
    `sizes`, and the smallest source that stays sharp at 2x.
 6. **A block that renders a business fact `requires` it**, so a page cannot ship an empty hours table.
+7. **Links keep their promises.** `linkProps` are checked against the pages and anchors, and a `tel:` link must dial
+   the business's phone. `variantLinks` holds a variant to its label (`{"call": "tel:"}`), and `endpointProps` (where
+   a form posts) must be https:// or a path, never an `#anchor`.
+8. **A figure is never split across lines.** Keep it whole (`white-space: nowrap`) and let its row stack first; the
+   probe's `word-broken` check reports one that breaks.
 
 ## Block anatomy
 
@@ -146,7 +153,8 @@ Rules every block follows (checked by `block_site_check.py` and `layout-probe.js
 ```
 
 - `data-block` is the block id from its contract, and `blocks.css` keys on it. `data-tone` is one of `canvas`,
-  `surface`, `inverse` or `media`. `data-space` is one of `s`, `l` or `none`; absent means `m`.
+  `surface`, `inverse` or `media`. `data-space` is one of `s` or `l`; absent means `m`. `none` exists only for a
+  block whose contract declares it (a band designed to abut its neighbour); a manifest cannot choose it.
 - A slot is on `content` by default. Use `data-slot="wide"` or `data-slot="full"` for wider lines, and
   `data-slot="backdrop"` for a photo behind a `media` block.
 - A slot may itself be a layout primitive that does not query its own width (a `.switcher`, a `.cluster`). A

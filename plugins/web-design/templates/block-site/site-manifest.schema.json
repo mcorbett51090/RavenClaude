@@ -20,6 +20,10 @@
       "type": "string",
       "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
     },
+    "dir": {
+      "description": "Text direction of the site. Left out, it follows the language: rtl for Arabic, Hebrew, Persian, Urdu and the other right-to-left scripts, ltr otherwise. A page's own dir wins.",
+      "enum": ["ltr", "rtl"]
+    },
     "origin": {
       "description": "Where the site is served, e.g. https://www.example.com. Gives every page a canonical URL and the JSON-LD its url; without it both are left out.",
       "type": "string",
@@ -55,8 +59,10 @@
           "pattern": "^[A-Z][A-Za-z]+$"
         },
         "phone": {
+          "description": "As printed on the page: digits, spaces and + ( ) - . only, then an optional extension ('ext. 12' or 'x12'). Every tel: link must dial it; the renderer's tel: dials the number without the extension, which the page shows. Write a vanity number (1-800-FLOWERS) in digits.",
           "type": "string",
-          "maxLength": 30
+          "maxLength": 30,
+          "pattern": "^\\+?\\(?[0-9][0-9 ().-]{4,22}[0-9]( ?(ext\\.?|x) ?[0-9]{1,6})?$"
         },
         "email": {
           "type": "string",
@@ -344,7 +350,8 @@
                   "enum": ["canvas", "surface", "inverse", "media"]
                 },
                 "space": {
-                  "enum": ["s", "m", "l", "none"]
+                  "description": "Section rhythm for this instance. 'none' is not offered here: a block that is designed to abut its neighbour declares it in its contract.",
+                  "enum": ["s", "m", "l"]
                 },
                 "props": {
                   "type": "object"

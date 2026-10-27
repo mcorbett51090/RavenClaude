@@ -263,6 +263,20 @@
     grid-column: content;
     min-inline-size: 0; /* a grid item's min-content must never widen the page */
   }
+  /* 2. viewport-fit=cover (the renderer's viewport) hands the page the whole
+     screen. The side insets widen the gutter above; the header and footer pad
+     themselves past the notch and the home indicator, so their bands still run
+     under them. */
+  body > header[data-block] {
+    padding-block-start: calc(
+      var(--section-space, var(--section-m)) + env(safe-area-inset-top, 0px)
+    );
+  }
+  body > footer[data-block] {
+    padding-block-end: calc(
+      var(--section-space, var(--section-m)) + env(safe-area-inset-bottom, 0px)
+    );
+  }
   [data-block] > [data-slot="wide"] {
     grid-column: wide;
   }
@@ -551,7 +565,8 @@
       --on-inverse-muted: dimgray;
       --inverse-surface: white;
     }
-    [data-block] {
+    [data-block],
+    body > :is(header, footer)[data-block] {
       padding-block: 1.5rem;
       break-inside: avoid-page;
       background: none !important;

@@ -41,6 +41,8 @@ import re
 import shutil
 import sys
 import tempfile
+import unicodedata
+import urllib.parse
 from html.parser import HTMLParser
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -89,10 +91,17 @@ def hours_rows(business, lang):
         while j + 1 < 7 and sorted(windows[check.DAY_ORDER[j + 1]]) == w:
             j += 1
         label = DAY_NAME[d] if i == j else f"{DAY_NAME[d]} – {DAY_NAME[check.DAY_ORDER[j]]}"
-        value = ", ".join(f"{clock(o, lang)} – {clock(c, lang)}" for o, c in w) if w else "Closed"
+        value = ", ".join(window(o, c, lang) for o, c in w) if w else "Closed"
         rows.append((label, value))
         i = j + 1
     return rows
+
+
+def window(opens, closes, lang):
+    # 00:00 to 23:59 is how schema.org (and Google) write open all day.
+    if (opens, closes) == ("00:00", "23:59"):
+        return "Open 24 hours"
+    return f"{clock(opens, lang)} – {clock(closes, lang)}"
 
 
 def special_rows(business, lang):
@@ -100,7 +109,7 @@ def special_rows(business, lang):
     for sp in business.get("specialHours") or []:
         date = datetime.date.fromisoformat(sp["date"])
         when = f"{sp['label']} ({date.strftime('%b')} {date.day})"
-        out.append((when, "Closed" if sp.get("closed") else f"{clock(sp['opens'], lang)} – {clock(sp['closes'], lang)}"))
+        out.append((when, "Closed" if sp.get("closed") else window(sp["opens"], sp["closes"], lang)))
     return out
 
 
@@ -114,8 +123,31 @@ def address_lines(addr):
 
 
 def tel_href(phone):
-    digits = re.sub(r"[^0-9+]", "", phone)
-    return "tel:" + digits
+    """The number without its extension: a dialer that does not understand an
+    extension parameter would otherwise dial its digits as part of the number. The
+    page shows the extension (phone_text)."""
+    return "tel:" + check.phone_parts(phone)[0]
+
+
+def phone_text(phone):
+    """A phone number as text, isolated left to right: in a right-to-left page the
+    bidi algorithm would otherwise reorder its digit groups and mirror its brackets."""
+    return f'<span dir="ltr">{e(phone)}</span>'
+
+
+PHONE_RUN = re.compile(r"\+?\(?[0-9][0-9 ().-]{4,}[0-9]")
+
+
+def label(text, rtl):
+    """An author's label: escaped, and on a right-to-left page any phone-shaped run
+    isolated left to right, as phone_text does for the business's own number."""
+    if not rtl:
+        return e(text)
+    out, at = "", 0
+    for m in PHONE_RUN.finditer(text):
+        out += e(text[at : m.start()]) + f'<span dir="ltr">{e(m.group(0))}</span>'
+        at = m.end()
+    return out + e(text[at:])
 
 
 def json_ld(manifest, page_url):
@@ -252,7 +284,7 @@ def b_hero_full(p, ctx):
         out += f'<p class="lede">{e(p["lede"])}</p>'
     if p.get("actions"):
         out += '<div class="cluster">' + "".join(
-            f'<a class="button"{GHOST if x.get("kind") == "ghost" else ""} href={a(x["href"])}>{e(x["label"])}</a>'
+            f'<a class="button"{GHOST if x.get("kind") == "ghost" else ""} href={a(x["href"])}>{label(x["label"], ctx["rtl"])}</a>'
             for x in p["actions"]
         ) + "</div>"
     return out + "</div>"
@@ -298,7 +330,13 @@ def b_story_split(p, ctx):
 
 
 def b_stats_band(p, ctx):
-    out = f'<div><h2 id={a(ctx["hid"])}>{e(p["heading"])}</h2></div><div><dl class="switcher" style="--switch-at: 36rem">'
+    # The row needs every figure whole (blocks.css keeps each on one line): n figures
+    # of the longest value's width at --step-4 (0.65em a character, wide glyphs 1em),
+    # plus the gaps between them. Narrower than that, the band stacks.
+    n = len(p["items"])
+    widest = max(text_em(it["value"], 0.65) for it in p["items"])
+    switch = f"max(36rem, {n} * {widest:.2f} * var(--step-4) + {n - 1} * var(--space-l))"
+    out = f'<div><h2 id={a(ctx["hid"])}>{e(p["heading"])}</h2></div><div><dl class="switcher" style={a("--switch-at: " + switch)}>'
     for it in p["items"]:
         out += (
             f'<div class="stat"><dt class="muted">{e(it["label"])}</dt><dd class="stat__value">{e(it["value"])}</dd>'
@@ -327,14 +365,14 @@ def b_hours_location(p, ctx):
     b = m["business"]
     lines = address_lines(b["address"])
     query = ", ".join(lines + [b["address"]["countryCode"]])
-    maps = "https://www.google.com/maps/search/?api=1&query=" + re.sub(r"\s+", "+", query.replace("&", "and"))
+    maps = "https://www.google.com/maps/search/?" + urllib.parse.urlencode({"api": "1", "query": query})
     out = f'<div class="switcher" style="--switch-at: 40rem"><div class="stack"><h2 id={a(ctx["hid"])}>{e(p["heading"])}</h2>'
     out += "<address>" + "<br>".join(e(x) for x in lines) + "</address>"
     if p.get("note"):
         out += f'<p class="muted">{e(p["note"])}</p>'
     out += f'<div class="cluster"><a class="button" href={a(maps)}>Get directions<span class="visually-hidden"> (opens a map)</span></a>'
     if b.get("phone"):
-        out += f'<a class="button" data-variant="ghost" href={a(tel_href(b["phone"]))}>Call {e(b["phone"])}</a>'
+        out += f'<a class="button" data-variant="ghost" href={a(tel_href(b["phone"]))}>Call {phone_text(b["phone"])}</a>'
     out += '</div></div><div class="stack"><dl class="hours">'
     out += "".join(f"<div><dt>{e(lab)}</dt><dd>{e(val)}</dd></div>" for lab, val in hours_rows(b, lang)) + "</dl>"
     special = special_rows(b, lang)
@@ -369,7 +407,7 @@ def b_contact_form(p, ctx):
 
 
 def b_cta_banner(p, ctx):
-    return f'<div class="cluster"><h2 id={a(ctx["hid"])}>{e(p["heading"])}</h2><a class="button" href={a(p["action"]["href"])}>{e(p["action"]["label"])}</a></div>'
+    return f'<div class="cluster"><h2 id={a(ctx["hid"])}>{e(p["heading"])}</h2><a class="button" href={a(p["action"]["href"])}>{label(p["action"]["label"], ctx["rtl"])}</a></div>'
 
 
 RENDER = {
@@ -389,19 +427,26 @@ RENDER = {
 # ─── chrome and page ─────────────────────────────────────────────────────────
 
 
+def text_em(text, latin):
+    """A string's width in em: `latin` for each narrow character, 1em for each wide
+    one (CJK ideographs, kana, Hangul, full-width forms)."""
+    return sum(1.0 if unicodedata.east_asian_width(ch) in ("W", "F") else latin for ch in text)
+
+
 def nav_breakpoint(manifest):
-    """The header-bar width (px) below which the nav becomes a menu: the widest the
+    """The header-bar width (rem) below which the nav becomes a menu: the widest the
     brand, every link and the action can be, at the largest type step, plus gaps.
-    An estimate from character counts; device_matrix.mjs's nav-wrap check is what
-    proves it on the rendered page, at every width."""
+    In rem, so a reader who sets a larger default font size gets the menu sooner,
+    as the text grows. An estimate from character widths; device_matrix.mjs's
+    nav-wrap check is what proves it on the rendered page, at every width."""
     chrome = manifest.get("chrome") or {}
     links = chrome.get("nav") or []
-    body_px, brand_px = 19.0, 23.75  # --step-0 and --step-1 at their max
-    width = len(manifest["business"]["name"]) * 0.62 * brand_px
-    width += sum(len(x["label"]) * 0.6 * body_px + 2 * 9.5 for x in links) + 9.5 * max(0, len(links) - 1)
+    body, brand = 19.0 / 16, 23.75 / 16  # --step-0 and --step-1 at their max, in rem
+    width = text_em(manifest["business"]["name"], 0.62) * brand
+    width += sum(text_em(x["label"], 0.6) * body + 2 * 0.6 for x in links) + 0.6 * max(0, len(links) - 1)
     if chrome.get("action"):
-        width += len(chrome["action"]["label"]) * 0.62 * body_px + 2 * 28.5
-    return int(width * 1.15 + 2 * 28.5)  # 15% for wider glyphs, plus the bar's two gaps
+        width += text_em(chrome["action"]["label"], 0.62) * body + 2 * 1.8
+    return round(width * 1.15 + 2 * 1.8, 2)  # 15% for wider glyphs, plus the bar's two gaps
 
 
 def nav_list(links, current):
@@ -411,7 +456,7 @@ def nav_list(links, current):
     return f'<ul role="list">{items}</ul>'
 
 
-def header(manifest, page):
+def header(manifest, page, rtl=False):
     chrome = manifest.get("chrome") or {}
     links = chrome.get("nav") or []
     out = '<header data-block="site-header" data-tone="canvas" data-space="s" class="site-header"><div class="site-header__bar">'
@@ -419,7 +464,7 @@ def header(manifest, page):
     out += f'<a class="brand" href={a(home)}>{e(manifest["business"]["name"])}</a>'
     action = ""
     if chrome.get("action"):
-        action = f'<a class="button" href={a(chrome["action"]["href"])}>{e(chrome["action"]["label"])}</a>'
+        action = f'<a class="button" href={a(chrome["action"]["href"])}>{label(chrome["action"]["label"], rtl)}</a>'
     if links:
         out += f'<nav class="site-nav site-nav--inline" aria-label="Main">{nav_list(links, page["path"])}</nav>'
         out += (
@@ -438,9 +483,9 @@ def footer(manifest, page, year):
     if b.get("address"):
         facts += "<address>" + "<br>".join(e(x) for x in address_lines(b["address"])) + "</address>"
     if b.get("phone"):
-        facts += f'<p><a href={a(tel_href(b["phone"]))}>{e(b["phone"])}</a></p>'
+        facts += f'<p><a href={a(tel_href(b["phone"]))}>{phone_text(b["phone"])}</a></p>'
     if b.get("email"):
-        facts += f'<p><a href={a("mailto:" + b["email"])}>{e(b["email"])}</a></p>'
+        facts += f'<p><a href={a("mailto:" + b["email"])}><span dir="ltr">{e(b["email"])}</span></a></p>'
     facts += "</div>"
     nav = ""
     if chrome.get("footerNav"):
@@ -452,9 +497,16 @@ def footer(manifest, page, year):
     )
 
 
+def page_direction(manifest, page):
+    """A page's own dir, else the site's (when the page shares the site's language),
+    else its language's script direction."""
+    lang = page.get("lang") or manifest["lang"]
+    return check.text_direction(lang, page.get("dir") or (None if page.get("lang") else manifest.get("dir")))
+
+
 def render_page(manifest, page, blocks, year):
     lang = page.get("lang") or manifest["lang"]
-    direction = page.get("dir", "ltr")
+    direction = page_direction(manifest, page)
     origin = manifest.get("origin")
     nav_at = nav_breakpoint(manifest)
     head = [
@@ -462,7 +514,9 @@ def render_page(manifest, page, blocks, year):
         f"<html lang={a(lang)} dir={a(direction)}>",
         "<head>",
         '<meta charset="utf-8">',
-        '<meta name="viewport" content="width=device-width, initial-scale=1">',
+        # viewport-fit=cover: bands run under the notch and home indicator; layout.css
+        # keeps content inside all four safe-area insets (adaptive-layout Step 2).
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
         f"<title>{e(page['title'])}</title>",
         f'<meta name="description" content={a(page["description"])}>',
     ]
@@ -480,13 +534,13 @@ def render_page(manifest, page, blocks, year):
     # The one per-site rule: where the nav stops fitting (container width of the bar).
     head.append(
         "<style>@layer blocks {"
-        f"@container slot (width < {nav_at}px) {{ .site-nav--inline, .site-header__action {{ display: none; }} }}"
-        f"@container slot (width >= {nav_at}px) {{ .site-menu {{ display: none; }} }}"
+        f"@container slot (width < {nav_at}rem) {{ .site-nav--inline, .site-header__action {{ display: none; }} }}"
+        f"@container slot (width >= {nav_at}rem) {{ .site-menu {{ display: none; }} }}"
         "}</style>"
     )
     head.append(f'<script type="application/ld+json">{json_ld(manifest, origin)}</script>')
     head.append("</head>")
-    body = ["<body>", '<a class="skip-link button" href="#main">Skip to content</a>', header(manifest, page), '<main id="main">']
+    body = ["<body>", '<a class="skip-link button" href="#main">Skip to content</a>', header(manifest, page, direction == "rtl"), '<main id="main">']
     for i, bl in enumerate(page["blocks"]):
         contract = blocks[bl["type"]]
         bid = f"b{i + 1}"
@@ -497,6 +551,7 @@ def render_page(manifest, page, blocks, year):
             "hid": f"{bid}-{bl['type']}-h",
             "bid": bid,
             "lang": lang,
+            "rtl": direction == "rtl",
         }
         tone = bl.get("tone", contract["tone"]["default"])
         space = bl.get("space", contract.get("space"))
@@ -626,8 +681,8 @@ def check_html(pages, manifest):
         if not html_tag.get("lang"):
             problems.append(f"{at}: <html> has no lang")
         page = next(p for p in manifest["pages"] if p["path"] == path)
-        if html_tag.get("dir") != page.get("dir", "ltr"):
-            problems.append(f"{at}: <html dir> is {html_tag.get('dir')!r}, the manifest says {page.get('dir', 'ltr')!r}")
+        if html_tag.get("dir") != page_direction(manifest, page):
+            problems.append(f"{at}: <html dir> is {html_tag.get('dir')!r}, the manifest and its language say {page_direction(manifest, page)!r}")
         levels = [lv for lv, _ in d.headings]
         if levels.count(1) != 1 or (levels and levels[0] != 1):
             problems.append(f"{at}: {levels.count(1)} h1 element(s), and the first heading is h{levels[0] if levels else '-'}; a page has one h1, first")
@@ -723,6 +778,26 @@ def self_test():
         row(not fh, "the stress fixtures' HTML passes the same checks", "; ".join(fh[:3]))
         rtl = fpages["/stress/hours-location/rtl/"]
         row('dir="rtl"' in rtl and 'lang="ar"' in rtl, "an rtl fixture renders dir=rtl lang=ar")
+        row(
+            '<span dir="ltr">+1 (251) 555-0100</span>' in rtl,
+            "a phone number on an rtl page is isolated left to right (its digit groups are not reordered)",
+        )
+        row("viewport-fit=cover" in home, "the viewport hands the page the whole screen (layout.css keeps content in the safe areas)")
+        row(
+            "query=411+Fairhope+Ave+%23200" in b_hours_location(
+                {"heading": "Visit"},
+                {"manifest": {"business": {**example["business"], "address": {**example["business"]["address"], "street": "411 Fairhope Ave #200"}}}, "lang": "en", "hid": "h"},
+            ),
+            "a maps link encodes its query: a suite number's # does not cut the city off",
+        )
+        row(tel_href("(251) 555-0100 ext. 12") == "tel:2515550100", "an extension is shown on the page, never dialled as part of the number")
+        ar = copy.deepcopy(example)
+        ar["lang"] = "ar"
+        for pg in ar["pages"]:
+            pg.pop("lang", None)
+        aout = os.path.join(tmp, "ar")
+        render(ar, blocks, aout, KIT, placeholders=True, today="2026-10-27")
+        row('dir="rtl"' in open(os.path.join(aout, "index.html"), encoding="utf-8").read(), "a site in Arabic is rtl without a dir field")
 
         # Escaping: a prop that holds markup must reach the page as text.
         evil = copy.deepcopy(example)

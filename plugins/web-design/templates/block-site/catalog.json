@@ -559,7 +559,7 @@
           }
         }
       },
-      "linkProps": ["action"],
+      "endpointProps": ["action"],
       "a11y": [
         "Every field has a visible label bound to it, the right type, autocomplete and inputmode, and 16px text; required fields say so in the label as well as with the required attribute."
       ],
@@ -618,6 +618,9 @@
         }
       },
       "linkProps": ["action.href"],
+      "variantLinks": {
+        "call": "tel:"
+      },
       "a11y": ["An h2 and one link styled as a button with at least a 44px target."],
       "perf": {
         "clientJs": "none"

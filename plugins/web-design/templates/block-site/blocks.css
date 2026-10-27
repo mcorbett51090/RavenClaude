@@ -44,9 +44,14 @@
     align-items: center;
     gap: var(--space-xs) var(--space-m);
   }
+  /* The brand shares its row with the menu however long the name is: it
+     starts from zero and grows to its own width, no wider (so the link is only
+     as wide as the name), and a long name wraps inside it. */
   .site-header .brand {
     display: inline-flex;
     align-items: center;
+    flex: 1 1 0;
+    max-inline-size: max-content;
     min-block-size: var(--target-min);
     margin-inline-end: auto;
     color: inherit;
@@ -79,13 +84,16 @@
   .site-menu > summary::-webkit-details-marker {
     display: none;
   }
-  /* The open menu drops below the header, on the same content line. */
+  /* The open menu drops below the header, on the same content line: the
+     header's own --_gutter, or the margin a centred content line leaves, which
+     is where layout.css's grid puts content-start (100% is the header's width). */
   .site-menu > nav {
     position: absolute;
     inset-inline: 0;
     inset-block-start: 100%;
     z-index: 5;
-    padding: var(--space-s) max(var(--gutter), env(safe-area-inset-left, 0px));
+    padding-block: var(--space-s);
+    padding-inline: max(var(--_gutter, var(--gutter)), (100% - var(--content-max)) / 2);
     background: var(--canvas);
     border-block-end: var(--rule-width) solid var(--rule);
   }
@@ -161,6 +169,10 @@
   .stat dd {
     margin: 0;
   }
+  /* A figure is never split ("$125,0" / "00"): it stays whole, and the
+     renderer sets the band's --switch-at from the longest value, so the row
+     stacks before a figure would have to break (or overflow, which the probe's
+     text-overflow check reports). */
   .stat__value {
     order: -1;
     font-family: var(--font-display);
@@ -168,6 +180,7 @@
     font-weight: 700;
     line-height: 1;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
   .stat__source {
     font-size: var(--step-n1);
@@ -187,10 +200,11 @@
     border-block-end: var(--rule-width) solid var(--rule);
     padding-block: var(--space-2xs);
   }
+  /* list-item keeps the native disclosure marker, which turns when open and
+     mirrors in rtl (display: flex would remove it); padding makes the 44px. */
   .faq summary {
-    display: flex;
-    align-items: center;
-    min-block-size: var(--target-min);
+    display: list-item;
+    padding-block: max(0px, (var(--target-min) - 1lh) / 2);
     cursor: pointer;
     font-weight: 600;
   }

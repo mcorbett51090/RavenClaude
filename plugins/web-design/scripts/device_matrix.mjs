@@ -131,6 +131,14 @@ const SETTLE = `(async () => {
     Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.decode().catch(() => {}))]),
     new Promise((r) => setTimeout(r, 6000)),
   ]);
+  // Let every finite animation and transition end: under reduced motion the kit
+  // gives each property a 0.01ms transition, and a style read inside it is stale.
+  await Promise.race([
+    Promise.all(document.getAnimations()
+      .filter((a) => a.effect && a.effect.getComputedTiming().endTime !== Infinity)
+      .map((a) => a.finished.catch(() => {}))),
+    new Promise((r) => setTimeout(r, 2000)),
+  ]);
   const start = performance.now();
   const m = window.__layoutProbe;
   while (performance.now() - start < 3000) {
@@ -259,6 +267,37 @@ async function reloadShifts(browser, v, theme, url, times) {
   return n;
 }
 
+// What a closed <details> hides (a site menu, an FAQ answer) is laid out only
+// when it opens, so the probe runs again with every one open. Checks that read
+// what is UNDER an open menu (overlap, anchors, fixed bars) are skipped: a
+// dropdown covers the page by design.
+const OPEN_SKIP = [
+  "layout-shift",
+  "font-failed",
+  "images",
+  "overlap",
+  "anchor-obscured",
+  "covered",
+  "focus",
+];
+async function detailsOpen(page, width) {
+  const n = await page.evaluate(`(() => {
+    const shut = [...document.querySelectorAll("details:not([open])")];
+    for (const d of shut) { d.setAttribute("data-dm-opened", ""); d.open = true; }
+    return shut.length;
+  })()`);
+  if (!n) return [];
+  await page.evaluate(SETTLE);
+  const { findings } = await page.evaluate(
+    `${PROBE}\n;layoutProbe(${JSON.stringify({ expectedWidth: width, skip: OPEN_SKIP })})`,
+  );
+  await page.evaluate(`(() => {
+    for (const d of document.querySelectorAll("details[data-dm-opened]")) { d.open = false; d.removeAttribute("data-dm-opened"); }
+  })()`);
+  await page.evaluate(FRAME);
+  return findings.map((x) => ({ ...x, msg: `${x.msg} (with every <details> open)` }));
+}
+
 async function newStateContext(browser, v, theme) {
   const ctx = await browser.newContext({
     viewport: { width: v.w, height: v.h },
@@ -351,8 +390,20 @@ const PHOTO_FIND = `(async () => {
     const rects = [...range.getClientRects()]
       .map((r) => clipTo(el, { l: r.left + SX, t: r.top + SY, r: r.right + SX, b: r.bottom + SY }))
       .filter((q) => q.r - q.l >= 2 && q.b - q.t >= 6);
-    const over = rects.filter((q) => media.some((m) => !el.contains(m.el)
-      && q.l < m.r && q.r > m.l && q.t < m.b && q.b > m.t));
+    // Only the part of a line that lies over a photo is scored, and only when
+    // that part is a real share of the line: a line box whose top edge grazes a
+    // band above it has its glyphs on the flat colour, not on the photo.
+    const over = [];
+    for (const q of rects) {
+      let best = null;
+      for (const m of media) {
+        if (el.contains(m.el)) continue;
+        const i = { l: Math.max(q.l, m.l), t: Math.max(q.t, m.t), r: Math.min(q.r, m.r), b: Math.min(q.b, m.b) };
+        if (i.r - i.l < 2 || i.b - i.t < Math.max(6, (q.b - q.t) / 3)) continue;
+        if (!best || (i.r - i.l) * (i.b - i.t) > (best.r - best.l) * (best.b - best.t)) best = i;
+      }
+      if (best) over.push(best);
+    }
     if (!over.length) continue;
     if (!groups.has(el)) groups.set(el, []);
     groups.get(el).push(...over);
@@ -590,6 +641,7 @@ async function runMatrix({
             notes.add(
               "photo-contrast: not scored in forced colours (glyphs paint in the forced colour and cannot be hidden for the capture)",
             );
+          f = f.concat(await detailsOpen(page, v.w));
           for (const x of f) findings.push({ ...x, url, vp: `${v.id} ${v.w}×${v.h}`, theme });
           if (shots) {
             mkdirSync(shots, { recursive: true });
@@ -1065,6 +1117,41 @@ const MUTATIONS = [
       top: `<div style="position: fixed; inset-block-start: 0; inset-inline: 0; block-size: 45vh; background: var(--surface); z-index: 9"></div>`,
     },
   },
+  {
+    expect: "word-broken",
+    vp: "laptop",
+    why: "a figure in a box too narrow for it",
+    html: { extra: sec(`<p style="inline-size: 3ch; font-size: 2.5rem">$125,000</p>`) },
+  },
+  {
+    expect: "nav-wrap",
+    vp: "iphone",
+    why: "a header whose nav wraps under the brand",
+    html: { head: `<style>.site-header .brand { flex-basis: 100%; }</style>` },
+  },
+  {
+    expect: "field-contrast",
+    vp: "laptop",
+    why: "a field edge at 1.2:1",
+    html: { head: `<style>#em { border-color: #e2e2e6; background: transparent; }</style>` },
+  },
+  {
+    expect: "focus-contrast",
+    vp: "laptop",
+    why: "a focus ring at 1.1:1",
+    html: { head: `<style>:root { --focus: #eeeeee; }</style>` },
+  },
+  {
+    expect: "text-overflow",
+    vp: "iphone",
+    why: "an FAQ answer that overflows only when it is opened",
+    details: true,
+    html: {
+      extra: sec(
+        `<details><summary>Can I book for twelve?</summary><p style="white-space: nowrap; max-inline-size: none">${"An answer that never wraps at all. ".repeat(3)}</p></details>`,
+      ),
+    },
+  },
 ];
 
 // Shapes that LOOK like a defect and are not: each must produce none of the ids
@@ -1187,6 +1274,14 @@ async function selfTest(chromium, launch) {
     writeFileSync(join(dir, `m${i}.html`), page({ ...m.html, cards: m.cards ?? 5 })),
   );
   CLEAN.forEach((m, i) => writeFileSync(join(dir, `c${i}.html`), page(m.html)));
+  writeFileSync(
+    join(dir, "graze.html"),
+    page({
+      extra:
+        `<section data-block="m" data-tone="media" aria-label="Band"><div data-slot="backdrop"><img src="/story.png" width="1200" height="900" alt=""></div><div class="on-photo"><p>Copy on the photo band</p></div></section>` +
+        `<section data-block="m" data-tone="canvas" style="padding-block-start: 0"><div><h2 style="margin-block-start: -4px; line-height: 1.6">Flat heading below the band</h2></div></section>`,
+    }),
+  );
   const { server, origin } = await serve(dir);
   try {
     const quick = VIEWPORTS.filter((v) => v.quick);
@@ -1279,6 +1374,7 @@ async function selfTest(chromium, launch) {
         const ctx = await newStateContext(browser, quick[0], theme);
         const pg = await ctx.newPage();
         await load(pg, `${origin}/`);
+        await pg.evaluate(SETTLE);
         const [muted, ink] = await pg.evaluate(() => [
           getComputedStyle(document.querySelector(".card .muted")).color,
           getComputedStyle(document.querySelector(".card h3")).color,
@@ -1326,8 +1422,15 @@ async function selfTest(chromium, launch) {
       };
       for (const [i, m] of MUTATIONS.entries()) {
         const { v, ctx, pg } = await at(m.vp, `${origin}/m${i}.html`);
-        const { findings } = await probePage(pg, v.w);
+        let { findings } = await probePage(pg, v.w);
         let hit = findings.some((f) => f.id === m.expect);
+        // A defect inside a closed <details> must be invisible to the plain pass
+        // and reported by the pass that opens it.
+        if (m.details) {
+          const opened = await detailsOpen(pg, v.w);
+          hit = !hit && opened.some((f) => f.id === m.expect);
+          findings = findings.concat(opened);
+        }
         if (hit && m.expect === "layout-shift")
           hit =
             (await reloadShifts(browser, v, "light", `${origin}/m${i}.html`, SHIFT_LOADS - 1)) ===
@@ -1378,6 +1481,22 @@ async function selfTest(chromium, launch) {
         );
         await ctx.close();
       }
+      {
+        // A heading on the flat page whose line box grazes the photo band above
+        // it by a few px: its glyphs sit on the flat colour, so it is not scored
+        // as photo copy (only the part of a line over the photo counts, and only
+        // when that part is a third of the line or more).
+        const { v, ctx, pg } = await at("laptop", `${origin}/graze.html`);
+        const st = { photoTexts: 0, photoUnscored: 0, minPhoto: Infinity, minPhotoAt: "" };
+        const f = await photoContrast(pg, v, st);
+        const bad = f.filter((x) => /Flat heading/.test(x.msg + x.where));
+        row(
+          !bad.length && st.photoTexts > 0,
+          `must pass: a flat heading whose line box grazes a photo band is not photo copy @ ${v.id}`,
+          bad.map((x) => x.msg).join(" | ") || (st.photoTexts ? "" : "nothing was scored"),
+        );
+        await ctx.close();
+      }
     } finally {
       await browser.close();
     }
@@ -1389,6 +1508,10 @@ async function selfTest(chromium, launch) {
     row(
       (await main(["--dir", dir, "--themes", "drak"])) === 2,
       "harness: an unknown theme is refused (exit 2), not silently dropped",
+    );
+    row(
+      (await main(["--dir", dir, "--sweep", "1600:320:8"])) === 2,
+      "harness: a sweep that runs backwards (no states) is refused (exit 2)",
     );
   } finally {
     server.close();
@@ -1439,9 +1562,11 @@ async function main(argv) {
   }
   if (
     args.sweep &&
-    (args.sweep.length !== 3 || args.sweep.some((n) => !Number.isFinite(n) || n <= 0))
+    (args.sweep.length !== 3 ||
+      args.sweep.some((n) => !Number.isFinite(n) || n <= 0) ||
+      args.sweep[0] > args.sweep[1])
   ) {
-    console.error("device-matrix: --sweep FROM:TO:STEP, e.g. 320:1600:8");
+    console.error("device-matrix: --sweep FROM:TO:STEP with FROM <= TO, e.g. 320:1600:8");
     return 2;
   }
   for (const m of args.manifests) {
