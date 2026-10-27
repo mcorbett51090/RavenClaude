@@ -116,6 +116,11 @@
         "platform-fact re-verification + 2026-10-20 review (core 0.358.5, PR #1389)",
         33210,
         "Owner-approved on PR #1389. The four concepts only this PR re-verified (hook-lifecycle, permission-layers, permission-modes, session-start-context) added 30 island elements over main (33,175). Offsets taken first, all in this PR: duplicate same-URL sources merged in three concepts and a broken empty code span in runaway-brake fixed (-4 elements); a fourth merge was dropped to stay inside the 20-concept render cap. Measured 33,201, over the prior 33,200 by 1. No byte raise: the v5 theme block (render-concepts.py :is() grouping, computed styles proven identical in Chromium) cut dashboard.html to 10,927,528 bytes, 82,472 under its ceiling. Appended, never edited."
+      ],
+      [
+        "web-design 0.22.0 block-site hardening (2026-10-27)",
+        33260,
+        "web-design gained the /web-design:new-block-site command, the block-layout-system-2026 knowledge file, the templates/block-site starter kit and three scripts; the dashboard lists the new command and knowledge rows. Measured 33,216 island payload elements (+6 over the 33,210 row) on the branch rebased onto origin/main @ 559ab2796c1a; bytes 10,931,882 <= 11,010,000 and index.html 7,348 <= 7,350, unaffected. Appended with 44 elements of headroom; no other row edited."
       ]
     ],
     "index.html": [
@@ -445,5 +450,5 @@
       ]
     ]
   },
-  "measured_against": "b9d66a367b4ff64bf96575d1bca114507f1df167"
+  "measured_against": "559ab2796c1a90ba0883f3942f217c0179562025"
 }

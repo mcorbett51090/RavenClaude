@@ -14,8 +14,10 @@ Exits 0 iff every case passes.
 
 from __future__ import annotations
 
+import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -140,6 +142,54 @@ class HardcodedColorCheck(unittest.TestCase):
         self.assertEqual(self.findings("site/src/e.css", ".a{color:#123456}\n"), 1)
         self.assertEqual(self.findings("site/src/f.css", ".a{color:#fff}\n"), 1)
         self.assertEqual(self.findings("site/src/g.css", ".a{content:'#12345'}\n"), 0)
+
+
+KIT = os.path.join(HERE, "..", "templates", "block-site")
+
+
+class BlockSiteKit(unittest.TestCase):
+    """templates/block-site and the scripts that prove it (added 2026-10-27).
+
+    device_matrix.mjs --self-test needs Playwright and Chromium, which CI does
+    not install: it is run by hand (see skills/block-composed-site). CI checks
+    that both browser scripts parse, and runs everything that needs only Python.
+    """
+
+    def test_block_site_check_self_test(self):
+        r = run(os.path.join(HERE, "block_site_check.py"), "--self-test")
+        self.assertEqual(r.returncode, 0, r.stdout[-3000:] + r.stderr[-1000:])
+
+    def test_fluid_type_steps_stay_zoom_safe(self):
+        # A fluid step whose max is more than 2.5x its min can stop 200% zoom
+        # enlarging text (WCAG 1.4.4; Barvian, Smashing Magazine, 2023-11-07).
+        with open(os.path.join(KIT, "tokens.css"), encoding="utf-8") as f:
+            css = f.read()
+        steps = re.findall(r"--(step-[a-z0-9]+):\s*clamp\(([\d.]+)rem,[^,]+,\s*([\d.]+)rem\)", css)
+        self.assertGreaterEqual(len(steps), 8, "expected the eight type steps")
+        for name, lo, hi in steps:
+            self.assertLessEqual(float(hi) / float(lo), 2.5, f"{name}: max over 2.5x min")
+
+    def test_layout_css_carries_no_colour_values(self):
+        # Colour VALUES live in tokens.css (exempt by name); the contract file
+        # must pass this plugin's own hard-coded-colour hook.
+        with open(os.path.join(KIT, "layout.css"), encoding="utf-8") as f:
+            code = re.sub(r"/\*.*?\*/", "", f.read(), flags=re.S)
+        self.assertIsNone(re.search(r"#[0-9a-fA-F]{3,8}\b", code))
+
+    def test_kit_json_is_valid(self):
+        for dirpath, _dirs, files in os.walk(KIT):
+            for name in files:
+                if name.endswith(".json"):
+                    with open(os.path.join(dirpath, name), encoding="utf-8") as f:
+                        json.load(f)
+
+    def test_browser_scripts_parse(self):
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node not installed")
+        for name in ("layout-probe.js", "device_matrix.mjs"):
+            r = subprocess.run([node, "--check", os.path.join(HERE, name)], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, f"{name}: {r.stderr}")
 
 
 if __name__ == "__main__":

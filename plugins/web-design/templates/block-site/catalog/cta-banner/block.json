@@ -1,0 +1,37 @@
+{
+  "$schema": "../../block.schema.json",
+  "id": "cta-banner",
+  "version": "1.0.0",
+  "title": "Call to action band",
+  "summary": "One short line and one action on an inverse band, to close a page. Use once, near the end. Avoid two in a row, or directly after a hero, which already carries the primary action.",
+  "category": "conversion",
+  "headingLevel": 2,
+  "placement": { "position": "any", "maxPerPage": 1, "notAdjacentTo": ["cta-banner", "hero-full"] },
+  "tone": { "default": "inverse", "allowed": ["inverse", "surface"] },
+  "slots": ["content"],
+  "variants": ["book", "call"],
+  "props": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["heading", "action"],
+    "properties": {
+      "variant": { "enum": ["book", "call"] },
+      "heading": { "type": "string", "minLength": 3, "maxLength": 48 },
+      "action": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "href"],
+        "properties": {
+          "label": { "type": "string", "minLength": 2, "maxLength": 28 },
+          "href": { "type": "string", "maxLength": 200 }
+        }
+      }
+    }
+  },
+  "linkProps": ["action.href"],
+  "a11y": ["An h2 and one link styled as a button with at least a 44px target."],
+  "perf": { "clientJs": "none" },
+  "truth": [
+    "The action does what the label says: 'Book' reaches a real booking path, 'Call' a real number."
+  ]
+}

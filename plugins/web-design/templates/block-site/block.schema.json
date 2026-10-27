@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "block.schema.json",
+  "title": "Block contract",
+  "description": "One block.json per block. The shape is checked here; the rules a JSON Schema cannot state (every props object closed, every string and list bounded, no styling props, heading level 1 only for a first block) are checked by scripts/block_site_check.py catalog.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "title",
+    "summary",
+    "category",
+    "headingLevel",
+    "placement",
+    "tone",
+    "slots",
+    "props",
+    "a11y",
+    "perf",
+    "truth"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": {
+      "description": "Matches the block's directory name. Kebab-case.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "maxLength": 40
+    },
+    "version": {
+      "description": "Semver. A props change that is renamed, removed or narrowed is MAJOR and needs a manifest migration note.",
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "summary": {
+      "description": "Written for an agent choosing a block: what it is for, and when NOT to use it. Short, like an agent description.",
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 300
+    },
+    "category": {
+      "enum": [
+        "header",
+        "hero",
+        "content",
+        "media",
+        "listing",
+        "social-proof",
+        "conversion",
+        "location",
+        "form",
+        "navigation",
+        "footer"
+      ]
+    },
+    "headingLevel": {
+      "description": "1: the page's first block, which renders the only h1. 2: renders an h2 (and h3 for its items). Exactly one level-1 block per page, and it comes first, so the single-h1 and no-skipped-level rules hold by construction.",
+      "enum": [1, 2]
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "position": { "enum": ["first", "any", "last"] },
+        "maxPerPage": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "notAdjacentTo": {
+          "description": "Block ids that may not sit directly before or after this one (two CTAs in a row, two heroes).",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "tone": {
+      "description": "The surface, chosen at page level from layout.css's tones. A block never chooses colours.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default"],
+      "properties": {
+        "default": { "$ref": "#/$defs/tone" },
+        "allowed": { "type": "array", "items": { "$ref": "#/$defs/tone" }, "uniqueItems": true },
+        "locked": {
+          "description": "True when the block only works on its default tone (a full-bleed photo block is always `media`).",
+          "type": "boolean"
+        }
+      }
+    },
+    "slots": {
+      "description": "The grid lines this block's direct children sit on (layout.css: content | wide | full, plus backdrop for a photo block). Components that change with their width go INSIDE a slot.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "enum": ["content", "wide", "full", "backdrop"] },
+      "uniqueItems": true
+    },
+    "space": {
+      "description": "Section rhythm: the block's vertical padding token. Default m.",
+      "enum": ["s", "m", "l", "none"]
+    },
+    "variants": {
+      "description": "Designed alternatives, at most three. Never a styling escape hatch.",
+      "type": "array",
+      "maxItems": 3,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+      "uniqueItems": true
+    },
+    "props": {
+      "description": "A CLOSED JSON Schema for the block's content: every object additionalProperties false, every string bounded (maxLength, enum, pattern or format), every list bounded (maxItems), no colour, size, class or style props. The bounds are what make the content extremes finite, so block_site_check.py fixtures can generate them and the device matrix can test them.",
+      "type": "object"
+    },
+    "assetProps": {
+      "description": "Prop paths (dot-separated, [] for list items) whose values are asset keys from the manifest's assets.",
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "linkProps": {
+      "description": "Prop paths whose values are links, internal ones checked against the manifest's pages.",
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "media": {
+      "description": "Every image or video the block renders: the prop that names it, the frame's aspect ratio, the grid line it spans (which decides `sizes`), and whether it may be the page's LCP image (fetchpriority=high).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["prop", "ratio", "slot"],
+        "properties": {
+          "prop": { "type": "string" },
+          "ratio": { "type": "string", "pattern": "^\\d+ / \\d+$" },
+          "slot": { "enum": ["content", "wide", "full", "half-content", "third-content"] },
+          "priority": { "type": "boolean" }
+        }
+      }
+    },
+    "schemaOrg": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "a11y": {
+      "description": "What the block guarantees: landmark, heading, labels, keyboard behaviour, motion.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 10 }
+    },
+    "perf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clientJs"],
+      "properties": {
+        "clientJs": { "enum": ["none", "small", "island"] },
+        "lcpCandidate": { "type": "boolean" }
+      }
+    },
+    "truth": {
+      "description": "Facts this block must never invent (prices, hours, ratings, quotes, people).",
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 10 }
+    }
+  },
+  "$defs": {
+    "tone": { "enum": ["canvas", "surface", "inverse", "media"] }
+  }
+}

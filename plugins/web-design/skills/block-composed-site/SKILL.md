@@ -1,6 +1,6 @@
 ---
 name: block-composed-site
-description: Build or extend a website from a catalog of section blocks selected by the features a customer bought, so the agent writes a typed manifest instead of markup. Covers the block contract, feature-to-block mapping with tier page allowances, the deterministic resolver rules, rendered-output gates, drift detection and upgrade rollout. Used by web-architect and frontend-implementer.
+description: Build or extend a website from a catalog of section blocks, so the agent writes a typed manifest instead of markup and the layout is pixel-perfect on every screen. Ships a starter kit (tokens, layout contract, block and manifest schemas, exemplar blocks, gallery) and the tools that prove it (contract checker, stress fixtures, layout probe, device matrix). Covers feature-to-block mapping, resolver rules, gates, drift and upgrades. Used by web-architect and frontend-implementer.
 ---
 
 # Skill: block-composed-site
@@ -10,9 +10,13 @@ versioned catalog and a deterministic composer own the markup, the accessibility
 agents: `web-architect` (catalog, features, tiers, distribution), `frontend-implementer` (blocks, shell, gates);
 `content-strategist` fills the content; `visual-designer` owns the token roles blocks consume.
 
-Backing knowledge: [`../../knowledge/block-based-site-composition-2026.md`](../../knowledge/block-based-site-composition-2026.md)
-(prior-art data models, principles, architecture, gates, distribution, AI-agent practices, pitfalls, the generation
-projection as built, and a measured per-site cost).
+Backing knowledge:
+- [`../../knowledge/block-layout-system-2026.md`](../../knowledge/block-layout-system-2026.md): the layout contract
+  that makes a block site pixel-perfect (grid lines, rhythm, fluid scales, containers, count-aware grids, media slots,
+  type precision, modes), how each rule is proven, and the pitfalls hit building it.
+- [`../../knowledge/block-based-site-composition-2026.md`](../../knowledge/block-based-site-composition-2026.md):
+  prior-art data models, principles, architecture, gates, distribution, AI-agent practices, pitfalls, the generation
+  projection as built, and a measured per-site cost.
 
 ## When to use
 
@@ -23,6 +27,78 @@ projection as built, and a measured per-site cost).
 
 Not for: a one-off bespoke site with layouts no block covers (build it directly via `static-site-implementation`), an
 app-grade frontend (`frontend-engineering`), or a CMS integration choice (`information-architecture`).
+
+## Where to start
+
+| You have | Start at |
+|---|---|
+| Nothing yet | **Mode 0**: the starter kit in this plugin |
+| A composer and a catalog (for example the owner's site factory) | **Mode A** |
+| A catalog to design or extend | **Mode B**, building on the kit's contracts |
+
+Whichever mode you start in, finish with **Prove it**: the same ladder applies to every block site.
+
+## Mode 0: start with no catalog (the starter kit)
+
+[`templates/block-site/`](../../templates/block-site/README.md) is a working, tested starting point. Follow its README,
+which has eight steps with a gate on each. In short:
+
+1. Copy the kit. Load `tokens.css`, then `layout.css`, on every page.
+2. Set the brand by changing values in `tokens.css`, never role names.
+   - **Gate:** `scripts/block_site_check.py tokens tokens.css`, which checks every colour pairing a block can produce,
+     in light and dark.
+3. Choose blocks from [`catalog.md`](../../templates/block-site/catalog.md) by purpose. Copy an exemplar `block.json`
+   for each block and fill in its contract.
+   - **Gate:** `block_site_check.py catalog`.
+4. Build each block to the anatomy:
+   - a `<section data-block data-tone data-space>` whose direct children are plain slots on a grid line;
+   - components inside slots;
+   - CSS in `@layer blocks` that reads only tokens, with `@container slot` queries and no `@media`.
+5. Write the manifest from verified facts.
+   - **Gate:** `block_site_check.py manifest`.
+6. Render it.
+7. Generate stress pages with `block_site_check.py fixtures` and render those too.
+8. Prove it (below).
+
+## The layout contract: why a block site comes out pixel-perfect
+
+No block decides its own geometry. [`layout.css`](../../templates/block-site/layout.css) owns it in its last cascade
+layer, so a block cannot override it by accident:
+
+- **One page grid with named lines** (`full` / `wide` / `content`). Every block's children sit on a line, so every
+  content edge on the page aligns to the pixel.
+- **Rhythm from three tokens.** Same-tone neighbours share one gap.
+- **Fluid type and space** with a rem term, max ≤ 2.5× min, so zoom still works.
+- **Slots are containers.** Components change on their slot's width, never on the viewport's.
+- **Intrinsic primitives** (stack, cluster, switcher, sidebar, frame) instead of breakpoints. Use a switcher, not an
+  `auto-grid`, for a few items.
+- **Card grids laid out by item count.** Bounded lists make every count a designed case.
+- **Media in aspect-ratio frames** with a focal point, a source big enough for its slot at 2x, and `sizes` from the
+  slot.
+- **Text safety:** `overflow-wrap: anywhere`, balanced headings, a prose measure.
+- **Modes handled once, for every block:** dark, forced colours, more contrast, reduced motion, RTL and print.
+
+The reasoning and numbers for each rule are in
+[`block-layout-system-2026.md`](../../knowledge/block-layout-system-2026.md).
+
+## Prove it: the verification ladder (every mode)
+
+1. **Contract and manifest:** `block_site_check.py catalog`, `manifest` and `tokens`. Each has `--self-test` rows
+   proving its rules fire.
+2. **Extremes:** `block_site_check.py fixtures`. Bounded props mean the worst case is finite: every block at its
+   minimum, its maximum, one unbreakable word at full length, and RTL.
+3. **Device matrix:**
+   `node scripts/device_matrix.mjs --dir dist --pages /,… --full --sweep 320:1600:8`.
+   It runs [`layout-probe.js`](../../scripts/layout-probe.js) at 28 viewports, ±1px around every `@media` width, every
+   8px for container-query states, and in light, dark and forced colours. It reports overflow, off-grid slots,
+   zero-width grid columns, text overflow and widows, small targets, input zoom, orphan rows, distorted or upscaled
+   images, unsized images, repeatable layout shift, failed fonts and oversized fixed chrome.
+   - The probe itself is proven by `device_matrix.mjs --self-test`. Playwright is required, so run it by hand: CI runs
+     only the Python checks.
+4. **Visual baselines:** `--shots DIR`. Diff them against baselines made on the same OS and fonts.
+5. **Look.** Take element screenshots at 390 and 1280px in both themes. Geometry checks cannot judge taste; in the
+   kit's own build, two defects were caught only this way.
+6. **Real devices:** an iPhone and an iPad, because Chromium is not WebKit.
 
 ## Mode A — Use an existing catalog (the common case)
 
@@ -116,7 +192,14 @@ is regenerated from the kit at a recorded commit, so `build --site <dir>` is a l
 hashes detect hand edits first. Breaking props changes are major versions with a data migration; roll out in rings; a
 merge is not a deployment.
 
-## Pitfalls (each one was hit in the factory build)
+## Pitfalls (each one was hit in the factory build or the starter kit)
+
+- **A slot with padding, margin or a max-width** moves that block off the grid line. The probe's `off-grid` check
+  reports it. Narrower content goes inside the slot.
+- **A component used as its own slot**, such as a `.cards` grid placed directly under the section, never matches its
+  own container queries. It stays one column with zero-width implicit tracks, which the probe reports as `grid-span`.
+- **A photo backdrop with grid placement** is boxed inside the content line. Use `grid-column: auto`.
+- **A forced-colours border** shrinks a band's content box by 1px on every side. Use an outline.
 
 - **The frame component drops the scope attribute** → block root styles never match (the hero photo painted behind its
   band). Spread `...rest` onto the frame's root element.

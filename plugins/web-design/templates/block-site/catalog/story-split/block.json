@@ -1,0 +1,40 @@
+{
+  "$schema": "../../block.schema.json",
+  "id": "story-split",
+  "version": "1.0.0",
+  "title": "Story with photo",
+  "summary": "A photo beside a few paragraphs, side by side when the slot is wide enough and stacked when it is not (a switcher, so there is no squeezed in-between). Use for an about or history section. Avoid when the text runs past four short paragraphs.",
+  "category": "content",
+  "headingLevel": 2,
+  "placement": { "position": "any", "maxPerPage": 3 },
+  "tone": { "default": "surface", "allowed": ["canvas", "surface"] },
+  "slots": ["content"],
+  "variants": ["photo-start", "photo-end"],
+  "props": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["heading", "paragraphs", "image"],
+    "properties": {
+      "variant": { "enum": ["photo-start", "photo-end"] },
+      "eyebrow": { "type": "string", "maxLength": 40 },
+      "heading": { "type": "string", "minLength": 3, "maxLength": 70 },
+      "paragraphs": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 4,
+        "items": { "type": "string", "minLength": 20, "maxLength": 420 }
+      },
+      "image": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 60 },
+      "focal": { "type": "string", "pattern": "^\\d{1,3}% \\d{1,3}%$", "maxLength": 9 }
+    }
+  },
+  "assetProps": ["image"],
+  "media": [{ "prop": "image", "ratio": "4 / 3", "slot": "half-content" }],
+  "a11y": [
+    "The photo has alt text written while looking at it; the text column keeps a 45–75 character measure."
+  ],
+  "perf": { "clientJs": "none" },
+  "truth": [
+    "Dates, names and history come from the business; never a plausible-sounding invented origin story."
+  ]
+}

@@ -1,0 +1,110 @@
+/* =============================================================================
+   tokens.css: the values a block site tunes. Change the VALUES here; keep the
+   role NAMES, because layout.css and every block read them.
+
+   Load before layout.css. The layer statement below matches layout.css's, so
+   the order is the same whichever file the browser parses first.
+
+   Regenerating the fluid scales (Utopia's formula, min viewport 320px, max
+   1440px): knowledge/block-layout-system-2026.md §3. Keep every step's max at
+   or under 2.5× its min, or 200% zoom stops enlarging text (WCAG 1.4.4).
+   ============================================================================= */
+
+@layer reset, tokens, primitives, blocks, contract;
+
+@layer tokens {
+  :root {
+    /* Type, 320px → 1440px. Generated: knowledge/block-layout-system-2026.md §3. */
+    --step-n2: clamp(0.6944rem, 0.6757rem + 0.0937vw, 0.76rem);
+    --step-n1: clamp(0.8333rem, 0.8rem + 0.1667vw, 0.95rem);
+    --step-0: clamp(1rem, 0.9464rem + 0.2679vw, 1.1875rem);
+    --step-1: clamp(1.2rem, 1.1187rem + 0.4063vw, 1.4844rem);
+    --step-2: clamp(1.44rem, 1.3213rem + 0.5935vw, 1.8555rem);
+    --step-3: clamp(1.728rem, 1.559rem + 0.8448vw, 2.3193rem);
+    --step-4: clamp(2.0736rem, 1.8377rem + 1.1794vw, 2.8992rem);
+    --step-5: clamp(2.4883rem, 2.1639rem + 1.6223vw, 3.624rem);
+
+    /* Space: multiples of the body step, same viewport range. */
+    --space-3xs: clamp(0.25rem, 0.2366rem + 0.067vw, 0.2969rem);
+    --space-2xs: clamp(0.5rem, 0.4732rem + 0.1339vw, 0.5938rem);
+    --space-xs: clamp(0.75rem, 0.7098rem + 0.2009vw, 0.8906rem);
+    --space-s: clamp(1rem, 0.9464rem + 0.2679vw, 1.1875rem);
+    --space-m: clamp(1.5rem, 1.4196rem + 0.4018vw, 1.7812rem);
+    --space-l: clamp(2rem, 1.8929rem + 0.5357vw, 2.375rem);
+    --space-xl: clamp(3rem, 2.8393rem + 0.8036vw, 3.5625rem);
+    --space-2xl: clamp(4rem, 3.7857rem + 1.0714vw, 4.75rem);
+    --space-3xl: clamp(6rem, 5.6786rem + 1.6071vw, 7.125rem);
+
+    /* Section rhythm: the ONLY vertical padding a block may have. */
+    --section-s: clamp(2rem, 1.5536rem + 2.2321vw, 3.5625rem);
+    --section-m: clamp(3rem, 2.1607rem + 4.1964vw, 5.9375rem);
+    --section-l: clamp(4rem, 2.7679rem + 6.1607vw, 8.3125rem);
+
+    /* The grid. */
+    --gutter: clamp(1rem, 0.4286rem + 2.8571vw, 3rem);
+    --content-max: 72rem;
+    --wide-max: 90rem;
+    --measure: 66ch;
+
+    /* Shape. Borders and outlines in px, never rem: a rem hairline at 110% zoom
+       is 1.1px and paints blurred. */
+    --radius-s: 0.375rem;
+    --radius-m: 0.75rem;
+    --radius-l: 1.25rem;
+    --rule-width: 1px;
+    --focus-width: 2px;
+    --target-min: 2.75rem; /* 44px primary controls; 24px is the WCAG 2.5.8 floor */
+
+    /* Motion. */
+    --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --duration: 200ms;
+
+    /* Colour roles, light. A brand replaces these values, never the role names. */
+    --canvas: #fbfaf8;
+    --surface: #ffffff;
+    --ink: #1b1b1f;
+    --ink-muted: #55565e;
+    --rule: #dcdbe0;
+    --accent: #2f5bd3;
+    --on-accent: #ffffff;
+    --inverse: #15161b;
+    --on-inverse: #f4f3ef;
+    --on-inverse-muted: #c3c3ca;
+    --focus: #1f4fd0;
+    --scrim: rgb(10 11 14 / 0.62);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas: #111216;
+      --surface: #1a1b21;
+      --ink: #f1f0ec;
+      --ink-muted: #b7b7bf;
+      --rule: #34353d;
+      --accent: #8fb0ff;
+      --on-accent: #0d1430;
+      --inverse: #23242c; /* a dark band must still read as a band on a dark page */
+      --on-inverse: #f4f3ef;
+      --on-inverse-muted: #c9c9d0;
+      --focus: #9db9ff;
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #111216;
+    --surface: #1a1b21;
+    --ink: #f1f0ec;
+    --ink-muted: #b7b7bf;
+    --rule: #34353d;
+    --accent: #8fb0ff;
+    --on-accent: #0d1430;
+    --inverse: #23242c;
+    --on-inverse: #f4f3ef;
+    --on-inverse-muted: #c9c9d0;
+    --focus: #9db9ff;
+  }
+  @media (prefers-contrast: more) {
+    :root {
+      --ink-muted: var(--ink);
+      --rule: currentColor;
+    }
+  }
+}

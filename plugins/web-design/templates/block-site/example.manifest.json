@@ -1,0 +1,104 @@
+{
+  "$schema": "site-manifest.schema.json",
+  "siteId": "example-diner",
+  "lang": "en-US",
+  "business": {
+    "name": "Example Diner",
+    "schemaType": "Restaurant",
+    "phone": "(251) 555-0100",
+    "address": {
+      "street": "411 Fairhope Ave",
+      "city": "Fairhope",
+      "region": "AL",
+      "postalCode": "36532",
+      "countryCode": "US"
+    },
+    "hours": [
+      { "days": ["Mo", "Tu", "We", "Th", "Fr", "Sa"], "opens": "06:30", "closes": "14:00" },
+      { "days": ["Su"], "opens": "07:30", "closes": "13:00" }
+    ]
+  },
+  "assets": {
+    "dining-room": {
+      "src": "images/dining-room.jpg",
+      "alt": "",
+      "width": 2560,
+      "height": 1440,
+      "provenance": "business-own",
+      "focal": "50% 60%"
+    },
+    "counter": {
+      "src": "images/counter.jpg",
+      "alt": "The original counter with its six red stools",
+      "width": 1600,
+      "height": 1200,
+      "provenance": "business-own",
+      "focal": "30% 40%"
+    }
+  },
+  "pages": [
+    {
+      "path": "/",
+      "title": "Example Diner, Fairhope",
+      "description": "Breakfast all day in downtown Fairhope since 1945: biscuits rolled by hand every morning, walk-ins welcome.",
+      "blocks": [
+        {
+          "type": "hero-full",
+          "variant": "photo",
+          "props": {
+            "eyebrow": "Downtown Fairhope · since 1945",
+            "title": "Breakfast all day, made by hand every morning",
+            "lede": "A neighbourhood diner where the biscuits are rolled at six and the coffee is never more than a minute from the pot.",
+            "image": "dining-room",
+            "actions": [
+              { "label": "Plan a visit", "href": "#visit", "kind": "primary" },
+              { "label": "Call us", "href": "tel:+12515550100", "kind": "ghost" }
+            ]
+          }
+        },
+        {
+          "type": "features-grid",
+          "props": {
+            "heading": "Why people come back",
+            "items": [
+              {
+                "title": "Biscuits from scratch",
+                "body": "Rolled at six every morning, never frozen."
+              },
+              {
+                "title": "Breakfast all day",
+                "body": "Pancakes at two in the afternoon are a right, not a favour."
+              },
+              {
+                "title": "Walk-ins welcome",
+                "body": "No reservations needed for parties under six."
+              }
+            ]
+          }
+        },
+        {
+          "type": "story-split",
+          "variant": "photo-start",
+          "props": {
+            "eyebrow": "Our story",
+            "heading": "Same counter, same recipes",
+            "paragraphs": [
+              "The counter came with the building in 1945. The stools have been re-covered four times; the recipe cards are in the same tin."
+            ],
+            "image": "counter"
+          }
+        },
+        { "type": "hours-location", "props": { "heading": "Hours and location" } },
+        {
+          "type": "cta-banner",
+          "variant": "book",
+          "props": {
+            "heading": "Hungry yet?",
+            "action": { "label": "Book a table", "href": "tel:+12515550100" }
+          }
+        }
+      ]
+    }
+  ],
+  "ownerTodos": ["Confirm the Thanksgiving hours before publishing them."]
+}

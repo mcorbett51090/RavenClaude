@@ -2,6 +2,33 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.22.0] — 2026-10-27
+
+### Added
+
+- **`templates/block-site/`**: a starter kit, so anyone can build a block site with no private composer.
+  - `tokens.css` holds the values a site tunes.
+  - `layout.css` is the layout contract:
+    - a page grid with `full`/`wide`/`content` lines;
+    - rhythm tokens and tones;
+    - intrinsic primitives;
+    - a count-aware card grid for 1–6 items;
+    - media frames and a copy-anchored scrim;
+    - text safety;
+    - dark, forced colours, more contrast, reduced motion, RTL and print.
+  - `block.schema.json`, `site-manifest.schema.json`, `catalog.md` (18 canonical blocks), five exemplar block contracts, an example manifest, and `gallery.html`.
+- **`scripts/block_site_check.py`** (stdlib), with `catalog`, `manifest`, `tokens` and `fixtures` commands and a `--self-test` of 43 rows.
+- **`scripts/layout-probe.js`**: 18 rendered-page checks in a dependency-free browser function.
+- **`scripts/device_matrix.mjs`**: runs the probe across 28 viewports, ±1px around every `@media` width, an optional sweep, and three themes. `--self-test` plants 22 defects (every check the probe has), requires a clean control over 306 states, and measures all 18 count × width cells of the card grid. A layout shift counts only when it repeats in 3 of 3 loads (the measured reason is in the knowledge file §11).
+- **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN browser-compat-data read 2026-10-27, the verification ladder, and ten measured pitfalls.
+- **Command:** `/web-design:new-block-site`, gated step by step.
+
+### Changed
+
+- `block-composed-site` gains Mode 0 (start from the kit), the layout contract, a proof ladder for every mode, and four new pitfalls.
+- `adaptive-layout` Step 7 points at this plugin's own device matrix instead of the owner's private factory.
+- `test_web_design_checks.py` (run by CI Gate 317) gains five block-site tests.
+
 ## [0.21.0] — 2026-10-27
 
 ### Added

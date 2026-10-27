@@ -1,0 +1,45 @@
+{
+  "$schema": "../../block.schema.json",
+  "id": "features-grid",
+  "version": "1.0.0",
+  "title": "Feature cards",
+  "summary": "One to six short reasons or offerings as cards, laid out by count (never a card alone on a row). Use for 'why us' or a services overview. Avoid for a menu or price list (use a list block) or for more than six items.",
+  "category": "content",
+  "headingLevel": 2,
+  "placement": { "position": "any", "maxPerPage": 2 },
+  "tone": { "default": "canvas", "allowed": ["canvas", "surface"] },
+  "slots": ["content"],
+  "variants": ["plain", "with-icon"],
+  "props": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["heading", "items"],
+    "properties": {
+      "variant": { "enum": ["plain", "with-icon"] },
+      "eyebrow": { "type": "string", "maxLength": 40 },
+      "heading": { "type": "string", "minLength": 3, "maxLength": 70 },
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 6,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["title", "body"],
+          "properties": {
+            "title": { "type": "string", "minLength": 2, "maxLength": 48 },
+            "body": { "type": "string", "minLength": 10, "maxLength": 160 },
+            "icon": { "enum": ["clock", "leaf", "star", "heart", "map", "phone", "cup", "check"] }
+          }
+        }
+      }
+    }
+  },
+  "a11y": [
+    "An h2 for the block and an h3 per card; cards are articles in reading order, which is also the visual order at every width."
+  ],
+  "perf": { "clientJs": "none" },
+  "truth": [
+    "Every claim on a card is something the business does today; no awards or ratings without a source."
+  ]
+}

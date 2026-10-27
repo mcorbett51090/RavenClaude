@@ -133,9 +133,16 @@ declares** — read from the built CSS, which a minifier may have rewritten to r
 | iPad | 756×1158 (mini), 820×1180, 834×1210, 1032×1376, 1376×1032, split 688×1032 and 375×1032 |
 | Laptop / desktop | 1280×720 (short), 1280×800, 1470×956, 1920×1080, 2560×1440 |
 
-- A harness that implements exactly this, with a control run and four planted-defect mutations that must each
-  fire, ships in the owner's site factory: `scripts/test/device-matrix.mjs` (RavenPower-website-factory). Reuse
-  its shape; do not write a probe that has never been shown to fail.
+- **This plugin ships the harness:** [`scripts/device_matrix.mjs`](../../scripts/device_matrix.mjs) runs
+  [`scripts/layout-probe.js`](../../scripts/layout-probe.js) over exactly this table, plus ±1px around every
+  `@media` width in your CSS and an optional sweep (`--sweep 320:1600:8`), in light, dark and forced colours:
+  `node scripts/device_matrix.mjs --dir dist --pages /,/menu/ --full`.
+  - Its `--self-test` plants every defect the probe knows and requires each one to be reported; run it once per
+    machine.
+  - Use it rather than writing a probe that has never been shown to fail.
+  - The owner's site factory carries an older sibling (`scripts/test/device-matrix.mjs` in
+    RavenPower-website-factory) with the photo-contrast probe
+    ([`text-over-photo-contrast-2026.md`](../../knowledge/text-over-photo-contrast-2026.md)).
 - **Text over a photo needs its own probe**, and it runs at one viewport per class, because the photo crop changes
   with the aspect ratio. The probe hides the glyphs, captures the viewport (never the full document, which grows every
   `svh` hero), and scores each line at its 5th-percentile composited pixel. The method and its pitfalls are in
