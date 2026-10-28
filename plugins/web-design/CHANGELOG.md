@@ -2,6 +2,100 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.22.0] — 2026-10-27
+
+### Added
+
+- **`templates/block-site/`**: a starter kit, so anyone can build a block site with no private composer.
+  - `tokens.css` holds the values a site tunes: scales, font stacks, grid widths, colour roles and the photo scrim.
+  - `layout.css` is the layout contract:
+    - a page grid with `full`/`wide`/`content` lines;
+    - rhythm tokens, and tones that re-point every colour role;
+    - intrinsic primitives whose children are containers;
+    - a count-aware card grid for 1–6 items;
+    - media frames (linked photos included) and a copy-anchored scrim;
+    - text safety and a reading measure;
+    - dark, forced colours (with a backplate behind photo copy), more contrast in light and dark, reduced motion,
+      RTL and print.
+  - `blocks.css` holds the exemplars' CSS and the site header, menu and footer.
+  - `block.schema.json` and `site-manifest.schema.json`. The manifest carries business facts (with special days),
+    site chrome, assets with `srcset` sources and portrait crops, and pages with `lang`, `dir` and anchors.
+  - `catalog.json`: thirteen exemplar block contracts in one file, to stay inside the repo's file budget, among them
+    `price-list`, `gallery-grid` and `events-list`. The checker also reads a directory of `<id>/block.json`.
+  - `example.manifest.json`: a four-page site that uses twelve of the thirteen exemplars (`events-list` is in the
+    stress fixtures, whose dates are always to come). The kit's README carries the 16-block canonical catalog.
+  - `tokens.css` declares `color-scheme`, which names the default theme: `light dark`, a dark-first `dark light`, or
+    one theme only. The tokens gate checks the themes it names.
+- **`scripts/block_site_check.py`** (stdlib): `catalog`, `manifest`, `tokens` and `fixtures`, with a `--self-test`
+  of 153 rows. It refuses props it cannot prove closed, checks required facts, anchors, link schemes, hours and photo
+  sizes for the box each is drawn in, and reads `oklch()` and other colour syntaxes. Every `tel:` link must dial the
+  business's phone, a contract's `variantLinks` holds a variant to its label (`call` is a `tel:` link), and
+  `endpointProps` must be a real form endpoint. A link, endpoint or asset path with a backslash or a control
+  character is refused (a browser reads `/\host` as `//host`). A media frame may list the photo provenances it
+  accepts, and a contract may mark props that expire (an event's date) or that one value requires (`requireIf`: a
+  `choice` field needs its `options`). Every `YYYY-MM-DD` value must be a real date. Stress fixtures cycle every enum
+  value. The tokens gate reads the default theme only from top-level or `@layer` `:root` blocks, and refuses a theme
+  block left for a scheme the site does not have. A special day can be a run (`until`) with a label per language
+  (`labels`); hreflang pairs must point both ways; a call button's label must show the number it dials, in any
+  digits and spacing; a contract's `ranges` ties an end (an event's `ends`) to its start; and a phone in a country
+  with no known calling code is warned about.
+- **`scripts/block_site_render.py`** (stdlib): the reference renderer, from manifest to static HTML, with HTML checks
+  and a `--self-test` that breaks each of them. CI runs it. It uses the stylesheets beside the project's catalog,
+  loads the project's own block functions with `--blocks`, writes `sitemap.xml`, link previews and an icon, and serves
+  under a `basePath`. Before it writes anything it reads each page with an HTML parser and refuses code or a URL that
+  reaches another site unasked, and anything a browser's parser could read differently (a repeated attribute, SVG
+  outside a short allow-list), and runs its HTML checks. It records what it wrote beside the output folder, with a
+  digest of each file, so the next render removes a page gone from the manifest and never touches a file it did not
+  write. The header shows `chrome.brand` (≤ 32 characters) or the business name. It checks each photo's bytes, reads
+  its real size, refuses one whose EXIF orientation turns it, shows photo credits, writes `color-scheme` and
+  `theme-color` meta, leaves past events off the page, gives a gallery `sizes` per width from its photo count, marks
+  chrome in another language with its `lang`, and writes every `tel:` link with the country calling code. English
+  outside North America writes the day first and `am`/`pm`, and `strings.clock` picks a 12- or 24-hour clock.
+  Address lines and the business name are isolated on a right-to-left page, a nav link can carry its `lang`, and
+  the brand leads home in the page's language. Events take an end time, a price and a link, and each one to come
+  is a schema.org Event; a party-size field takes a `max`, and a date field starts at the day the page is rendered.
+- **`scripts/layout-probe.js`**: 36 rendered-page checks in a dependency-free async browser function, including
+  figures split across lines, the contrast of field edges and focus rings, and `image-ratio` (a file whose shape is
+  not the one the page declares, as when an EXIF tag turns a photo).
+- **`scripts/device_matrix.mjs`**: runs the probe across 28 viewports, ±1px around every `@media` width, and an
+  optional sweep. Its quick rows run six themes with real desktop scrollbars, plus photo-contrast on composited
+  pixels (ported from the owner's factory). `text-hidden` finds words no reader can see (covered, masked or faded
+  out) by capturing each page with its text drawn and hidden; any image, font or media file that 404s is
+  `resource-failed`; a `basePath` site is served only under its path; and each page is laid out once in print, as
+  paper. The ink capture runs at the device's pixel ratio, and `text-faint` finds text a translucent layer fades.
+  The probe's `fold` reports an h1 that ends below the first screen. `--block-shots DIR` writes a PNG per block at
+  390 and 1280px in light and dark. With `--manifest`, `--pages` picks pages from it; the motion theme runs in the
+  site's default scheme; `image-oversized` passes a file another image on the page already draws at a size that
+  needs it; `aria-hidden` and `inert` content is measured like anything else drawn; images inside an opened
+  `<details>` are checked; and a phone page zoomed out by overflow is noted, not a run that stops. Closed
+  `<details>` print their answers.
+  - `--self-test` renders the kit and requires the example and 40 stress pages clean.
+  - It plants 62 defects, covering every check, and checks 13 look-alikes that must pass (110 rows).
+  - Every state is probed a second time with each `<details>` open (the menu, FAQ answers).
+  - It measures all 18 count × width cells of the card grid.
+  - A layout shift counts only when it repeats in 5 of 5 loads (the measured reason is in the knowledge file §11).
+- **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 81 measured
+  pitfalls.
+- **Round-7 newcomer (a Kyoto guesthouse, Japanese at `/`, English at `/en/`).** A `knownPaths` entry that is also
+  one of this manifest's pages is refused, because under a `basePath` it sent the site's own nav to the other
+  language; the other language's copy of a mirrored path is an absolute https URL. A stylesheet `url()` is copied
+  from beside the catalog, rewritten relative to the stylesheet, and the first two font files are preloaded. An
+  address in Japan, Korea, China or Taiwan is written large to small. `minLength` counts a fullwidth character as
+  two units, so a heading such as `写真` meets a floor of 3.
+- **Command:** `/web-design:new-block-site`, gated step by step.
+
+### Changed
+
+- `block-composed-site` gains Mode 0 (start from the kit), the layout contract, a proof ladder for every mode, and new
+  pitfalls.
+- `adaptive-layout` Step 7 points at this plugin's own device matrix, which now runs photo-contrast itself.
+- `text-over-photo-contrast-2026.md` records three things this port learned:
+  - the method runs in dark and both more-contrast themes;
+  - it cannot apply in forced colours, where glyphs cannot be hidden;
+  - a reduced-motion transition delays the hide by a frame.
+- `test_web_design_checks.py` (run by CI Gate 317) gains six block-site tests.
+
 ## [0.21.0] — 2026-10-27
 
 ### Added

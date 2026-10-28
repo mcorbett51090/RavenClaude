@@ -87,8 +87,14 @@ photo costs the image without fixing the line that fails. The fix is to make the
 
 ## 3. What this does not cover
 
-- **The dark theme.** The probe runs in light only. Dark text over a photo, and a theme that swaps the scrim, are still
-  checked by eye **[observed limit]**.
+- **The dark theme.** The factory's probe runs in light only. This plugin's port (`scripts/device_matrix.mjs`) runs it
+  in light, dark and both more-contrast themes **[observed, 2026-10-27]**.
+- **Forced colours.** The browser paints glyphs in the forced colour whatever `-webkit-text-fill-color` says, so the
+  hide cannot land, and its computed-style check still passes **[observed in Chromium, 2026-10-27]**. The method does
+  not apply there. Give the copy an opaque `Canvas` backplate in `@media (forced-colors: active)` instead, and check
+  that the backplate is there.
+- **Reduced motion.** A `0.01ms` transition on every property (a common reduced-motion reset) means the hide has not
+  landed in the same tick it was added. Wait two frames before asserting it **[observed]**.
 - **Video and motion.** A poster or first frame is what gets scored. A bright later frame is not measured.
 - **Text inside the image.** Raster text has no text node, so the probe cannot find it.
 - **WebKit.** The probe runs in Chromium. Rendering differences in Safari are not measured **[inferred, not

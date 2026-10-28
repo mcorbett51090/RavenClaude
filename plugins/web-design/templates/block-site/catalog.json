@@ -1,0 +1,941 @@
+{
+  "description": "The kit's exemplar block contracts (thirteen), one entry per block, each shaped by block.schema.json. block_site_check.py reads this file or a directory of <id>/block.json files; split it into that form when the catalog grows, so each block's contract sits beside its component.",
+  "blocks": [
+    {
+      "id": "hero-full",
+      "version": "2.0.0",
+      "title": "Full-bleed photo hero",
+      "summary": "The page's opening statement over a strong photograph of the business itself. Use for a home or landing page. Not without a business-own photo: use page-header instead.",
+      "category": "hero",
+      "headingLevel": 1,
+      "placement": {
+        "position": "first",
+        "maxPerPage": 1,
+        "notAdjacentTo": ["cta-banner"]
+      },
+      "tone": {
+        "default": "media",
+        "locked": true
+      },
+      "slots": ["backdrop", "content"],
+      "space": "l",
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "image"],
+        "properties": {
+          "eyebrow": {
+            "type": "string",
+            "maxLength": 48
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 3
+          },
+          "lede": {
+            "type": "string",
+            "maxLength": 180
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "maxLength": 60
+          },
+          "actions": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["label", "href"],
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 28,
+                  "minLength": 2
+                },
+                "href": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "kind": {
+                  "enum": ["primary", "ghost"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "assetProps": ["image"],
+      "linkProps": ["actions[].href"],
+      "media": [
+        {
+          "prop": "image",
+          "ratio": "16 / 9",
+          "slot": "full",
+          "priority": true,
+          "maxWidth": 1280,
+          "maxHeight": 704,
+          "provenance": ["business-own", "commissioned"]
+        }
+      ],
+      "a11y": [
+        "Renders the page's only h1. The photo is decorative (alt=\"\"): the copy says what matters.",
+        "The copy sits on a scrim anchored to it (layout.css), and device_matrix.mjs scores every line against the composited photo at each device class (photo-contrast)."
+      ],
+      "perf": {
+        "clientJs": "none",
+        "lcpCandidate": true
+      },
+      "truth": [
+        "Never a photo of another business, and never a stock photo presented as this place.",
+        "The founding year and any claim in the eyebrow come from the business's own records."
+      ]
+    },
+    {
+      "id": "page-header",
+      "version": "1.0.0",
+      "title": "Page header",
+      "summary": "An inner page's title and one-paragraph introduction, with no photo. The level-1 block for every page that is not a landing page. Not for the home page when a business-own photo exists: use hero-full.",
+      "category": "hero",
+      "headingLevel": 1,
+      "placement": {
+        "position": "first",
+        "maxPerPage": 1
+      },
+      "tone": {
+        "default": "canvas",
+        "allowed": ["canvas", "surface"]
+      },
+      "slots": ["content"],
+      "space": "m",
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title"],
+        "properties": {
+          "eyebrow": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 70,
+            "minLength": 3
+          },
+          "intro": {
+            "type": "string",
+            "maxLength": 220
+          }
+        }
+      },
+      "a11y": ["Renders the page's only h1; the intro is one paragraph at the reading measure."],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": ["The title names what the page actually holds."]
+    },
+    {
+      "id": "features-grid",
+      "version": "2.0.0",
+      "title": "Features grid",
+      "summary": "One to six reasons, offerings or promises as cards. Not for a menu or a price list (use a price-list block), and not for more than six: split the page.",
+      "category": "content",
+      "headingLevel": 2,
+      "placement": {
+        "position": "any",
+        "maxPerPage": 2
+      },
+      "tone": {
+        "default": "canvas",
+        "allowed": ["canvas", "surface"]
+      },
+      "slots": ["content"],
+      "variants": ["plain", "with-icon"],
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "items"],
+        "properties": {
+          "eyebrow": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "heading": {
+            "type": "string",
+            "maxLength": 70,
+            "minLength": 3
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 6,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "body"],
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "maxLength": 48,
+                  "minLength": 2
+                },
+                "body": {
+                  "type": "string",
+                  "maxLength": 160,
+                  "minLength": 10
+                },
+                "icon": {
+                  "enum": ["clock", "leaf", "star", "heart", "map", "phone", "cup", "check"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "a11y": [
+        "An h2 for the block and an h3 per card; cards are articles in reading order, which is also the visual order at every width. Icons are decorative (aria-hidden)."
+      ],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": [
+        "Every claim on a card is something the business does today; no awards or ratings without a source."
+      ]
+    },
+    {
+      "id": "story-split",
+      "version": "2.0.0",
+      "title": "Story beside a photo",
+      "summary": "About, history or a single offering told beside one photo. Not for more than four short paragraphs: give the story its own page with a page-header.",
+      "category": "content",
+      "headingLevel": 2,
+      "placement": {
+        "position": "any",
+        "maxPerPage": 3
+      },
+      "tone": {
+        "default": "surface",
+        "allowed": ["canvas", "surface"]
+      },
+      "slots": ["content"],
+      "variants": ["photo-start", "photo-end"],
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "paragraphs", "image"],
+        "properties": {
+          "eyebrow": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "heading": {
+            "type": "string",
+            "maxLength": 70,
+            "minLength": 3
+          },
+          "paragraphs": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "type": "string",
+              "maxLength": 420,
+              "minLength": 20
+            }
+          },
+          "image": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "maxLength": 60
+          }
+        }
+      },
+      "assetProps": ["image"],
+      "media": [
+        {
+          "prop": "image",
+          "ratio": "4 / 3",
+          "slot": "half-content",
+          "maxWidth": 704,
+          "provenance": ["business-own", "commissioned"]
+        }
+      ],
+      "a11y": [
+        "The photo has alt text written while looking at it; the text column keeps a 45–75 character measure. Photo and text stack in source order below 44rem of slot width."
+      ],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": [
+        "Dates, names and history come from the business; never a plausible-sounding invented origin story.",
+        "The photo is of this business: its own or commissioned, never stock or generated beside its story."
+      ]
+    },
+    {
+      "id": "stats-band",
+      "version": "1.0.0",
+      "title": "Numbers band",
+      "summary": "Two to four numbers that matter to a customer, each with its source. Not for numbers nobody can source, and never more than four.",
+      "category": "social-proof",
+      "headingLevel": 2,
+      "placement": {
+        "position": "any",
+        "maxPerPage": 1
+      },
+      "tone": {
+        "default": "canvas",
+        "allowed": ["canvas", "surface", "inverse"]
+      },
+      "slots": ["content"],
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "items"],
+        "properties": {
+          "heading": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 3
+          },
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["value", "label", "source"],
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "maxLength": 8,
+                  "minLength": 1
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 32,
+                  "minLength": 2
+                },
+                "source": {
+                  "type": "string",
+                  "maxLength": 120,
+                  "minLength": 3
+                }
+              }
+            }
+          }
+        }
+      },
+      "a11y": [
+        "A description list: each label is the term and its number the description, so a screen reader hears them paired. The numbers sit side by side or all stacked, never two-and-one."
+      ],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": [
+        "Every number has a source a customer could check; the source is rendered under it."
+      ]
+    },
+    {
+      "id": "testimonial",
+      "version": "1.0.0",
+      "title": "One quotation",
+      "summary": "One customer quotation with its attribution and where it was said. Not for quotes without the person's permission, and never an edited or invented quote.",
+      "category": "social-proof",
+      "headingLevel": 2,
+      "placement": {
+        "position": "any",
+        "maxPerPage": 2
+      },
+      "tone": {
+        "default": "surface",
+        "allowed": ["canvas", "surface"]
+      },
+      "slots": ["content"],
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "quote", "name", "context", "permission"],
+        "properties": {
+          "heading": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 3
+          },
+          "quote": {
+            "type": "string",
+            "maxLength": 280,
+            "minLength": 20
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 2
+          },
+          "context": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 3
+          },
+          "permission": {
+            "const": true
+          }
+        }
+      },
+      "a11y": ["A figure: the quotation is a blockquote and the attribution its figcaption."],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": [
+        "Quoted word for word, with the person's permission (the manifest must say permission: true), and with where and when it was said."
+      ]
+    },
+    {
+      "id": "faq-list",
+      "version": "1.0.0",
+      "title": "Questions and answers",
+      "summary": "Three to eight questions customers really ask, each opening to its answer. Not for marketing copy phrased as questions.",
+      "category": "content",
+      "headingLevel": 2,
+      "placement": {
+        "position": "any",
+        "maxPerPage": 1
+      },
+      "tone": {
+        "default": "surface",
+        "allowed": ["canvas", "surface"]
+      },
+      "slots": ["content"],
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "items"],
+        "properties": {
+          "heading": {
+            "type": "string",
+            "maxLength": 70,
+            "minLength": 3
+          },
+          "items": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["question", "answer"],
+              "properties": {
+                "question": {
+                  "type": "string",
+                  "maxLength": 100,
+                  "minLength": 5
+                },
+                "answer": {
+                  "type": "string",
+                  "maxLength": 400,
+                  "minLength": 10
+                }
+              }
+            }
+          }
+        }
+      },
+      "a11y": [
+        "Native details and summary: keyboard and screen reader support come from the browser, and every answer is in the page for search and find-in-page."
+      ],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": ["Questions customers actually ask, with the business's own answers."]
+    },
+    {
+      "id": "price-list",
+      "version": "1.0.0",
+      "title": "Price list",
+      "summary": "A menu or a list of services with prices exactly as charged: a section of a menu, a beer list, a price sheet. Not for offerings without prices (use features-grid), and split a long menu into one block per section.",
+      "category": "listing",
+      "headingLevel": 2,
+      "placement": {
+        "position": "any",
+        "maxPerPage": 8
+      },
+      "tone": {
+        "default": "canvas",
+        "allowed": ["canvas", "surface"]
+      },
+      "slots": ["content"],
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "items"],
+        "properties": {
+          "heading": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 70
+          },
+          "intro": {
+            "type": "string",
+            "maxLength": 220
+          },
+          "asOf": {
+            "description": "The day the prices were last checked against the till; shown under the list.",
+            "type": "string",
+            "pattern": "^20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
+            "examples": ["2026-09-01", "2026-01-15"],
+            "format": "date"
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 30,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "price"],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 2,
+                  "maxLength": 48
+                },
+                "price": {
+                  "description": "As the till rings it, with its currency: $7, 6,50 €, £4.20, Market price.",
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 14
+                },
+                "detail": {
+                  "description": "One line of facts: 6.8% · 16 oz, 45 min, Serves two.",
+                  "type": "string",
+                  "maxLength": 48
+                },
+                "description": {
+                  "type": "string",
+                  "maxLength": 160
+                }
+              }
+            }
+          }
+        }
+      },
+      "a11y": [
+        "An h2, then a list (role=list, so VoiceOver keeps it a list); each item's name is an h3, so a long menu can be read by heading. A price never breaks across lines."
+      ],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": [
+        "Every price is what the business charges today, as rung up, with its currency; asOf is the day that was checked.",
+        "No item the business does not sell, and no price marked down that never was."
+      ]
+    },
+    {
+      "id": "gallery-grid",
+      "version": "1.0.0",
+      "title": "Photo gallery",
+      "summary": "Three to twelve photos of the place or the work, each with alt written while looking at it: landscape, square or portrait frames, three or four to a row by count. Not for one photo (story-split) or for stock images.",
+      "category": "media",
+      "headingLevel": 2,
+      "placement": {
+        "position": "any",
+        "maxPerPage": 1
+      },
+      "tone": {
+        "default": "canvas",
+        "allowed": ["canvas", "surface"]
+      },
+      "slots": ["content"],
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "images"],
+        "properties": {
+          "heading": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 70
+          },
+          "intro": {
+            "type": "string",
+            "maxLength": 220
+          },
+          "images": {
+            "type": "array",
+            "minItems": 3,
+            "maxItems": 12,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["image"],
+              "properties": {
+                "image": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$",
+                  "maxLength": 60
+                },
+                "caption": {
+                  "type": "string",
+                  "maxLength": 100
+                }
+              }
+            }
+          }
+        }
+      },
+      "assetProps": ["images[].image"],
+      "media": [
+        {
+          "prop": "images[].image",
+          "ratio": "4 / 3",
+          "slot": "content",
+          "minCol": 16,
+          "maxWidth": 548,
+          "provenance": ["business-own", "commissioned"],
+          "variantRatio": {
+            "square": "1 / 1",
+            "portrait": "4 / 5"
+          }
+        }
+      ],
+      "a11y": [
+        "An h2, then a list of figures; each photo keeps its own alt, and a caption, when given, is visible text under it."
+      ],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": [
+        "Photos of this place or this business's work only, never stock presented as the place."
+      ],
+      "variants": ["landscape", "square", "portrait"]
+    },
+    {
+      "id": "events-list",
+      "version": "1.0.0",
+      "title": "Events list",
+      "summary": "Upcoming dated events: a quiz night, live music, a release, a class. Not for opening hours (hours-location) or a one-off closure (business.specialHours).",
+      "category": "listing",
+      "headingLevel": 2,
+      "placement": {
+        "position": "any",
+        "maxPerPage": 1
+      },
+      "tone": {
+        "default": "surface",
+        "allowed": ["canvas", "surface"]
+      },
+      "slots": ["content"],
+      "expires": ["events[].date"],
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "events"],
+        "properties": {
+          "heading": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 70
+          },
+          "intro": {
+            "type": "string",
+            "maxLength": 220
+          },
+          "events": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 12,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["date", "title"],
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "pattern": "^20[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
+                  "examples": ["2026-11-06", "2027-12-31"],
+                  "format": "date"
+                },
+                "starts": {
+                  "type": "string",
+                  "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+                  "examples": ["19:00", "23:30"]
+                },
+                "ends": {
+                  "type": "string",
+                  "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+                  "examples": ["21:00", "23:59"],
+                  "description": "When it ends, on the same day"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 3,
+                  "maxLength": 60
+                },
+                "body": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "price": {
+                  "type": "string",
+                  "maxLength": 20,
+                  "description": "As the business writes it: £35, Free, £20 a child"
+                },
+                "href": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200,
+                  "description": "Where to book or read more; the event's title becomes the link"
+                }
+              }
+            }
+          }
+        }
+      },
+      "a11y": [
+        "An h2, then an ordered list in date order; each date is a <time datetime>, with its day name written out, and each event's title is an h3."
+      ],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": [
+        "Only events the business has confirmed, on their real dates. A past event is left off the page, and the checker asks for it to be removed."
+      ],
+      "linkProps": ["events[].href"],
+      "ranges": [
+        {
+          "from": "events[].starts",
+          "to": "events[].ends"
+        }
+      ]
+    },
+    {
+      "id": "hours-location",
+      "version": "2.0.0",
+      "title": "Hours and location",
+      "summary": "Address, opening hours, special days, directions and phone for a place customers visit. Not for a service-area business with no storefront: say where it serves instead.",
+      "category": "location",
+      "headingLevel": 2,
+      "placement": {
+        "position": "any",
+        "maxPerPage": 1
+      },
+      "tone": {
+        "default": "canvas",
+        "allowed": ["canvas", "surface"]
+      },
+      "slots": ["content"],
+      "requires": ["business.address", "business.hours"],
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading"],
+        "properties": {
+          "heading": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 3
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 160
+          }
+        }
+      },
+      "a11y": [
+        "Hours are a description list whose rows share one label column (subgrid), so times align whatever the longest label; the directions link says it opens a map."
+      ],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": [
+        "Hours, address and phone come from the business's facts (the manifest's business), never typed into the block."
+      ],
+      "schemaOrg": [
+        "openingHoursSpecification and specialOpeningHoursSpecification, from the same structured hours the rows are derived from"
+      ]
+    },
+    {
+      "id": "contact-form",
+      "version": "1.0.0",
+      "title": "Contact form",
+      "summary": "A short form that posts to an endpoint the business has provisioned. Not before that endpoint exists: say how to reach the business instead. Any form collecting personal data needs a security review.",
+      "category": "form",
+      "headingLevel": 2,
+      "placement": {
+        "position": "any",
+        "maxPerPage": 1
+      },
+      "tone": {
+        "default": "surface",
+        "allowed": ["canvas", "surface"]
+      },
+      "slots": ["content"],
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "action", "submitLabel", "fields"],
+        "properties": {
+          "heading": {
+            "type": "string",
+            "maxLength": 70,
+            "minLength": 3
+          },
+          "intro": {
+            "type": "string",
+            "maxLength": 220
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "submitLabel": {
+            "type": "string",
+            "maxLength": 28,
+            "minLength": 2
+          },
+          "fields": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "label"],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "name",
+                    "email",
+                    "phone",
+                    "message",
+                    "date",
+                    "party-size",
+                    "time",
+                    "choice"
+                  ]
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 40,
+                  "minLength": 2
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "options": {
+                  "description": "The choices a choice field offers (a service, a stylist), in the order shown.",
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 12,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                },
+                "max": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "maximum": 100000,
+                  "description": "The most a party-size field accepts (99 when left out): 500 for a catering enquiry"
+                }
+              }
+            }
+          }
+        }
+      },
+      "endpointProps": ["action"],
+      "a11y": [
+        "Every field has a visible label bound to it, the right type, autocomplete and inputmode, and 16px text; required fields say so in the label as well as with the required attribute."
+      ],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": [
+        "Posts to an endpoint the business provisioned and reads; never promises a reply time the business did not give."
+      ],
+      "requireIf": [
+        {
+          "items": "fields[]",
+          "when": {
+            "kind": "choice"
+          },
+          "require": ["options"],
+          "otherwiseForbid": true
+        },
+        {
+          "items": "fields[]",
+          "when": {
+            "kind": "party-size"
+          },
+          "require": [],
+          "allow": ["max"],
+          "otherwiseForbid": true
+        }
+      ]
+    },
+    {
+      "id": "cta-banner",
+      "version": "2.0.0",
+      "title": "Call to action band",
+      "summary": "One closing action on a contrasting band. Use once, near the end of a page. Not directly after the hero, and never two in a row.",
+      "category": "conversion",
+      "headingLevel": 2,
+      "placement": {
+        "position": "any",
+        "maxPerPage": 1,
+        "notAdjacentTo": ["cta-banner", "hero-full"]
+      },
+      "tone": {
+        "default": "inverse",
+        "allowed": ["inverse", "surface"]
+      },
+      "slots": ["content"],
+      "variants": ["book", "call"],
+      "props": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["heading", "action"],
+        "properties": {
+          "heading": {
+            "type": "string",
+            "maxLength": 48,
+            "minLength": 3
+          },
+          "action": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "href"],
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 28,
+                "minLength": 2
+              },
+              "href": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            }
+          }
+        }
+      },
+      "linkProps": ["action.href"],
+      "variantLinks": {
+        "call": "tel:"
+      },
+      "a11y": ["An h2 and one link styled as a button with at least a 44px target."],
+      "perf": {
+        "clientJs": "none"
+      },
+      "truth": [
+        "The action does what its label says: 'book' reaches a real booking path, 'call' a real number (a tel: link)."
+      ]
+    }
+  ]
+}
