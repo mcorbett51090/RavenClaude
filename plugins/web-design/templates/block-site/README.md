@@ -146,7 +146,7 @@ Every step ends at a gate that must pass before the next one starts.
    - **Gate:** step 8 runs on these pages too.
 8. **Prove it.** Two runs:
    - the site, everything: `node <plugin>/scripts/device_matrix.mjs --dir dist --manifest site/site.manifest.json
-     --full --sweep 320:1600:8` (5 pages took about 6 minutes);
+     --full --sweep 320:1600:8` (the four-page example took about 9 minutes, 888 states);
    - the stress pages, one theme: `node <plugin>/scripts/device_matrix.mjs --dir stress/dist --manifest
      stress/stress.manifest.json --themes light` (52 pages took 26 minutes in one theme).
    Each row's first theme also checks every word for ink, captured at the device's pixel ratio with the text drawn
