@@ -54,6 +54,7 @@ import re
 import shutil
 import sys
 import tempfile
+import unicodedata
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 KIT = os.path.normpath(os.path.join(HERE, "..", "templates", "block-site"))
@@ -115,6 +116,14 @@ def _real_date(value):
         return False
 
 
+def text_units(value):
+    """Floor for minLength. A fullwidth character counts as two units, so 写真
+    (two characters, one heading) meets a floor of 3. ASCII still needs three
+    characters. maxLength stays a raw character count: it is the worst case the
+    layout was sized for."""
+    return sum(2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1 for ch in value)
+
+
 def validate(schema, value, root=None, path="$"):
     """Return a list of 'path: message' strings. Supports: type, properties,
     required, additionalProperties (bool or schema), propertyNames, enum, const,
@@ -138,7 +147,7 @@ def validate(schema, value, root=None, path="$"):
     if "const" in schema and not _same(value, schema["const"]):
         errs.append(f"{path}: must be {json.dumps(schema['const'])}")
     if isinstance(value, str):
-        if "minLength" in schema and len(value) < schema["minLength"]:
+        if "minLength" in schema and text_units(value) < schema["minLength"]:
             errs.append(f"{path}: shorter than {schema['minLength']} characters")
         if "maxLength" in schema and len(value) > schema["maxLength"]:
             errs.append(f"{path}: {len(value)} characters, more than {schema['maxLength']}")
@@ -626,6 +635,17 @@ def check_manifest(manifest, blocks, manifest_schema, today=None):
     paths = [p["path"] for p in manifest["pages"]]
     for dup in sorted({p for p in paths if paths.count(p) > 1}):
         problems.append(f"page path {dup} appears more than once")
+    # A mirrored site repeats paths (/rooms/ and /en/rooms/). knownPaths cannot
+    # name one of this manifest's pages: that link is the same string as its own,
+    # and leaving it unprefixed points the nav at the other language.
+    own = set(paths)
+    overlap = [p for p in manifest.get("knownPaths") or [] if p in own]
+    if overlap:
+        problems.append(
+            f"knownPaths {overlap[0]!r} is also a page of this manifest, so a link to it cannot be told from this "
+            "site's own page (under a basePath the nav keeps the other language's paths). knownPaths is only a path "
+            "this manifest does not have; the other language's copy of one of your pages is an absolute https URL"
+        )
     problems += check_hours(business)
     if business.get("phone"):
         number, _ext = phone_parts(business["phone"])
@@ -1760,6 +1780,11 @@ def self_test():
         manifest_case("a call label in Arabic-Indic digits showing another number", lambda m: m["chrome"].update(action={"label": "اتصل ٢٥١٥٥٥٠١٩٩", "href": "tel:+12515550100"}), "its label shows")
         manifest_case("a call button whose label shows another number than it dials", lambda m: m["chrome"].update(action={"label": "Call 0161 496 0999", "href": "tel:+12515550100"}), "its label shows")
         manifest_case(
+            "knownPaths names this manifest's own home",
+            lambda m: m.update(knownPaths=["/"]),
+            "also a page of this manifest",
+        )
+        manifest_case(
             "an hreflang pair that points only one way",
             lambda m: (m["pages"].append({**copy.deepcopy(m["pages"][0]), "path": "/es/", "lang": "es", "strings": {"menu": "Menú"}, "alternates": []}), m["pages"][0].update(alternates=[{"lang": "es", "href": "/es/"}])),
             "does not point back",
@@ -1890,6 +1915,11 @@ def self_test():
         xd["pages"][0]["alternates"] = [{"lang": "x-default", "href": "/"}, {"lang": "es", "href": "https://example.es/"}]
         pxd, _ = check_manifest(xd, blocks, mschema)
         row(not pxd, "positive: hreflang x-default is a valid alternate", "; ".join(pxd[:2]))
+        pic = copy.deepcopy(example)
+        B(pic)[1]["props"]["heading"] = "写真"
+        pp, _ = check_manifest(pic, blocks, mschema)
+        row(not pp, "positive: a two-character CJK heading (写真) meets a three-character floor", "; ".join(pp[:2]))
+        manifest_case("a one-character CJK heading", lambda m: B(m)[1]["props"].update(heading="写"), "shorter than 3")
         mm = copy.deepcopy(example)
         mm["assets"]["counter"].update(provenance="licensed-stock")
         mm["assets"]["counter"].pop("credit", None)

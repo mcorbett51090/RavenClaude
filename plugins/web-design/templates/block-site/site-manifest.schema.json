@@ -767,7 +767,7 @@
       }
     },
     "knownPaths": {
-      "description": "Pages another manifest serves on the same host (one manifest per language: the French site links to the English /book/). Links to them pass the checks and keep their path under a basePath.",
+      "description": "A path another manifest serves and this one does not (the French site has no /visit/, and links to the English one). The link keeps that path under a basePath. A path this manifest also has is refused: the other language's copy of it is an absolute https URL, because the two links would otherwise be the same.",
       "type": "array",
       "maxItems": 50,
       "items": {

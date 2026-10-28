@@ -75,8 +75,14 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
   - It measures all 18 count × width cells of the card grid.
   - A layout shift counts only when it repeats in 5 of 5 loads (the measured reason is in the knowledge file §11).
 - **Knowledge:** `block-layout-system-2026.md`. The contract, its rationale and numbers, browser support from MDN
-  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 77 measured
+  browser-compat-data read 2026-10-27, the verification ladder, what the measurements cannot say, and 81 measured
   pitfalls.
+- **Round-7 newcomer (a Kyoto guesthouse, Japanese at `/`, English at `/en/`).** A `knownPaths` entry that is also
+  one of this manifest's pages is refused, because under a `basePath` it sent the site's own nav to the other
+  language; the other language's copy of a mirrored path is an absolute https URL. A stylesheet `url()` is copied
+  from beside the catalog, rewritten relative to the stylesheet, and the first two font files are preloaded. An
+  address in Japan, Korea, China or Taiwan is written large to small. `minLength` counts a fullwidth character as
+  two units, so a heading such as `写真` meets a floor of 3.
 - **Command:** `/web-design:new-block-site`, gated step by step.
 
 ### Changed

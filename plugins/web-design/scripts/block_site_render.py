@@ -9,9 +9,9 @@ block function below, the same markup, and blocks.css with it.
 
   render MANIFEST --catalog CATALOG --out DIR [--css DIR] [--blocks FILE] [--placeholders]
       Runs `block_site_check.py manifest` first and refuses on any problem. Writes
-      DIR/<path>/index.html for each page, copies tokens.css, layout.css and
-      blocks.css, and copies every image the manifest names from beside the
-      manifest. The stylesheets come from --css, else from beside the catalog
+      DIR/<path>/index.html for each page, writes tokens.css, layout.css and
+      blocks.css, copies every file a stylesheet url() names (a self-hosted font,
+      preloaded) and every image the manifest names from beside the manifest. The stylesheets come from --css, else from beside the catalog
       (your branded copy of the kit), else from the kit itself; the run says
       which. --blocks names a Python file of your own block render functions
       (a RENDER dict of block id to function, the same shape as the one below),
@@ -207,7 +207,27 @@ def short_date(iso, ui, today):
     return date_text(d, ui, d.year != int(today[:4]))
 
 
+# Postal code first, then region, city and street. Japan, China and Taiwan
+# write those with no space; Korea separates them. Japan Post puts 〒 before
+# the code. The page language does not change this: the address is in the
+# country it names. (mark, separator)
+BIG_TO_SMALL = {"JP": ("〒", ""), "CN": ("", ""), "TW": ("", ""), "KR": ("", " ")}
+
+
 def address_lines(addr):
+    cc = (addr.get("countryCode") or "").upper()
+    if cc in BIG_TO_SMALL:
+        mark, sep = BIG_TO_SMALL[cc]
+        locality = sep.join(p for p in (addr.get(k) or "" for k in ("region", "city", "street")) if p)
+        lines = []
+        if addr.get("postalCode"):
+            postal = str(addr["postalCode"])
+            if mark and not postal.startswith(mark):
+                postal = mark + postal
+            lines.append(postal)
+        if locality:
+            lines.append(locality)
+        return lines
     lines = [addr["street"]] if addr.get("street") else []
     city = addr["city"] + (f", {addr['region']}" if addr.get("region") else "")
     if addr.get("postalCode"):
@@ -883,18 +903,20 @@ LOCAL_URL = re.compile(r'((?:href|src|action)=")/(?!/)')
 SRCSET_URL = re.compile(r'(srcset=")([^"]*)(")')
 
 
-def rebase(page_html, base, known=()):
+def rebase(page_html, base, known=(), own=()):
     """Prefix every site-root URL (href, src, action and srcset entries) with the
     base path, for a site served under a subpath. The manifest stays base-less. A
-    knownPaths page (another manifest's, on the same host) is left as written."""
+    knownPaths page (another manifest's, on the same host) is left as written.
+    A path that is also one of this manifest's pages is this site's own link and
+    takes the base path; the checker refuses that overlap in knownPaths."""
     if base == "/":
         return page_html
-    known = tuple(known)
+    known, own = set(known), set(own)
 
     def prefix(m):
         rest = page_html[m.end() : m.end() + 400].split('"', 1)[0]
         path = "/" + rest.split("#")[0].split("?")[0]
-        return m.group(0) if path in known else m.group(1) + base
+        return m.group(0) if path in known and path not in own else m.group(1) + base
 
     out = LOCAL_URL.sub(prefix, page_html)
     return SRCSET_URL.sub(
@@ -1100,6 +1122,71 @@ def load_blocks(path):
     return extra
 
 
+CSS_URL = re.compile(r"""url\(\s*(?P<q>['"]?)(?P<u>[^)'"]+?)(?P=q)\s*\)""", re.I)
+FONT_TYPE = {".woff2": "font/woff2", ".woff": "font/woff", ".ttf": "font/ttf", ".otf": "font/otf"}
+
+
+def css_dependencies(css_dir):
+    """(name -> css text, {out path: source path}, preload tags, problems).
+
+    A stylesheet's url() is a file beside the catalog. It is copied into the
+    output, and a root-absolute url(/fonts/x) is rewritten relative to the
+    stylesheet so a basePath site requests it under that path. The first two
+    font files are preloaded. A remote or data url is refused: the file is
+    self-hosted, the same rule as a link."""
+    problems, rewritten, copies, fonts = [], {}, {}, []
+    root = os.path.normpath(css_dir)
+
+    def one(name, text):
+        def repl(m):
+            raw = m.group("u").strip()
+            low = raw.lower()
+            if low.startswith(("data:", "http:", "https:", "//")):
+                problems.append(
+                    f"{name} url({raw[:80]}): a stylesheet loads a file beside the catalog, not a remote or data URL"
+                )
+                return m.group(0)
+            path_part = raw.split("#", 1)[0].split("?", 1)[0]
+            if not path_part:
+                return m.group(0)
+            if path_part.startswith("/"):
+                rel = path_part.lstrip("/")
+                new = f'url("{rel}")'
+            else:
+                rel = os.path.normpath(os.path.join(os.path.dirname(name), path_part))
+                new = m.group(0)
+            rel = rel.replace("\\", "/")
+            if rel.startswith("../") or rel == ".." or os.path.isabs(rel):
+                problems.append(f"{name} url({raw[:80]}): the file must sit inside the catalog's directory")
+                return m.group(0)
+            src = os.path.normpath(os.path.join(root, rel))
+            if not src.startswith(root + os.sep):
+                problems.append(f"{name} url({raw[:80]}): the file must sit inside the catalog's directory")
+                return m.group(0)
+            if not os.path.isfile(src):
+                problems.append(f"{name} references {rel}, which is missing beside the catalog")
+                return m.group(0)
+            copies[rel] = src
+            ext = os.path.splitext(rel)[1].lower()
+            if ext in FONT_TYPE and rel not in fonts:
+                fonts.append(rel)
+            return new
+
+        return CSS_URL.sub(repl, text)
+
+    for name in CSS_FILES:
+        with open(os.path.join(css_dir, name), encoding="utf-8") as f:
+            rewritten[name] = one(name, f.read())
+    preloads = []
+    for rel in fonts[:2]:
+        ext = os.path.splitext(rel)[1].lower()
+        href = "/" + rel.lstrip("/")
+        preloads.append(
+            f'<link rel="preload" href={a(href)} as="font" type={a(FONT_TYPE[ext])} crossorigin>'
+        )
+    return rewritten, copies, preloads, problems
+
+
 def css_source(catalog, css_dir=None):
     """Where the stylesheets come from: --css, else beside the catalog, else the kit."""
     if css_dir:
@@ -1127,8 +1214,21 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
     notes = list(warnings)
     today = today or datetime.date.today().isoformat()
     base = base_path(manifest)
-    meta = theme_meta(css_dir)
-    built = {page["path"]: rebase(render_page(manifest, page, blocks, today, renderers, meta), base, manifest.get("knownPaths") or []) for page in manifest["pages"]}
+    css_dir = css_dir or KIT
+    rewritten, copies, preloads, css_problems = css_dependencies(css_dir)
+    if css_problems:
+        return css_problems, notes
+    meta = theme_meta(css_dir) + preloads
+    own_paths = [p["path"] for p in manifest["pages"]]
+    built = {
+        page["path"]: rebase(
+            render_page(manifest, page, blocks, today, renderers, meta),
+            base,
+            manifest.get("knownPaths") or [],
+            own_paths,
+        )
+        for page in manifest["pages"]
+    }
     # Whatever a contract or a block function forgot to declare, no page ships
     # code, or a link, form or image that reaches another site unasked.
     unsafe = [f"page {path}: {u}" for path, h in built.items() for u in unsafe_markup(h)]
@@ -1142,7 +1242,8 @@ def render(manifest, blocks, out, manifest_dir, css_dir=None, placeholders=False
         return [why], notes
     # The whole plan first: (path in out, how to make it). Nothing is written
     # until every path is known to be free or this renderer's own.
-    plan = [(name, ("copy", os.path.join(css_dir or KIT, name))) for name in CSS_FILES]
+    plan = [(name, ("text", rewritten[name])) for name in CSS_FILES]
+    plan += [(rel, ("copy", src)) for rel, src in copies.items()]
     for src, w, h in asset_files(manifest):
         if re.match(r"^https?://", src):
             continue
@@ -2011,6 +2112,63 @@ def self_test():
         knp, _ = render(kn, blocks, knout, KIT, placeholders=True, today="2026-10-27")
         knh = open(os.path.join(knout, "index.html"), encoding="utf-8").read() if not knp else ""
         row(not knp and 'href="/visit/"' in knh and 'href="/fr/contact/"' in knh, "knownPaths: a link to another manifest's page passes and keeps its path under a basePath", "; ".join(knp[:2]))
+        overlapped = copy.deepcopy(example)
+        overlapped["basePath"] = "/en/"
+        overlapped["knownPaths"] = ["/"]
+        ov, _ = render(overlapped, blocks, os.path.join(tmp, "overlap"), KIT, placeholders=True, today="2026-10-27")
+        row(any("also a page of this manifest" in x for x in ov), "must fail: knownPaths names this manifest's own home", "; ".join(ov[:1]))
+        # A brand face: the file beside the catalog is copied, preloaded, and a
+        # root-absolute url() is rewritten so the /en/ site requests it under /en/.
+        brand = os.path.join(tmp, "brand")
+        os.makedirs(os.path.join(brand, "fonts"))
+        for name in CSS_FILES:
+            shutil.copy(os.path.join(KIT, name), os.path.join(brand, name))
+        with open(os.path.join(brand, "tokens.css"), "a", encoding="utf-8") as fh:
+            fh.write('\n@font-face { font-family: "Brand"; src: url("/fonts/mincho.ttf") format("truetype"); font-display: swap; }\n')
+        with open(os.path.join(brand, "fonts", "mincho.ttf"), "wb") as fh:
+            fh.write(b"font")
+        font_m = copy.deepcopy(example)
+        font_m["basePath"] = "/en/"
+        font_m["chrome"]["nav"].append({"label": "日本語", "href": "https://gekka.example/", "lang": "ja"})
+        fout = os.path.join(tmp, "font")
+        fp, _ = render(font_m, blocks, fout, KIT, css_dir=brand, placeholders=True, today="2026-10-27")
+        fhome = open(os.path.join(fout, "index.html"), encoding="utf-8").read() if not fp else ""
+        fcss = open(os.path.join(fout, "tokens.css"), encoding="utf-8").read() if not fp else ""
+        row(
+            not fp
+            and os.path.isfile(os.path.join(fout, "fonts", "mincho.ttf"))
+            and 'rel="preload" href="/en/fonts/mincho.ttf"' in fhome
+            and 'url("fonts/mincho.ttf")' in fcss
+            and 'href="/en/contact/"' in fhome
+            and 'href="https://gekka.example/"' in fhome,
+            "a self-hosted font is copied and preloaded under basePath, and an absolute language link is left as written",
+            "; ".join(fp[:2]),
+        )
+        missing = os.path.join(tmp, "missing-font")
+        os.makedirs(missing)
+        for name in CSS_FILES:
+            shutil.copy(os.path.join(KIT, name), os.path.join(missing, name))
+        with open(os.path.join(missing, "tokens.css"), "a", encoding="utf-8") as fh:
+            fh.write('\n@font-face { src: url("fonts/gone.ttf"); }\n')
+        mp, _ = render(copy.deepcopy(example), blocks, os.path.join(tmp, "missing-out"), KIT, css_dir=missing, placeholders=True, today="2026-10-27")
+        row(any("missing beside the catalog" in x for x in mp), "must fail: a stylesheet url() whose file is not beside the catalog", "; ".join(mp[:1]))
+        remote = os.path.join(tmp, "remote-font")
+        os.makedirs(remote)
+        for name in CSS_FILES:
+            shutil.copy(os.path.join(KIT, name), os.path.join(remote, name))
+        with open(os.path.join(remote, "tokens.css"), "a", encoding="utf-8") as fh:
+            fh.write('\n@font-face { src: url("https://cdn.example/a.woff2"); }\n')
+        rp, _ = render(copy.deepcopy(example), blocks, os.path.join(tmp, "remote-out"), KIT, css_dir=remote, placeholders=True, today="2026-10-27")
+        row(any("remote or data" in x for x in rp), "must fail: a stylesheet url() to another host", "; ".join(rp[:1]))
+        row(
+            address_lines({"street": "中京区御池通", "city": "京都市", "region": "京都府", "postalCode": "604-8006", "countryCode": "JP"})
+            == ["〒604-8006", "京都府京都市中京区御池通"]
+            and address_lines({"street": "명동길 1", "city": "중구", "region": "서울특별시", "postalCode": "04524", "countryCode": "KR"})
+            == ["04524", "서울특별시 중구 명동길 1"]
+            and address_lines({"street": "411 Fairhope Ave", "city": "Fairhope", "region": "AL", "postalCode": "36532", "countryCode": "US"})
+            == ["411 Fairhope Ave", "Fairhope, AL 36532"],
+            "a Japanese address is postal code, then region city street; Korea separates those parts; a US address stays street, then city, region and code",
+        )
         # A query string is part of a link, not of the page it names.
         q = copy.deepcopy(example)
         q["chrome"]["nav"][0]["href"] = q["chrome"]["nav"][0]["href"].split("#")[0] + "?from=nav"

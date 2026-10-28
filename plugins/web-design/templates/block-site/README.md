@@ -44,6 +44,9 @@ Every step ends at a gate that must pass before the next one starts.
 2. **Set the brand in `tokens.css`.** Change the colour values (never the role names), the font stacks and, if you
    need to, the type base, ratios and grid widths (regenerate the scales with knowledge §3). For a brand web font,
    follow the comment above `--font-body`: `font-display: swap`, one preload, and a metric-matched fallback.
+   Put the font file beside the catalog and name it from the stylesheet (`url("fonts/brand.woff2")`, or
+   `url("/fonts/brand.woff2")`). The renderer copies that file into the output and writes the preload; a remote
+   or `data:` url is refused. Subset a large face (a full CJK font is several megabytes) to the characters you use.
    - **Dark first, or always dark.** `color-scheme` on `:root` says which roles are which. The kit's `light dark`
      means the `:root` roles are light and the dark ones are the alternate. A dark-first brand writes `dark light`,
      puts its dark roles in `:root` and its light ones under `@media (prefers-color-scheme: light)` and
@@ -79,6 +82,8 @@ Every step ends at a gate that must pass before the next one starts.
    real `width`/`height`, a focal point, smaller `sources` of the same crop for `srcset`, and a `portrait` crop for a
    full-bleed photo that crops badly on a phone. Write the phone as printed, in digits (`(251) 555-0100 ext. 12`):
    every `tel:` link on the site must dial it. Set `lang`; `dir` follows the language's script unless you set it.
+   An address in Japan, Korea, China or Taiwan is written large to small (〒604-8006, then 京都府京都市中京区…);
+   everywhere else it is the street, then the city, region and postal code.
    Set `origin` (canonical URLs, JSON-LD and `sitemap.xml`), `basePath` if the site is served under a subpath,
    `shareImage` (an asset with alt, 1200px wide, for link previews) and `icon`. Mark an emergency-only line's hours
    `"kind": "emergency"`: they show under their own heading and are never published as opening hours. A run of
@@ -96,9 +101,14 @@ Every step ends at a gate that must pass before the next one starts.
        them right, and the checker says so. Address lines, the business name and the footer note are isolated, so
        "14 Tib Street" stays in order on a right-to-left page. Give the nav link to the other language its `lang`
        (`{"label": "العربية", "href": "/ar/", "lang": "ar"}`); on that language's pages the brand leads to its home.
-     - **A whole site**: one manifest per language, each with its own `basePath` (`/fr/`), `chrome` in its language
-       and `alternates`. A link to a page the other manifest serves goes in `knownPaths` (`["/book/"]`): it passes
-       the checks and keeps its path.
+     - **A whole site**: one manifest per language, each with its own `basePath` (`/en/`), `chrome` in its language
+       and `alternates`. A path alternate has to be a page of this manifest, so the other language's page is an
+       absolute https URL, listed both ways (a search engine ignores a pair that does not point both ways). A link
+       to a path this manifest does not have goes in `knownPaths` (`["/visit/"]` when this language has no visit
+       page): it passes the checks and keeps its path. A mirrored path (`/rooms/` on both languages) is not a
+       knownPath. It is this manifest's own page, and the link to the other language is the absolute URL
+       (`https://example.com/rooms/` from the `/en/` site). `knownPaths` that names one of your own pages is
+       refused: the two links are the same string, and the nav would otherwise keep the other language's paths.
    - **Gate:** `block_site_check.py manifest site/site.manifest.json --catalog site/catalog.json`. Read its warnings
      too: they include any photo too small, at 2x, for the box it is drawn in, and a non-English page without
      strings. Every `tel:` link the renderer writes carries the country's calling code (from the address, for

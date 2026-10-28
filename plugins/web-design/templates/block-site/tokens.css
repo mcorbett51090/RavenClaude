@@ -64,10 +64,11 @@
     --target-min: 2.75rem; /* 44px primary controls; 24px is the WCAG 2.5.8 floor */
 
     /* Type families. A system stack renders at once with no layout shift and no
-       network. To use a brand face: add its @font-face (font-display: swap),
-       preload the one file the first screen needs, and put a metric-matched
-       fallback face second (size-adjust plus ascent/descent overrides, knowledge
-       §7), so the swap does not move the text. */
+       network. To use a brand face: add its @font-face (font-display: swap) with
+       url() pointing at a file beside this catalog (fonts/brand.woff2, or
+       /fonts/brand.woff2). The renderer copies that file and writes the preload.
+       Put a metric-matched fallback face second (size-adjust plus ascent/descent
+       overrides, knowledge §7), so the swap does not move the text. */
     --font-body:
       system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
     --font-display: var(--font-body);
