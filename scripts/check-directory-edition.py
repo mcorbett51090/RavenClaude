@@ -28,7 +28,9 @@ MUST-FAIL HALVES (a check that cannot fail proves nothing)
   M3  a hook that runs `python3 -c` from the project directory is classified unsafe (a planted module in the
       project root is imported); the same hook with `-I` is safe. Each cwd-importing spelling (a path to
       the interpreter, -c glued to its code, an option argument, a pipe, a bare interpreter, a
-      backslash-newline, and a shell prefix (`then`/`do`/`{`/`exec`/`sudo`)) is a build refusal
+      backslash-newline, and a shell prefix (`then`/`do`/`{`/`exec`/`sudo`, `if`/`while`/`until`/`!`
+      as the condition command, or a prefix with its own flags (`sudo -E`/`env -i`/`nice -n5`/`time -p`))
+      is a build refusal
   M4  the same workflow with its pluginRoot validation neutered starts without a root, so check 5 can fail
   M5  a hook that runs git in the payload's cwd executes a vendored repository's core.fsmonitor and is
       classified unsafe (H7); the same hook at the project root with core.fsmonitor=false is safe
@@ -364,6 +366,14 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("exec python3 -c", "exec python3 -c 'y'"),
             ("while-do python3 -c", "while true; do python3 -c 'y'; done"),
             ("sudo python3 -c", "sudo python3 -c 'y'"),
+            ("if-cond python3 -c", "if python3 -c 'y'; then :; fi"),
+            ("while-cond python3 -c", "while python3 -c 'y'; do :; done"),
+            ("until-cond python3 -c", "until python3 -c 'y'; do :; done"),
+            ("bang python3 -c", "! python3 -c 'y'"),
+            ("sudo -E python3 -c", "sudo -E python3 -c 'y'"),
+            ("env -i python3 -c", "env -i python3 -c 'y'"),
+            ("nice -n5 python3 -c", "nice -n5 python3 -c 'y'"),
+            ("time -p python3 -c", "time -p python3 -c 'y'"),
         )
         iso_forms = (
             ("if-then python3 -I -c", "if x; then python3 -I -c 'y'; fi"),
@@ -371,6 +381,15 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("exec python3 -I -c", "exec python3 -I -c 'y'"),
             ("while-do python3 -I -c", "while true; do python3 -I -c 'y'; done"),
             ("sudo python3 -I -c", "sudo python3 -I -c 'y'"),
+            ("if-cond python3 -I -c", "if python3 -I -c 'y'; then :; fi"),
+            ("while-cond python3 -I -c", "while python3 -I -c 'y'; do :; done"),
+            ("until-cond python3 -I -c", "until python3 -I -c 'y'; do :; done"),
+            ("bang python3 -I -c", "! python3 -I -c 'y'"),
+            ("sudo -E python3 -I -c", "sudo -E python3 -I -c 'y'"),
+            ("env -i python3 -I -c", "env -i python3 -I -c 'y'"),
+            ("nice -n5 python3 -I -c", "nice -n5 python3 -I -c 'y'"),
+            ("time -p python3 -I -c", "time -p python3 -I -c 'y'"),
+            ("command -v python3", "command -v python3"),
         )
         try:
             for label, body in forms:

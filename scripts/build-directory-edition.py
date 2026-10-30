@@ -1084,11 +1084,17 @@ def structure_findings(root: Path, manifest: dict) -> list[str]:
 # ── hygiene: things a stranger's repository could turn against the person who installed this ──
 
 # An interpreter in command position: start of the line, or after | & ; ( ` or $(.
-# Optional NAME=value assignments (quoted values included) and a short list of
-# shell prefixes (then/do/else/elif, {, exec, time, nice, sudo, command, env)
-# may precede it. The path may be ./ ../ or absolute, including /usr/bin/env python3.
-# A bare docs/python3 is not a command.
-_PY_PREFIX = r"(?:then|do|else|elif|exec|time|nice|sudo|command|env)(?![\w.-])|\{"
+# Optional NAME=value assignments (quoted values included) and a run of shell
+# prefixes (then/do/else/elif/if/while/until, {, !, exec, time, nice, sudo,
+# command, env) with their own flag tokens (-E, -i, -n5, -p, ...) may precede
+# it. The path may be ./ ../ or absolute, including /usr/bin/env python3.
+# A bare docs/python3 is not a command. `command -v`/`-V` looks up a name and
+# is not an invocation (see _COMMAND_LOOKUP).
+_PY_PREFIX = (
+    r"(?:then|do|else|elif|if|while|until|exec|time|nice|sudo|command|env)(?![\w.-])"
+    r"|\{|!(?![\w.-])"
+)
+_PY_FLAG = r"-[^\s|&;()`]+"
 _PY_ASSIGN = (
     r"[A-Za-z_][A-Za-z0-9_]*="
     r"(?:"
@@ -1097,12 +1103,17 @@ _PY_ASSIGN = (
     r"[^\s|&;()`]+"
     r")"
 )
+_PY_SKIP = r"(?:" + _PY_ASSIGN + r"|" + _PY_PREFIX + r")[ \t]+(?:" + _PY_FLAG + r"[ \t]+)*"
 _PY_INVOKE = re.compile(
     r"(?:^|(?<=[|&;(`])|(?<=\$\())"
     r"[ \t]*"
-    r"(?:(?:" + _PY_ASSIGN + r"|" + _PY_PREFIX + r")[ \t]+)*"
+    r"(?:" + _PY_SKIP + r")*"
     r"(?:(?:\.\./)+(?:[\w.@+-]+/)*|\./(?:[\w.@+-]+/)*|/(?:[\w.@+-]+/)*)?"
     r"(?:python3?(?:\.\d+)?(?![\w.-])|env(?![\w.-])[ \t]+python3?(?:\.\d+)?(?![\w.-]))"
+)
+# `command -v`/`-V` (and clusters like -pv) looks up a name; it does not run it.
+_COMMAND_LOOKUP = re.compile(
+    r"(?:^|[ \t])command(?![\w.-])(?:[ \t]+-(?!-)[^\s]*)*[ \t]+-(?!-)[^\s]*[vV]"
 )
 _CLAUDE_CL = "cla" + "ude"
 _SPAWN_PIECES = (
@@ -1291,8 +1302,10 @@ def python_cwd_sensitive(line: str) -> bool:
     isolate it. `python3 -c` (with or without a space, including `-Bc`/`-uc`), `python3 -m`, `python3 -`,
     `python3 <<`, a pipe into a bare interpreter, and a bare `python3` all do. A path
     (`/usr/bin/python3`, `./python3`, `/usr/bin/env python3`) is the same command. A shell prefix
-    (`then`/`do`/`else`/`elif`/`{`/`exec`/`time`/`nice`/`sudo`/`command`/`env`) before the interpreter
-    is still a command. Options may precede `-c`/`-m`/`-`, including ones that take an argument
+    (`then`/`do`/`else`/`elif`/`if`/`while`/`until`/`{`/`!`/`exec`/`time`/`nice`/`sudo`/`command`/`env`)
+    before the interpreter, including that prefix's own flags (`sudo -E`, `env -i`, `nice -n5`,
+    `time -p`), is still a command. `command -v`/`-V` looks up a name and is not. Options may precede
+    `-c`/`-m`/`-`, including ones that take an argument
     (`-W ignore`, `-X dev`). A backslash-newline between the interpreter and its flags still counts.
     `python3 script.py` puts the SCRIPT's directory
     on sys.path instead, so it is allowed. `-I` (isolated mode, Python 3.4+, also inside a cluster such
@@ -1301,6 +1314,8 @@ def python_cwd_sensitive(line: str) -> bool:
         if re.match(r"^[ \t]*[A-Za-z0-9._|*-]+\)[ \t]*$", logical):
             continue
         for m in _PY_INVOKE.finditer(logical):
+            if _COMMAND_LOOKUP.search(m.group(0)):
+                continue
             before = logical[m.start() - 1] if m.start() else ""
             decided = _invocation_sensitive(logical[m.end() :], before)
             if decided:
@@ -2084,11 +2099,27 @@ def self_test() -> int:
             "exec python3 -c 'y'": True,
             "while true; do python3 -c 'y'; done": True,
             "sudo python3 -c 'y'": True,
+            "if python3 -c 'y'; then :; fi": True,
+            "while python3 -c 'y'; do :; done": True,
+            "until python3 -c 'y'; do :; done": True,
+            "! python3 -c 'y'": True,
+            "sudo -E python3 -c 'y'": True,
+            "env -i python3 -c 'y'": True,
+            "nice -n5 python3 -c 'y'": True,
+            "time -p python3 -c 'y'": True,
             "if x; then python3 -I -c 'y'; fi": False,
             "{ python3 -I -c 'y'; }": False,
             "exec python3 -I -c 'y'": False,
             "while true; do python3 -I -c 'y'; done": False,
             "sudo python3 -I -c 'y'": False,
+            "if python3 -I -c 'y'; then :; fi": False,
+            "while python3 -I -c 'y'; do :; done": False,
+            "until python3 -I -c 'y'; do :; done": False,
+            "! python3 -I -c 'y'": False,
+            "sudo -E python3 -I -c 'y'": False,
+            "env -i python3 -I -c 'y'": False,
+            "nice -n5 python3 -I -c 'y'": False,
+            "time -p python3 -I -c 'y'": False,
         }
         wrong = [k for k, v in table.items() if python_cwd_sensitive(k) != v]
         check("python isolation: truth table " + (f"[wrong: {wrong}]" if wrong else ""), not wrong)
