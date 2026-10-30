@@ -1083,37 +1083,27 @@ def structure_findings(root: Path, manifest: dict) -> list[str]:
 
 # ── hygiene: things a stranger's repository could turn against the person who installed this ──
 
-# An interpreter in command position: start of the line, or after | & ; ( ` or $(.
-# Optional NAME=value assignments (quoted values included) and a run of shell
-# prefixes (then/do/else/elif/if/while/until, {, !, exec, time, nice, sudo,
-# command, env) with their own flag tokens (-E, -i, -n5, -p, ...) may precede
-# it. The path may be ./ ../ or absolute, including /usr/bin/env python3.
-# A bare docs/python3 is not a command. `command -v`/`-V` looks up a name and
-# is not an invocation (see _COMMAND_LOOKUP).
-_PY_PREFIX = (
-    r"(?:then|do|else|elif|if|while|until|exec|time|nice|sudo|command|env)(?![\w.-])"
-    r"|\{|!(?![\w.-])"
-)
-_PY_FLAG = r"-[^\s|&;()`]+"
-_PY_ASSIGN = (
-    r"[A-Za-z_][A-Za-z0-9_]*="
-    r"(?:"
-    r'"[^"]*"|'
-    r"'[^']*'|"
-    r"[^\s|&;()`]+"
-    r")"
-)
-_PY_SKIP = r"(?:" + _PY_ASSIGN + r"|" + _PY_PREFIX + r")[ \t]+(?:" + _PY_FLAG + r"[ \t]+)*"
-_PY_INVOKE = re.compile(
-    r"(?:^|(?<=[|&;(`])|(?<=\$\())"
-    r"[ \t]*"
-    r"(?:" + _PY_SKIP + r")*"
-    r"(?:(?:\.\./)+(?:[\w.@+-]+/)*|\./(?:[\w.@+-]+/)*|/(?:[\w.@+-]+/)*)?"
-    r"(?:python3?(?:\.\d+)?(?![\w.-])|env(?![\w.-])[ \t]+python3?(?:\.\d+)?(?![\w.-]))"
+# Interpreter token at the 000d6330 breadth: not glued to a longer word, a path
+# segment (`docs/python3`), `$`, or a dash (`python3-config`). A `./` `../` or
+# absolute path to that name is the same command. Detection starts at the token.
+# Syntax words and assignments may sit in front of it. A wrapper runs a later
+# argument as the command; its flags are not parsed, so a value that is its own
+# token (`sudo -u someuser`, `nice -n 5`, `env -u VAR`, `timeout 5`) still
+# reaches the interpreter. `which`/`type` and `command -v`/`-V` are lookups.
+_PY_TOKEN = re.compile(r"(?<![\w./$-])python3?(?:\.\d+)?(?![\w.-])")
+_PY_PATH = r"(?:(?:\.\./)+(?:[\w.@+-]+/)*|\./(?:[\w.@+-]+/)*|/(?:[\w.@+-]+/)*)"
+_PY_PATH_TOKEN = re.compile(r"(?<![\w./$-])" + _PY_PATH + r"python3?(?:\.\d+)?(?![\w.-])")
+_PY_PATH_CMD = re.compile(r"^" + _PY_PATH + r"python3?(?:\.\d+)?$")
+_PY_ASSIGN_WORD = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+_PY_SYNTAX = frozenset({"then", "do", "else", "elif", "if", "while", "until", "{", "!"})
+_PY_WRAPPER = frozenset(
+    {"exec", "time", "nice", "sudo", "command", "env", "xargs", "timeout"}
 )
 # `command -v`/`-V` (and clusters like -pv) looks up a name; it does not run it.
+# An optional path (`/usr/bin/command`) is the same builtin.
 _COMMAND_LOOKUP = re.compile(
-    r"(?:^|[ \t])command(?![\w.-])(?:[ \t]+-(?!-)[^\s]*)*[ \t]+-(?!-)[^\s]*[vV]"
+    r"(?:^|[ \t]|/)"
+    r"command(?![\w.-])(?:[ \t]+-(?!-)[^\s]*)*[ \t]+-(?!-)[^\s]*[vV]"
 )
 _CLAUDE_CL = "cla" + "ude"
 _SPAWN_PIECES = (
@@ -1297,15 +1287,180 @@ def _invocation_sensitive(tail: str, before: str) -> bool | None:
     return not isolated
 
 
+def _cmd_base(word: str) -> str:
+    if len(word) >= 2 and word[0] == word[-1] and word[0] in "\"'":
+        word = word[1:-1]
+    return word.rsplit("/", 1)[-1]
+
+
+def _is_interpreter_word(word: str) -> bool:
+    return bool(_PY_TOKEN.fullmatch(word) or _PY_PATH_CMD.fullmatch(word))
+
+
+def _matching_paren(line: str, open_at: int, limit: int) -> int:
+    """Index of the `)` that matches the `(` at open_at, or limit if it never closes."""
+    depth = 0
+    i = open_at
+    quote = ""
+    while i < limit:
+        ch = line[i]
+        if quote:
+            if ch == "\\" and quote == '"' and i + 1 < limit:
+                i += 2
+                continue
+            if ch == quote:
+                quote = ""
+            i += 1
+            continue
+        if ch in "\"'":
+            quote = ch
+            i += 1
+            continue
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return limit
+
+
+def _matching_backtick(line: str, start: int, limit: int) -> int:
+    i = start
+    while i < limit:
+        if line[i] == "\\" and i + 1 < limit:
+            i += 2
+            continue
+        if line[i] == "`":
+            return i
+        i += 1
+    return limit
+
+
+def _command_ranges(line: str) -> list[tuple[int, int]]:
+    """Simple-command spans, plus `$(...)` and backtick substitutions.
+
+    Separators count even inside quotes. A quoted `python3 -c` after `&&` or `|`
+    is the same shape the previous scan flagged, including example strings.
+    """
+
+    def between(start: int, end: int) -> list[tuple[int, int]]:
+        ranges: list[tuple[int, int]] = []
+        i = start
+        seg = start
+        while i < end:
+            ch = line[i]
+            if line.startswith("$(", i) or ch == "`":
+                # The substitution is its own command. The surrounding command
+                # stays one span, so `VAR="$(cmd)" python3 -c` is still visible.
+                if ch == "`":
+                    close = _matching_backtick(line, i + 1, end)
+                    ranges.extend(between(i + 1, close))
+                else:
+                    close = _matching_paren(line, i + 1, end)
+                    ranges.extend(between(i + 2, close))
+                i = close + 1 if close < end else end
+                continue
+            if ch in "|&;(":
+                if line[seg:i].strip():
+                    ranges.append((seg, i))
+                i += 1
+                seg = i
+                continue
+            i += 1
+        if line[seg:i].strip():
+            ranges.append((seg, i))
+        return ranges
+
+    return between(0, len(line))
+
+
+def _token_is_sensitive(line: str, tok_start: int, tok_end: int) -> bool:
+    before = line[tok_start - 1] if tok_start else ""
+    return bool(_invocation_sensitive(line[tok_end:], before))
+
+
+def _later_interpreter_sensitive(line: str, start: int, end: int) -> bool:
+    """An interpreter token after a wrapper. Flags and their values are skipped by
+    scanning for the token, not by naming each flag. Quoted text is not a command."""
+    i = start
+    while i < end:
+        ch = line[i]
+        if ch == "'":
+            i += 1
+            while i < end and line[i] != "'":
+                i += 1
+            i = min(i + 1, end)
+            continue
+        if ch == '"':
+            i += 1
+            while i < end and line[i] != '"':
+                if line[i] == "\\" and i + 1 < end:
+                    i += 2
+                    continue
+                i += 1
+            i = min(i + 1, end)
+            continue
+        if ch == "#":
+            return False
+        matched = False
+        for rx in (_PY_PATH_TOKEN, _PY_TOKEN):
+            m = rx.match(line, i)
+            if m and m.start() == i and m.end() <= end:
+                if _token_is_sensitive(line, m.start(), m.end()):
+                    return True
+                i = m.end()
+                matched = True
+                break
+        if not matched:
+            i += 1
+    return False
+
+
+def _range_sensitive(line: str, start: int, end: int) -> bool:
+    i = start
+    while i < end and line[i] in " \t|&;":
+        i += 1
+    while i < end:
+        while i < end and line[i] in " \t":
+            i += 1
+        if i >= end or line[i] in "|&;\n#)<>":
+            return False
+        word, j = _read_word(line, i)
+        if not word or j > end:
+            return False
+        if _PY_ASSIGN_WORD.match(word):
+            i = j
+            continue
+        if word in _PY_SYNTAX:
+            i = j
+            continue
+        break
+    else:
+        return False
+    if _is_interpreter_word(word):
+        return _token_is_sensitive(line, i, j)
+    base = _cmd_base(word)
+    if base in ("which", "type"):
+        return False
+    if base == "command" and _COMMAND_LOOKUP.search(line[i:end]):
+        return False
+    if base not in _PY_WRAPPER:
+        return False
+    return _later_interpreter_sensitive(line, j, end)
+
+
 def python_cwd_sensitive(line: str) -> bool:
     """True when `line` runs python in a form that puts the CURRENT DIRECTORY on sys.path and does not
     isolate it. `python3 -c` (with or without a space, including `-Bc`/`-uc`), `python3 -m`, `python3 -`,
     `python3 <<`, a pipe into a bare interpreter, and a bare `python3` all do. A path
-    (`/usr/bin/python3`, `./python3`, `/usr/bin/env python3`) is the same command. A shell prefix
-    (`then`/`do`/`else`/`elif`/`if`/`while`/`until`/`{`/`!`/`exec`/`time`/`nice`/`sudo`/`command`/`env`)
-    before the interpreter, including that prefix's own flags (`sudo -E`, `env -i`, `nice -n5`,
-    `time -p`), is still a command. `command -v`/`-V` looks up a name and is not. Options may precede
-    `-c`/`-m`/`-`, including ones that take an argument
+    (`/usr/bin/python3`, `./python3`, `/usr/bin/env python3`) is the same command. The scan finds that
+    interpreter token inside each simple command. Syntax words (`then`/`do`/`else`/`elif`/`if`/`while`/
+    `until`/`{`/`!`) and a wrapper (`exec`/`time`/`nice`/`sudo`/`command`/`env`/`xargs`/`timeout`) may
+    precede it; a wrapper's flags, including a separate value (`sudo -u someuser`, `nice -n 5`,
+    `env -u VAR`), are not the command. `which`, `type`, and `command -v`/`-V` look a name up and are
+    not invocations. Options may precede `-c`/`-m`/`-`, including ones that take an argument
     (`-W ignore`, `-X dev`). A backslash-newline between the interpreter and its flags still counts.
     `python3 script.py` puts the SCRIPT's directory
     on sys.path instead, so it is allowed. `-I` (isolated mode, Python 3.4+, also inside a cluster such
@@ -1313,12 +1468,8 @@ def python_cwd_sensitive(line: str) -> bool:
     for logical in _logical_lines(line):
         if re.match(r"^[ \t]*[A-Za-z0-9._|*-]+\)[ \t]*$", logical):
             continue
-        for m in _PY_INVOKE.finditer(logical):
-            if _COMMAND_LOOKUP.search(m.group(0)):
-                continue
-            before = logical[m.start() - 1] if m.start() else ""
-            decided = _invocation_sensitive(logical[m.end() :], before)
-            if decided:
+        for start, end in _command_ranges(logical):
+            if _range_sensitive(logical, start, end):
                 return True
     return False
 
@@ -2107,6 +2258,11 @@ def self_test() -> int:
             "env -i python3 -c 'y'": True,
             "nice -n5 python3 -c 'y'": True,
             "time -p python3 -c 'y'": True,
+            "sudo -u someuser python3 -c 'y'": True,
+            "nice -n 5 python3 -c 'y'": True,
+            "env -u VAR python3 -c 'y'": True,
+            "xargs python3 -c 'y'": True,
+            "timeout 5 python3 -c 'y'": True,
             "if x; then python3 -I -c 'y'; fi": False,
             "{ python3 -I -c 'y'; }": False,
             "exec python3 -I -c 'y'": False,
@@ -2120,6 +2276,13 @@ def self_test() -> int:
             "env -i python3 -I -c 'y'": False,
             "nice -n5 python3 -I -c 'y'": False,
             "time -p python3 -I -c 'y'": False,
+            "sudo -u someuser python3 -I -c 'y'": False,
+            "nice -n 5 python3 -I -c 'y'": False,
+            "env -u VAR python3 -I -c 'y'": False,
+            "xargs python3 -I -c 'y'": False,
+            "timeout 5 python3 -I -c 'y'": False,
+            "which python3": False,
+            "type python3": False,
         }
         wrong = [k for k, v in table.items() if python_cwd_sensitive(k) != v]
         check("python isolation: truth table " + (f"[wrong: {wrong}]" if wrong else ""), not wrong)

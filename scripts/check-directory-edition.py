@@ -29,8 +29,9 @@ MUST-FAIL HALVES (a check that cannot fail proves nothing)
       project root is imported); the same hook with `-I` is safe. Each cwd-importing spelling (a path to
       the interpreter, -c glued to its code, an option argument, a pipe, a bare interpreter, a
       backslash-newline, and a shell prefix (`then`/`do`/`{`/`exec`/`sudo`, `if`/`while`/`until`/`!`
-      as the condition command, or a prefix with its own flags (`sudo -E`/`env -i`/`nice -n5`/`time -p`))
-      is a build refusal
+      as the condition command, a prefix flag with a separate value (`sudo -u someuser`/`nice -n 5`/
+      `env -u VAR`), or a wrapper that runs the interpreter (`xargs`/`timeout`))
+      is a build refusal. `command -v`, `which`, and `type` look a name up and are allowed
   M4  the same workflow with its pluginRoot validation neutered starts without a root, so check 5 can fail
   M5  a hook that runs git in the payload's cwd executes a vendored repository's core.fsmonitor and is
       classified unsafe (H7); the same hook at the project root with core.fsmonitor=false is safe
@@ -340,7 +341,8 @@ def must_fail_python_cwd(dist: Path) -> None:
             "; ".join(good.get("hostile_reasons", [])),
         )
         # Build refusal (the detector), not the runtime import. The runtime pair above stays.
-        # These are the spellings a whitespace-only flag scan misses.
+        # Separate-token wrapper flags and xargs/timeout are the spellings a one-token flag
+        # skip misses. which/type are lookups, same as command -v.
         manifest = build.load_manifest(build.DEFAULT_MANIFEST)
         planted = plug / "hooks" / "zz-py-form.sh"
         forms = (
@@ -374,6 +376,11 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("env -i python3 -c", "env -i python3 -c 'y'"),
             ("nice -n5 python3 -c", "nice -n5 python3 -c 'y'"),
             ("time -p python3 -c", "time -p python3 -c 'y'"),
+            ("sudo -u someuser python3 -c", "sudo -u someuser python3 -c 'y'"),
+            ("nice -n 5 python3 -c", "nice -n 5 python3 -c 'y'"),
+            ("env -u VAR python3 -c", "env -u VAR python3 -c 'y'"),
+            ("xargs python3 -c", "xargs python3 -c 'y'"),
+            ("timeout 5 python3 -c", "timeout 5 python3 -c 'y'"),
         )
         iso_forms = (
             ("if-then python3 -I -c", "if x; then python3 -I -c 'y'; fi"),
@@ -389,7 +396,14 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("env -i python3 -I -c", "env -i python3 -I -c 'y'"),
             ("nice -n5 python3 -I -c", "nice -n5 python3 -I -c 'y'"),
             ("time -p python3 -I -c", "time -p python3 -I -c 'y'"),
+            ("sudo -u someuser python3 -I -c", "sudo -u someuser python3 -I -c 'y'"),
+            ("nice -n 5 python3 -I -c", "nice -n 5 python3 -I -c 'y'"),
+            ("env -u VAR python3 -I -c", "env -u VAR python3 -I -c 'y'"),
+            ("xargs python3 -I -c", "xargs python3 -I -c 'y'"),
+            ("timeout 5 python3 -I -c", "timeout 5 python3 -I -c 'y'"),
             ("command -v python3", "command -v python3"),
+            ("which python3", "which python3"),
+            ("type python3", "type python3"),
         )
         try:
             for label, body in forms:
