@@ -157,8 +157,12 @@ def evaluate(root: Path, base: str) -> tuple[int, list[str]]:
                 )
                 rc = 1
     if seen == 0:
-        lines.append("  ⚠ no ratchet state files exist — nothing was checked, which is")
+        # ⛔ An EMPTY result is not a clean one. This used to print the warning and still
+        # return 0, so a tree where every ratchet file was deleted/renamed/mis-pathed
+        # passed the freshness gate having checked nothing.
+        lines.append("  ✗ no ratchet state files exist — nothing was checked, which is")
         lines.append("     an EMPTY result, not a clean one.")
+        rc = 1
     return rc, lines
 
 

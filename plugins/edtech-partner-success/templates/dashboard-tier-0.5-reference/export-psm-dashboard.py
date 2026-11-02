@@ -7,7 +7,7 @@ atomically.
 
 USAGE
   python3 export-psm-dashboard.py --out PATH --as-of YYYY-MM-DD --org-uid UUID
-      [--allow-real-ids] [--validate]
+      [--allow-real-ids] [--validate [--schema PATH]]
 
 DEPS: Python 3.12 stdlib + snowflake-connector-python + jsonschema (--validate).
 
@@ -35,6 +35,7 @@ import tempfile
 from collections.abc import Iterable
 from contextlib import contextmanager
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +46,32 @@ UUIDV4_RE = re.compile(
 )
 SCHEMA_VERSION = 1
 
+# OBJECT / ARRAY / VARIANT columns come back from the Snowflake connector as JSON *strings*
+# (dim_partner.components/spark/flags/priority_breakdown, timeline_events.payload). The
+# documented export schema wants real objects/arrays, so they are decoded after the fetch.
+VARIANT_COLUMNS = frozenset({"components", "spark", "flags", "priority_breakdown", "payload"})
+
+
+def _decode_variants(row: dict[str, Any]) -> dict[str, Any]:
+    for key in VARIANT_COLUMNS & row.keys():
+        value = row[key]
+        if isinstance(value, str):
+            try:
+                row[key] = json.loads(value)
+            except ValueError:
+                pass  # a plain string value that merely lives in a variant-typed column
+    return row
+
+
+def _json_default(obj: Any) -> Any:
+    """json.dump hook for the types the connector returns: NUMBER -> Decimal, DATE and
+    TIMESTAMP -> date / datetime (datetime is a date subclass)."""
+    if isinstance(obj, Decimal):
+        return float(obj)
+    if isinstance(obj, date):
+        return obj.isoformat()
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(prog="export-psm-dashboard")
@@ -54,14 +81,24 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--allow-real-ids",
         action="store_true",
-        help="When set, bridge IDs are emitted without the `synthetic-` prefix. "
-        "Required for any non-fixture run. Audit gate 53 honors this flag.",
+        help="Acknowledge that the bridge IDs are real, not `synthetic-` fixtures: this only "
+        "suppresses the warning on stderr. It does NOT mask, hash or prefix any ID -- rows "
+        "are written exactly as the marts emit them, so mask in the dbt marts.",
     )
     p.add_argument(
         "--validate",
         action="store_true",
         help="Validate the assembled JSON against data.export.schema.json before write. "
-        "Requires jsonschema.",
+        "Requires jsonschema. Exits 2 before any query if the schema cannot be found "
+        "(see --schema).",
+    )
+    p.add_argument(
+        "--schema",
+        type=Path,
+        default=None,
+        help="Path to data.export.schema.json for --validate. Default: the first "
+        "bi-report/data.export.schema.json found from the working directory, this "
+        "script's directory or any of its parents.",
     )
     args = p.parse_args()
     if not UUIDV4_RE.match(args.org_uid):
@@ -73,6 +110,38 @@ def parse_args() -> argparse.Namespace:
         sys.stderr.write(f"ERROR: --as-of must be YYYY-MM-DD. Got: {args.as_of}\n")
         sys.exit(2)
     return args
+
+
+SCHEMA_NAME = "data.export.schema.json"
+
+
+def schema_candidates() -> list[Path]:
+    """Where the bi-report schema usually lives, nearest first: the working directory, the
+    script's own directory, then each parent of the script (a copy dropped into a consumer
+    repo sits inside that repo)."""
+    here = Path(__file__).resolve().parent
+    found: list[Path] = []
+    for base in (Path.cwd(), here, *here.parents):
+        for rel in (
+            Path("bi-report"),
+            Path("plugins") / "edtech-partner-success" / "bi-report",
+            Path("."),
+        ):
+            candidate = base / rel / SCHEMA_NAME
+            if candidate not in found:
+                found.append(candidate)
+    return found
+
+
+def resolve_schema(explicit: Path | None) -> tuple[Path | None, list[Path]]:
+    """Return (schema path or None, the paths that were looked at)."""
+    if explicit is not None:
+        return (explicit if explicit.is_file() else None), [explicit]
+    candidates = schema_candidates()
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate, candidates
+    return None, candidates
 
 
 @contextmanager
@@ -112,7 +181,7 @@ def fetch_all_dicts(conn, sql: str) -> list[dict[str, Any]]:
         rows = cur.fetchall()
     finally:
         cur.close()
-    return [{k.lower(): v for k, v in row.items()} for row in rows]
+    return [_decode_variants({k.lower(): v for k, v in row.items()}) for row in rows]
 
 
 # --------------------------------------------------------------------
@@ -188,7 +257,9 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
     fd, tmpname = tempfile.mkstemp(prefix=".data.json.", dir=path.parent)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2, sort_keys=False, ensure_ascii=False)
+            json.dump(
+                payload, f, indent=2, sort_keys=False, ensure_ascii=False, default=_json_default
+            )
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmpname, path)
@@ -215,6 +286,23 @@ def validate_against_schema(payload: dict[str, Any], schema_path: Path) -> None:
 def main() -> int:
     args = parse_args()
     sys.stderr.write(f"export: as-of={args.as_of} org-uid={args.org_uid}\n")
+
+    # Fail before any query runs: a missing schema should not cost a full warehouse round trip.
+    schema_path: Path | None = None
+    if args.validate:
+        schema_path, searched = resolve_schema(args.schema)
+        if schema_path is None:
+            if args.schema is not None:
+                sys.stderr.write(f"ERROR: --schema file not found: {args.schema}\n")
+            else:
+                sys.stderr.write(
+                    f"ERROR: --validate needs {SCHEMA_NAME} and none was found; "
+                    "pass --schema PATH. Nearest places looked:\n"
+                )
+                for candidate in searched[:4]:
+                    sys.stderr.write(f"  {candidate}\n")
+                sys.stderr.write(f"  ... and {len(searched) - 4} more up to the filesystem root\n")
+            return 2
 
     with snowflake_conn() as conn:
         connector_rows = fetch_connector_health(conn, args.org_uid)
@@ -280,14 +368,6 @@ def main() -> int:
     }
 
     if args.validate:
-        # Schema path: caller's repo. Look up by convention.
-        schema_path = (
-            Path(__file__).resolve().parents[4]
-            / "edtech-partner-success" / "bi-report" / "data.export.schema.json"
-        )
-        if not schema_path.exists():
-            sys.stderr.write(f"ERROR: schema not found at {schema_path}\n")
-            return 2
         try:
             validate_against_schema(payload, schema_path)
             sys.stderr.write("validate: OK\n")

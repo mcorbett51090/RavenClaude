@@ -90,12 +90,16 @@ def scan_text(text: str, current: set) -> list:
 
 def self_test() -> int:
     """Prove the detector's teeth without touching the tree: a stale id is caught,
-    and the dated-haiku canonical (a strict superset of the bare stale token) is NOT
-    false-flagged by a substring match."""
+    a current id is not, and a longer token is not also reported as its stale prefix
+    (dated haiku vs bare haiku; sonnet-5-5 vs sonnet-5; fable-5-1 vs fable-5)."""
     current = set(json.loads(CATALOG.read_text(encoding="utf-8"))["current"].values())
     bad = scan_text('model: "claude-sonnet-4-6"  # and claude-opus-4-7', current)
     good = scan_text(
-        "a: claude-opus-4-8  b: claude-sonnet-5  c: claude-haiku-4-5-20251001  d: claude-fable-5",
+        "a: claude-opus-5-5  b: claude-sonnet-5-5  c: claude-haiku-5-5  d: claude-fable-5-1",
+        current,
+    )
+    prefix = scan_text(
+        "claude-haiku-4-5-20251001 and claude-sonnet-5-5 and claude-fable-5-1",
         current,
     )
     # Branch-B teeth: the version-first claude-3.x / claude-3-5 dated generation must
@@ -106,18 +110,22 @@ def self_test() -> int:
     )
     ok_bad = {t for t, _ in bad} == {"claude-sonnet-4-6", "claude-opus-4-7"}
     ok_good = good == []
+    ok_prefix = {t for t, _ in prefix} == {"claude-haiku-4-5-20251001"}
     ok_old = {t for t, _ in old_gen} == {
         "claude-3-5-sonnet-20241022",
         "claude-3-opus-20240229",
         "claude-3-haiku-20240307",
     } and all(k == "UNKNOWN" for _, k in old_gen)
-    if ok_bad and ok_good and ok_old:
+    if ok_bad and ok_good and ok_prefix and ok_old:
         print(
-            "check-model-ids --self-test: PASS (stale caught; canonical dated-haiku not "
-            "flagged; claude-3.x dated generation caught)"
+            "check-model-ids --self-test: PASS (stale caught; current ids not flagged; "
+            "dated-haiku prefix not double-reported; claude-3.x dated generation caught)"
         )
         return 0
-    print(f"check-model-ids --self-test: FAIL bad={bad!r} good={good!r} old_gen={old_gen!r}")
+    print(
+        "check-model-ids --self-test: FAIL "
+        f"bad={bad!r} good={good!r} prefix={prefix!r} old_gen={old_gen!r}"
+    )
     return 1
 
 

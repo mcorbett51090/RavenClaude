@@ -470,7 +470,7 @@ def _seed_project(proj: Path) -> None:
     turn = {
         "type": "assistant",
         "message": {
-            "model": "claude-opus-4-8",
+            "model": "claude-opus-5-5",
             "usage": {
                 "input_tokens": 900000,
                 "cache_read_input_tokens": 0,

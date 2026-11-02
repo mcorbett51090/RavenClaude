@@ -132,7 +132,7 @@ The allowlist is extensible in `dispatch-config.json`; the `_predispatch` marker
 
 ## NO `cache_control` design
 
-**Explicit non-caching invariant.** Per Phase 0 P0.3 verification + [`prompt-caching-playbook.md`](../../../claude-app-engineering/knowledge/prompt-caching-playbook.md): Haiku 4.5 minimum cacheable = 4,096 tokens; Sonnet 4.6 = 1,024.
+**Explicit non-caching invariant.** The 2026-06 figures this section was written against (Haiku 4.5 minimum cacheable = 4,096 tokens; Sonnet 4.6 = 1,024) are dated. Current Haiku 5.5 / Sonnet 5.5 minimums are in [`prompt-caching-playbook.md`](../../../claude-app-engineering/knowledge/prompt-caching-playbook.md). The evaluator still does not set `cache_control`.
 
 | Component | Estimate |
 |---|---|
@@ -144,7 +144,7 @@ Both totals are **below both model minimums**. Setting `cache_control` on the ev
 
 Per-call cost at Haiku 4.5 pricing (~$0.25/MTok input, current `[verify-at-use — anthropic.com/pricing]`): ~$0.0002 per dispatch. At 100 dispatches/day = $0.02/day. **Latency is the load-bearing risk, not cost** (~300-800ms cold-start per Haiku call) — gated by the latency circuit-breaker (RM3).
 
-**If the evaluator prompt grows organically to ≥4,096 tokens** (e.g. via worked-examples block addition), revisit. Phase 5 monitors `cache_creation_input_tokens` to detect accidental breakpoints — a NEGATIVE assertion (must be 0 if prompt stayed under min).
+**If the evaluator prompt grows past the model's cache minimum**, revisit whether a breakpoint would pay for itself. The evaluator does not assert that `cache_creation_input_tokens` is 0. Its `--bare` probe, when the envelope reports usage, appends the derived counts (including `cache_creation_input_tokens` when present) to `.ravenclaude/runs/headless-usage.jsonl`. That is a record, not a negative assertion.
 
 ## The fail-open contract
 

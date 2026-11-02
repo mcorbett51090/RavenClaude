@@ -14,12 +14,20 @@
 #                            when reachable, else a plain `git worktree list`
 #
 # WORKTREE-ROOT RESOLUTION (portable across any repo, T4):
-#   1. $RAVENCLAUDE_WORKTREE_ROOT  if set              (explicit override; its value IS the root)
+#   1. $RAVENCLAUDE_WORKTREE_ROOT  if set              (explicit override; its value IS the root;
+#                                                        a relative value is taken from the repo
+#                                                        top-level, not the caller's CWD)
 #   2. <repo>/.claude/worktrees    if that dir exists  (so RavenClaude's dashboard
 #                                                        "Sleipnir's stables" widget,
 #                                                        which reads .claude/worktrees/*,
 #                                                        sees rcwt's worktrees)
 #   3. <dirname repo>/<repo>-wt    otherwise           (the sibling-dir default)
+#
+# Where to set the override: your shell profile or the `env` block of your USER
+# settings (~/.claude/settings.json) -- NEVER a project's .claude/settings*.json:
+# env-integrity-guard.sh quarantines any repo whose project settings plant a
+# RAVENCLAUDE_* key (AppSec hook-env; strict, no allowlist). RavenClaude itself sets
+# nothing: it tracks .claude/worktrees/.gitkeep, so step 2 always applies there.
 #
 # Safe by construction: `worktree add` never touches the primary checkout's HEAD
 # or index, so it cannot rug-pull a neighboring session. Branch off origin/<base>,
@@ -57,7 +65,10 @@ REPONAME="$(basename "$PRIMARY")"
 
 # Worktree root (see the T4 resolution note in the header).
 if [ -n "${RAVENCLAUDE_WORKTREE_ROOT:-}" ]; then
-  WT_ROOT="$RAVENCLAUDE_WORKTREE_ROOT"
+  case "$RAVENCLAUDE_WORKTREE_ROOT" in
+    /*) WT_ROOT="$RAVENCLAUDE_WORKTREE_ROOT" ;;
+    *) WT_ROOT="$PRIMARY/$RAVENCLAUDE_WORKTREE_ROOT" ;;
+  esac
 elif [ -d "$PRIMARY/.claude/worktrees" ]; then
   WT_ROOT="$PRIMARY/.claude/worktrees"
 else

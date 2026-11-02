@@ -26,8 +26,8 @@
 # "Model \"auto\" does not support reasoning effort configuration". So effort
 # is real, `auto` is real, and the ONE combination this script's whole tier
 # ladder rests on does not compose. Every guessed pinned slug this session was
-# separately rejected with "not available" — `claude-sonnet-5`, a
-# Sonnet-4-dot-5-shaped slug, `claude-opus-4-8`, `gpt-5`, and even the LITERAL
+# separately rejected with "not available" — the then-current Sonnet pin, a
+# Sonnet-4-dot-5-shaped slug, the then-current Opus pin, `gpt-5`, and even the LITERAL
 # internal id `auto` itself resolved to on a real call (a Haiku-4-dot-5-shaped
 # id, read back from `--output-format json`) all failed as a direct `--model`
 # value. There is no non-interactive way found this session to list the valid

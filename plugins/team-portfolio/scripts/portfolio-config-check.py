@@ -34,6 +34,8 @@ import re
 import sys
 
 REPO_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9._-]*)/[A-Za-z0-9._-]+$")
+# A GitHub username: alphanumerics and single hyphens, no leading hyphen, at most 39 chars.
+LOGIN_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$")
 # A token committed into the config is a security issue (CLAUDE.md §4 #2). These are
 # the well-known GitHub token prefixes; the check is heuristic, not exhaustive.
 TOKEN_PREFIXES = ("ghp_", "gho_", "ghu_", "ghs_", "ghr_", "github_pat_")
@@ -121,6 +123,7 @@ def check_team(config: dict, found: Findings) -> None:
             "not just your roster. Add team logins to scope the report."
         )
     seen: set[str] = set()
+    seen_folded: dict[str, str] = {}
     for i, member in enumerate(team):
         if not isinstance(member, dict):
             found.error(f"team[{i}] must be an object, got {type(member).__name__}.")
@@ -129,9 +132,22 @@ def check_team(config: dict, found: Findings) -> None:
         if not login or not isinstance(login, str):
             found.error(f"team[{i}] is missing a string 'login' (the GitHub username).")
             continue
+        if not LOGIN_RE.match(login):
+            found.warn(
+                f'team[{i}] login "{login}" is not a valid GitHub username (letters, digits '
+                "and single hyphens, 1-39 chars - no '@', spaces or e-mail address), so it "
+                "will not match any author. (A [bot] account name is the one legitimate "
+                "exception.)"
+            )
         if login in seen:
             found.warn(f'team[{i}] login "{login}" is a duplicate.')
+        elif login.casefold() in seen_folded:
+            found.warn(
+                f'team[{i}] login "{login}" differs from "{seen_folded[login.casefold()]}" only '
+                "by case - GitHub logins are case-insensitive, so this is a duplicate."
+            )
         seen.add(login)
+        seen_folded.setdefault(login.casefold(), login)
 
 
 def check_projects(config: dict, valid_repos: list[str], found: Findings) -> None:

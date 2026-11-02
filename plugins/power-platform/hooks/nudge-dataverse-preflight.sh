@@ -34,16 +34,21 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do
 done
 [ "$posture" -eq 0 ] && exit 0
 
-# A Dataverse entity-set endpoint: /api/data/vX.Y/<entityset>
-printf '%s' "$cmd" | grep -qiE '/api/data/v[0-9]+\.[0-9]+/[a-z][a-z0-9_]+' || exit 0
+# NOTE: every match below is a here-string (`grep -q … <<<"$cmd"`), never `printf | grep -q`:
+# grep -q exits at its first match, so on a command larger than the pipe buffer (a big heredoc
+# body) printf dies of SIGPIPE and, under pipefail, the pipeline reads as "no match" — the hook
+# would go silent exactly on the large multi-line writes.
+#
+# A Dataverse endpoint: /api/data/vX.Y/<entityset>, or an action/batch segment like `$batch`.
+grep -qiE '/api/data/v[0-9]+\.[0-9]+/\$?[a-z][a-z0-9_]+' <<<"$cmd" || exit 0
 
 # A WRITE: explicit -X/--request POST|PATCH, OR a data body without an explicit read method.
 # The data-flag set includes curl's --json (curl >= 7.82), which implies a POST body.
 is_write=0
-printf '%s' "$cmd" | grep -qiE '(-X|--request)[[:space:]]*[="'\'']?(POST|PATCH)' && is_write=1
+grep -qiE '(-X|--request)[[:space:]]*[="'\'']?(POST|PATCH)' <<<"$cmd" && is_write=1
 if [ "$is_write" -eq 0 ]; then
-  if printf '%s' "$cmd" | grep -qiE '(--data-raw|--data-binary|--data|--json|[[:space:]]-d)[[:space:]=]' \
-     && ! printf '%s' "$cmd" | grep -qiE '(-X|--request)[[:space:]]*[="'\'']?(GET|DELETE|PUT)'; then
+  if grep -qiE '(--data-raw|--data-binary|--data|--json|[[:space:]]-d)[[:space:]=]' <<<"$cmd" \
+     && ! grep -qiE '(-X|--request)[[:space:]]*[="'\'']?(GET|DELETE|PUT)' <<<"$cmd"; then
     is_write=1
   fi
 fi

@@ -69,6 +69,7 @@ Examples
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 from datetime import date, datetime, timedelta
 
@@ -83,12 +84,36 @@ ADVICE_LINE = (
 
 
 def _pct(value: str) -> float:
-    """Parse a percentage that may be written '65%' or '65' or '0.65'."""
-    text = value.strip().rstrip("%")
-    number = float(text)
-    if value.strip().endswith("%") or number > 1:
+    """argparse `type=` for a rate: '65%', '65' (a percent), or a fraction written with a
+    decimal point ('0.65'). Returns the fraction.
+
+    A bare number of 1 or less without a decimal point ('1') is AMBIGUOUS -- 1% or 100%? --
+    and is rejected rather than guessed (it used to be read as 100%, turning a 1% weight loss
+    into a decline indicator). '0' is unambiguous and accepted. Malformed input is an argparse
+    error, not a traceback from inside the command.
+    """
+    raw = value.strip()
+    text = raw.rstrip("%").strip()
+    try:
+        number = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"{value!r} is not a number; write 65%, 65 or 0.65"
+        ) from None
+    if not math.isfinite(number) or number < 0:
+        raise argparse.ArgumentTypeError(f"{value!r} must be a finite, non-negative rate")
+    if raw.endswith("%"):
         return number / 100.0
-    return number
+    if "." in text:  # a decimal point says "fraction", unless it is plainly a percent (> 1)
+        return number if number <= 1 else number / 100.0
+    if number == 0:
+        return 0.0
+    if number <= 1:
+        raise argparse.ArgumentTypeError(
+            f"{value!r} is ambiguous (1% or 100%?); write {text}% for a percent "
+            f"or {number:.1f} for a fraction"
+        )
+    return number / 100.0
 
 
 def _rule(title: str) -> str:
@@ -97,7 +122,7 @@ def _rule(title: str) -> str:
 
 def cmd_funnel(args: argparse.Namespace) -> int:
     referrals = args.referrals
-    rate = _pct(args.admit_rate)
+    rate = args.admit_rate
     admits = referrals * rate
     non_converting = referrals - admits
 
@@ -210,7 +235,7 @@ def cmd_eligibility_indicators(args: argparse.Namespace) -> int:
         if args.pps <= 40:
             present.append("low/declining PPS (<= 40%)")
     if args.weight_loss is not None:
-        loss = _pct(args.weight_loss) * 100
+        loss = args.weight_loss * 100
         flag = " <- supports nutritional decline" if loss >= 10 else ""
         print(f"  Recent unintentional weight loss  : {loss:.1f}%{flag}")
         if loss >= 10:
@@ -262,7 +287,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_funnel = sub.add_parser("funnel", help="referral-to-admission funnel")
     p_funnel.add_argument("--referrals", type=float, required=True)
-    p_funnel.add_argument("--admit-rate", required=True, help="e.g. 65%% or 0.65")
+    p_funnel.add_argument("--admit-rate", type=_pct, required=True, help="e.g. 65%% or 0.65")
     p_funnel.add_argument("--time-to-admit", type=float, default=None, help="days")
     p_funnel.add_argument("--cost-per-admission", type=float, default=None)
     p_funnel.set_defaults(func=cmd_funnel)
@@ -285,7 +310,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="EDUCATIONAL decline-indicator tally (defers to physician)",
     )
     p_elig.add_argument("--pps", type=float, default=None, help="PPS percent, e.g. 40")
-    p_elig.add_argument("--weight-loss", default=None, help="e.g. 12%% or 0.12")
+    p_elig.add_argument("--weight-loss", type=_pct, default=None, help="e.g. 12%% or 0.12")
     p_elig.add_argument("--hospitalizations", type=float, default=None)
     p_elig.add_argument("--fast", default=None, help="FAST stage, e.g. 7a")
     p_elig.add_argument("--recurrent-infection", action="store_true")

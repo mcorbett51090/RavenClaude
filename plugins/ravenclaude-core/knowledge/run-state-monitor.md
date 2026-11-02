@@ -39,6 +39,7 @@ Example emitted line:
 - **No `.ravenclaude/runs/` dir yet** → sleep and re-poll; never crash.
 - **`runs/` exists but no `hook-events.jsonl`** → sleep and re-poll for one.
 - **The active log rotates** (a newer run dir appears) → re-resolve the newest log and follow that.
+- **A log first seen after startup** → follow it from line 1 (`tail -n +1`), so its first event is not dropped; a log already present at startup starts at its end (`tail -n 0`). With `CLAUDE_SESSION_ID` set, only that session's `runs/<id>/` is followed (review C-7, 2026-10-20).
 
 The watcher deliberately does **NOT** `tail -F <glob>`: a bare glob matching nothing makes `tail -F` exit immediately, and the monitor host would crash-loop restarting it (a notification-spam / cost problem). Instead it resolves the single newest `hook-events.jsonl` itself, tails that one concrete file (so `tail -F` re-opens on truncate/rotate without exiting on an empty match), and re-resolves when the file disappears or a newer run dir supersedes it. Bounded poll, no busy-spin, no restart storm.
 

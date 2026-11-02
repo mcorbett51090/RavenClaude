@@ -188,6 +188,26 @@ def main(argv: list[str]) -> int:
         check("malformed 3/5 — Finder artifacts caught by ZP07", "ZP07" in ids(f),
               "ids=%s" % ids(f))
 
+        # ── A NESTED AppleDouble file (sub/._x): the bare-name "._*" glob must match
+        # at ANY depth, in pack AND in ZP07. Regression fixture: stripping "/*" off
+        # the pattern turned it into "._", so only a ROOT-level ._ file was caught.
+        src_ad = _tree(tmp, "reading-receipts")
+        with open(os.path.join(src_ad, "reference", "._fields.md"), "w", encoding="utf-8") as fh:
+            fh.write("resource fork")
+        res_ad = packer.pack(src_ad, os.path.join(tmp, "appledouble.zip"), table, [], layout="A")
+        check("pack excludes a nested ._* AppleDouble file (sub/._x)",
+              not any(os.path.basename(e).startswith("._") for e in res_ad["entries"]),
+              "entries=%s" % res_ad["entries"])
+        nested = os.path.join(tmp, "nested-appledouble.zip")
+        with zipfile.ZipFile(nested, "w") as zf:
+            zf.writestr("processing-invoices/SKILL.md", GOOD_SKILL)
+            zf.writestr("processing-invoices/reference/fields.md", "# Fields\n")
+            zf.writestr("processing-invoices/reference/._fields.md", "resource fork")
+        f, _ = packer.verify(nested, table, _EVIDENCE, [])
+        check("ZP07 flags a nested ._* AppleDouble entry (sub/._x)",
+              any(x["rule_id"] == "ZP07" and x["span"].endswith("/._fields.md") for x in f),
+              "ids=%s" % ids(f))
+
         trav = os.path.join(tmp, "traverse.zip")
         with zipfile.ZipFile(trav, "w") as zf:
             zf.writestr("processing-invoices/SKILL.md", GOOD_SKILL)

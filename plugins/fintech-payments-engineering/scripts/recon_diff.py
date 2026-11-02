@@ -93,8 +93,11 @@ def _load(path: str, *, want_fee: bool) -> dict[tuple[str, str], dict]:
     side) and is reported rather than silently overwritten.
     """
     rows: dict[tuple[str, str], dict] = {}
+    i = 1  # the row being read (row 1 is the header); named in any unexpected-error message
     try:
-        with open(path, newline="", encoding="utf-8") as handle:
+        # utf-8-sig: an Excel / PSP export often starts with a BOM, which would otherwise be
+        # glued onto the first header ('\ufeffreference') and hide a column that exists.
+        with open(path, newline="", encoding="utf-8-sig") as handle:
             reader = csv.DictReader(handle)
             if reader.fieldnames is None:
                 raise ReconError(f"{path}: empty file (no header row)")
@@ -112,8 +115,15 @@ def _load(path: str, *, want_fee: bool) -> dict[tuple[str, str], dict]:
                     raise ReconError(f"{path} row {i}: empty 'currency'")
                 amount = _parse_int_minor(raw["amount"], row=i, col="amount", path=path)
                 fee = 0
-                if want_fee and raw.get("fee", "").strip() != "":
-                    fee = _parse_int_minor(raw["fee"], row=i, col="fee", path=path)
+                if want_fee and "fee" in raw:
+                    if raw["fee"] is None:
+                        # csv.DictReader fills the cells a short row lacks with None.
+                        raise ReconError(
+                            f"{path} row {i}: short row -- the header has a 'fee' column "
+                            f"but this row ends before it"
+                        )
+                    if (raw.get("fee") or "").strip() != "":
+                        fee = _parse_int_minor(raw["fee"], row=i, col="fee", path=path)
                 key = (ref, currency)
                 if key in rows:
                     raise ReconError(
@@ -123,6 +133,13 @@ def _load(path: str, *, want_fee: bool) -> dict[tuple[str, str], dict]:
                 rows[key] = {"reference": ref, "currency": currency, "amount": amount, "fee": fee}
     except FileNotFoundError:
         raise ReconError(f"{path}: file not found") from None
+    except (csv.Error, UnicodeDecodeError) as exc:
+        # A malformed file is an input error (exit 2), never "a discrepancy" (exit 1).
+        raise ReconError(f"{path}: unreadable CSV ({type(exc).__name__}: {exc})") from None
+    except (AttributeError, KeyError, TypeError) as exc:
+        raise ReconError(
+            f"{path} row {i}: unexpected row error ({type(exc).__name__}: {exc})"
+        ) from None
     return rows
 
 

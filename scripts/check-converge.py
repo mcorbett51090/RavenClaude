@@ -12,6 +12,8 @@ way the deterministic predicate must:
   5. plateau-below-floor→ plateaued, status=plateaued, escalate_to_human=true
   6. new-high-finding   → a NEW high/critical finding BLOCKS convergence (no stop)
   7. red-hard-gate      → a RED objective hard gate BLOCKS convergence (no stop)
+  8. red-keep-best      → keep-best never emits a RED iteration over a green one, and a
+                          stop that can only emit RED iterations escalates to a human
 
 It also proves weighted_score() ignores derived/unverified dimensions and that
 keep-best resolves ties to the earliest index.
@@ -118,6 +120,8 @@ def run_default(cv):
     _check(cv.keep_best(its) == 0, "keep_best resolves a tie to the earliest index")
     its2 = [_it(0, 0.5), _it(1, 0.95), _it(2, 0.6)]
     _check(cv.keep_best(its2) == 1, "keep_best picks the argmax (peak in the middle)")
+    its3 = [_it(0, 0.95, hard_gates={"lints-clean": False}), _it(1, 0.90)]
+    _check(cv.keep_best(its3) == 1, "keep_best ranks a gate-green iteration above a higher-score RED one")
 
     # --- case 1: converged → rubric-pass ---
     # last two step-deltas (0.005, 0.003) are each < epsilon → plateaued; >= floor
@@ -160,6 +164,22 @@ def run_default(cv):
     stop, v = cv.terminate(_rubric(), its_budget, dict(cfg, model_call_budget=12))
     _check(stop and v["best_index"] == 1 and abs(v["best_score"] - 0.95) < 1e-9,
            f"case regression-revert → emits best index 1 (got index={v['best_index']})")
+
+    # --- case 8: a RED iteration is never emitted over a green one; a RED emit escalates ---
+    its = [_it(0, 0.95, hard_gates={"lints-clean": False}), _it(1, 0.90)]
+    stop, v = cv.terminate(_rubric(), its, dict(cfg, iteration_cap=2))
+    _check(stop and v["status"] == "rubric-pass" and v["best_index"] == 1
+           and not any("hard gate RED" in g for g in v["residual_gaps"]),
+           f"case red-keep-best → higher-score RED iteration 0 vs green 1 emits 1 (got {v['best_index']})")
+    its = [_it(0, 0.95, hard_gates={"lints-clean": False}, model_calls=4),
+           _it(1, 0.96, hard_gates={"lints-clean": False}, model_calls=8)]
+    stop, v = cv.terminate(_rubric(), its, cfg)
+    _check(stop and v["status"] == "budget-exhausted" and v["escalate_to_human"] is True,
+           "case red-keep-best → all iterations RED at the budget stop → escalate_to_human")
+    its = [_it(0, 0.95, hard_gates={"lints-clean": False}), _it(1, 0.96, hard_gates={"lints-clean": False})]
+    stop, v = cv.terminate(_rubric(), its, dict(cfg, iteration_cap=2))
+    _check(stop and v["status"] == "capped" and v["escalate_to_human"] is True,
+           "case red-keep-best → all iterations RED at the cap → escalate_to_human")
 
     # --- case 5: plateau-below-floor → plateaued + escalate ---
     pcfg = dict(cfg, score_floor=0.95)  # floor unreachable by a 0.70 plateau

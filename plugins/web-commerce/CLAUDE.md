@@ -37,6 +37,7 @@
    - **verify every webhook signature** with a constant-time compare **before** parsing the body.
    - carry an **idempotency key** on every mutating call **and** de-duplicate delivered events by provider event id.
    - read secrets from **env only** — publishable key client-side, secret key server-side, nothing in the bundle or in git. The scaffolder writes `.env.example` placeholders and env references, **never a live key**, and every generated repo gets a `.gitignore` + secret-scan guard.
+   - **resolve every price server-side** — a framework checkout route never trusts a price from the client: it accepts `{ sku, quantity }` only, looks each unit price up in the app's catalog, and rejects an unknown sku or a quantity that is not a positive integer (see `templates/stripe/framework/checkout.ts`).
 
 5. **Square is the default for POS-as-source-of-truth storefronts.** Square's single native catalog/inventory ledger makes online↔in-store reconciliation clean (`catalog.version.updated` + inventory webhook + constant-time HMAC + event-id idempotency). Shopify **inverts** the model (Shopify is the source of truth); Stripe has no real catalog. Match the site's provider to how the merchant's truth already lives.
 

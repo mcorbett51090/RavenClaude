@@ -1,0 +1,9 @@
+{
+  "name": "web-commerce-stripe-template-ci-tooling",
+  "private": true,
+  "description": "Pinned devDependencies for the Stripe templates' node:test suites (framework + static tiers), run by .github/workflows/validate-web-commerce-templates.yml. CI tooling only: consumers copy a tier directory (framework/ or static/) into their own app, and this file sits above both. A committed lockfile (npm ci) is required rather than an ad-hoc `npm install <pkg>@version` in the workflow -- zizmor's adhoc-packages audit flags an inline install as an unpinned transitive-dependency risk. No \"type\" field on purpose: the tests import ../checkout without an extension and were verified under the CommonJS default, which an absent field preserves.",
+  "devDependencies": {
+    "stripe": "23.0.0",
+    "tsx": "4.23.15"
+  }
+}

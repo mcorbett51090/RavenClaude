@@ -170,7 +170,11 @@ def cmd_retention_roi(args: argparse.Namespace) -> int:
         rate_reduction = dropouts_to_avert / args.enrolled
         print(f"  → breakeven: program must avert {dropouts_to_avert:,.1f} dropouts")
         print(f"    = a {rate_reduction * 100:.1f} percentage-point cut in the dropout rate")
-        print("    (below that it pays for itself; above it, retain beats re-recruit — §3 #3)")
+        if rate_reduction > args.dropout_rate:
+            # More dropouts would have to be averted than the modelled rate produces.
+            print("    cannot break even: required cut exceeds the dropout rate")
+        else:
+            print("    (above that cut it pays for itself; below it, re-recruiting is cheaper — §3 #3)")
     print("  note: model the dropout rate from REAL trial/indication data, not a guess;")
     print("        replacement is far costlier than retention by design (§3 #2, #3).")
     return 0

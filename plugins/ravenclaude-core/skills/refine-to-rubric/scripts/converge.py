@@ -17,16 +17,18 @@ Three pure functions, all deterministic and stdlib-only:
       the score — they are surfaced as residual gaps. Returns a float in [0,1].
 
   keep_best(iterations)
-      argmax over the iteration scores → the index of the BEST iteration. Ties
-      resolve to the EARLIEST index (the cheapest artifact that reached the peak;
-      also makes regression-revert deterministic). Returns an int index.
+      Gate-green iterations first (no RED objective hard gate), then argmax over
+      the iteration scores → the index of the BEST iteration. Ties resolve to the
+      EARLIEST index (the cheapest artifact that reached the peak; also makes
+      regression-revert deterministic). Returns an int index.
 
   terminate(rubric, iterations, config)
       The deterministic stop predicate. Returns (should_stop, verdict) where
       verdict has a fixed-vocabulary status — NEVER "perfect":
           rubric-pass | capped | plateaued | budget-exhausted
       plus best_index (keep-best argmax), best_score, a fixed-vocabulary reason,
-      a residual_gaps Last-Mile list, and escalate_to_human (plateau below floor).
+      a residual_gaps Last-Mile list, and escalate_to_human (plateau below floor,
+      or an emitted iteration that still has a RED hard gate).
 
 CLI (for the audit gate + ad-hoc use):
   python3 converge.py --rubric R.json --scorecard S.json [--emit-verdict]
@@ -108,15 +110,20 @@ def weighted_score(rubric, scores):
 
 
 def keep_best(iterations):
-    """argmax over iteration `score`, ties → EARLIEST index. Returns -1 for an
-    empty history. This is the keep-best / regression-revert core: the loop emits
-    THIS index, never blindly the last."""
+    """Gate-green iterations first, then argmax over iteration `score`, ties →
+    EARLIEST index. Returns -1 for an empty history. This is the keep-best /
+    regression-revert core: the loop emits THIS index, never blindly the last.
+
+    A RED objective hard gate only lowers the score by its weight, so a pure
+    score argmax could emit a red iteration over a later all-green one; objective
+    gates are the primary stop authority, so a green iteration always outranks a
+    red one."""
     best_i = -1
-    best_s = None
+    best_key = None
     for it in iterations:
-        s = float(it.get("score", 0.0))
-        if best_s is None or s > best_s:
-            best_s = s
+        key = (not _red_hard_gates(it), float(it.get("score", 0.0)))
+        if best_key is None or key > best_key:
+            best_key = key
             best_i = int(it["index"])
     return best_i
 
@@ -226,8 +233,10 @@ def terminate(rubric, iterations, config=None):
          stop and ESCALATE TO HUMAN. status = plateaued.
       6. Otherwise → do not stop (keep refining).
 
-    keep-best: the emitted best_index is the argmax over iteration scores (ties →
-    earliest), so a regression in the last iteration never wins.
+    keep-best: the emitted best_index ranks gate-green iterations first, then the
+    argmax over iteration scores (ties → earliest), so a regression in the last
+    iteration never wins. escalate_to_human is true whenever the emitted iteration
+    still has a RED hard gate.
     """
     cfg = _resolve_config(config)
     verdict = {
@@ -247,6 +256,7 @@ def terminate(rubric, iterations, config=None):
     best_index = keep_best(iterations)
     best_it = next(it for it in iterations if int(it["index"]) == best_index)
     best_score = float(best_it.get("score", 0.0))
+    best_red = bool(_red_hard_gates(best_it))
     verdict["best_index"] = best_index
     verdict["best_score"] = best_score
 
@@ -282,7 +292,7 @@ def terminate(rubric, iterations, config=None):
         verdict["status"] = STATUS_BUDGET
         verdict["reason"] = "model-call budget exhausted; emitting best-so-far"
         verdict["residual_gaps"] = _residual_gaps(rubric, best_it)
-        verdict["escalate_to_human"] = best_score < float(cfg["score_floor"])
+        verdict["escalate_to_human"] = best_red or best_score < float(cfg["score_floor"])
         return (True, verdict)
 
     # 2. iteration cap (HARD) — but a cap that coincides with a clean pass is a pass
@@ -293,7 +303,7 @@ def terminate(rubric, iterations, config=None):
         else:
             verdict["status"] = STATUS_CAPPED
             verdict["reason"] = "iteration cap reached; emitting best-so-far"
-            verdict["escalate_to_human"] = best_score < float(cfg["score_floor"])
+            verdict["escalate_to_human"] = best_red or best_score < float(cfg["score_floor"])
         verdict["residual_gaps"] = _residual_gaps(rubric, best_it)
         return (True, verdict)
 

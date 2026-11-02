@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.4] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-25 cache-economics no longer prices cache-breaking below stable
+
 ## [0.1.3] — 2026-09-20
 
 ### Changed

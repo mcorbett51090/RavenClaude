@@ -67,7 +67,10 @@ STALE_DAYS = 90  # platform-fact concepts older than this fail --check
 #   absent last_verified           BLOCKING   blocking
 #   kind: platform-fact, 90 days   BLOCKING   blocking   (small, serviceable population)
 #   calendar age, inventory        WARNING    BLOCKING
+#   last_verified > 1 day in the    same lane as the staleness of its kind (a future date
+#   FUTURE (never goes stale)       never goes stale, so it would disarm the gate)
 INVENTORY_STALE_DAYS = 180  # calendar window for entry_class: inventory
+FUTURE_SLACK_DAYS = 1  # a last_verified this far ahead (time zones / clock skew) is tolerated
 ENTRY_CLASS_INVENTORY = "inventory"
 VALID_ENTRY_CLASSES = (ENTRY_CLASS_INVENTORY,)
 RESTAMP_LOG = "tests/fixtures/inventory-restamp-log.jsonl"
@@ -596,7 +599,22 @@ def _freshness_violations(
             blocking.append(f"  ✗ {cid}: last_verified is ABSENT — unverified is not fresh")
         else:
             age = (today - datetime.date.fromisoformat(lv)).days
-            if c["kind"] == "platform-fact":
+            if age < -FUTURE_SLACK_DAYS:
+                # ⛔ A FUTURE last_verified NEVER GOES STALE: age stays negative, so every
+                # `age > N` test below is False for as long as the date is ahead of the
+                # calendar — a typo ('2062-…' for '2026-…'), a pre-dated stamp or a hand edit
+                # silently disarms the freshness gate for that entry. Same lane as staleness:
+                # blocking for a platform-fact, a PR warning / sweep block for inventory.
+                msg = (
+                    f"  ✗ {cid}: last_verified {lv} is {-age} days in the FUTURE — a future "
+                    f"date never goes stale, so the freshness gate would be disarmed for "
+                    f"this entry{_refresh_hint(c)}"
+                )
+                if c["kind"] == "platform-fact":
+                    blocking.append(msg)
+                else:
+                    (blocking if sweep else warnings).append(msg)
+            elif c["kind"] == "platform-fact":
                 if age > STALE_DAYS:
                     blocking.append(
                         f"  ✗ {cid}: last_verified {lv} is {age} days old (> {STALE_DAYS})"

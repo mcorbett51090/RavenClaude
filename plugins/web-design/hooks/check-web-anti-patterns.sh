@@ -14,11 +14,11 @@
 #   5. <meta name="robots" content="noindex"> in shipped page. §4 — noindex
 #      accidentally in production.
 #
-# Advisory by default: prints warnings to stderr so Claude and the user
-# both see them, but exits 0 so the edit is not blocked. To make this hook
-# BLOCK on violation, set WEB_DESIGN_STRICT=1 in the env (exit 2 = block in
-# Claude Code; exit 1 is a non-blocking error Claude Code silently swallows,
-# so it would NOT block).
+# Advisory by default: prints warnings to stderr and exits 0. With
+# WEB_DESIGN_STRICT=1 it exits 2 instead, which for a PostToolUse hook feeds
+# the findings back to Claude so it can fix them. It does NOT undo the edit:
+# PostToolUse runs after the tool, so the file is already written either way.
+# (exit 1 is a non-blocking error: Claude is not shown the findings.)
 
 set -euo pipefail
 
@@ -36,8 +36,10 @@ fi
 [[ -z "$file" ]] && exit 0
 [[ ! -f "$file" ]] && exit 0
 
-# Allow token files to define hex colors (that's their job).
-case "$file" in
+# Allow token files to define hex colors (that's their job). Matched on the
+# file's basename only, so a project under e.g. ~/design-tokens-site/ is
+# still checked.
+case "${file##*/}" in
   *tokens*|*design-tokens*|*colors.*|*palette.*) skip_color_check=1 ;;
   *) skip_color_check=0 ;;
 esac
@@ -83,12 +85,12 @@ esac
 if [[ "$skip_color_check" -eq 0 ]]; then
   case "$file" in
     *.css|*.scss|*.sass|*.less|*.jsx|*.tsx|*.vue|*.svelte|*.astro)
-      # 3 or 6 hex chars (case-insensitive). Common values that often
-      # represent tokens like #fff/#000 are flagged too — review them.
-      if grep -Eni '#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?\b' "$file" >/dev/null 2>&1; then
+      # 3, 4, 6 or 8 hex chars (#rgb, #rgba, #rrggbb, #rrggbbaa). Common
+      # values that often represent tokens like #fff/#000 are flagged too.
+      if grep -Eni '#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b' "$file" >/dev/null 2>&1; then
         while IFS= read -r line; do
           violations+=("  [hardcoded-color] $file: $line — use a design token instead. See house opinion §3 #4.")
-        done < <(grep -En '#[0-9a-fA-F]{3}([0-9a-fA-F]{3})?\b' "$file" | head -3)
+        done < <(grep -En '#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b' "$file" | head -3)
       fi
       ;;
   esac
@@ -137,10 +139,10 @@ EOF
   cat >&2 <<'EOF'
 
   See plugins/web-design/CLAUDE.md §3 (house opinions) and §4
-  (anti-patterns) for the full rules. This hook is advisory — the
-  edit was not blocked. To enforce, set WEB_DESIGN_STRICT=1 in your
-  env (exit 2 = BLOCK; exit 1 is non-blocking and would silently
-  allow the edit).
+  (anti-patterns) for the full rules. The edit has already been
+  written — this PostToolUse hook cannot undo it. WEB_DESIGN_STRICT=1
+  makes the hook exit 2, which feeds these findings back to Claude to
+  fix; it still does not revert the file.
 ────────────────────────────────────────────────────────────────────
 
 EOF

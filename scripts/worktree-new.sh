@@ -9,7 +9,10 @@
 #   scripts/worktree-new.sh <slug>                  # branch off current HEAD
 #   scripts/worktree-new.sh <slug> <base-ref>       # branch off a specific ref
 #
-# The slug is the leaf directory name AND the branch name. Allowed: [A-Za-z0-9._-].
+# The slug is the leaf directory name; the branch is agent/<slug>. Allowed: [A-Za-z0-9._-].
+# If agent/<slug> already exists the script ATTACHES to it and ignores <base-ref> -- it
+# prints a loud WARNING with that branch's tip and how far behind <base-ref> it is, and the
+# final report says "attached", never the base it did not use.
 
 set -euo pipefail
 
@@ -56,12 +59,26 @@ mkdir -p "$REPO_ROOT/.claude/worktrees"
 # A literal `--` separates flags from the path/ref operands so an unvalidated,
 # flag-shaped BASE_REF (e.g. `--no-checkout`) is parsed as the commit-ish, not as
 # a git option — which would otherwise silently produce an empty, unusable worktree.
+BASE_LINE="$BASE_REF"
 if git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$BRANCH"; then
+  # Attaching ignores BASE_REF, so a stale branch (worktree-clean.sh leaves unmerged agent
+  # branches behind) starts the agent on an old tree. Warn loudly with the real tip and
+  # how far behind BASE_REF it is, and report "attached" instead of a base we did not use.
+  TIP="$(git -C "$REPO_ROOT" rev-parse --short "refs/heads/$BRANCH")"
+  if ! BEHIND="$(git -C "$REPO_ROOT" rev-list --count "refs/heads/$BRANCH..$BASE_REF" -- 2>/dev/null)"; then
+    BEHIND="?"
+  fi
+  printf 'WARNING: branch %s already exists (tip %s); attaching to it, so base-ref %s is NOT used.\n' \
+    "$BRANCH" "$TIP" "$BASE_REF" >&2
+  printf '         It is %s commit(s) behind %s. Use a different slug, or archive/delete the\n' \
+    "$BEHIND" "$BASE_REF" >&2
+  printf '         stale branch (scripts/archive-branch.sh), to start from %s.\n' "$BASE_REF" >&2
   git -C "$REPO_ROOT" worktree add -- "$WT_DIR" "$BRANCH"
+  BASE_LINE="attached to existing branch $BRANCH @ $TIP (base-ref $BASE_REF NOT used; $BEHIND commit(s) behind it)"
 else
   git -C "$REPO_ROOT" worktree add -b "$BRANCH" -- "$WT_DIR" "$BASE_REF"
 fi
 
 printf '\n== Worktree ready ==\n  path:   %s\n  branch: %s\n  base:   %s\n' \
-  "$WT_DIR" "$BRANCH" "$BASE_REF"
+  "$WT_DIR" "$BRANCH" "$BASE_LINE"
 printf '\nWhen done: scripts/worktree-clean.sh %s\n' "$SLUG"

@@ -53,7 +53,9 @@ def run_decide(root: Path, enable_dispatch: bool) -> dict:
             json.dumps({"schema_version": "1", "enabled": True, "mode": "shadow",
                         "tribunal_seat_mode": "shadow", "rationale": "test"}),
             encoding="utf-8")
-    env = {**os.environ, "THING_DECIDE_MOCK_VERDICT": "yes", "THING_DECIDE_MOCK_EVAL": "downgrade"}
+    env = {k: v for k, v in os.environ.items() if k not in ("CLAUDECODE", "THING_DECIDE_LIVE_SESSION")}
+    env.update({"THING_DECIDE_ALLOW_MOCK": "1", "THING_DECIDE_MOCK_VERDICT": "yes",
+                "THING_DECIDE_MOCK_EVAL": "downgrade"})
     proc = subprocess.run(
         ["python3", str(ENGINE), "--root", str(root), "decide"],
         input=json.dumps({"question": "Should the docs-only change land?",

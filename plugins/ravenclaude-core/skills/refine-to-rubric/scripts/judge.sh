@@ -46,7 +46,7 @@ set -euo pipefail
 artifact="${JUDGE_ARTIFACT:-}"
 dims="${JUDGE_DIMENSIONS:-[]}"
 author_model="${JUDGE_AUTHOR_MODEL:-}"
-judge_model="${JUDGE_MODEL:-claude-haiku-4-5-20251001}"
+judge_model="${JUDGE_MODEL:-claude-haiku-5-5}"
 JUDGE_MAX_BYTES="${JUDGE_MAX_BYTES:-$((64 * 1024))}"
 
 [ -z "$artifact" ] && { echo '{"error":"no artifact"}' >&2; exit 3; }
@@ -225,8 +225,9 @@ scratch="$(mktemp -d)"
 _cstderr="$(mktemp)"
 trap 'rm -rf "$scratch" "$_cstderr"' EXIT
 
-# --tools "" disables ALL tools: the judge only reasons + returns JSON, so an
-# injected judge cannot issue tool calls.
+# --tools "" removes built-in tools. --strict-mcp-config keeps MCP definitions
+# out of the prefix. The judge only reasons and returns JSON, so an injected
+# judge cannot issue tool calls.
 # Model-fallback (opt-in, P3): on an OVERLOADED/unavailable judge model, retry the
 # same call on the next ladder rung; auth/bad-input never retries. The author model
 # is `--exclude`d so a fallback never lands on it, and — because exclude is exact but
@@ -243,6 +244,7 @@ _judge_run() {
   cd "$scratch" && claude -p "${bare_args[@]+"${bare_args[@]}"}" \
     --model "$1" \
     --output-format json \
+    --strict-mcp-config \
     --tools "" \
     --append-system-prompt "$JUDGE_SYSTEM" \
     "$user_prompt" 2>"${_MF_ERRFILE:-$_cstderr}"
@@ -270,6 +272,7 @@ else
   raw="$(cd "$scratch" && claude -p "${bare_args[@]+"${bare_args[@]}"}" \
     --model "$judge_model" \
     --output-format json \
+    --strict-mcp-config \
     --tools "" \
     --append-system-prompt "$JUDGE_SYSTEM" \
     "$user_prompt" 2>"$_cstderr")" || {
@@ -279,6 +282,12 @@ else
     echo "{\"error\":\"judge call failed\",\"detail\":\"${_why//\"/\'}\"}" >&2
     exit 6
   }
+fi
+
+# Usage sidecar. Fail-open: logging must not change the judge exit or verdict.
+_hu="$(dirname "$0")/../../../scripts/headless-usage.py"
+if [ -f "$_hu" ]; then
+  printf '%s' "$raw" | python3 "$_hu" record --site refine-to-rubric-judge --model "$judge_model" >/dev/null 2>&1 || true
 fi
 
 # claude -p --output-format json returns exit 0 even on an is_error envelope

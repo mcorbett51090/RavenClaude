@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-tpm-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/hooks/flag-tpm-antipatterns.sh\" \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Advisory: flags 4 mechanically-detectable TPM anti-patterns in .md artifacts — (1) a status update with no decision/ask (activity-led), (2) a launch/readiness doc with no go/no-go or pass-fail criteria, (3) a program charter with no measurable outcome or named sponsor, (4) a dependency doc that is really a task list. Set TPM_STRICT=1 to make it blocking."
           }
         ]

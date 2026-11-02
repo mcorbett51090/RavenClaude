@@ -35,6 +35,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 
 # --- Dated, [verify-at-use] default snapshots (NOT authoritative) -----------
@@ -58,8 +59,53 @@ def _per_token(price_per_million: float) -> float:
     return price_per_million / 1_000_000.0
 
 
+def _check_non_negative(args: argparse.Namespace, *names: str) -> str | None:
+    """Return an error message for the first negative numeric argument, else None."""
+    for name in names:
+        value = getattr(args, name)
+        if value is not None and value < 0:
+            return f"--{name.replace('_', '-')} must be >= 0 (got {value})"
+    return None
+
+
+def _cache_break_even(
+    cached: int, in_tok: float, write_mult: float, read_mult: float, n: int
+) -> int | None:
+    """Smallest request count i in 1..n where caching is cheaper, in closed form.
+
+    Cumulative cached cost minus cumulative uncached cost after i requests is
+    cached * price * ((write - 1) + (i - 1) * (read - 1)); the uncached remainder is
+    full-priced either way and cancels. So caching wins at request 1 if write < 1,
+    otherwise at 2 + floor((write - 1) / (1 - read)) when reads are cheaper than base
+    input, and never when they are not. O(1) instead of a loop over every request.
+    """
+    if cached <= 0 or in_tok <= 0 or n < 1:
+        return None
+    gap = write_mult - 1.0
+    if gap < 0:
+        first_win = 1
+    elif read_mult >= 1.0:
+        return None
+    else:
+        # round() first: a quotient like 2.9999999999999996 is really the tie 3.
+        first_win = math.floor(round(gap / (1.0 - read_mult), 9)) + 2
+    return first_win if first_win <= n else None
+
+
 def cmd_cache(args: argparse.Namespace) -> int:
     """Prompt-cache break-even + total cost across N repeated requests."""
+    problem = _check_non_negative(
+        args,
+        "cached_tokens",
+        "uncached_tokens",
+        "requests",
+        "input_price",
+        "cache_read_mult",
+        "cache_write_mult",
+    )
+    if problem:
+        print(f"error: {problem}", file=sys.stderr)
+        return 2
     write_mult = (
         DEFAULT_CACHE_WRITE_MULT_1H
         if args.ttl == "1h"
@@ -80,7 +126,7 @@ def cmd_cache(args: argparse.Namespace) -> int:
     # With caching: request 1 writes the cached prefix (write premium) + pays
     # full price for the uncached remainder; requests 2..N read the prefix
     # (read multiplier) + full price for the uncached remainder.
-    first = cached * in_tok * write_mult + uncached * in_tok
+    first = (cached * in_tok * write_mult + uncached * in_tok) if n >= 1 else 0.0
     rest = (cached * in_tok * read_mult + uncached * in_tok) * max(n - 1, 0)
     cache_total = first + rest
 
@@ -88,16 +134,7 @@ def cmd_cache(args: argparse.Namespace) -> int:
     pct = (savings / no_cache_total * 100.0) if no_cache_total else 0.0
 
     # Break-even: smallest request count where caching is cheaper.
-    break_even = None
-    cum_no, cum_cache = 0.0, 0.0
-    for i in range(1, n + 1):
-        cum_no += (cached + uncached) * in_tok
-        if i == 1:
-            cum_cache += cached * in_tok * write_mult + uncached * in_tok
-        else:
-            cum_cache += cached * in_tok * read_mult + uncached * in_tok
-        if break_even is None and cum_cache < cum_no:
-            break_even = i
+    break_even = _cache_break_even(cached, in_tok, write_mult, read_mult, n)
 
     lines: list[str] = [
         "=== Prompt-cache cost estimate ===",
@@ -133,6 +170,12 @@ def cmd_cache(args: argparse.Namespace) -> int:
 
 def cmd_budget(args: argparse.Namespace) -> int:
     """Context-window budget check across multi-turn growth."""
+    problem = _check_non_negative(
+        args, "prefix_tokens", "history_tokens", "per_turn_tokens", "window", "reserve_output"
+    )
+    if problem:
+        print(f"error: {problem}", file=sys.stderr)
+        return 2
     prefix = args.prefix_tokens
     history = args.history_tokens
     per_turn = args.per_turn_tokens
@@ -189,6 +232,14 @@ def cmd_budget(args: argparse.Namespace) -> int:
 
 def cmd_batch(args: argparse.Namespace) -> int:
     """Interactive vs Batch-API cost for latency-tolerant work."""
+    problem = _check_non_negative(
+        args, "input_tokens", "output_tokens", "requests", "input_price", "output_price"
+    )
+    if problem is None and not 0.0 <= args.batch_discount <= 1.0:
+        problem = f"--batch-discount must be between 0 and 1 (got {args.batch_discount})"
+    if problem:
+        print(f"error: {problem}", file=sys.stderr)
+        return 2
     in_tok = _per_token(args.input_price)
     out_tok = _per_token(args.output_price)
     n = args.requests

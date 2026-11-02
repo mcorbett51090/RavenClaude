@@ -79,8 +79,11 @@ repository root (else exit 2).
 Exit codes
 ----------
   0   no findings (or only info)
-  1   one or more error findings (or warning under --strict)
-  2   I/O error, parse error, or argv path rejection
+  1   one or more error findings (or warning under --strict). This includes an
+      unparseable JSON file or a missing `definition/` directory: those are
+      reported as `parse` error findings, so they exit 1 like any other finding.
+  2   argv / path rejection only (no report-root, a `..` component, or a path that
+      resolves outside the repository root)
 """
 
 from __future__ import annotations
@@ -118,7 +121,7 @@ class Finding:
 
 
 class InputError(Exception):
-    """I/O, parse, or path-rejection failure (exit 2)."""
+    """Argv / path-rejection failure (exit 2); parse problems are findings, not this."""
 
 
 # ── Repo-root + path safety (mirrors lint.py's contract) ─────────────────────

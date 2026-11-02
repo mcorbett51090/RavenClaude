@@ -3,6 +3,12 @@
 All notable changes to this plugin are documented here. Versioning is semver; the version in
 `.claude-plugin/plugin.json` and the marketplace catalog entry are kept in lockstep (CI fails on drift).
 
+## 0.2.4 — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-23 ghg_calc inventory exits 2 with the row number on a short CSV row
+
 ## 0.2.0 — 2026-06-08
 
 Depth build-out to the v0.2.0 standard. No agent/skill/command count change; deeper enforcement

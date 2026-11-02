@@ -2,6 +2,13 @@
 
 All notable changes to the `web-commerce` plugin. Versions follow semver; the plugin's `version` in `.claude-plugin/plugin.json` is the source of truth.
 
+## 0.1.3 — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- E-1 stripe framework checkout resolves prices server-side
+- E-10 time out stalled Square and Shopify Storefront calls
+
 ## 0.1.2 — 2026-09-10
 
 ### Fixed

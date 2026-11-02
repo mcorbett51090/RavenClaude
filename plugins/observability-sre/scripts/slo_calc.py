@@ -81,6 +81,8 @@ def burn_rate(
     ~1/14.4 of the window.
     """
     _validate_slo(slo)
+    if window_days <= 0:
+        raise ValueError("--window-days must be positive")
     if total <= 0:
         raise ValueError("--total must be positive")
     if bad < 0 or bad > total:
@@ -234,7 +236,7 @@ def main(argv: list = None) -> int:
             return 2
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
-        return 1
+        return 2
     _print(result)
     return 0
 

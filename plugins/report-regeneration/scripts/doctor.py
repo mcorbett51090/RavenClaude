@@ -34,7 +34,7 @@ TIER_A_STDLIB = [
 TOOLS = [
     ("lxml",        "py",  "lxml",        "B", "HTML/XML structural parse",             "fall back to stdlib html.parser (lower fidelity on malformed HTML)"),
     ("selectolax",  "py",  "selectolax",  "B", "fast HTML parse",                       "use lxml, else stdlib html.parser"),
-    ("jinja2",      "py",  "jinja2",      "B", "HTML template rebind",                  "REQUIRED for the HTML lane (v0.1.0) — that lane blocks until installed"),
+    ("jinja2",      "py",  "jinja2",      "B", "{{ }}/{% %} template rebind (sandboxed)", "OPTIONAL: only templates using {{ }}/{% %} need it; ${dotted.path} templates rebind stdlib-only"),
     ("python-docx", "py",  "docx",        "B", "Office (.docx) structural read/write",  "Office lane (v0.2.0) unavailable"),
     ("docxtpl",     "py",  "docxtpl",     "B", "Office narrative regenerate",           "use python-docx direct manipulation (more code)"),
     ("playwright",  "py",  "playwright",  "B", "HTML render referee + PBI screenshot",  "V5 render referee -> not_captured; PBI screenshot -> user-provided image only"),

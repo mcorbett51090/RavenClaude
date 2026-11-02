@@ -51,6 +51,13 @@ import sys
 from html.parser import HTMLParser
 from typing import Any
 
+# The SHARED anchor resolver (../../scripts/rr_anchor.py) — B-9: build_rsg checks that every
+# css_selector anchor it emits resolves through it, so a later stage never fails late.
+_SCRIPTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "scripts")
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import rr_anchor  # noqa: E402
+
 # ── optional acceleration (graceful, non-load-bearing) ───────────────────────────────────────
 # The stdlib html.parser tree build below is the SOLE parse path (guaranteed on 3.9.6, no pip).
 # A present lxml/selectolax is recorded for the summary only; its absence changes nothing.
@@ -88,6 +95,7 @@ _STRUCTURAL_TAGS = frozenset(
         "nav", "div", "span", "p", "a", "ul", "ol", "li", "table", "thead", "tbody", "tfoot",
         "tr", "td", "th", "caption", "h1", "h2", "h3", "h4", "h5", "h6", "figure", "figcaption",
         "strong", "em", "b", "i", "small", "title", "meta", "style", "link", "br", "hr",
+        "#document",  # B-9: the synthetic umbrella root over a multi-root fragment is chrome
     ]
 )
 
@@ -460,6 +468,8 @@ def _walk(
 
     role = _infer_role(el, shaped)
     cls, confidence, method = _classify(el, shaped, threshold)
+    if role == _ROLE_STATIC and cls == "needs-review":
+        role = "unknown"  # B-2: a demoted node is no longer static chrome (build_manifest binds it)
     provenance = _provenance(el, cls, method, template_id)
 
     # stats / accounting
@@ -504,6 +514,22 @@ def build_rsg(
     }
     root_node = _walk(tree, template_id, threshold, {}, stats)
     stats["total_nodes"] = sum(stats["classes"].values())
+    selectors: list[dict[str, str]] = []
+    stack = [root_node]
+    while stack:
+        node = stack.pop()
+        if node["anchor"]["kind"] == "css_selector":
+            selectors.append(node["anchor"])
+        stack.extend(node["children"])
+    try:
+        missing = rr_anchor.unresolved(html_text, selectors)
+    except rr_anchor.AnchorError as exc:
+        raise InferError(f"emitted an unparseable css_selector anchor: {exc}") from exc
+    if missing:
+        raise InferError(
+            "{} emitted css_selector anchor(s) do not resolve through rr_anchor (e.g. {!r})".format(
+                len(missing), missing[0]["value"])
+        )
     rsg = {
         "schema_version": RSG_SCHEMA_VERSION,
         "format": "html",

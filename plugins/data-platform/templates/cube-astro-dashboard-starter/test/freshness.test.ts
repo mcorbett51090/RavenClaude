@@ -6,8 +6,9 @@
 //
 // Run: npm test (from this starter's own directory)
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { computeFreshnessState } from "../src/lib/freshness";
+import { toCsvRow } from "../src/lib/csv";
 
 const NOW = new Date("2026-09-03T12:00:00.000Z");
 const SLA_MINUTES = 12 * 60; // this starter's own declared 12h SLA
@@ -39,5 +40,65 @@ describe("computeFreshnessState", () => {
     const enUS = computeFreshnessState(lastUpdated, SLA_MINUTES, NOW, "en-US", "America/New_York");
     const deDE = computeFreshnessState(lastUpdated, SLA_MINUTES, NOW, "de-DE", "Europe/Berlin");
     expect(enUS.formattedTime).not.toBe(deDE.formattedTime);
+  });
+});
+
+// Review E-6 (2026-10-20): the formula-injection guard must not prefix a
+// plain number — refunds and credits export as negative amounts, and an
+// apostrophe turns them into text that downstream loaders cannot sum.
+describe("toCsvRow", () => {
+  it("leaves negative and signed numbers unchanged", () => {
+    expect(toCsvRow(["ord_1", "-12.50", -12.5, "+3", "1.5e-3", 0])).toBe(
+      "ord_1,-12.50,-12.5,+3,1.5e-3,0",
+    );
+  });
+
+  it("still neutralises formula-shaped values", () => {
+    expect(toCsvRow(["-1+1", "=SUM(A1)", "@cmd", "+cmd|' /C calc'!A0", "\t-1"])).toBe(
+      "'-1+1,'=SUM(A1),'@cmd,'+cmd|' /C calc'!A0,'\t-1",
+    );
+  });
+});
+
+// Review E-7 (2026-10-20): every widget asks for a token at once on a cold
+// cache. fetchToken must share one in-flight POST, not send one per widget.
+describe("fetchToken", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function freshFetchToken() {
+    vi.resetModules(); // a cold module-level token cache for every test
+    return (await import("../src/lib/cube-client")).fetchToken;
+  }
+
+  it("5 concurrent calls on a cold cache send 1 POST to /api/cube-token", async () => {
+    const fetchMock = vi.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return new Response(JSON.stringify({ token: "tok-1", expiresIn: 600 }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const fetchToken = await freshFetchToken();
+
+    const tokens = await Promise.all(Array.from({ length: 5 }, () => fetchToken()));
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("/api/cube-token", { method: "POST" });
+    expect(tokens).toEqual(["tok-1", "tok-1", "tok-1", "tok-1", "tok-1"]);
+  });
+
+  it("a failed fetch does not wedge: the next call retries", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("limited", { status: 429 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ token: "tok-2", expiresIn: 600 }), { status: 200 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const fetchToken = await freshFetchToken();
+
+    await expect(fetchToken()).rejects.toThrow("cube-token fetch failed: 429");
+    await expect(fetchToken()).resolves.toBe("tok-2");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

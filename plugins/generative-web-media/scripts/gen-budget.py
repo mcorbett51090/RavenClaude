@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,9 +39,16 @@ def _loud_fail(message: str) -> int:
 
 
 def cmd_add(args: argparse.Namespace) -> int:
+    if not math.isfinite(args.unit_price):
+        return _loud_fail(
+            "--unit-price must be a finite number (nan/inf would corrupt the ledger and "
+            "disarm the budget guard)."
+        )
     if args.unit_price < 0 or args.count < 0:
         return _loud_fail("--unit-price and --count must be non-negative.")
     line_cost = round(args.unit_price * args.count, 6)
+    if not math.isfinite(line_cost):
+        return _loud_fail("--unit-price x --count overflowed to a non-finite line cost.")
     entry = {
         "recorded_at": _now_iso(),
         "model": args.model,
@@ -83,6 +91,16 @@ def cmd_status(args: argparse.Namespace) -> int:
         entries = _read_lines(ledger)
     except ValueError as exc:
         return _loud_fail(str(exc))
+
+    if not math.isfinite(args.budget):
+        return _loud_fail("--budget must be a finite number (nan/inf can never be 'exceeded').")
+    for n, e in enumerate(entries, start=1):
+        v = e.get("line_cost")
+        if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v):
+            return _loud_fail(
+                f"{ledger}: entry {n} has a missing, non-numeric or non-finite line_cost "
+                f"({v!r}) — the spend total cannot be trusted. Fix or remove that line."
+            )
 
     spent = round(sum(float(e.get("line_cost", 0.0)) for e in entries), 6)
     by_tier: dict[str, float] = {}

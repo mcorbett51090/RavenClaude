@@ -26,9 +26,7 @@ verify:
   probe: "plugins/ravenclaude-core/scripts/runes.py"
   teeth_exit: 1
 sources:
-  - label: "PE DIGEST ship Norse Runes ready-queue (Longship amend), 2026-09-15"
-    url: https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md
-  - label: docs/runes-ready-queue.md
+  - label: "docs/runes-ready-queue.md (PE DIGEST ship Norse Runes ready-queue, Longship amend, 2026-09-15)"
     url: https://github.com/mcorbett51090/RavenClaude/blob/feat/runes-ready-queue/docs/runes-ready-queue.md
 ---
 

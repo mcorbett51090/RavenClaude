@@ -123,6 +123,16 @@ Some remote/web sessions run in a container that is **ephemeral** — reclaimed 
 
 It idempotently re-wires the `ravenclaude` marketplace plus `ravenclaude-core`/`devops-cicd`/`api-engineering`/`team-portfolio` at every fresh container startup, resolving the checkout path dynamically via `$CLAUDE_PROJECT_DIR` (never a baked-in absolute path — a committed `--scope project` marketplace declaration was tried and rejected: it reformats the whole `.claude/settings.json` file, dropping every hook's `comment` field, and bakes in one container's absolute path). Fast-paths to a no-op once everything is already installed; fail-safe, never blocks `SessionStart`, always exits 0.
 
+### Session claims + overnight resume (marketplace-only, user-level) — added 2026-10-26
+
+The "Overnight session resume" scheduled task restarts idle cloud sessions that still have work they can do themselves. It must not restart one whose content another session is already working on. A cloud routine cannot see Claude CLI sessions on a laptop, so [`scripts/session-claims.py`](scripts/session-claims.py) has each machine publish claims:
+
+- **Writer:** `python3 scripts/session-claims.py install` adds four hooks to the **user-level** `~/.claude/settings.json` on that machine. They are not in this repo's `.claude/settings.json` and not in any plugin's `hooks.json`, so they never ship to consumers. The hooks publish one JSON claim per local session (branch, branch and uncommitted files, a scrubbed title) to the orphan data branch **`ravenclaude/session-claims` of the repo that session is working in**. Claims about a private repo never leave it; this repo is public, so claims here carry no title. Claim commits start with `[skip ci]`, and a repo whose `vercel.json` would build the branch is skipped.
+- **Reader:** for each repo, the routine's `evidence` reads that repo's claims and recent git activity (attributed by the `Claude-Session:` trailer), and `check` gives a deterministic `clear` / `conflict` / `unknown` per candidate. The routine itself pushes nothing.
+- **Fail-safe:** the hook always exits 0, prints nothing to the conversation, pushes from a detached child, and is a no-op without a config or in a cloud container (`CLAUDE_CODE_REMOTE=true`).
+
+Full contract, the prompt mirror and install steps: [`docs/overnight-session-resume-routine.md`](docs/overnight-session-resume-routine.md). `python3 scripts/session-claims.py --self-test` proves each conflict rule both ways.
+
 ## Layout enforcement (Claude Code path)
 
 The plugin's `hooks/enforce-layout.sh` runs `PreToolUse` on `Write|Edit|MultiEdit`. It reads `.repo-layout.json` at the project root, matches the target path against `allowed_globs`, and denies off-pattern writes with a suggested correct location. The hook silently allows everything if `.repo-layout.json` is absent — so consumers who install the plugin without setting up a layout manifest are not surprised.
@@ -130,6 +140,17 @@ The plugin's `hooks/enforce-layout.sh` runs `PreToolUse` on `Write|Edit|MultiEdi
 The matching CI workflow `.github/workflows/validate-layout.yml` is the cross-tool backstop (catches direct human commits, Cursor/Codex/Aider edits, and any case where the hook didn't fire).
 
 Why both: Claude Code issue [#23478](https://github.com/anthropics/claude-code/issues/23478) confirms that path-scoped rule files (`paths:` frontmatter) load only on Read, not on Write. They cannot prevent off-pattern file *creation*. The hook (in-loop, Claude-only) plus the CI (universal backstop) is the supported enforcement pattern in 2026.
+
+## Directory limits — check before you add files (added 2026-10-14)
+
+The Claude plugin Directory has size limits this repo can break just by growing. The human-facing table, the source and the unverified readings are in [`README.md`](README.md) § "Claude plugin Directory limits"; this section is the rule for an agent. Gate 302 and Gate 301 run inside `scripts/audit-gates.sh`, so any tool's pre-PR check covers them. This is where Claude Code is told to look first.
+
+- **Before generating or adding many files, or any large artifact, run** `python3 scripts/check-repo-file-budget.py --report`. It prints files, folders, unpacked size and archive size against every limit. Gate 302 fails the build at 9,990 tracked files; folders and sizes are reported, not gated.
+- **When Gate 302 fails, pack; don't raise.** Pack generated per-file artifacts into a few files (the pattern is `scripts/visual_pack.py`: 1,019 SVGs became 41 files, every member sha256-checked before the originals were removed), or prune dead files. Raising `FAIL_AT` needs a reason written in the PR.
+- **Packing trades file count for file size.** The packs are non-image files over 256 KiB, which would be a reviewer hold for the full plugin. They are safe only because the edition's manifest denies their directories (Gate 301). A new pack outside those directories needs the same treatment.
+- **Re-read the official page before trusting a number written here:** <https://claude.com/docs/plugins/pre-submission-checklist>. A web-search summary of it once said it gives no file count; the page itself does. Cite the page, not a summary of it.
+- **State the unverified readings plainly.** Whether the portal counts files and folders together (the monorepo is 12,949 on that reading), and whether `text eol=lf` in `.gitattributes` counts as a content-rewriting attribute, are not settled. Never write either as fact.
+- **The submission path is the directory edition in its own repo** (`docs/directory-edition/`), not the monorepo.
 
 ## Slash commands shipped by the plugin
 

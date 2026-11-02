@@ -15,7 +15,7 @@ handles a `clientSecret` (not a card number) and the publishable key.
 | [`payment-element.tsx`](payment-element.tsx) | Client component: mounts the Payment Element and confirms payment. |
 | [`webhook.ts`](webhook.ts) | Server route: verify → de-dupe → (your side effects) → 2xx. |
 | [`.env.example`](.env.example) | Placeholder env vars — copy to `.env.local`/`.env`, fill with your own test-mode values. |
-| [`tests/`](tests/) | Signature-tamper rejection, replay-is-a-no-op, and secret-hygiene checks. |
+| [`tests/`](tests/) | Signature-tamper rejection, replay-is-a-no-op, server-side price resolution, and secret-hygiene checks. |
 
 ## Setup
 
@@ -57,6 +57,7 @@ handles a `clientSecret` (not a card number) and the publishable key.
 
 - No card field bound to a merchant handler, ever — the Payment Element
   owns the card fields inside Stripe's iframe (PCI SAQ-A).
+- No client-supplied prices, ever — `checkout.ts` accepts only `{ items: [{ sku, quantity }] }` and resolves every unit price server-side from its `PRICE_CATALOG` seam (replace it with your catalog); an unknown sku or a quantity that is not a positive integer is a 400.
 - No catalog/inventory system — line items are ad-hoc `Money` + name,
   summed into a single PaymentIntent amount at checkout time.
 - No POS reconciliation (Stripe has no POS ledger — see `../../../CLAUDE.md` §2 #5,

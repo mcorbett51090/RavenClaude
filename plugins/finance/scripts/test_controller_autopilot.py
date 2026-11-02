@@ -92,6 +92,272 @@ def main():
         open(ap, "w").write("\n".join(lines) + "\n")
         check("verify: tampered audit line detected (rc!=0)", cs("verify").returncode != 0)
 
+    print("A-11 — SoD compares MAGNITUDE and fails closed on non-finite amounts")
+    for label, amt in (("negative -5,000,000", "-5000000"), ("positive +5,000,000 (control)", "5000000")):
+        with tempfile.TemporaryDirectory() as d:
+            def cs(*a):
+                return py("close_state.py", "--run-dir", d, "--now", "2026-07-06T00:00:00+00:00", *a)
+            cs("submit", "--actor", "alice", "--amount", amt)
+            cs("review", "--actor", "bob")
+            r = cs("approve", "--actor", "alice", "--threshold", "1000")
+            check(f"SoD: preparer self-approve of a {label} package REFUSED",
+                  r.returncode != 0 and "SoD" in r.stderr)
+            check(f"{label}: a different approver still succeeds",
+                  cs("approve", "--actor", "carol", "--threshold", "1000").returncode == 0)
+    for bad_amt in ("nan", "inf"):
+        with tempfile.TemporaryDirectory() as d:
+            r = py("close_state.py", "--run-dir", d, "submit", "--actor", "alice", "--amount", bad_amt)
+            check(f"submit with a non-finite amount ({bad_amt}) is rejected at submit",
+                  r.returncode != 0 and "finite" in r.stderr
+                  and not os.path.exists(os.path.join(d, "state.json")))
+    sys.path.insert(0, HERE)
+    import close_state as cst
+    with tempfile.TemporaryDirectory() as d:
+        led = cst.CloseLedger(d)
+        led.submit("alice", 10.0)
+        led.review("bob")
+        st = led.load_state()
+        st["package_amount"] = float("nan")  # hand-edited / legacy state.json
+        led._write_state(st)
+        try:
+            led.approve("alice", 1000.0)
+            refused = False
+        except SystemExit as e:
+            refused = "SoD" in str(e.code)
+        check("a NaN package_amount already in state.json fails CLOSED (self-approve REFUSED)", refused)
+
+    print("A-12 — verify replays the audit stream against state.json")
+    import re as _re
+
+    def _approved(d):
+        def cs(*a):
+            return py("close_state.py", "--run-dir", d, "--now", "2026-07-06T00:00:00+00:00", *a)
+        cs("submit", "--actor", "alice", "--amount", "5000")
+        cs("review", "--actor", "bob")
+        cs("approve", "--actor", "carol", "--threshold", "1000")
+        return cs
+
+    def _edit_state(d, **kw):
+        sp = os.path.join(d, "state.json")
+        st = json.load(open(sp))
+        st.update(kw)
+        json.dump(st, open(sp, "w"), indent=2)
+
+    with tempfile.TemporaryDirectory() as d:
+        cs = _approved(d)
+        ok = cs("verify")
+        check("untampered approved package: verify OK (rc0)", ok.returncode == 0)
+        m = _re.search(r"(\d+) event\(s\), tip ([0-9a-f]{64})", ok.stdout)
+        check("verify prints the event count and the FULL chain-tip hash", m is not None and m.group(1) == "3")
+        recorded_tip = m.group(2) if m else None
+    with tempfile.TemporaryDirectory() as d:
+        cs = _approved(d)
+        _edit_state(d, state="locked", self_certified=False)
+        r = cs("verify")
+        check("state.json hand-edited to locked/self_certified:false -> verify FAILS (rc!=0)",
+              r.returncode != 0 and r.stdout.startswith("FAIL"))
+        check("...and the failure names the mismatched field", "'state'" in r.stdout)
+    for field, bad in (("approver", "dave"), ("preparer", "carol"), ("package_amount", 1.0)):
+        with tempfile.TemporaryDirectory() as d:
+            cs = _approved(d)
+            _edit_state(d, **{field: bad})
+            r = cs("verify")
+            check(f"state.json {field} edited -> verify FAILS naming '{field}'",
+                  r.returncode != 0 and f"'{field}'" in r.stdout)
+    with tempfile.TemporaryDirectory() as d:
+        cs = _approved(d)
+        cs("lock", "--actor", "carol", "--approval-token", "human-entered")
+        check("lock with a non-agent token (self_certified false): verify OK", cs("verify").returncode == 0)
+        _edit_state(d, self_certified=True)
+        r = cs("verify")
+        check("locked package flipped to self_certified:true -> verify FAILS naming 'self_certified'",
+              r.returncode != 0 and "'self_certified'" in r.stdout)
+    with tempfile.TemporaryDirectory() as d:
+        cs = _approved(d)
+        os.remove(os.path.join(d, "state.json"))
+        check("state.json deleted after an approved package -> verify FAILS", cs("verify").returncode != 0)
+    with tempfile.TemporaryDirectory() as d:
+        cs = _approved(d)
+        ap = os.path.join(d, "audit.jsonl")
+        lines = open(ap).read().splitlines()
+        open(ap, "w").write("\n".join(lines[:-1]) + "\n")
+        check("last audit line deleted with state.json untouched -> verify FAILS (state disagrees)",
+              cs("verify").returncode != 0)
+        # The documented residual limit: truncate the tail AND rewind state.json consistently.
+        _edit_state(d, state="in_review")
+        sp = os.path.join(d, "state.json")
+        st = json.load(open(sp))
+        st.pop("approver", None)
+        json.dump(st, open(sp, "w"), indent=2)
+        r = cs("verify")
+        m2 = _re.search(r"(\d+) event\(s\), tip ([0-9a-f]{64})", r.stdout)
+        check("consistent tail truncation still passes (documented limit) but prints the SHORTER "
+              "count and a DIFFERENT tip to compare with a recorded one",
+              r.returncode == 0 and m2 is not None and m2.group(1) == "2"
+              and m2.group(2) != recorded_tip)
+    check("close_state.py docstring states the tail-truncation limit honestly",
+          "RESIDUAL LIMIT" in open(os.path.join(HERE, "close_state.py")).read())
+
+    print("A-17 — reconcile_summary sums duplicate account rows (does not overwrite)")
+    import reconcile_summary as rs
+    with tempfile.TemporaryDirectory() as d:
+        dup_tb = os.path.join(d, "dup-tb.csv")
+        with open(dup_tb, "w") as fh:
+            fh.write("account,description,debit,credit\n"
+                     "1000,Cash,500,0\n1000,Cash adjustment,0,200\n2000,AP,0,300\n")
+        by = {r["account"]: r for r in rs.reconcile(dup_tb, 1.0)["accounts"]}
+        check("1000 dr 500 + 1000 cr 200 -> book_balance 300.0 (not the last row's -200.0)",
+              by["1000"]["book_balance"] == 300.0)
+        check("the FIRST row's description is kept", by["1000"]["description"] == "Cash")
+        check("a single-row account is unchanged (2000 -> -300.0)", by["2000"]["book_balance"] == -300.0)
+        sub = os.path.join(d, "dup-sub.csv")
+        with open(sub, "w") as fh:
+            fh.write("account,subledger_balance\n1000,300\n")
+        tied = {r["account"]: r for r in rs.reconcile(dup_tb, 1.0, sub)["accounts"]}["1000"]
+        check("tie-out against a 300 sub-ledger PASSes (book 300, diff 0)",
+              tied["status"] == "PASS" and tied["difference"] == 0.0)
+        prior = os.path.join(d, "dup-prior.csv")
+        with open(prior, "w") as fh:
+            fh.write("account,description,debit,credit\n1000,Cash,100,0\n2000,AP,0,300\n")
+        mv = {m["account"]: m for m in rs.flux(dup_tb, prior, 1.0)["material_movements"]}
+        check("flux on the summed account: 300 vs prior 100 -> movement 200.0",
+              "1000" in mv and mv["1000"]["movement"] == 200.0)
+
+    print("A-19 — RLS denial script: docker missing is a SKIP (rc3), never a green exit 0")
+    import shutil
+    rls_sh = os.path.join(HERE, "..", "skills", "warehouse-dashboard", "models", "rls",
+                          "run_rls_denial_test.sh")
+    bash = shutil.which("bash")
+    with tempfile.TemporaryDirectory() as d:
+        for tool in ("dirname", "seq"):  # the script's own needs; deliberately NOT docker
+            if shutil.which(tool):
+                os.symlink(shutil.which(tool), os.path.join(d, tool))
+        base_env = {"PATH": d, "HOME": d}
+        check("test PATH really has no docker", shutil.which("docker", path=d) is None)
+
+        def rls(**extra):
+            return subprocess.run([bash, rls_sh], capture_output=True, text=True,
+                                  env={**base_env, **extra})
+        r = rls()
+        check("PATH without docker -> rc 3", r.returncode == 3)
+        check("...with the 'SKIP - THIS IS NOT A PASS' banner", "SKIP - THIS IS NOT A PASS" in r.stdout)
+        r = rls(RLS_TEST_ALLOW_SKIP="1")
+        check("RLS_TEST_ALLOW_SKIP=1 -> rc 0 with the SAME banner",
+              r.returncode == 0 and "SKIP - THIS IS NOT A PASS" in r.stdout)
+        check("only the literal value 1 acknowledges a skip (RLS_TEST_ALLOW_SKIP=0 -> rc 3)",
+              rls(RLS_TEST_ALLOW_SKIP="0").returncode == 3)
+    check("run_rls_denial_test.sh is still executable", os.access(rls_sh, os.X_OK))
+
+    print("A-7 — finance_calc npv-irr survives a long flow stream (no ZeroDivisionError)")
+
+    def _npv_at(rate, initial, flows):
+        return -initial + sum(cf / (1 + rate) ** t for t, cf in enumerate(flows, start=1))
+
+    def _is_root(pct, initial, flows):
+        """The printed 2dp IRR is the root iff NPV changes sign within +-0.005 pp of it."""
+        lo, hi = (pct - 0.005) / 100, (pct + 0.005) / 100
+        return _npv_at(lo, initial, flows) * _npv_at(hi, initial, flows) <= 0
+
+    for n in (80, 84, 400):
+        r = py("finance_calc.py", "npv-irr", "--rate", "10%", "--initial", "1000",
+               "--flows", *(["20"] * n))
+        check(f"{n} flows: rc 0, no traceback, NPV printed",
+              r.returncode == 0 and "Traceback" not in r.stderr and "-> NPV" in r.stdout)
+    r80 = py("finance_calc.py", "npv-irr", "--rate", "10%", "--initial", "1000",
+             "--flows", *(["20"] * 80))
+    m = re.search(r"-> IRR\s+:\s+(-?[\d.]+)%", r80.stdout)
+    check("the 80-flow control still solves the IRR (NPV changes sign at it; re-derived here)",
+          m is not None and _is_root(float(m.group(1)), 1000.0, [20.0] * 80))
+    r84 = py("finance_calc.py", "npv-irr", "--rate", "10%", "--initial", "1000",
+             "--flows", *(["20"] * 84))
+    m = re.search(r"-> IRR\s+:\s+(-?[\d.]+)%", r84.stdout)
+    check("84 flows now solves a real IRR (NPV changes sign at it), not a crash",
+          m is not None and _is_root(float(m.group(1)), 1000.0, [20.0] * 84))
+    r = py("finance_calc.py", "npv-irr", "--rate", "10%", "--initial", "0", "--flows", "10", "10")
+    check("no root in range -> 'no IRR root in [-99%, 1000%]' (rc 0)",
+          r.returncode == 0 and "no IRR root in [-99%, 1000%]" in r.stdout)
+
+    print("A-8 — finance_calc unit-economics range-checks gross margin")
+    ue_args = ("unit-economics", "--arpa", "1200", "--churn", "14%", "--cac", "3000")
+    r = py("finance_calc.py", *ue_args, "--gross-margin", "78")
+    check("--gross-margin 78 (a bare percent) is REJECTED rc 2 with the 'pass 0.78' hint",
+          r.returncode == 2 and "pass 0.78 for 78%" in r.stderr and "-> LTV" not in r.stdout)
+    for bad in ("0", "-0.2", "1.5", "150%"):
+        check(f"--gross-margin {bad} is rejected (rc 2)",
+              py("finance_calc.py", *ue_args, "--gross-margin", bad).returncode == 2)
+    ok = py("finance_calc.py", *ue_args, "--gross-margin", "0.78")
+    # hand-derived: 1200 * 0.78 = 936 gross profit/yr; LTV = 936 / 0.14 = 6,685.71; LTV:CAC 2.23
+    check("--gross-margin 0.78 is accepted and unchanged (LTV 6,685.71, 2.23 : 1)",
+          ok.returncode == 0 and "6,685.71" in ok.stdout and "2.23 : 1" in ok.stdout)
+    check("--gross-margin 78% and 100% (the inclusive upper bound) are accepted",
+          py("finance_calc.py", *ue_args, "--gross-margin", "78%").returncode == 0
+          and py("finance_calc.py", *ue_args, "--gross-margin", "100%").returncode == 0)
+
+    print("A-27 — non-strict run reports (not KeyErrors on) an account whose section is invalid")
+    import csv as _csv
+
+    def _coa_with(d, acct, section):
+        rows = list(_csv.DictReader(open(COA)))
+        out = os.path.join(d, f"coa-{acct}-{section}.csv")
+        with open(out, "w", newline="") as fh:
+            w = _csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
+            w.writeheader()
+            for r in rows:
+                if r["account"] == acct:
+                    r["section"] = section
+                w.writerow(r)
+        return out
+
+    with tempfile.TemporaryDirectory() as d:
+        for acct, section, label in (("4000", "CurrentAssets", "an IS account mapped to a BS section"),
+                                     ("1000", "Revenue", "a BS account mapped to an IS section"),
+                                     ("4000", "Bogus", "an IS account mapped to an unknown section")):
+            bad_coa = _coa_with(d, acct, section)
+            r = py("statement_engine.py", "--entity", ENT, "--coa", bad_coa, "--tb", TB)
+            try:
+                warns = json.loads(r.stdout).get("warnings", [])
+            except ValueError:
+                warns = []
+            check(f"non-strict, {label}: rc 0 and no traceback",
+                  r.returncode == 0 and "Traceback" not in r.stderr)
+            check(f"non-strict, {label}: the account is REPORTED in warnings",
+                  any(w.startswith(f"{acct}:") for w in warns))
+            check(f"--strict, {label}: still BLOCKS (rc 3, unchanged)",
+                  py("statement_engine.py", "--entity", ENT, "--coa", bad_coa, "--tb", TB,
+                     "--strict").returncode == 3)
+        ctrl = py("statement_engine.py", "--entity", ENT, "--coa", COA, "--tb", TB)
+        check("control: the valid COA is unchanged (rc 0, no warnings)",
+              ctrl.returncode == 0 and json.loads(ctrl.stdout).get("warnings") == [])
+
+    print("A-6 — finance_calc variance-bridge: no always-zero 'mix' line, price carries the interaction")
+
+    def _bridge(q0, p0, q1, p1):
+        r = py("finance_calc.py", "variance-bridge", "--q0", q0, "--p0", p0, "--q1", q1, "--p1", p1)
+        nums = {}
+        for key, pat in (("total", r"-> total variance : (-?[\d,]+)"),
+                         ("price", r"\(\(P1-P0\)\*Q1\)\s+: (-?[\d,]+)"),
+                         ("volume", r"volume effect \(\(Q1-Q0\)\*P0\)\s+: (-?[\d,]+)")):
+            m = re.search(pat, r.stdout)
+            nums[key] = int(m.group(1).replace(",", "")) if m else None
+        return r, nums
+
+    r, n = _bridge("1000", "50", "1100", "48")
+    check("the Panel-2 example prints price -2,200 and volume 5,000",
+          n["price"] == -2200 and n["volume"] == 5000)
+    check("...and price + volume == the total change (2,800)",
+          n["total"] == 2800 and n["price"] + n["volume"] == n["total"])
+    check("no 'mix' line and no tautological 'check' line is printed",
+          "mix/interaction" not in r.stdout and "check (price" not in r.stdout
+          and "/ mix" not in r.stdout)
+    check("the price line is labelled as carrying the price x volume interaction",
+          "includes the price x volume interaction" in r.stdout and "at actual volume" in r.stdout)
+    check("the single-product caveat is kept (multi-product mix -> bridge each line)",
+          "MULTI-product mix" in r.stdout)
+    r, n = _bridge("100", "10", "120", "12")  # a real interaction: (12-10)*(120-100) = 40
+    check("with a real interaction (total 440): price 240 (incl. the 40) + volume 200 == total",
+          n["total"] == 440 and n["price"] == 240 and n["volume"] == 200
+          and n["price"] + n["volume"] == n["total"])
+
     print("P4 — orchestrator submit-only invariant")
     src = open(os.path.join(HERE, "controller_cycle.py")).read()
     # strip comments/strings-ish: just assert no .approve(/.lock(/.reopen( call on a ledger

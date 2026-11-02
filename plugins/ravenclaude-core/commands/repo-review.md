@@ -53,7 +53,9 @@ redundant, not an error.
    pushes) before dispatching.
 4. **Otherwise, invoke the `repo-review` skill** and let it drive the full mechanism (chunk → cache →
    Workflow fan-out → merge → verify → fix → report, looped when `--converge` is set) per its own
-   contract. This command does not restate that logic — restating it here means paying for the
+   contract. Every `Workflow` dispatch passes a fresh `args.runId` minted in a shell just before it
+   (`date -u +repo-sweep-%Y%m%dT%H%M%SZ`): the workflow refuses to start without one, and in non-block
+   mode it refuses a `runId` whose findings dir already holds shards. This command does not restate that logic — restating it here means paying for the
    pipeline's description twice on every run, exactly the reason `commands/forge.md` stays a thin
    entry point over `skills/forge-pipeline/`.
 5. **Before reporting done, re-read the skill's honest-status section** and never claim (in this

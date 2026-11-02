@@ -46,7 +46,12 @@ if grep -qiE '<connection[^>]*\bclass=' "$target" 2>/dev/null \
 fi
 
 # 4. Data blend (multiple datasources joined at view level) where a relationship may be correct (anti-pattern)
-if [[ "$(grep -ciE '<datasource\b' "$target" 2>/dev/null || echo 0)" -gt 1 ]] \
+# `grep -c` prints 0 AND exits 1 when nothing matches, so `|| echo 0` appended a second "0"
+# ("0\n0") and the numeric test below died with a bash syntax error on any file with no
+# <datasource. Swallow the status and default the count instead.
+datasource_count="$(grep -ciE '<datasource\b' "$target" 2>/dev/null || true)"
+datasource_count="${datasource_count:-0}"
+if [[ "$datasource_count" -gt 1 ]] \
   && grep -qiE '<datasource-dependencies|primary-key|<cols>.*\[.*\]\.\[' "$target" 2>/dev/null; then
   notes+=("Multiple data sources detected — confirm this is a relationship/join, not a data blend used where a relationship would be correct (and faster). (anti-pattern)")
 fi

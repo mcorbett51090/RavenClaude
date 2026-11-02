@@ -31,10 +31,14 @@ What it checks (producer/consumer asymmetry -- judged from a strict client):
   INFO
     - description / summary / example churn, openapi version field changes
 
-This is a HEURISTIC linter, not a proof: it walks the documents structurally
-and does not resolve every $ref edge or every allOf/oneOf composition. Treat a
-clean run as "no breaking change DETECTED", not "provably none" -- and treat an
-UNSURE as breaking (the cost of a false 'additive' is a production outage).
+This is a HEURISTIC linter, not a proof: it walks the documents structurally.
+Local '#/...' $refs are dereferenced in both documents first (with a cycle
+guard), allOf members are flattened, oneOf/anyOf variants are paired by
+position, and items / additionalProperties / path-item-level parameters are
+walked. An external or unresolvable $ref cannot be diffed, so it is reported as
+a BREAKING 'UNSURE: unresolved $ref' finding. Treat a clean run as "no breaking
+change DETECTED", not "provably none" -- and treat an UNSURE as breaking (the
+cost of a false 'additive' is a production outage).
 
 Input format: JSON OpenAPI documents (3.0 / 3.1 / 3.2). YAML specs are the
 common authoring form but stdlib has no YAML parser, so convert first and keep
@@ -58,6 +62,7 @@ import argparse
 import json
 import sys
 from typing import Any
+from urllib.parse import unquote
 
 HTTP_METHODS = ("get", "put", "post", "delete", "patch", "options", "head", "trace")
 EXTENSIBLE_ENUM_KEY = "x-extensible-enum"
@@ -95,11 +100,102 @@ def _load(path: str) -> dict[str, Any]:
     return data
 
 
+_MISSING = object()
+
+
+def _resolve_pointer(root: Any, ref: str) -> Any:
+    """Resolve a local '#/a/b' JSON pointer against root, or return _MISSING."""
+    if not ref.startswith("#"):
+        return _MISSING  # external document or URL
+    pointer = ref[1:]
+    if pointer == "":
+        return root
+    if not pointer.startswith("/"):
+        return _MISSING
+    node = root
+    for part in pointer[1:].split("/"):
+        part = unquote(part).replace("~1", "/").replace("~0", "~")
+        if isinstance(node, dict) and part in node:
+            node = node[part]
+        elif isinstance(node, list) and part.isdigit() and int(part) < len(node):
+            node = node[int(part)]
+        else:
+            return _MISSING
+    return node
+
+
+class _Dereferencer:
+    """Inline local $refs, remembering the ones that cannot be followed."""
+
+    def __init__(self, root: Any) -> None:
+        self.root = root
+        self.stack: list[str] = []  # refs being expanded right now (cycle guard)
+        self.memo: dict[str, Any] = {}
+        self.cycle_hits = 0
+        self.unresolved: dict[str, str] = {}  # ref -> first location seen
+
+    def walk(self, node: Any, where: str) -> Any:
+        if isinstance(node, list):
+            return [self.walk(item, f"{where}[{i}]") for i, item in enumerate(node)]
+        if not isinstance(node, dict):
+            return node
+        ref = node.get("$ref")
+        if isinstance(ref, str):
+            target = self.expand(ref, where)
+            extra = {k: self.walk(v, f"{where}.{k}") for k, v in node.items() if k != "$ref"}
+            return {**target, **extra} if isinstance(target, dict) and extra else target
+        return {k: self.walk(v, f"{where}.{k}") for k, v in node.items()}
+
+    def expand(self, ref: str, where: str) -> Any:
+        if ref in self.stack:  # recursive schema: keep the stub, do not recurse
+            self.cycle_hits += 1
+            return {"$ref": ref}
+        if ref in self.memo:
+            return self.memo[ref]
+        target = _resolve_pointer(self.root, ref)
+        if target is _MISSING:
+            self.unresolved.setdefault(ref, where)
+            return {"$ref": ref}
+        self.stack.append(ref)
+        hits = self.cycle_hits
+        resolved = self.walk(target, where)
+        self.stack.pop()
+        if self.cycle_hits == hits:  # only a cycle-free expansion is context-independent
+            self.memo[ref] = resolved
+        return resolved
+
+
+def _dereference(spec: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+    """Return (spec with local $refs inlined under 'paths', {unresolved ref: where})."""
+    paths = spec.get("paths")
+    if not isinstance(paths, dict):
+        return spec, {}
+    deref = _Dereferencer(spec)
+    resolved = dict(spec)
+    resolved["paths"] = deref.walk(paths, "paths")
+    return resolved, deref.unresolved
+
+
 def _ops(spec: dict[str, Any], path: str) -> dict[str, Any]:
     item = spec.get("paths", {}).get(path, {})
     if not isinstance(item, dict):
         return {}
-    return {m: item[m] for m in HTTP_METHODS if isinstance(item.get(m), dict)}
+    shared = item.get("parameters")
+    return {
+        m: _with_shared_params(item[m], shared)
+        for m in HTTP_METHODS
+        if isinstance(item.get(m), dict)
+    }
+
+
+def _with_shared_params(op: dict[str, Any], shared: Any) -> dict[str, Any]:
+    """Merge path-item-level parameters into an operation (the operation's win)."""
+    if not isinstance(shared, list) or not shared:
+        return op
+    merged = {_param_key(p): p for p in shared if isinstance(p, dict)}
+    own = op.get("parameters")
+    merged.update({_param_key(p): p for p in own or [] if isinstance(p, dict)})
+    return {**op, "parameters": list(merged.values())}
 
 
 def _enum_values(schema: dict[str, Any]) -> list[Any]:
@@ -164,6 +260,80 @@ def _diff_enum(
             )
 
 
+def _flatten_all_of(schema: dict[str, Any]) -> dict[str, Any]:
+    """Merge allOf members into one schema (the schema's own keys win)."""
+    members = schema.get("allOf")
+    if not isinstance(members, list) or not members:
+        return schema
+    props: dict[str, Any] = {}
+    required: list[Any] = []
+    merged: dict[str, Any] = {}
+    own = {k: v for k, v in schema.items() if k != "allOf"}
+    for part in [*members, own]:
+        if not isinstance(part, dict):
+            continue
+        part = _flatten_all_of(part)
+        if isinstance(part.get("properties"), dict):
+            props.update(part["properties"])
+        if isinstance(part.get("required"), list):
+            required.extend(r for r in part["required"] if r not in required)
+        for key in ("type", "enum", EXTENSIBLE_ENUM_KEY, "items", "additionalProperties"):
+            if key in part:
+                merged[key] = part[key]
+        for key in ("oneOf", "anyOf"):
+            if key in part:
+                merged[key] = part[key]
+    if props:
+        merged["properties"] = props
+    if required:
+        merged["required"] = required
+    return merged
+
+
+def _diff_nested(
+    old_schema: dict[str, Any],
+    new_schema: dict[str, Any],
+    where: str,
+    direction: str,
+    out: list[Finding],
+) -> None:
+    """Walk array items, additionalProperties and oneOf/anyOf variants."""
+    _diff_schema(old_schema.get("items"), new_schema.get("items"), f"{where}[]", direction, out)
+    _diff_schema(
+        old_schema.get("additionalProperties"),
+        new_schema.get("additionalProperties"),
+        f"{where}.*",
+        direction,
+        out,
+    )
+    for key in ("oneOf", "anyOf"):
+        old_variants = old_schema.get(key)
+        new_variants = new_schema.get(key)
+        if not isinstance(old_variants, list) or not isinstance(new_variants, list):
+            continue
+        pairs = zip(old_variants, new_variants)
+        for index, (old_variant, new_variant) in enumerate(pairs):
+            _diff_schema(old_variant, new_variant, f"{where}.{key}[{index}]", direction, out)
+        change = f"{len(old_variants)} -> {len(new_variants)}"
+        if len(new_variants) < len(old_variants):
+            if direction == "request":
+                msg = f"{key} variant(s) removed from a request ({change}): narrows accepted input"
+                out.append(Finding(Finding.BREAKING, f"{where}.{key}", msg))
+            else:
+                msg = f"response {key} variant(s) removed ({change})"
+                out.append(Finding(Finding.INFO, f"{where}.{key}", msg))
+        elif len(new_variants) > len(old_variants):
+            if direction == "request":
+                msg = f"request {key} variant(s) added ({change})"
+                out.append(Finding(Finding.ADDITIVE, f"{where}.{key}", msg))
+            else:
+                msg = (
+                    f"{key} variant(s) added to a response ({change}): strict clients "
+                    "may not recognise the new variant"
+                )
+                out.append(Finding(Finding.BREAKING, f"{where}.{key}", msg))
+
+
 def _diff_schema(
     old_schema: Any,
     new_schema: Any,
@@ -173,6 +343,8 @@ def _diff_schema(
 ) -> None:
     if not isinstance(old_schema, dict) or not isinstance(new_schema, dict):
         return
+    old_schema = _flatten_all_of(old_schema)
+    new_schema = _flatten_all_of(new_schema)
 
     old_type = old_schema.get("type")
     new_type = new_schema.get("type")
@@ -186,6 +358,7 @@ def _diff_schema(
         )
 
     _diff_enum(old_schema, new_schema, where, direction, out)
+    _diff_nested(old_schema, new_schema, where, direction, out)
 
     old_props = old_schema.get("properties", {})
     new_props = new_schema.get("properties", {})
@@ -363,6 +536,19 @@ def _diff_operation(
 
 def diff(old: dict[str, Any], new: dict[str, Any]) -> list[Finding]:
     out: list[Finding] = []
+
+    old, old_unresolved = _dereference(old)
+    new, new_unresolved = _dereference(new)
+    for side, unresolved in (("old", old_unresolved), ("new", new_unresolved)):
+        for ref, where in unresolved.items():
+            out.append(
+                Finding(
+                    Finding.BREAKING,
+                    f"{side} {where}",
+                    f"UNSURE: unresolved $ref {ref} (external or missing target; not "
+                    "diffed -- treat as breaking until checked)",
+                )
+            )
 
     old_v = str(old.get("openapi", old.get("swagger", "")))
     new_v = str(new.get("openapi", new.get("swagger", "")))

@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "retrieved": "2026-10-09",
+  "retrieved": "2026-10-17",
   "hosts": {
     "claude": {
-      "_note": "Pinned ids are catalog anchors for Claude Code first-party drift gates; the live first-party or Bedrock `opus` alias may resolve newer than claude-opus-4-8. Re-verify at use. Copilot top Claude was Opus 5.5 in the 2026-09 lineup (see cross-tool-model-lineup).",
-      "fast": "claude-haiku-4-5-20251001",
-      "balanced": "claude-sonnet-5",
-      "top": "claude-opus-4-8"
+      "_note": "hosts.claude pins moved to the 2026-10-17 playbook ids (Opus 5.5 / Sonnet 5.5 / Haiku 5.5). This pass did not re-probe live alias resolution, and it did not re-probe copilot, grok, or codex rows. Re-verify at use.",
+      "fast": "claude-haiku-5-5",
+      "balanced": "claude-sonnet-5-5",
+      "top": "claude-opus-5-5"
     },
     "grok": {
       "fast": {
@@ -41,6 +41,6 @@
     "codex_pro_mode": "reasoning.mode pro on gpt-6.1-sol (GPT-6 Sol family) \u2014 not a separate slug; no Terra tier in current Codex GPT-6 docs naming",
     "copilot_balanced": "Sonnet 5 primary; Auto footnote",
     "seats": "Thing seats stay Claude; not this map",
-    "claude_aliases": "Tier ids under hosts.claude are full catalog pins for Claude Code drift gates, not live alias resolution. The Bedrock `opus` alias (without ANTHROPIC_DEFAULT_OPUS_MODEL) resolves to Opus 5.5 per atlas ceiling; first-party API `opus` resolution was not re-probed this pass \u2014 keep the pin and re-verify at use. Copilot hosts.copilot.top is Claude Opus 5.5 (display name) and must not be read as the Claude Code pin."
+    "claude_aliases": "Tier ids under hosts.claude are the 2026-10-17 catalog pins (claude-opus-5-5 / claude-sonnet-5-5 / claude-haiku-5-5), not a live alias probe from this pass. Copilot display names were not re-probed and must not be read as the Claude Code pin. Grok and Codex rows were not changed."
   }
 }

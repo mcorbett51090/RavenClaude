@@ -37,7 +37,7 @@ Absent ⇒ haiku. Raising to sonnet is a comfort override. Opus/fable/session/in
 
 ## Tribunal (cited-only)
 
-Thing `panel.*.model` seats are a **composition** surface. UMM cites them; it does **not** auto-demote seats for savings (M6). ≥2 distinct backbones invariant unchanged.
+Thing `panel.*.model` seats are a **composition** surface. UMM cites them; it does **not** auto-demote seats for savings (M6). ≥2 distinct backbones invariant unchanged. Headless `claude -p` call shape, usage recording, and the Fable-after-Opus-xhigh rule are in [`headless-claude-calls.md`](headless-claude-calls.md).
 
 ## Cheap lane
 

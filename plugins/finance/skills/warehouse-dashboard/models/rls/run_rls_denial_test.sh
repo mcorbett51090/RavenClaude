@@ -11,13 +11,24 @@
 #
 # Usage:  bash run_rls_denial_test.sh          # needs docker on PATH
 # Exit 0 iff every assertion holds; non-zero otherwise (suitable as a CI gate).
+#   exit 3  docker is not on PATH: the test did NOT run. That is a SKIP, NOT A PASS -- a
+#           CI gate must treat 3 as a failure, or "docker missing" silently reads as green.
+#   RLS_TEST_ALLOW_SKIP=1  turns that skip into exit 0 (same banner) for a LOCAL run on a
+#           machine that deliberately has no docker. It proves nothing about the RLS.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 CTR="fin-rls-denial-$$"
 PG_IMAGE="${PG_IMAGE:-postgres:16-alpine}"
 
-command -v docker >/dev/null 2>&1 || { echo "SKIP: docker not on PATH (this test needs a container)"; exit 0; }
+if ! command -v docker >/dev/null 2>&1; then
+  echo "SKIP - THIS IS NOT A PASS: docker not on PATH (this test needs a container); the RLS denial was NOT executed"
+  if [ "${RLS_TEST_ALLOW_SKIP:-}" = "1" ]; then
+    echo "RLS_TEST_ALLOW_SKIP=1: skip acknowledged, exiting 0 (still SKIP - THIS IS NOT A PASS)"
+    exit 0
+  fi
+  exit 3
+fi
 
 cleanup() { docker rm -f "$CTR" >/dev/null 2>&1 || true; }
 trap cleanup EXIT

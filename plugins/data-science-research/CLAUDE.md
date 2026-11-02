@@ -80,7 +80,7 @@ This plugin is the **research/analysis layer**. It profiles and cleans the data,
 
 This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`. Before any data-science-research agent says "I can't do X" or "this isn't possible", it must:
 
-1. **Check available skills first** — `eda-workflow`, `feature-engineering-and-modeling`, `reproducible-research`, plus the core skills (`structured-output`, `grounding-protocol`).
+1. **Check available skills first** — `eda-workflow`, `feature-engineering-and-modeling`, `reproducible-research`, `find-plot-recipe`, plus the core skills (`structured-output`, `grounding-protocol`).
 2. **Check for partial capability** — can the analysis slice (the profile, the baseline, the CV harness, the pinned env) complete even when the significance call is a hand-off to `applied-statistics` or the serving is a hand-off to `ml-engineering`?
 3. **Try alternative methods from easiest to most difficult before declaring blocked.** When a library isn't available, a dataset can't be loaded, or a metric can't be computed — enumerate at least 2-3 alternatives (a pandas-only profile instead of a profiling library; a holdout instead of k-fold when folds are infeasible; a proxy metric) and try the next-easiest before reporting blocked.
 4. **Consider team composition** — could `exploratory-data-scientist`, `feature-and-modeling-engineer`, `research-reproducibility-engineer`, `ravenclaude-core/architect` / `security-reviewer`, or a neighbouring plugin handle a portion?
@@ -120,6 +120,7 @@ Grounding checks performed: <brief note on skills / rules / alternatives reviewe
 | [`skills/eda-workflow/SKILL.md`](skills/eda-workflow/SKILL.md) | `exploratory-data-scientist` | A disciplined first pass: profile (shape, types, missingness, cardinality), clean, visualize distributions and relationships, spot leakage candidates, generate hypotheses, and communicate findings with uncertainty. |
 | [`skills/feature-engineering-and-modeling/SKILL.md`](skills/feature-engineering-and-modeling/SKILL.md) | `feature-and-modeling-engineer` | Feature engineering, classical model selection (regression / trees / gradient boosting), a leakage-safe cross-validation harness, and metric choice driven by the decision. |
 | [`skills/reproducible-research/SKILL.md`](skills/reproducible-research/SKILL.md) | `research-reproducibility-engineer` | Notebook hygiene, pinned environments, experiment tracking, data/version control, seeds, and a scripted reproducible pipeline so anyone can re-run the numbers. |
+| [`skills/find-plot-recipe/SKILL.md`](skills/find-plot-recipe/SKILL.md) | `exploratory-data-scientist` | Look up a plot recipe + runnable implementation across 15 charting libraries from the third-party [anyplot.ai](https://anyplot.ai) catalogue (public read-only API by default; remote MCP strictly opt-in). Verify the AI-generated snippet before trusting it. |
 
 ---
 

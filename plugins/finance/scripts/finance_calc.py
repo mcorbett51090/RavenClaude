@@ -10,11 +10,12 @@ controller, treasury analyst, or financial modeler runs constantly:
                   and bisection-solves the IRR. Pairs with the build-vs-buy and
                   financing decision trees (knowledge/finance-decision-trees.md).
 
-  variance-bridge The PRICE / VOLUME / MIX decomposition of a revenue (or
+  variance-bridge The PRICE / VOLUME decomposition of a revenue (or
                   unit-driven cost) variance that sums EXACTLY to the total.
-                  Price = (P1-P0)*Q1 ; Volume = (Q1-Q0)*P0 ; Mix is the residual
-                  the two-effect split leaves. Pairs with the variance-
-                  decomposition tree and variance-root-cause-triage.md.
+                  Price = (P1-P0)*Q1 (at actual volume, so it carries the
+                  price x volume interaction) ; Volume = (Q1-Q0)*P0. A true
+                  product-MIX effect needs more than one product. Pairs with the
+                  variance-decomposition tree and variance-root-cause-triage.md.
 
   runway          The cash trough and run-out from a DIRECT-METHOD weekly (or
                   monthly) stream: opening cash + each period's receipts -
@@ -44,7 +45,7 @@ Examples
   python3 finance_calc.py npv-irr --rate 10% --initial 100000 \\
       --flows 30000 40000 50000 50000
 
-  # Price/volume/mix bridge: prior 1000 units @ $50, actual 1100 units @ $48
+  # Price/volume bridge: prior 1000 units @ $50, actual 1100 units @ $48
   python3 finance_calc.py variance-bridge --q0 1000 --p0 50 --q1 1100 --p1 48
 
   # 13-week runway: $250k opening, weekly receipts and disbursements
@@ -81,12 +82,21 @@ def _npv(rate: float, initial: float, flows: list[float]) -> float:
 
 
 def _irr(initial: float, flows: list[float]) -> float | None:
-    """Bisection IRR on -initial + sum(flows). Returns None if no sign change."""
-    lo, hi = -0.9999, 10.0
-    f_lo = _npv(lo, initial, flows)
-    f_hi = _npv(hi, initial, flows)
+    """Bisection IRR on -initial + sum(flows). Returns None if there is no root in
+    [-99%, 1000%] (no sign change, or the NPV is not computable at a bracket end).
+
+    The lower bracket is -99%, not -99.99%: (1 + rate) ** t underflows to 0.0 for a long
+    stream (0.0001 ** 81 is 1e-324), and the NPV then divides by zero. Underflow/overflow at
+    a bracket end is reported as 'no bracket' instead of a traceback. Every rate the
+    bisection then visits lies inside the bracket, so no later NPV can fail either."""
+    lo, hi = -0.99, 10.0
+    try:
+        f_lo = _npv(lo, initial, flows)
+        f_hi = _npv(hi, initial, flows)
+    except (ZeroDivisionError, OverflowError):
+        return None
     if f_lo * f_hi > 0:
-        return None  # no bracketed root in [-99.99%, 1000%]
+        return None  # no bracketed root in [-99%, 1000%]
     for _ in range(200):
         mid = (lo + hi) / 2.0
         f_mid = _npv(mid, initial, flows)
@@ -114,7 +124,7 @@ def cmd_npv_irr(args: argparse.Namespace) -> int:
           + ", ".join(f"{cf:,.0f}" for cf in args.flows))
     print(f"  -> NPV            : {npv:,.0f}")
     if irr is None:
-        print("  -> IRR            : undefined (no sign change in the flows)")
+        print("  -> IRR            : no IRR root in [-99%, 1000%]")
     else:
         print(f"  -> IRR            : {irr * 100:.2f}%")
     verdict = "ACCEPT (NPV > 0)" if npv > 0 else "REJECT (NPV <= 0)"
@@ -129,24 +139,24 @@ def cmd_variance_bridge(args: argparse.Namespace) -> int:
     rev1 = args.q1 * args.p1
     total = rev1 - rev0
 
-    # Two-effect price/volume split; the residual is the interaction/mix term.
+    # Standard two-effect PVM: price at ACTUAL volume + volume at BASE price. The
+    # price x volume interaction ((P1-P0)*(Q1-Q0)) sits inside the price effect, so the two
+    # effects sum to the total by construction and there is NO residual to print as "mix".
     price_effect = (args.p1 - args.p0) * args.q1
     volume_effect = (args.q1 - args.q0) * args.p0
-    mix_effect = total - price_effect - volume_effect
 
-    print("Variance bridge - price / volume / mix")
+    print("Variance bridge - price / volume")
     print(f"  prior  : {args.q0:,.0f} units @ {args.p0:,.2f} = {rev0:,.0f}")
     print(f"  actual : {args.q1:,.0f} units @ {args.p1:,.2f} = {rev1:,.0f}")
     print(f"  -> total variance : {total:,.0f}")
-    print("  decomposition (sums exactly to total):")
-    print(f"    price  effect ((P1-P0)*Q1)        : {price_effect:,.0f}")
+    print("  decomposition (price + volume = total):")
+    print("    price effect (at actual volume; includes the price x volume interaction)")
+    print(f"      ((P1-P0)*Q1)                    : {price_effect:,.0f}")
     print(f"    volume effect ((Q1-Q0)*P0)        : {volume_effect:,.0f}")
-    print(f"    mix/interaction (residual)        : {mix_effect:,.0f}")
-    check = price_effect + volume_effect + mix_effect
-    print(f"    check (price+volume+mix)          : {check:,.0f}")
-    print("  note: this is a single-product two-way bridge with the interaction")
-    print("        isolated as 'mix'. For a true MULTI-product mix effect, bridge")
-    print("        each product line then aggregate (see the variance-decomposition tree).")
+    print("  note: this is a single-product two-way bridge: price at actual volume plus")
+    print("        volume at base price, with the price x volume interaction inside the")
+    print("        price effect. For a true MULTI-product mix effect, bridge each product")
+    print("        line then aggregate (see the variance-decomposition tree).")
     return 0
 
 
@@ -208,6 +218,14 @@ def cmd_unit_economics(args: argparse.Namespace) -> int:
     if not 0.0 < args.churn <= 1.0:
         print("error: --churn must be in (0%, 100%]", file=sys.stderr)
         return 2
+    if not 0.0 < args.gross_margin <= 1.0:
+        # _parse_rate reads a bare "78" as 7800%, which silently inflates LTV 100x.
+        print(
+            f"error: --gross-margin must be in (0%, 100%] (got {args.gross_margin * 100:g}%) "
+            "- pass 0.78 for 78%",
+            file=sys.stderr,
+        )
+        return 2
     if args.cac <= 0:
         print("error: --cac must be > 0", file=sys.stderr)
         return 2
@@ -256,7 +274,7 @@ def build_parser() -> argparse.ArgumentParser:
                      help="year 1..n net cash flows (space-separated)")
     npv.set_defaults(func=cmd_npv_irr)
 
-    vb = sub.add_parser("variance-bridge", help="Price/volume/mix variance bridge")
+    vb = sub.add_parser("variance-bridge", help="Price/volume variance bridge")
     vb.add_argument("--q0", type=float, required=True, help="prior-period quantity")
     vb.add_argument("--p0", type=float, required=True, help="prior-period price")
     vb.add_argument("--q1", type=float, required=True, help="actual quantity")

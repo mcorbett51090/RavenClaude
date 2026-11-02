@@ -28,7 +28,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -36,11 +35,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import concepts as concepts_mod  # noqa: E402
+import visual_pack as vp  # noqa: E402
 
 # Pin the renderer so committed SVGs stay reproducible across machines/time.
 MMDC_VERSION = "11.15.0"
 # Bump when the normalizer logic below changes (invalidates every committed SVG).
-NORMALIZER_VERSION = 4
+# 5: _theme_style groups same-type selectors with :is(), so the id prefix repeats
+#    19 times instead of 36. Specificity per element is unchanged.
+NORMALIZER_VERSION = 5
 
 VISUALS_DIR = "plugins/ravenclaude-core/knowledge/concepts/visuals"
 MANIFEST_NAME = ".render-manifest.json"
@@ -177,16 +179,22 @@ def _chrome_hint() -> str:
 def _theme_style(svg_id: str) -> str:
     """An override <style> that remaps raw-Mermaid colors onto dashboard tokens.
     `!important` + the id prefix beat Mermaid's own injected per-id rules. Uses
-    CSS vars so the dashboard's prefers-color-scheme:light block flips the SVG."""
+    CSS vars so the dashboard's prefers-color-scheme:light block flips the SVG.
+
+    This block is inlined once per diagram, so its size multiplies by every SVG
+    on the page. `:is()` groups only arguments of one selector type (all classes
+    or all tags): its specificity is that of its most specific argument, so a
+    same-type group keeps every element's specificity, and the cascade, unchanged."""
     s = f"#{svg_id}"
+    shapes = ":is(rect,polygon,circle,path)"
     return (
         "<style>"
-        f"{s} .nodeLabel,{s} .edgeLabel,{s} text,{s} span,{s} p,{s} div"
+        f"{s} :is(.nodeLabel,.edgeLabel),{s} :is(text,span,p,div)"
         # theme the text COLOR only — never the font-family: Mermaid baked node
         # widths using its own font at render time, so forcing a wider font here
         # would overflow the shapes (clipped labels).
         "{fill:var(--text)!important;color:var(--text)!important;background:transparent!important}"
-        f"{s} .node rect,{s} .node polygon,{s} .node circle,{s} .node path,{s} .label-container"
+        f"{s} .node {shapes},{s} .label-container"
         "{fill:var(--surface-2)!important;stroke:var(--border)!important;stroke-width:1.5px!important}"
         f"{s} .cluster rect{{fill:var(--surface)!important;stroke:var(--border)!important}}"
         f"{s} .edgePath .path,{s} .edgePath path,{s} path.flowchart-link,{s} .flowchart-link"
@@ -195,15 +203,15 @@ def _theme_style(svg_id: str) -> str:
         "{fill:var(--muted)!important;stroke:none!important}"
         f"{s} .edgeLabel rect,{s} .edgeLabel .labelBkg,{s} .label-container.edgeLabel"
         "{fill:var(--bg)!important;opacity:1!important}"
-        f"{s} .edgeLabel text,{s} .edgeLabel span{{fill:var(--muted)!important;color:var(--muted)!important}}"
+        f"{s} .edgeLabel :is(text,span){{fill:var(--muted)!important;color:var(--muted)!important}}"
         # fact-vs-built coloring, driven by `class X,Y fact|built` in the Mermaid source
-        f"{s} .node.fact rect,{s} .node.fact polygon,{s} .node.fact path,{s} .node.fact circle"
+        f"{s} .node.fact {shapes}"
         "{stroke:var(--muted)!important}"
-        f"{s} .node.built rect,{s} .node.built polygon,{s} .node.built path,{s} .node.built circle"
+        f"{s} .node.built {shapes}"
         "{fill:var(--surface)!important;stroke:var(--accent)!important}"
         # hover/focus highlight — the :hover pseudo-class out-specifies the base
         # node rule above, so the inlined diagram feels live without extra JS
-        f"{s} .node:hover rect,{s} .node:hover polygon,{s} .node:hover circle,{s} .node:hover path"
+        f"{s} .node:hover {shapes}"
         "{stroke:var(--accent)!important;stroke-width:2.5px!important;cursor:default}"
         "</style>"
     )
@@ -312,6 +320,11 @@ def _check(root: Path, concepts: list[dict]) -> int:
         return 1
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     recorded = manifest.get("concepts", {})
+    try:
+        packed = vp.read_concept_pack(vis)
+    except vp.PackError as exc:
+        print(f"Concept SVG freshness gate FAILED:\n  ✗ {vp.CONCEPT_PACK_NAME} unreadable: {exc}")
+        return 1
     problems: list[str] = []
     diagramless = 0
     for c in concepts:
@@ -332,13 +345,13 @@ def _check(root: Path, concepts: list[dict]) -> int:
         if recorded.get(cid) != want:
             problems.append(f"  ✗ {cid}: diagram source changed since last render — re-run scripts/render-concepts.py")
             continue
-        if not (vis / f"{cid}.svg").exists():
-            problems.append(f"  ✗ {cid}: {cid}.svg missing")
-        if c["diagram_mini"] and not (vis / f"{cid}.mini.svg").exists():
-            problems.append(f"  ✗ {cid}: {cid}.mini.svg missing")
+        if f"{cid}.svg" not in packed:
+            problems.append(f"  ✗ {cid}: {cid}.svg missing from {vp.CONCEPT_PACK_NAME}")
+        if c["diagram_mini"] and f"{cid}.mini.svg" not in packed:
+            problems.append(f"  ✗ {cid}: {cid}.mini.svg missing from {vp.CONCEPT_PACK_NAME}")
         for idx in range(1, len(c.get("steps", [])) + 1):
-            if not (vis / f"{cid}.step-{idx}.svg").exists():
-                problems.append(f"  ✗ {cid}: {cid}.step-{idx}.svg missing")
+            if f"{cid}.step-{idx}.svg" not in packed:
+                problems.append(f"  ✗ {cid}: {cid}.step-{idx}.svg missing from {vp.CONCEPT_PACK_NAME}")
     # An orphan is a manifest entry for a concept that no longer has a diagram OR
     # no longer exists. Both need a re-render to clean up.
     stale = set(recorded) - {c["id"] for c in concepts if c.get("diagram")}
@@ -389,10 +402,9 @@ def main() -> int:
     # back. Same end state, no window in which the repo is worse off than when the
     # command started.
     manifest = {"mmdc_version": MMDC_VERSION, "normalizer_version": NORMALIZER_VERSION, "concepts": {}}
+    staged: dict[str, str] = {}
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
-        staged = tmp / "_staged"
-        staged.mkdir()
         for c in concepts:
             cid = c["id"]
             # Diagrams are opt-in for inventory entries (see concepts.py's R2
@@ -402,15 +414,11 @@ def main() -> int:
             if not c.get("diagram"):
                 print(f"  skipped {cid}  (no diagram — opt-in)")
                 continue
-            (staged / f"{cid}.svg").write_text(_render_one(c["diagram"], f"c-{cid}", tmp), encoding="utf-8")
+            staged[f"{cid}.svg"] = _render_one(c["diagram"], f"c-{cid}", tmp)
             if c["diagram_mini"]:
-                (staged / f"{cid}.mini.svg").write_text(
-                    _render_one(c["diagram_mini"], f"c-{cid}-mini", tmp), encoding="utf-8"
-                )
+                staged[f"{cid}.mini.svg"] = _render_one(c["diagram_mini"], f"c-{cid}-mini", tmp)
             for idx, st in enumerate(c.get("steps", []), start=1):
-                (staged / f"{cid}.step-{idx}.svg").write_text(
-                    _render_one(st["diagram"], f"c-{cid}-step{idx}", tmp), encoding="utf-8"
-                )
+                staged[f"{cid}.step-{idx}.svg"] = _render_one(st["diagram"], f"c-{cid}-step{idx}", tmp)
             manifest["concepts"][cid] = _source_hash(c)
             extras = []
             if c["diagram_mini"]:
@@ -422,10 +430,9 @@ def main() -> int:
         # Every render succeeded. NOW it is safe to clear the old set and swap the
         # staged one in — this is the only point at which the repo's committed SVGs
         # are removed, and there is a complete replacement in hand when it happens.
-        for old_svg in vis.glob("*.svg"):
+        for old_svg in vis.glob("*.svg"):  # per-file SVGs from before the pack existed
             old_svg.unlink()
-        for new_svg in sorted(staged.glob("*.svg")):
-            shutil.move(str(new_svg), str(vis / new_svg.name))
+        vp.write_concept_pack(vis, staged)
 
     (vis / MANIFEST_NAME).write_text(
         json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8"

@@ -39,16 +39,20 @@ from pathlib import Path
 ERROR = "ERROR"
 WARNING = "WARNING"
 
-# Cypher unbounded: [*]  [*..]  [*1..]  [*..]  [*..]  not [*1..3] or [*..5] or [*5]
+# Optional relationship type(s) between the variable and the '*', so the dominant real-world
+# form is covered too:  [:KNOWS*]  [r:KNOWS*1..]  [:KNOWS|FRIEND*..]  [:KNOWS|:FRIEND*]
+_REL_TYPES = r"(?::\s*[A-Za-z_]\w*(?:\s*\|\s*:?\s*[A-Za-z_]\w*)*\s*)?"
+
+# Cypher unbounded: [*]  [*..]  [*1..]  [:T*]  [r:T*1..]  not [*1..3] or [*..5] or [*5]
 _CYPHER_UNBOUNDED = re.compile(
-    r"-\[(?:[A-Za-z_][\w]*\s*)?\*(?:\s*\d+\s*)?\.\.(?:\s*)?\]->|"
-    r"-\[(?:[A-Za-z_][\w]*\s*)?\*\]->|"
-    r"<-\[(?:[A-Za-z_][\w]*\s*)?\*(?:\s*\d+\s*)?\.\.(?:\s*)?\]-|"
-    r"<-\[(?:[A-Za-z_][\w]*\s*)?\*\]-"
+    rf"-\[(?:[A-Za-z_][\w]*\s*)?{_REL_TYPES}\*(?:\s*\d+\s*)?\.\.(?:\s*)?\]->|"
+    rf"-\[(?:[A-Za-z_][\w]*\s*)?{_REL_TYPES}\*\]->|"
+    rf"<-\[(?:[A-Za-z_][\w]*\s*)?{_REL_TYPES}\*(?:\s*\d+\s*)?\.\.(?:\s*)?\]-|"
+    rf"<-\[(?:[A-Za-z_][\w]*\s*)?{_REL_TYPES}\*\]-"
 )
 _CYPHER_UNBOUNDED_SIMPLE = re.compile(
-    r"\[\s*(?:[A-Za-z_][\w]*)?\s*\*(?:\s*\d+\s*)?\.\.\s*\]|"
-    r"\[\s*(?:[A-Za-z_][\w]*)?\s*\*\s*\]"
+    rf"\[\s*(?:[A-Za-z_][\w]*)?\s*{_REL_TYPES}\*(?:\s*\d+\s*)?\.\.\s*\]|"
+    rf"\[\s*(?:[A-Za-z_][\w]*)?\s*{_REL_TYPES}\*\s*\]"
 )
 
 # GQL {1,} or {,} without an upper bound. {1,5} is fine.

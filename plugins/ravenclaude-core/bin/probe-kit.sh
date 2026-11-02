@@ -278,19 +278,55 @@ _pk_dns_lookup() {
     if [ -n "$out" ]; then printf 'ok:%s' "$out"; else printf 'norecord'; fi
     return 0
   fi
+  # A NEGATIVE needs the resolver to have ANSWERED "no such name". `host` exits
+  # 1 for NXDOMAIN and ALSO for "no servers could be reached", and the old
+  # perl gethostbyname fallback turned every failure into a negative — so with
+  # no network both subject and control read NEGATIVE and the verdict blamed
+  # the probe target. Only an answered NXDOMAIN / no-address is `norecord`;
+  # every other failure means the probe did not run.
   if command -v host >/dev/null 2>&1; then
-    out="$(host -W "$PK_DNS_TIMEOUT" "$h" 2>/dev/null)"
+    out="$(host -W "$PK_DNS_TIMEOUT" "$h" 2>&1)"
     rc=$?
     if [ "$rc" -eq 0 ]; then
       printf 'ok:%s' "$(printf '%s\n' "$out" | awk 'NF{print;exit}')"
-    elif [ "$rc" -eq 1 ]; then printf 'norecord'
-    else printf 'unrun:host-exit-%s' "$rc"; fi
+    else
+      case "$out" in
+        *"not found: 3(NXDOMAIN)"*) printf 'norecord' ;;
+        *) printf 'unrun:host-exit-%s' "$rc" ;;
+      esac
+    fi
     return 0
   fi
   if command -v perl >/dev/null 2>&1; then
-    out="$(perl -e 'my @a=gethostbyname($ARGV[0]); if(@a && defined $a[4]){print join(".",unpack("C4",$a[4])),"\n"; exit 0} exit 1' "$h" 2>/dev/null)"
+    # getaddrinfo: EAI_NONAME / EAI_NODATA (the name does not exist, or has no
+    # address) exit 3 = norecord. EAI_AGAIN (no network or resolver), EAI_FAIL
+    # and anything else exit 4 with the reason = the probe did not run.
+    out="$(perl -e '
+      my $h = shift;
+      unless (eval { require Socket; defined &Socket::getaddrinfo }) { print "no-getaddrinfo\n"; exit 4 }
+      my ($err, @res) = Socket::getaddrinfo($h, "", { socktype => Socket::SOCK_STREAM() });
+      if ($err) {
+        my $code = $err + 0;
+        my @neg = (Socket::EAI_NONAME());
+        my $nodata = eval { Socket::EAI_NODATA() };
+        push @neg, $nodata if defined $nodata;
+        exit 3 if grep { $code == $_ } @neg;
+        (my $why = "$err") =~ s/[^A-Za-z0-9 ._-]//g;
+        print "$why\n"; exit 4;
+      }
+      my $noserv = eval { Socket::NIx_NOSERV() } || 0;
+      for my $ai (@res) {
+        my ($e, $addr) = Socket::getnameinfo($ai->{addr}, Socket::NI_NUMERICHOST(), $noserv);
+        if (!$e && defined $addr && length $addr) { print "$addr\n"; exit 0 }
+      }
+      print "no-numeric-address\n"; exit 4;
+    ' "$h" 2>/dev/null)"
     rc=$?
-    if [ "$rc" -eq 0 ] && [ -n "$out" ]; then printf 'ok:%s' "$out"; else printf 'norecord'; fi
+    case "$rc" in
+      0) if [ -n "$out" ]; then printf 'ok:%s' "$out"; else printf 'unrun:perl-no-output'; fi ;;
+      3) printf 'norecord' ;;
+      *) printf 'unrun:perl %s' "${out:-exit-$rc}" ;;
+    esac
     return 0
   fi
   printf 'unrun:no-resolver-tool'
@@ -355,12 +391,12 @@ _pk_probe_dns() {
   elif command -v host >/dev/null 2>&1; then
     PK_RERUN="host -W ${PK_DNS_TIMEOUT} '${ctl}'"
   else
-    PK_RERUN="perl -e 'print join(\".\",unpack(\"C4\",(gethostbyname(\$ARGV[0]))[4])),\"\\n\"' '${ctl}'"
+    PK_RERUN="perl -MSocket -e 'my (\$e, @r) = Socket::getaddrinfo(\$ARGV[0], \"\"); print \$e ? \"error: \$e\\n\" : \"resolved\\n\"' '${ctl}'"
   fi
   tool=""
   command -v dig >/dev/null 2>&1 && tool="dig"
   [ -z "$tool" ] && command -v host >/dev/null 2>&1 && tool="host"
-  [ -z "$tool" ] && tool="perl gethostbyname"
+  [ -z "$tool" ] && tool="perl getaddrinfo"
   PK_NOTE="Resolved with: ${tool}. One resolver is one data point — split-horizon DNS, a captive portal, a VPN, and propagation delay all produce the same negative."
   _pk_report
 }

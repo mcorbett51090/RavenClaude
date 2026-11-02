@@ -82,6 +82,7 @@ def evaluate(rubric, signals, timeout_s=DEFAULT_TIMEOUT_S, _runner=_run_signal):
     hard_gates = {}
     scores = {}
     objective_errors = []
+    unbound_gates = []
     judge_dims = []
 
     for dim in rubric.get("dimensions", []):
@@ -95,6 +96,15 @@ def evaluate(rubric, signals, timeout_s=DEFAULT_TIMEOUT_S, _runner=_run_signal):
             continue
         argv = signals.get(signal)
         green, errored = _runner(argv, timeout_s)
+        if green is None and dim.get("hard_gate"):
+            # A HARD GATE with no command bound (a missing or mistyped signals key)
+            # never ran, so it fails closed: RED + recorded as an objective error,
+            # never demoted to the judge.
+            scores[did] = 0.0
+            hard_gates[did] = False
+            objective_errors.append(did)
+            unbound_gates.append(did)
+            continue
         if green is None:
             # no command bound for this signal → treat as a judge dim, not a silent pass
             if dim.get("source") in ("library", "explicit") and bool(dim.get("verified")):
@@ -114,6 +124,8 @@ def evaluate(rubric, signals, timeout_s=DEFAULT_TIMEOUT_S, _runner=_run_signal):
     if red_hard_gates:
         judge_needed = False
         reason = f"short-circuit: red objective hard gate(s): {','.join(red_hard_gates)}"
+        if unbound_gates:
+            reason += f" (unbound objective signal: {','.join(unbound_gates)})"
         next_action = "refine"
     elif not judge_dims:
         judge_needed = False

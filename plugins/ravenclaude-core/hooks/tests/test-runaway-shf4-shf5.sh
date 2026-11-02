@@ -65,6 +65,32 @@ else
 fi
 
 echo
+echo "── 1b-1: a RELATIVE payload cwd must not hang the walk-up loop ────────────"
+# The Copilot adapter supplies cwd="." when both .cwd and .workspaceRoot are
+# absent; `dirname .` is `.` (a fixed point), so the old walk-up spun forever
+# until the host timeout — the PreToolUse brake was inert for every non-adopter.
+# The hook must resolve a relative cwd and break on a fixed point. Run from a dir
+# with no .ravenclaude; a hang surfaces as a timeout (rc 124).
+reldir="$(mktemp -d)"
+payload_rel="$(mk_payload "." "sess-rel-$RANDOM" "Bash" '{"command":"touch x"}')"
+TIMEOUT_BIN="$(command -v timeout || command -v gtimeout || true)"
+if [ -n "$TIMEOUT_BIN" ]; then
+  (cd "$reldir" && printf '%s' "$payload_rel" | env -u CLAUDE_PROJECT_DIR "$TIMEOUT_BIN" 5 bash "$HOOK" >/dev/null 2>&1)
+  rc_rel=$?
+  if [ "$rc_rel" -ne 124 ]; then
+    pass "1b-1: relative cwd '.' returns without hanging (rc=$rc_rel)"
+  else
+    fail "1b-1: relative cwd '.' HUNG the walk-up loop (timed out)"
+  fi
+else
+  # Stock macOS has no timeout binary; the fixed-point break still guarantees
+  # termination, so run unbounded and pass if it returns at all.
+  (cd "$reldir" && printf '%s' "$payload_rel" | env -u CLAUDE_PROJECT_DIR bash "$HOOK" >/dev/null 2>&1)
+  pass "1b-1: relative cwd '.' returns (unbounded; no timeout binary to bound it)"
+fi
+rm -rf "$reldir"
+
+echo
 echo "── SH-F5: tripped brake reason reaches stderr after flock ────────────────"
 # Stock macOS has no flock — the hook skips the lock block entirely, so SH-F5's
 # brace-scoped open is never exercised. Inject a no-op flock stub when absent so

@@ -6,11 +6,11 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 938
 summary: "A signed transform registry can rewrite Bash via empty-cited EDIT, gated by hardening_edit."
-last_verified: 2026-10-10
+last_verified: 2026-10-18
 covers:
   - plugins/ravenclaude-core/scripts/thing-harden.py
   - plugins/ravenclaude-core/hooks/thing-orchestrator.sh
-covers_digest: "sha256:16e54e815ddf99470e2ef2b24383eba02d9bf1f6b4c6b68f5b9c70640e197de1"
+covers_digest: "sha256:58003eaa74ebbac1c462ca8b08a23e47097bb16639f52622e4d5e2d389151a42"
 nuance: "AppSec enable GO flipped seed/default hardening_edit ON (2026-09-16); with explicit false, empty-cited EDIT outside the orchestrator discriminator is DENY rather than ask, while a cited EDIT still allows byte-identical — OFF remains shape-sensitive, not a uniform no-op."
 nuance_evidence:
   measured: 2026-09-16
@@ -25,9 +25,7 @@ verify:
   probe: "plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh"
   teeth_exit: 1
 sources:
-  - label: "PE DIGEST ship Thing hardening EDIT (0.323.5), 2026-09-15"
-    url: https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml
-  - label: knowledge/thing-harden-transforms.yaml
+  - label: "knowledge/thing-harden-transforms.yaml (PE DIGEST ship Thing hardening EDIT 0.323.5, 2026-09-15)"
     url: https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml
 ---
 

@@ -48,6 +48,29 @@ import os
 import re
 import sys
 
+# Real specs nest a few dozen levels at most. Deeper input is refused as "cannot
+# parse" by an explicit, iterative check, so the verdict does not depend on the
+# interpreter: Python 3.11's json module raises RecursionError near 1,000 levels,
+# but 3.12+ parses much deeper documents and the recursive walks below then crash.
+MAX_JSON_DEPTH = 200
+
+
+def _json_depth_exceeds(obj, cap):
+    stack = [(obj, 1)]
+    while stack:
+        node, depth = stack.pop()
+        if isinstance(node, dict):
+            children = node.values()
+        elif isinstance(node, list):
+            children = node
+        else:
+            continue
+        if depth > cap:
+            return True
+        stack.extend((child, depth + 1) for child in children)
+    return False
+
+
 CHECKS = [
     # Tier 1 — security (always violations → exit 1)
     ("data-url", "data.url present (SSRF vector) — use data.name instead"),
@@ -345,6 +368,8 @@ _RE_REMOTE_HREF = re.compile(
 # decodes to a tab) executes as javascript: in a browser but would otherwise fail
 # the ^javascript: match (2026-08 review).
 _RE_URL_CTRL = re.compile(r"[\t\r\n]")
+
+
 # Numeric AND named XML/HTML character entity patterns — decoded before applying
 # _RE_REMOTE_HREF to prevent entity-encoding bypass (e.g., &#106;avascript:alert(1)
 # and jav&colon;ascript:alert(1) both → javascript:alert(1)). A browser's HTML
@@ -419,6 +444,17 @@ def main() -> int:
             obj = json.loads(content)
         except json.JSONDecodeError as exc:
             print(f"[error] JSON parse error: {exc}", file=sys.stderr)
+            return 2
+        except (RecursionError, MemoryError) as exc:
+            # Deeply nested (or huge) input is not a lint verdict: exit 2 "cannot
+            # parse", never the traceback's exit 1, which reads as "violations found".
+            print(f"[error] JSON parse error: cannot parse ({type(exc).__name__})", file=sys.stderr)
+            return 2
+        if _json_depth_exceeds(obj, MAX_JSON_DEPTH):
+            print(
+                f"[error] JSON parse error: cannot parse (nested deeper than {MAX_JSON_DEPTH} levels)",
+                file=sys.stderr,
+            )
             return 2
         _walk(obj, violations)
         _check_json_quality(obj, violations, warnings)

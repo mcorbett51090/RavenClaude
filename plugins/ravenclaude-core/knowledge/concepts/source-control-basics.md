@@ -6,12 +6,10 @@ kind: platform-fact
 order: 7
 summary: "Git is a time-machine for your files. RavenClaude does most of the git work for you — this page is the vocabulary so you can follow along."
 see_also: [getting-started, layout-hook]
-last_verified: 2026-08-24
+last_verified: 2026-10-20
 refresh_when: "Git or GitHub change a load-bearing default (branch name, PR flow), or the marketplace's PR conventions or branch-archive contract change."
 sources:
-  - label: "AGENTS.md — PR conventions"
-    url: "AGENTS.md"
-  - label: "AGENTS.md — House rules (branch-archive)"
+  - label: "AGENTS.md — PR conventions; House rules (branch-archive)"
     url: "AGENTS.md"
   - label: "branch-archive skill"
     url: "plugins/ravenclaude-core/skills/branch-archive/SKILL.md"
@@ -44,8 +42,8 @@ sources:
 
 **The safety nets** mean you can experiment without breaking things:
 
-- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push to main**, `git reset --hard`, `git clean -f`, and `git branch -D` on a protected branch. It denies them before they run.
-- The sanctioned way to retire a finished branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost.
+- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push**, `git reset --hard`, `git clean -f`, and `git branch -D` (on any branch). It denies them before they run.
+- The sanctioned way to retire an abandoned or unmerged branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost. (A cleanly merged branch needs no archive tag — its commits already live in `main`, so you just delete it on GitHub.)
 
 You will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _"I opened PR #238 on branch `feat/rc-hardener-followups`"_ or _"the guard denied a force-push"_, you know exactly what happened and what your next click is.
 
@@ -58,7 +56,7 @@ flowchart TD
   PR -->|merge| MAIN[(main branch · official timeline)]
   D[Docs change under docs/] -->|commit + push| MAIN
   X[git push --force to main<br/>git reset --hard<br/>rm -rf the repo] -.->|guard-destructive.sh| BLOCK[Blocked — safety net]
-  R[Retire a finished branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]
+  R[Retire an abandoned branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]
   class C,PR,MAIN,TAG fact
   class BLOCK,GH built
 ```

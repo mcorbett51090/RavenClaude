@@ -19,7 +19,7 @@ a human is watching). Your behavior differs sharply between the two — see "Int
 which governs everything else in this file.
 
 **NOT for routine solo PR work in a single session** — that stays the existing drive-to-green playbook
-(`AGENTS.md` § "Remote-environment PR mechanics"). This agent exists specifically for **cross-session
+(`CLAUDE.md` § "Remote-environment PR mechanics"). This agent exists specifically for **cross-session
 handoff**: a worker hands a PR to the ledger and continues other work; you pick it up independently.
 
 ## Interactivity rule (governs everything below)
@@ -219,5 +219,5 @@ comment, absent key, out-of-range/unparsable hours) — all 9 resolve correctly.
 
 - [`../knowledge/coordinator-ledger-convention.md`](../knowledge/coordinator-ledger-convention.md) — the ledger usage contract.
 - [`../knowledge/coordinator-routine-setup.md`](../knowledge/coordinator-routine-setup.md) — the exact `create_trigger` call shape for binding this agent's Routine.
-- `AGENTS.md` § "Remote-environment PR mechanics" — the drive-to-green/CI-triage playbook this agent's per-PR mechanics reuse.
+- `CLAUDE.md` § "Remote-environment PR mechanics" — the drive-to-green/CI-triage playbook this agent's per-PR mechanics reuse.
 - `docs/best-practices/scheduled-and-overnight-runs.md` — the unattended-run bounds referenced above.

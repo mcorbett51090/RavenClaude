@@ -114,8 +114,9 @@ Env vars read (NEVER hardcode; NEVER pass via argv):
                              that fallback, unless the report is already
                              publicly embeddable)
   POWERBI_SHOT_OUT_PATH    - where to write the exported/captured file
-                             (optional, `shot`; defaults to a path under the
-                             OS temp dir; the ExportToFile route uses the
+                             (optional, `shot`; defaults to a fresh private
+                             mkstemp file (0600) under the OS temp dir; the
+                             ExportToFile route uses the
                              extension the service reports, e.g. `.png` or
                              `.zip` for a multi-page PNG export)
 
@@ -137,6 +138,7 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any
 
@@ -173,6 +175,45 @@ def _env_present(name: str) -> bool:
 def _env(name: str) -> str | None:
     """Read an env var. Callers must never print/log the return value."""
     return os.environ.get(name)
+
+
+# B-18: the Playwright fallback's bearer token goes ONLY to https Power BI hosts, never to the
+# telemetry / CDN / third-party hosts the report page also loads.
+_AUTH_HOST_SUFFIXES = (".powerbi.com", ".analysis.windows.net")
+
+
+def _https_host(url: str) -> str | None:
+    try:
+        parts = urllib.parse.urlsplit(url)
+    except ValueError:
+        return None
+    if parts.scheme != "https" or not parts.hostname:
+        return None
+    return parts.hostname.lower()
+
+
+def _auth_host_allowed(url: str) -> bool:
+    """True if a request to `url` may carry the Power BI bearer token."""
+    host = _https_host(url)
+    return host is not None and host.endswith(_AUTH_HOST_SUFFIXES)
+
+
+def _valid_report_url(url: str) -> bool:
+    """POWERBI_REPORT_URL must be an https URL on a *.powerbi.com host."""
+    host = _https_host(url)
+    return host is not None and host.endswith(".powerbi.com")
+
+
+def _auth_route_handler(token: str):
+    """A Playwright context.route handler adding Authorization only for _auth_host_allowed URLs."""
+    def handle(route, request) -> None:
+        if _auth_host_allowed(request.url):
+            headers = dict(request.headers)
+            headers["authorization"] = f"Bearer {token}"  # NEVER log this value
+            route.continue_(headers=headers)
+        else:
+            route.continue_()
+    return handle
 
 
 def _redact_url(url: str) -> str:
@@ -565,6 +606,12 @@ def _playwright_fallback_attempt(out_path: str) -> dict[str, Any]:
     if not report_url:
         outcome["reason"] = "missing env var: POWERBI_REPORT_URL"
         return outcome
+    if not _valid_report_url(report_url):
+        outcome["reason"] = (
+            "POWERBI_REPORT_URL must be an https:// URL on a *.powerbi.com host — refusing to "
+            "send the report token anywhere else"
+        )
+        return outcome
 
     if not _env_present("POWERBI_SHOT_AUTH_TOKEN"):
         # Power BI Service reports are not publicly viewable by default — an
@@ -589,12 +636,8 @@ def _playwright_fallback_attempt(out_path: str) -> dict[str, Any]:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             try:
-                context = browser.new_context(
-                    extra_http_headers={
-                        # NEVER log this header's value.
-                        "Authorization": f"Bearer {_env('POWERBI_SHOT_AUTH_TOKEN')}",
-                    }
-                )
+                context = browser.new_context()
+                context.route("**/*", _auth_route_handler(_env("POWERBI_SHOT_AUTH_TOKEN") or ""))
                 page = context.new_page()
                 page.goto(report_url, wait_until="networkidle", timeout=REQUEST_TIMEOUT_SECONDS * 1000)
                 page.screenshot(path=out_path, full_page=True)
@@ -633,9 +676,18 @@ def probe_shot() -> dict[str, Any]:
                     "guarded by the period-coherence check same as an auto-captured one)",
     }
 
-    out_path_hint = _env("POWERBI_SHOT_OUT_PATH") or os.path.join(
-        tempfile.gettempdir(), "report-regeneration-powerbi-shot.png"
-    )
+    out_path_hint = _env("POWERBI_SHOT_OUT_PATH")
+    placeholder = None
+    if not out_path_hint:
+        # B-18: a private 0600 file with an unpredictable name, never a shared fixed /tmp path.
+        fd, out_path_hint = tempfile.mkstemp(prefix="report-regeneration-powerbi-shot-", suffix=".png")
+        os.close(fd)
+        placeholder = out_path_hint
+
+    def _drop_unused_placeholder(kept: str | None) -> None:
+        if placeholder and placeholder != kept and os.path.isfile(placeholder) \
+                and os.path.getsize(placeholder) == 0:
+            os.remove(placeholder)
 
     receipt["env"] = {
         "POWERBI_ACCESS_TOKEN": {"present": _env_present("POWERBI_ACCESS_TOKEN")},
@@ -665,6 +717,7 @@ def probe_shot() -> dict[str, Any]:
             "node_class": "regenerate",
             "period_coherence_checked": False,
         })
+        _drop_unused_placeholder(export_outcome["path"])  # e.g. the service exported a .zip
         return receipt
 
     # --- FALLBACK: Playwright vs Service UI ---
@@ -688,6 +741,7 @@ def probe_shot() -> dict[str, Any]:
         f"export-to-file: {export_outcome['reason']}; "
         f"playwright-fallback: {playwright_outcome['reason']}"
     )
+    _drop_unused_placeholder(None)
     return receipt
 
 

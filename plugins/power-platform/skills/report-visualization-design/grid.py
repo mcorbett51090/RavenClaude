@@ -82,7 +82,9 @@ def template_kpi_strip(canvas_w: int, canvas_h: int, margin: int, gap: int, kpis
 def template_golden_overview(canvas_w: int, canvas_h: int, margin: int, gap: int) -> list[dict]:
     """One hero visual (left ~2/3) + a supporting column (right ~1/3)."""
     inner_w = canvas_w - 2 * margin
-    inner_h = canvas_h - 2 * margin
+    # The hero fills the inner height, so snap it: 1600x900 / 1440x810 / 960x540 leave a
+    # raw inner height that is not a multiple of 8 and used to fail the grid self-check.
+    inner_h = _snap(canvas_h - 2 * margin)
     hero_w = _snap_round(inner_w * 2 / 3 - gap / 2)
     side_w = _snap_round(inner_w - hero_w - gap)
     side_x = margin + hero_w + gap
@@ -147,11 +149,20 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError(f"canvas too small: {args.canvas}")
         if args.margin < 0 or args.gap < 0:
             raise ValueError("--margin and --gap must be >= 0")
+        # Snap the inputs to the grid (the docstring promises snapped coordinates) instead of
+        # failing the self-check on e.g. --margin 20; the payload reports what was used.
+        margin, gap = _snap(args.margin), _snap(args.gap)
+        if (margin, gap) != (args.margin, args.gap):
+            print(
+                f"grid.py: snapped --margin {args.margin} -> {margin}, --gap {args.gap} -> {gap} "
+                f"(8px grid)",
+                file=sys.stderr,
+            )
         fn = TEMPLATES[args.template]
         if args.template == "kpi-strip":
-            regions = fn(canvas_w, canvas_h, args.margin, args.gap, args.kpis)
+            regions = fn(canvas_w, canvas_h, margin, gap, args.kpis)
         else:
-            regions = fn(canvas_w, canvas_h, args.margin, args.gap)
+            regions = fn(canvas_w, canvas_h, margin, gap)
         _validate(regions, canvas_w, canvas_h)
     except Exception as exc:  # noqa: BLE001 — fail-safe: one diagnostic, non-zero exit
         print(f"grid.py: {exc}", file=sys.stderr)
@@ -161,14 +172,14 @@ def main(argv: list[str] | None = None) -> int:
         "template": args.template,
         "canvas": {"width": canvas_w, "height": canvas_h},
         "grid_px": GRID,
-        "margin_px": args.margin,
-        "gap_px": args.gap,
+        "margin_px": margin,
+        "gap_px": gap,
         "regions": regions,
     }
     if args.format == "json":
         print(json.dumps(payload, indent=2))
     else:
-        print(f"{args.template} on {canvas_w}x{canvas_h} (grid={GRID}, margin={args.margin}, gap={args.gap})")
+        print(f"{args.template} on {canvas_w}x{canvas_h} (grid={GRID}, margin={margin}, gap={gap})")
         for r in regions:
             print(f"  {r['name']:<20} [{r['role']:<12}] x={r['x']:<5} y={r['y']:<5} w={r['width']:<5} h={r['height']}")
     return 0

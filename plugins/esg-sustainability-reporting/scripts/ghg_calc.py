@@ -162,9 +162,11 @@ def cmd_inventory(args: argparse.Namespace) -> int:
         try:
             activity = float(row["activity"])
             factor = float(row["emission_factor"])
-        except (KeyError, ValueError):
+        except (KeyError, TypeError, ValueError):
+            # TypeError: csv.DictReader fills the cells a SHORT row lacks with None.
             print(
-                f"error: row {i} needs numeric 'activity' and 'emission_factor' columns",
+                f"error: row {i} needs numeric 'activity' and 'emission_factor' columns "
+                "(a row shorter than the header has missing cells)",
                 file=sys.stderr,
             )
             return 2

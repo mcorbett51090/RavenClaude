@@ -180,6 +180,42 @@ def test_new_data_fixture_covers_every_binding():
         assert isinstance(val, str) and val.strip(), f"empty new-data value for {key!r}"
 
 
+def test_multi_root_fragment_anchors_resolve_and_rebind():
+    # B-9: a fragment with several top-level elements keeps the synthetic '#document' root; its
+    # selectors must resolve through rr_anchor and rebind (they all failed late before).
+    import rr_anchor
+
+    rebind_dir = os.path.join(os.path.dirname(_SKILL_DIR), "rebind-html")
+    if rebind_dir not in sys.path:
+        sys.path.insert(0, rebind_dir)
+    import rebind_html
+
+    frag = "<p>First para</p>\n<p>Second para</p>\n"
+    rsg, _ = infer.build_rsg(frag, template_id="fragment")
+    index = _index_nodes(rsg["root"], {})
+    anchor = index["#document > p:nth-of-type(2)"]["anchor"]
+    assert rr_anchor.read_inner(frag, anchor) == "Second para"
+    binding = {"node_id": "p2", "anchor": anchor, "class": "surgical", "confidence": 0.9,
+               "provenance": {"source": "new", "source_period": None},
+               "data_query": {"kind": "file-cell", "expression": "v"}}
+    manifest = {"manifest_version": "1", "rsg_schema_version": "1", "template_id": "fragment",
+                "format": "html", "bindings": [binding]}
+    out, _changes, _n = rebind_html.rebind(frag, manifest, {"v": "Rebound"})
+    assert out == "<p>First para</p>\n<p>Rebound</p>\n"
+
+
+def test_build_rsg_refuses_an_anchor_rr_anchor_cannot_resolve():
+    # B-9 self-check: a duplicate ancestor id makes infer root a selector at the SECOND div#a,
+    # which rr_anchor (first match wins) cannot follow; infer must fail now, not a later stage.
+    html = '<div id="a"><p>x</p></div><div id="a"><span><b>y</b></span></div>'
+    try:
+        infer.build_rsg(html, template_id="dup-id")
+    except infer.InferError as exc:
+        assert "do not resolve through rr_anchor" in str(exc)
+    else:
+        raise AssertionError("infer emitted an anchor rr_anchor cannot resolve, without failing")
+
+
 def test_cli_end_to_end():
     out_dir = os.path.join(_REPO_ROOT, "tests", "fixtures", "report-regeneration", "_out")
     out_path = os.path.join(out_dir, "rsg.cli-test.json")

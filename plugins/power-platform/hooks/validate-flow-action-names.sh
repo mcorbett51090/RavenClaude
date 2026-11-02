@@ -29,10 +29,23 @@ file="${1:-}"
 # hook variable, so under Claude Code the arg is empty and the path arrives only
 # via the canonical stdin JSON contract. Fall back to it — same dual-source
 # pattern regen-on-manifest-change.sh / guard-destructive.sh already use.
-if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
+# Without jq the hook used to be silently inert (empty path -> exit 0); fall back to python3,
+# and if neither exists say so once instead of doing nothing.
+if [[ -z "$file" ]] && [[ ! -t 0 ]]; then
   payload="$(cat 2>/dev/null || true)"
   if [[ -n "$payload" ]]; then
-    file="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
+    if command -v jq >/dev/null 2>&1; then
+      file="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
+    elif command -v python3 >/dev/null 2>&1; then
+      file="$(printf '%s' "$payload" | python3 -c 'import json, sys
+try:
+    ti = json.load(sys.stdin).get("tool_input") or {}
+    print(ti.get("file_path") or ti.get("path") or "")
+except Exception:
+    pass' 2>/dev/null || true)"
+    else
+      echo "check skipped: neither jq nor python3 found, so the hook cannot read its payload" >&2
+    fi
   fi
 fi
 [[ -z "$file" ]] && exit 0

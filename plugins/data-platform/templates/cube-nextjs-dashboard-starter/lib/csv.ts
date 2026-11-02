@@ -14,6 +14,9 @@
 // ---------------------------------------------------------------------------
 
 const FORMULA_LEAD = /^[=+\-@\t\r]/;
+// A plain number (e.g. a refund of -12.50) cannot be a formula, so it is
+// left as-is; prefixing it would turn a numeric column into text.
+const PLAIN_NUMBER = /^[+-]?\d+(\.\d+)?([eE][+-]?\d+)?$/;
 
 /**
  * Serializes one CSV row. Neutralizes a leading formula-trigger character
@@ -27,7 +30,7 @@ export function toCsvRow(values: unknown[]): string {
   return values
     .map((v) => {
       let s = String(v ?? "");
-      if (FORMULA_LEAD.test(s)) s = `'${s}`;
+      if (FORMULA_LEAD.test(s) && !PLAIN_NUMBER.test(s)) s = `'${s}`;
       // Quote any field containing a comma, quote, or line break (LF or
       // CR — a bare CR alone is enough to split a row in some parsers).
       return /["\r\n,]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;

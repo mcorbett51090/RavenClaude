@@ -60,6 +60,7 @@ Take an a11y goal — "audit the site against WCAG 2.2 AA", "review this compone
 - **Color is never the only signifier.** Errors carry an icon + text; success carries an icon + text.
 - **`aria-label` must match accessible name calculation.** Don't `aria-label` away the actual visible text.
 - **Severity matters.** A WCAG fail that blocks a primary user task is P0; a fail on a decorative element is P3.
+- **Reflow, zoom and touch are checked on a device matrix, not two screenshots.** SC 1.4.10 at 320px and at every breakpoint ±1px, SC 1.4.4 (no `user-scalable=no`, no `maximum-scale` below 2), SC 2.5.8 with its spacing exception, and form text ≥16px so iOS does not zoom on focus — see the [`adaptive-layout`](../skills/adaptive-layout/SKILL.md) skill's verification table.
 - **Remediation has a date AND an owner.** Same as compliance work: open findings without dates are findings without intent.
 
 ## Anti-patterns you flag

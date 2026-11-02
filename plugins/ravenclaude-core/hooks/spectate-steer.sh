@@ -148,8 +148,9 @@ def _emit_interrupt() -> None:
     print(json.dumps(out))
 
 
-# v0.5 true interrupt — check before pause / PermissionRequest wait.
-if pending.get("interrupt_pending") and store.consume_steer_interrupt(project, sid):
+# v0.5 true interrupt — consume (locked, single-winner) rather than trusting
+# the snapshot taken before this check; a steer armed after the read still fires.
+if store.consume_steer_interrupt(project, sid):
     _emit_interrupt()
     raise SystemExit(0)
 

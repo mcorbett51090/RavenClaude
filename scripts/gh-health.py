@@ -400,6 +400,29 @@ def probe_status_page(tx: Any) -> Probe:
         p.detail = ["%s -> %s" % (k, scrub(e)) for k, e in broken]
         return p
 
+    # A 200 whose body is not the Statuspage JSON (a proxy/captive page, an error object, a
+    # changed API) is UNKNOWN, never "all green". Shapes: status.status.indicator is a str;
+    # components.components and incidents.incidents are lists.
+    st = results["status"].obj
+    co = results["components"].obj
+    inc_obj = results["incidents"].obj
+    shape_ok = (
+        isinstance(st, dict)
+        and isinstance(st.get("status"), dict)
+        and isinstance(st["status"].get("indicator"), str)
+        and isinstance(co, dict)
+        and isinstance(co.get("components"), list)
+        and isinstance(inc_obj, dict)
+        and isinstance(inc_obj.get("incidents"), list)
+    )
+    if not shape_ok:
+        p.failed(
+            "unexpected status-page shape (a 200 body that is not the Statuspage JSON) "
+            "-- treat as UNKNOWN, not green"
+        )
+        p.detail = ["%s -> %s" % (k, scrub(repr(r.obj))[:120]) for k, r in results.items()]
+        return p
+
     findings: list[str] = []
 
     status = results["status"].obj or {}

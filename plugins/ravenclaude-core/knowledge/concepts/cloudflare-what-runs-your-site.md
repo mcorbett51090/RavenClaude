@@ -6,8 +6,8 @@ kind: platform-fact
 order: 15
 summary: "Static files are served without running any code; a Worker is code that runs per request. A Pages Function IS a Worker. Workers are not Node — that is what breaks libraries."
 see_also: [cloudflare-where-data-lives, cloudflare-who-gets-in]
-last_verified: 2026-07-21
-refresh_when: "Cloudflare changes the Pages-vs-Workers feature split (the migration guide's two comparison tables), announces a Pages deprecation or migration mandate, changes the free/paid CPU-time or script-size limits, or moves a node: module out of the non-functional-stub list."
+last_verified: 2026-10-20
+refresh_when: "Cloudflare changes the Pages-vs-Workers feature split (the migration guide's two comparison tables), announces a Pages deprecation or migration mandate, changes the free/paid CPU-time or Worker-size limits, changes the compatibility date at which Node.js APIs turn on by default, or moves a node: module out of the non-functional-stub list."
 sources:
   - label: "Cloudflare Docs — Static assets on Workers"
     url: "https://developers.cloudflare.com/workers/static-assets/"
@@ -39,7 +39,7 @@ sources:
 | Durable Objects, Cron Triggers, Queue consumers, Email Workers | File-based routing with no framework adapter |
 | Workers Logs, Logpush, Tail Workers, source maps | Early Hints (a workaround exists on Workers) |
 | Gradual deployments, remote development, the Vite plugin | Custom domains outside your Cloudflare zones |
-| Non-root routes, rate limiting, image resizing | Serving assets on a path without a workaround |
+| Non-root routes, serving assets on a path, rate limiting, image resizing | |
 
 Practical read: **start on Workers unless you specifically want Pages' file-based routing or need a custom domain on a zone you don't run.** Everything a growing app reaches for later — a durable coordination object, a cron job, a queue consumer, real logs — is on the Workers side of that table.
 
@@ -47,13 +47,13 @@ Practical read: **start on Workers unless you specifically want Pages' file-base
 
 **Cold starts.** Workers don't run a container per tenant; they run V8 **isolates**, and paying the runtime's startup cost once per machine _"eliminates the cold starts of the virtual machine model."_ An isolate _"can start around a hundred times faster than a Node process on a container or virtual machine."_ Stop designing around warm-up — there is nothing to keep warm.
 
-**Workers is not Node, and this is what breaks your libraries.** There is no Node runtime underneath. You opt into Node APIs with the `nodejs_compat` compatibility flag and a compatibility date of **2024-09-23 or later**; with it, much of the standard library really works — `node:crypto`, `Buffer`, streams, `path`, `http`/`https`, `net`, `AsyncLocalStorage`, `zlib`. What still breaks:
+**Workers is not Node, and this is what breaks your libraries.** There is no Node runtime underneath. With a compatibility date of **2026-08-04 or later**, Node APIs are on by default; for dates from 2024-09-23 through 2026-08-03 you opt in with the `nodejs_compat` compatibility flag. Either way, much of the standard library really works — `node:crypto`, `Buffer`, streams, `path`, `http`/`https`, `net`, `AsyncLocalStorage`, `zlib`. What still breaks:
 
 - **Non-functional stubs** — `node:worker_threads`, `node:cluster`, `node:vm`, `node:http2` import fine and then do nothing. A library that reaches for them fails at runtime, not at build time.
 - **Anything assuming a long-lived process** — a background thread, an in-process job queue, a connection pool that outlives the request, a native addon.
-- **No flag, no Node.** Without `nodejs_compat` set, `node:` imports don't resolve at all.
+- **Old compatibility date, no flag, no Node.** A Worker dated before 2026-08-04 without `nodejs_compat` set gets no Node APIs — `node:` imports don't resolve at all.
 
-**The limits that actually bite.** **CPU time**, not wall-clock, is the ceiling: 10 ms per request on Free, 30 s by default on Paid (raisable to 5 min). Waiting on a database or an API isn't CPU time, and an HTTP request has "no limit" on duration while the client stays connected. Memory is **128 MB** per isolate. A script is capped at **3 MB** compressed on Free, **10 MB** on Paid — which is what a bundled headless-CMS SDK runs into.
+**The limits that actually bite.** **CPU time**, not wall-clock, is the ceiling: 10 ms per request on Free, 30 s by default on Paid (raisable to 5 min). Waiting on a database or an API isn't CPU time, and an HTTP request has "no limit" on duration while the client stays connected. Memory is **128 MB** per isolate. Worker size is **64 MiB uncompressed** on both Free and Paid, with no separate compressed cap — but a bigger bundle still costs startup time, and startup is capped at **1 second**.
 
 ```mermaid
 flowchart TD

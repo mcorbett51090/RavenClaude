@@ -75,12 +75,12 @@ if grep -nE '\.(toLocaleDateString|toLocaleString|toLocaleTimeString)\(\s*\)' "$
 fi
 
 # 4b: Hard-coded date format strings
-if grep -nEi '(["'"'"'`])(MM[/\-.]DD[/\-.]YYYY|DD[/\-.]MM[/\-.]YYYY|YYYY[/\-.]MM[/\-.]DD|yyyy[/\-.]MM[/\-.]dd)\1' "$file" >/dev/null 2>&1; then
+if grep -nEi '(["'"'"'`])(MM[/.-]DD[/.-]YYYY|DD[/.-]MM[/.-]YYYY|YYYY[/.-]MM[/.-]DD|yyyy[/.-]MM[/.-]dd)\1' "$file" >/dev/null 2>&1; then
   findings+=("Hard-coded date format string (e.g. 'MM/DD/YYYY') — date formats are locale-specific. Use CLDR date skeletons via Intl.DateTimeFormat or ICU MessageFormat date skeleton: {date, date, ::yMMMd}.")
 fi
 
 # 4c: Hard-coded currency symbols as string literals
-if grep -nE '"(\\\$|€|£|¥|₩|₹|₽|¢)"' "$file" >/dev/null 2>&1; then
+if grep -nE '"(\$|€|£|¥|₩|₹|₽|¢)"' "$file" >/dev/null 2>&1; then
   findings+=("Hard-coded currency symbol (\$, €, £, etc.) as a string literal — use Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }) or ICU number skeleton: {amount, number, ::currency/USD sign-accounting}.")
 fi
 

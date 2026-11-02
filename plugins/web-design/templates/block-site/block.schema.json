@@ -1,0 +1,339 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "block.schema.json",
+  "title": "Block contract",
+  "description": "One block contract: an entry in catalog.json, or one <id>/block.json per block. The shape is checked here; the rules a JSON Schema cannot state (every props object closed, every string and list bounded, no styling props, heading level 1 only for a first block) are checked by scripts/block_site_check.py catalog.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "title",
+    "summary",
+    "category",
+    "headingLevel",
+    "placement",
+    "tone",
+    "slots",
+    "props",
+    "a11y",
+    "perf",
+    "truth"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "id": {
+      "description": "Unique in the catalog, and the block's directory name when contracts are kept as <id>/block.json. Kebab-case.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "maxLength": 40
+    },
+    "version": {
+      "description": "Semver. A props change that is renamed, removed or narrowed is MAJOR and needs a manifest migration note.",
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "summary": {
+      "description": "Written for an agent choosing a block: what it is for, and when NOT to use it. Short, like an agent description.",
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 300
+    },
+    "category": {
+      "enum": [
+        "header",
+        "hero",
+        "content",
+        "media",
+        "listing",
+        "social-proof",
+        "conversion",
+        "location",
+        "form",
+        "navigation",
+        "footer"
+      ]
+    },
+    "headingLevel": {
+      "description": "1: the page's first block, which renders the only h1. 2: renders an h2 (and h3 for its items). Exactly one level-1 block per page, and it comes first, so the single-h1 and no-skipped-level rules hold by construction.",
+      "enum": [1, 2]
+    },
+    "placement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "position": {
+          "enum": ["first", "any", "last"]
+        },
+        "maxPerPage": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "notAdjacentTo": {
+          "description": "Block ids that may not sit directly before or after this one (two CTAs in a row, two heroes).",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "tone": {
+      "description": "The surface, chosen at page level from layout.css's tones. A block never chooses colours.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default"],
+      "properties": {
+        "default": {
+          "$ref": "#/$defs/tone"
+        },
+        "allowed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tone"
+          },
+          "uniqueItems": true
+        },
+        "locked": {
+          "description": "True when the block only works on its default tone (a full-bleed photo block is always `media`).",
+          "type": "boolean"
+        }
+      }
+    },
+    "slots": {
+      "description": "The grid lines this block's direct children sit on (layout.css: content | wide | full, plus backdrop for a photo block). Components that change with their width go INSIDE a slot.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": ["content", "wide", "full", "backdrop"]
+      },
+      "uniqueItems": true
+    },
+    "space": {
+      "description": "Section rhythm: the block's vertical padding token. Default m.",
+      "enum": ["s", "m", "l", "none"]
+    },
+    "requires": {
+      "description": "Business facts the block renders, as manifest paths. The manifest check refuses a page that uses the block when any is missing, so an hours block can never render empty.",
+      "type": "array",
+      "items": {
+        "enum": ["business.address", "business.hours", "business.phone", "business.email"]
+      },
+      "uniqueItems": true
+    },
+    "variants": {
+      "description": "Designed alternatives, at most three. Never a styling escape hatch. A manifest picks one with the block instance's `variant`; props never repeat it.",
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "uniqueItems": true
+    },
+    "props": {
+      "description": "A CLOSED JSON Schema for the block's content, in the subset block_site_check.py understands: type (one name, never a list), properties, required, additionalProperties: false, items, minItems, maxItems, uniqueItems, minLength, maxLength, pattern, format, enum, const, minimum, maximum, description. No $ref, anyOf, oneOf, allOf, not or if: a checker that cannot follow them cannot prove the props closed. Every string bounded (maxLength, enum, pattern or const), every list bounded (maxItems), no colour, size, class, layout or style props, and no `variant` prop: the variant lives on the block instance. The bounds make the content extremes finite, so block_site_check.py fixtures can generate them and the device matrix can test them.",
+      "type": "object"
+    },
+    "assetProps": {
+      "description": "Prop paths (dot-separated, [] for list items) whose values are asset keys from the manifest's assets.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "linkProps": {
+      "description": "Prop paths whose values are links, internal ones checked against the manifest's pages. A tel: link must dial the business's own phone.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "variantLinks": {
+      "description": "What a variant promises about its links: variant name to the prefix every linkProps value must start with when that variant is chosen, e.g. {\"call\": \"tel:\"}. A 'call' button that opens a page is a lie the label tells.",
+      "type": "object",
+      "additionalProperties": {
+        "enum": ["tel:", "mailto:", "https://", "/"]
+      }
+    },
+    "endpointProps": {
+      "description": "Prop paths whose values are where a form posts: https:// or a path on this site (not necessarily a page). Never an #anchor, mailto: or tel:.",
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "media": {
+      "description": "Every image the block renders: the prop that names it, the frame's aspect ratio, the grid line it spans (which decides `sizes`), the largest box it is drawn in (which decides the smallest source that stays sharp), and whether it may be the page's LCP image (fetchpriority=high).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["prop", "ratio", "slot"],
+        "properties": {
+          "prop": {
+            "type": "string"
+          },
+          "ratio": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]* / [1-9][0-9]*$"
+          },
+          "slot": {
+            "enum": ["content", "wide", "full", "half-content", "third-content"]
+          },
+          "priority": {
+            "type": "boolean"
+          },
+          "maxWidth": {
+            "description": "The widest the frame is ever drawn, in CSS px, at any viewport. A frame that stacks below a switch point is as wide as that switch point, not half the line. The source must be at least twice this (2x density).",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 2560
+          },
+          "maxHeight": {
+            "description": "The tallest the frame is ever drawn, in CSS px, when its height is not set by `ratio` (a band of min(80svh, 44rem) is 704). The source must be at least twice this.",
+            "type": "integer",
+            "minimum": 16,
+            "maximum": 2560
+          },
+          "provenance": {
+            "description": "The asset provenances this frame may show. A frame that presents the business itself (a hero over the place, a gallery of the work) lists business-own and commissioned, so a stock or generated image is refused rather than passed off as the place. Omit it when any image is honest here.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "enum": ["business-own", "commissioned", "licensed-stock", "generated"]
+            }
+          },
+          "minCol": {
+            "description": "The frame is one column of an auto-fit grid (layout.css .auto-grid) whose columns are at least this many rem wide: sizes then follows the column count at each width, not the whole slot.",
+            "type": "number",
+            "minimum": 8,
+            "maximum": 40
+          },
+          "variantRatio": {
+            "description": "A frame shape per variant, where a variant changes it (a portrait gallery): variant name to 'w / h'. The others use ratio.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]* / [1-9][0-9]*$"
+            }
+          }
+        }
+      }
+    },
+    "schemaOrg": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "a11y": {
+      "description": "What the block guarantees: landmark, heading, labels, keyboard behaviour, motion.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 10
+      }
+    },
+    "perf": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clientJs"],
+      "properties": {
+        "clientJs": {
+          "enum": ["none", "small", "island"]
+        },
+        "lcpCandidate": {
+          "type": "boolean"
+        }
+      }
+    },
+    "truth": {
+      "description": "Facts this block must never invent (prices, hours, ratings, quotes, people).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 10
+      }
+    },
+    "expires": {
+      "description": "Props that hold a date (YYYY-MM-DD) after which their item is over, such as an event's date: a past one is left off the page, the checker warns, and a block whose every item has passed is refused (it would render empty).",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "requireIf": {
+      "description": "Props an item must have when it is of a kind (require), or may have only then (allow), and with otherwiseForbid must not have otherwise: a choice field needs its options, and only a party-size field takes a max.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["items", "when", "require"],
+        "properties": {
+          "items": {
+            "type": "string",
+            "description": "The list the rule is about, as a prop path: fields[]."
+          },
+          "when": {
+            "type": "object",
+            "description": "Prop values that make an item of this kind: {\"kind\": \"choice\"}."
+          },
+          "require": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allow": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "otherwiseForbid": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "ranges": {
+      "description": "Pairs of props where the second is an end that needs the first and comes after it: an event's starts and ends (HH:MM, compared as written).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "tone": {
+      "enum": ["canvas", "surface", "inverse", "media"]
+    }
+  }
+}

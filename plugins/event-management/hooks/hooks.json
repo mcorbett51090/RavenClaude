@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-event-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/hooks/check-event-anti-patterns.sh\" \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Advisory: flags 3 mechanically-detectable event-planning anti-patterns on .md files. Set EVENT_STRICT=1 to make it blocking."
           }
         ]

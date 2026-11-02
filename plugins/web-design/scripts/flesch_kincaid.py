@@ -14,6 +14,8 @@ modes:
   check     Given a text file (or stdin) and --max <grade>, exit non-zero if the
             text reads above the ceiling - so it can gate a PR or a copy review.
             Example: FK <= 8 for a broad consumer site, <= 12 for technical/B2B.
+            Exits 2 ([UNASSESSABLE]) when there are no words to score - empty,
+            markup-only, or non-Latin-script input - instead of passing it.
 
 This is a HEURISTIC checker: the syllable count is a rule-based estimate (vowel
 groups with common adjustments), which is how every FK implementation works -
@@ -35,6 +37,8 @@ import re
 import sys
 
 _WORD_RE = re.compile(r"[A-Za-z][A-Za-z'-]*")
+# HTML/XML tags and comments: their names are not words a reader reads.
+_MARKUP_RE = re.compile(r"<!--.*?-->|</?[A-Za-z][^<>]*>", re.DOTALL)
 _SENTENCE_RE = re.compile(r"[.!?]+(?:\s|$)")
 _VOWEL_GROUP_RE = re.compile(r"[aeiouy]+")
 
@@ -54,6 +58,7 @@ def count_syllables(word: str) -> int:
 
 def analyze(text: str) -> dict:
     """Return counts + Flesch-Kincaid Grade Level for a block of prose."""
+    text = _MARKUP_RE.sub(" ", text)
     words = _WORD_RE.findall(text)
     n_words = len(words)
     n_sentences = max(1, len(_SENTENCE_RE.findall(text)))
@@ -87,6 +92,10 @@ def cmd_grade(args: argparse.Namespace) -> int:
 
 def cmd_check(args: argparse.Namespace) -> int:
     r = analyze(_read(args.file))
+    if r["words"] == 0:
+        # FK 0.0 here means "nothing measured", not "very readable".
+        print("[UNASSESSABLE] no words to score (empty, markup-only or non-Latin-script text)")
+        return 2
     ok = r["fkgl"] <= args.max
     status = "PASS" if ok else "FAIL"
     print(f"[{status}] FK grade {r['fkgl']} vs ceiling {args.max}  (words={r['words']})")

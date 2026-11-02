@@ -2,7 +2,7 @@
 
 > Web design & build specialist team for the RavenClaude marketplace.
 
-Ships seven specialist agents (web architect, UX designer, visual designer, frontend implementer, content strategist, accessibility auditor, performance engineer), fourteen playbook skills (design-system audit, Intercom-style card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, brand-guidance authoring, third-party-script hygiene, Fluent UI v9 + React implementation, static-site implementation, and the gold-standard-website-pipeline orchestration pipeline), eight working templates, and one advisory hook that flags common web anti-patterns on edits (oversized rasters, missing `alt`, hardcoded colors, missing meta tags, accidental `noindex`).
+Ships seven specialist agents (web architect, UX designer, visual designer, frontend implementer, content strategist, accessibility auditor, performance engineer), nineteen playbook skills (design-system audit, Intercom-style card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, brand-guidance authoring, third-party-script hygiene, Fluent UI v9 + React implementation, static-site implementation, interface craft from Apple / Stripe / Cloudflare / Starlink / Tesla / game menus, block-composed sites built from purchased features, owner-facing form builders, visual builder editors, adaptive layout across desktop, phone, tablet, iPad windows and foldables like iPhone Duo (verified on a device matrix), and the gold-standard-website-pipeline orchestration pipeline), eight working templates, and one advisory hook that flags common web anti-patterns on edits (oversized rasters, missing `alt`, hardcoded colors, missing meta tags, accidental `noindex`).
 
 ## Install
 
@@ -20,7 +20,7 @@ Requires `ravenclaude-core@>=0.5.0`.
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 7 | [`agents/`](agents/) |
-| Skills | 14 | [`skills/`](skills/) |
+| Skills | 19 | [`skills/`](skills/) |
 | Hooks | 1 (advisory) | [`hooks/`](hooks/) |
 | Templates | 8 | [`templates/`](templates/) |
 
@@ -35,6 +35,10 @@ See [`CLAUDE.md`](CLAUDE.md) for the full team constitution.
 "Brand refresh" → visual-designer
 "Set up the design system" → visual-designer → frontend-implementer
 "Search ranking dropped" → web-architect + content-strategist
+"Make it feel like Apple / Stripe / a game menu" → visual-designer + ux-designer (interface-craft)
+"Build 50 customer sites from the features they bought" → web-architect + frontend-implementer (block-composed-site)
+"Let customers build their own forms" → web-architect + frontend-implementer (form-builder, visual-builder)
+"Make it work on iPad / landscape phones / iPhone Duo" → frontend-implementer + accessibility-auditor (adaptive-layout)
 "This form has poor conversion" → ux-designer + content-strategist (microcopy)
 ```
 
@@ -58,7 +62,7 @@ Full list (plus anti-patterns) in [`CLAUDE.md`](CLAUDE.md) §3 / §4.
 
 ## Hooks
 
-[`hooks/check-web-anti-patterns.sh`](hooks/check-web-anti-patterns.sh) is a PostToolUse hook. Advisory by default — flags oversized raster images, `<img>` missing `alt`, hardcoded hex colors outside `tokens.*` files, HTML pages missing `<title>` / `<meta description>`, and accidental `noindex` in production pages. Make it blocking by setting `WEB_DESIGN_STRICT=1` (the hook then exits 2 — the code Claude Code treats as blocking; exit 1 is silently non-blocking).
+[`hooks/check-web-anti-patterns.sh`](hooks/check-web-anti-patterns.sh) is a PostToolUse hook. Advisory by default — flags oversized raster images, `<img>` missing `alt`, hardcoded hex colors outside `tokens.*` files, HTML pages missing `<title>` / `<meta description>`, and accidental `noindex` in production pages. Setting `WEB_DESIGN_STRICT=1` makes the hook exit 2, which feeds the findings back to Claude to fix — it does **not** undo the edit, because a PostToolUse hook runs after the file is already written.
 
 ## License
 

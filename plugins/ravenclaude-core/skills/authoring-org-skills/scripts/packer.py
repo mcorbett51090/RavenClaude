@@ -126,7 +126,12 @@ def _excluded(rel: str, pats: tuple[str, ...]) -> bool:
     for pat in pats:
         if fnmatch.fnmatch(rel, pat):
             return True
-        if any(fnmatch.fnmatch(p, pat.rstrip("/*")) for p in parts if pat.rstrip("/*")):
+        # A bare-name pattern (no "/") matches that name at ANY depth, so each path
+        # part is matched against the pattern AS WRITTEN. Stripping "/*" from it
+        # turned "._*" into "._", which matches nothing, so a nested AppleDouble
+        # file (reference/._notes.md) was packed and passed ZP07.
+        name_pat = pat if "/" not in pat else pat.rstrip("/*")
+        if name_pat and any(fnmatch.fnmatch(p, name_pat) for p in parts):
             if "/" not in pat or pat.endswith("/*"):
                 return True
     return False

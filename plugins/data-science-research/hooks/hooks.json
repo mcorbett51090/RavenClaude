@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/check-data-science-research-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/hooks/check-data-science-research-anti-patterns.sh\" \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Advisory: flags mechanically-detectable analysis anti-patterns (a scaler/encoder fit before train_test_split — leakage; a modeling script with a single split and no cross-validation; a model script with no random seed set). Set DS_STRICT=1 to make it blocking."
           }
         ]

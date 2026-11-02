@@ -11,7 +11,7 @@ covers:
   - scripts/inventory-census.py
   - scripts/inventory-sweep.py
   - scripts/inventory-coverage.py
-covers_digest: "sha256:6767ac9b98b8d1b7e6dc94fa910022c7a2acf7f2de37fb0d0acd74fb55db2122"
+covers_digest: "sha256:46cd5ab6f63f4c0c6a08414bad0679ed2a939405faa31e5f8153cdaf6985ee14"
 nuance: "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green."
 nuance_evidence:
   measured: 2026-08-19

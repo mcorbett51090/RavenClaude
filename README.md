@@ -1,6 +1,6 @@
 # 🐦‍⬛ RavenClaude
 
-**A private Claude Code plugin marketplace** — governed multi-agent teams, specialist plugins, and a comfort-posture dashboard that travel with you across projects.
+**A public Claude Code plugin marketplace** — governed multi-agent teams, specialist plugins, and a comfort-posture dashboard that travel with you across projects.
 
 > 🚀 **[▶ See what RavenClaude is (`pitch.html`)](https://mcorbett51090.github.io/RavenClaude/pitch.html)** — value prop, proof, and catalog at a glance. **Start here.**
 >
@@ -31,6 +31,25 @@ Today this marketplace ships **184 plugins** (live inventory: **[portal Marketpl
 
 ## Install
 
+This repository is **public**: anyone can read it, clone it, and install from it without being added as a collaborator. Write access is limited to the collaborators listed in [`docs/access.md`](docs/access.md).
+
+Quick start in Claude Code (inside a session):
+
+```text
+/plugin marketplace add mcorbett51090/RavenClaude
+/plugin install ravenclaude-core@ravenclaude
+/reload-plugins
+```
+
+Or from your shell:
+
+```shell
+claude plugin marketplace add mcorbett51090/RavenClaude
+claude plugin install ravenclaude-core@ravenclaude
+```
+
+The marketplace name is `ravenclaude` (from [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json)), so every install id is `<plugin>@ravenclaude`.
+
 There are **two install paths**, depending on which agent host you use. Pick one and follow that column — the surfaces don't overlap (the `/plugin` slash commands exist only in Claude Code; the `ravenclaude` script exists only on the Copilot side).
 
 |  | **Path A — Claude Code** (recommended if you have it) | **Path B — GitHub Copilot CLI / Codespace** |
@@ -60,7 +79,7 @@ The post-create script auto-installs these on Debian-family images, but if you'r
 
 - **Node 22+** (Copilot CLI requires it). The template image `mcr.microsoft.com/devcontainers/universal:2-linux` already has Node; the `python:3.12` family does not.
 - **git-lfs** (for any repo with LFS-tracked assets).
-- **GitHub CLI** (`gh`) — used to clone a private marketplace fork via your Codespace's auth.
+- **GitHub CLI** (`gh`) — used to clone the marketplace (or your own private fork of it) via your Codespace's auth.
 
 ---
 
@@ -219,6 +238,32 @@ RavenClaude/
 
 The container at `.devcontainer/` auto-installs the Claude Code CLI on rebuild, so a fresh Codespace is ready to work on plugins without setup.
 
+### Claude plugin Directory limits — keep the repo submittable
+
+Anthropic's developer portal checks a plugin before listing it in the Claude plugin directory. The size limits are the ones this repo can break just by growing. **Source of truth:** the [pre-submission checklist](https://claude.com/docs/plugins/pre-submission-checklist), re-read 2026-10-14. Re-read it before trusting any number below; they drift.
+
+| Limit (the checklist's wording) | If exceeded | Monorepo / full plugin now | Edition now | Checked by |
+|---|---|---|---|---|
+| Repository: "fewer than 10,000 files and folders" | Validation stops | 9,907 files + 3,042 folders = 12,949 | 144 + 41 = 185 | Gate 302 counts files only; `--report` shows folders |
+| Repository: under 50 MiB "as GitHub archives it", 256 MiB unpacked | Validation stops | 41.2 MiB zip, 140.8 MiB unpacked | 1.3 MiB | `--report` (not gated) |
+| Every file in the plugin folder under 5 MiB | Validation stops | `dashboard.html`, 10.5 MiB | largest 68 KiB | Gate 301 |
+| Plugin folder at most 512 files | Held for a reviewer | 895 | 144 | Gate 301 |
+| Non-image, non-font file under 256 KiB; only text, SVG, PNG/JPEG/GIF/WebP and fonts | Held for a reviewer | 46 files over | none | Gate 301 |
+| File and folder names valid on Windows and macOS; no symlinks, submodules, LFS pointers or system files | Validation stops / blocks | clean (checked 2026-10-14) | clean | not gated |
+| README of at least 40 words outside code blocks, and a LICENSE | Blocks | — | both present | Gate 301 |
+
+**What is not settled.** Two readings are unverified, and only the portal's **Validate** answers either. First, whether the portal adds files and folders together; the wording reads that way, and on that reading the monorepo is 2,950 over. Second, whether the `text eol=lf` lines in the root `.gitattributes` count as the "attributes that rewrite file contents" the checklist says to keep out (the edition ships no `.gitattributes`). So the plan of record is to submit the **directory edition from its own repo** ([`docs/directory-edition/`](docs/directory-edition/README.md)), which is well inside every limit. The monorepo's file count is kept down as insurance, not as the submission path.
+
+**Keeping it that way.** Before adding many files or a large artifact, run:
+
+```shell
+python3 scripts/check-repo-file-budget.py --report   # files, folders and sizes against every limit (informational)
+python3 scripts/check-repo-file-budget.py            # Gate 302: fails at 9,990 tracked files
+python3 scripts/check-directory-edition.py           # Gate 301: the edition against the plugin limits (about 60 s)
+```
+
+If Gate 302 fails, pack generated per-file artifacts into a few files (the pattern is [`scripts/visual_pack.py`](scripts/visual_pack.py)) or prune dead files. Don't raise `FAIL_AT` without a reason in the PR. `scripts/audit-gates.sh` runs both gates, so the normal pre-PR check covers them.
+
 ---
 
 ## Roadmap
@@ -228,6 +273,12 @@ The container at `.devcontainer/` auto-installs the Claude Code CLI on rebuild, 
 `salesforce` (Apex, Flow, Agentforce, platform-architecture specialists) has since **shipped** as well — it is now one of the 184 plugins above, no longer planned-only.
 
 Each builds on top of `ravenclaude-core` (which provides the neutral team) and adds domain-specific agents that the consumer can choose to install or skip. `power-platform` is the reference implementation of this pattern.
+
+---
+
+## Security
+
+Found a vulnerability, or a secret that shouldn't be here? **Don't open a public issue.** Report it privately as described in [`SECURITY.md`](SECURITY.md).
 
 ---
 

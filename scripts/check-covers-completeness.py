@@ -38,13 +38,16 @@ Usage:
     check-covers-completeness.py --check            # gate (exit 1 on violation)
     check-covers-completeness.py --must-fail        # teeth
     check-covers-completeness.py --must-fail-convention
+    check-covers-completeness.py --self-test        # ignored-path fixtures
 """
 
 from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -73,6 +76,41 @@ def _mentioned_paths(c: dict) -> set[str]:
     return found
 
 
+def _git_ignored(root: Path, paths: list[str]) -> set[str]:
+    """The subset of ``paths`` that git ignores under ``root``.
+
+    A git-ignored file is local runtime state (a run log, a cache), not a repo
+    artifact. covers[] cannot watch it: the digest is computed over committed
+    files, and CI never has the file. So it is never an under-declared
+    dependency, whether or not it happens to exist on this machine.
+
+    Measured 2026-10-18: the suite's own live nuance-judge calls write the
+    ignored .ravenclaude/runs/headless-usage.jsonl, and a concept's nuance names
+    that path, so --check failed locally after any suite run and passed in CI.
+
+    A tracked file that matches an ignore pattern is NOT reported (check-ignore
+    consults the index), so it stays a dependency. Not a git checkout, or git
+    absent: nothing is treated as ignored, which is the behaviour before this
+    function existed.
+    """
+    if not paths:
+        return set()
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(root), "check-ignore", "--stdin"],
+            input="\n".join(paths) + "\n",
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    # 0 = some ignored, 1 = none ignored, 128 = not a repo / fatal error.
+    if proc.returncode not in (0, 1):
+        return set()
+    return {line.strip() for line in proc.stdout.splitlines() if line.strip()}
+
+
 def violations(root: Path, concepts: list[dict]) -> list[str]:
     out: list[str] = []
     for c in concepts:
@@ -80,11 +118,16 @@ def violations(root: Path, concepts: list[dict]) -> list[str]:
             continue
         covers = set(c.get("covers") or [])
         exempt = set(c.get("covers_exempt") or [])
-        for mention in sorted(_mentioned_paths(c) - covers - exempt):
-            # Only a path that actually EXISTS is a dependency. A prose mention of
-            # something absent is a typo or an example, and flagging it would make
-            # the check noisy enough to get turned off.
-            if not (root / mention).exists():
+        # Only a path that actually EXISTS is a dependency. A prose mention of
+        # something absent is a typo or an example, and flagging it would make
+        # the check noisy enough to get turned off. A git-ignored path is not a
+        # dependency either, even when it exists (see _git_ignored).
+        candidates = [
+            m for m in sorted(_mentioned_paths(c) - covers - exempt) if (root / m).exists()
+        ]
+        ignored = _git_ignored(root, candidates)
+        for mention in candidates:
+            if mention in ignored:
                 continue
             out.append(
                 f"  ✗ {c['id']}: nuance names '{mention}' but covers[] does not watch it "
@@ -94,13 +137,121 @@ def violations(root: Path, concepts: list[dict]) -> list[str]:
     return out
 
 
+def _self_test() -> int:
+    """Fixtures for the git-ignored exclusion, in a throwaway git repo.
+
+    Each case states the outcome it expects and fails if the detector gives
+    the other one. Case 2 is the control: a tracked file under the same ignore
+    pattern must still bite, so the exclusion cannot be passing by ignoring
+    everything.
+    """
+    checks: list[tuple[str, bool]] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        try:
+            subprocess.run(
+                ["git", "init", "-q", str(root)], check=True, capture_output=True, timeout=30
+            )
+        except (OSError, subprocess.SubprocessError):
+            print("✗ self-test: git init failed; cannot run the fixtures.")
+            return 1
+        (root / ".gitignore").write_text("runs/\n")
+        (root / "runs").mkdir()
+        (root / "runs" / "usage.jsonl").write_text("{}\n")
+        (root / "runs" / "kept.json").write_text("{}\n")
+        (root / "src").mkdir()
+        (root / "src" / "tool.py").write_text("x = 1\n")
+        subprocess.run(
+            ["git", "-C", str(root), "add", "-f", "runs/kept.json", "src/tool.py"],
+            check=True,
+            capture_output=True,
+            timeout=30,
+        )
+
+        def entry(nuance: str) -> list[dict]:
+            return [
+                {
+                    "id": "fixture",
+                    "entry_class": ENTRY_CLASS_INVENTORY,
+                    "covers": [],
+                    "nuance": nuance,
+                }
+            ]
+
+        checks.append(
+            (
+                "an existing git-ignored file is not flagged",
+                not violations(root, entry("It writes runs/usage.jsonl.")),
+            )
+        )
+        checks.append(
+            (
+                "a tracked file under an ignore pattern is still flagged",
+                bool(violations(root, entry("It writes runs/kept.json."))),
+            )
+        )
+        checks.append(
+            (
+                "an ordinary tracked file is flagged",
+                bool(violations(root, entry("The logic is in src/tool.py."))),
+            )
+        )
+        checks.append(
+            (
+                "a missing file is not flagged",
+                not violations(root, entry("See src/absent.py.")),
+            )
+        )
+        both = violations(root, entry("It reads src/tool.py and writes runs/usage.jsonl."))
+        checks.append(
+            (
+                "a mixed nuance flags only the tracked file",
+                len(both) == 1 and "src/tool.py" in both[0],
+            )
+        )
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "src").mkdir()
+        (root / "src" / "tool.py").write_text("x = 1\n")
+        checks.append(
+            (
+                "outside a git checkout an existing file is still flagged",
+                bool(
+                    violations(
+                        root,
+                        [
+                            {
+                                "id": "fixture",
+                                "entry_class": ENTRY_CLASS_INVENTORY,
+                                "covers": [],
+                                "nuance": "The logic is in src/tool.py.",
+                            }
+                        ],
+                    )
+                ),
+            )
+        )
+    failed = [name for name, ok in checks if not ok]
+    for name, ok in checks:
+        print(f"  {'✓' if ok else '✗'} {name}")
+    if failed:
+        print(f"✗ self-test: {len(failed)} of {len(checks)} failed.")
+        return 1
+    print(f"✓ self-test: {len(checks)}/{len(checks)} passed.")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default=".")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--must-fail", action="store_true")
     ap.add_argument("--must-fail-convention", action="store_true")
+    ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
+
+    if args.self_test:
+        return _self_test()
 
     if args.must_fail_convention:
         print("must-fail-teeth-exit: 3")

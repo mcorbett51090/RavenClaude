@@ -36,6 +36,10 @@ Signed: [name] — [YYYY-MM-DD]
 - [ ] Form validation tested (happy path + error states)
 - [ ] Navigation works at all breakpoints
 - [ ] No layout breakages at any breakpoint
+- [ ] Device matrix run (phones portrait + landscape, iPhone Duo outer/inner/split, Android fold, iPad incl. split widths, short laptop, desktop, ±1px around every breakpoint): 0 overflow, targets pass WCAG 2.5.8, form text ≥16px — see `skills/adaptive-layout`
+- [ ] Viewport tag is `width=device-width, initial-scale=1` with no zoom lock; `viewport-fit=cover` only if all four safe-area insets are used
+- [ ] Every viewport-height section writes `vh` first, then `svh`/`lvh`/`dvh` (checked in the BUILT CSS)
+- [ ] Checked on a real iPhone and iPad, or the Xcode Device Hub simulator, in both orientations
 - [ ] Focus indicators visible on all interactive surfaces
 - [ ] Touch targets ≥ 44pt on mobile
 

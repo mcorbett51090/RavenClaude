@@ -84,10 +84,10 @@ def self_test() -> int:
     if grok_top["model"].startswith("claude-"):
         errors.append("grok top must not be a claude-* id")
     missing = resolve_tier(None, "top", data=data)
-    if missing["model"] != "claude-opus-4-8":
-        errors.append(f"default host top should be claude-opus-4-8, got {missing}")
+    if missing["model"] != "claude-opus-5-5":
+        errors.append(f"default host top should be claude-opus-5-5, got {missing}")
     blank = resolve_tier("  ", "top", data=data)
-    if blank["model"] != "claude-opus-4-8":
+    if blank["model"] != "claude-opus-5-5":
         errors.append("blank host must default to claude")
     if "seats" in hosts:
         errors.append("seats must not live in hosts")

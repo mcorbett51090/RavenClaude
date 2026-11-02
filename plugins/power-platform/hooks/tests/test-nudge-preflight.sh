@@ -34,6 +34,25 @@ fires "$HOOK" "$POSTURE" "$POST_CMD" && pass "Dataverse create/update under post
 fires "$HOOK" "$POSTURE" "$GET_CMD" && fail "B: fired on a GET (should be write-only)" || pass "Dataverse GET under posture -> silent"
 fires "$HOOK" "$NOPOSTURE" "$POST_CMD" && fail "C: fired without a comfort-posture (should be opt-in)" || pass "no comfort-posture -> silent (opt-in)"
 
+# E — $batch writes: the endpoint segment may start with '$' ($batch is a POST to a batch URL).
+BATCH_CMD='curl -X POST https://x.crm.dynamics.com/api/data/v9.2/$batch -H "Content-Type: multipart/mixed; boundary=b" --data-binary @batch.txt'
+fires "$HOOK" "$POSTURE" "$BATCH_CMD" && pass "E: a POST to /api/data/v9.2/\$batch -> nudge" || fail "E: did not fire on a \$batch POST"
+META_CMD='curl https://x.crm.dynamics.com/api/data/v9.2/$metadata'
+fires "$HOOK" "$POSTURE" "$META_CMD" && fail "E: fired on a GET of \$metadata (should be write-only)" || pass "E: a GET of \$metadata stays silent"
+
+# F — a large multi-line command must still nudge. grep -q exits at the first match; a
+# `printf | grep -q` pipeline then dies of SIGPIPE under pipefail (>64 KB of input), the
+# `|| exit 0` guard reads that as "no match", and the hook goes silent.
+BIG_BODY="$(python3 -c 'print("{\"name\": \"" + "x" * 150000 + "\"}")')"
+BIG_CMD="curl -X POST https://x.crm.dynamics.com/api/data/v9.2/contoso_balancesheets --data @- <<'EOF'
+$BIG_BODY
+EOF"
+fires "$HOOK" "$POSTURE" "$BIG_CMD" && pass "F: a 150 KB heredoc POST -> nudge" || fail "F: went silent on a 150 KB multi-line command (SIGPIPE under pipefail)"
+BIG_GET="curl https://x.crm.dynamics.com/api/data/v9.2/contoso_balancesheets <<'EOF'
+$BIG_BODY
+EOF"
+fires "$HOOK" "$POSTURE" "$BIG_GET" && fail "F: fired on a large GET (should be write-only)" || pass "F: a 150 KB GET stays silent"
+
 # D — teeth: neuter the write-only filter; a GET must then fire
 MUT="$TMP/mut.sh"
 sed 's/\[ "\$is_write" -eq 0 \] && exit 0/:/' "$HOOK" >"$MUT"

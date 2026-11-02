@@ -83,7 +83,7 @@ thing_run() { # $1=mock $2=cmd [$3=revised]
   [ -n "${3:-}" ] && env_rev=(THING_SEAT_MOCK_REVISED="$3")
   jq -cn --arg c "$2" --arg cwd "$G" \
     '{tool_name:"Bash",tool_input:{command:$c},cwd:$cwd,session_id:"harden-audit"}' \
-    | env "${env_rev[@]}" THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH" 2>/dev/null
+    | env "${env_rev[@]}" THING_SEAT_ALLOW_MOCK=1 THING_SEAT_MOCK_VERDICT="$1" bash "$ORCH" 2>/dev/null
 }
 thing_dec() { thing_run "$@" | jq -r '.hookSpecificOutput.permissionDecision // "none"'; }
 thing_reason() { thing_run "$@" | jq -r '.hookSpecificOutput.permissionDecisionReason // ""'; }

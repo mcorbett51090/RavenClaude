@@ -501,6 +501,29 @@ def check_schema(
 
 
 # ── Page loading + orchestration ─────────────────────────────────────────────
+# Real PBIR page JSON nests a few dozen levels at most. Deeper input is refused as
+# "cannot parse" by an explicit, iterative check, so the verdict does not depend on
+# the interpreter: Python 3.11's json module raises RecursionError near 1,000 levels,
+# but 3.12+ parses much deeper documents without complaint.
+MAX_JSON_DEPTH = 200
+
+
+def _json_depth_exceeds(obj: object, cap: int) -> bool:
+    stack = [(obj, 1)]
+    while stack:
+        node, depth = stack.pop()
+        if isinstance(node, dict):
+            children = node.values()
+        elif isinstance(node, list):
+            children = node
+        else:
+            continue
+        if depth > cap:
+            return True
+        stack.extend((child, depth + 1) for child in children)
+    return False
+
+
 def _load_page(path: str) -> dict:
     try:
         with open(path, encoding="utf-8") as fh:
@@ -509,6 +532,14 @@ def _load_page(path: str) -> dict:
         raise InputError(f"cannot read input {path!r}: {exc}") from exc
     except json.JSONDecodeError as exc:
         raise InputError(f"invalid JSON in {path!r}: {exc}") from exc
+    except (RecursionError, MemoryError) as exc:
+        # Deeply nested (or huge) input must exit 2 "cannot parse", not crash with
+        # a traceback's exit 1, which callers read as "violations found".
+        raise InputError(f"cannot parse JSON in {path!r}: {type(exc).__name__}") from exc
+    if _json_depth_exceeds(data, MAX_JSON_DEPTH):
+        raise InputError(
+            f"cannot parse JSON in {path!r}: nested deeper than {MAX_JSON_DEPTH} levels"
+        )
     if not isinstance(data, dict):
         raise InputError(f"page JSON must be an object, got {type(data).__name__}")
     return data
@@ -517,7 +548,7 @@ def _load_page(path: str) -> dict:
 def _detect_pbir(page: dict) -> bool:
     if "$schema" in page:
         return True
-    for v in (page.get("visuals") or []):
+    for v in page.get("visuals") or []:
         if isinstance(v, dict) and "$schema" in v:
             return True
     return False

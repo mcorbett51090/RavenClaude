@@ -308,15 +308,17 @@ def mermaid_label(s: str) -> str:
     """Produce a safe, double-quoted-content Mermaid label.
 
     Mermaid node syntax is `id["label"]`; inside the quotes a literal `"` breaks
-    out, and the parser is sensitive to `[](){};` and newlines. We entity-escape
-    `"` and `#`, collapse newlines, and strip the structural metacharacters, so a
-    hostile label like `A[evil](x)-->B "boom"; end` cannot restructure the graph.
+    out, and the parser is sensitive to `[](){};` and newlines. We collapse
+    newlines, strip the structural metacharacters, and THEN entity-escape `#` and
+    `"`, so a hostile label like `A[evil](x)-->B "boom"; end` cannot restructure
+    the graph. The order matters: the entities end in `;`, and stripping after
+    escaping removed those terminators (`#quothi#quot` rendered as literal text).
     Reserved words are safe once quoted, so no separate refusal is needed.
     """
-    v = str(s).replace("#", "#35;").replace('"', "#quot;")
-    v = re.sub(r"[\r\n]+", " ", v)
+    v = re.sub(r"[\r\n]+", " ", str(s))
     v = re.sub(r"[\[\]{}();]", "", v)
     v = v.replace("-->", "→").replace("--", "—")
+    v = v.replace("#", "#35;").replace('"', "#quot;")
     return v.strip()
 
 
@@ -501,8 +503,12 @@ def _self_test() -> int:
     if "&lt;script&gt;" not in html_text("<script>"):
         failures.append("html_text did not escape <script>")
     label = mermaid_label('A[evil](x)-->B "boom"; end')
-    if any(ch in label for ch in "[]();") or '"' in label or "-->" in label:
+    bare = re.sub(r"#(?:quot|35);", "", label)  # the escapes' own `;` is not a metacharacter
+    if any(ch in bare for ch in "[]();") or '"' in label or "-->" in label:
         failures.append(f"mermaid_label left a metacharacter: {label!r}")
+    quoted = mermaid_label('say "hi" #1')
+    if quoted != "say #quot;hi#quot; #35;1":
+        failures.append(f"mermaid_label broke its own entity escapes: {quoted!r}")
 
     # deterministic Mermaid emit
     got = emit_mermaid(_FLOW_MODEL)

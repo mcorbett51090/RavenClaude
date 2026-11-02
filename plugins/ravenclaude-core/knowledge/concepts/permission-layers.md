@@ -10,7 +10,7 @@ widget: permission-resolver
 try_it:
   label: "Set your own layers on the Settings tab"
   href: "#/settings"
-last_verified: 2026-07-28
+last_verified: 2026-10-20
 refresh_when: "Anthropic adds/removes a settings layer, or changes the cross-layer merge rule."
 sources:
   - label: "Configure permissions"
@@ -19,7 +19,7 @@ sources:
     url: "https://code.claude.com/docs/en/settings"
 ---
 
-Permission rules live under `permissions.allow`, `permissions.ask`, and `permissions.deny` in any of the settings files. Each rule is either a bare tool name (`Bash`, `WebSearch`) or a tool plus a specifier (`Bash(git status:*)`, `Read(/etc/**)`).
+Permission rules live under `permissions.allow`, `permissions.ask`, and `permissions.deny` in any of the settings files. Each rule is either a bare tool name (`Bash`, `WebSearch`) or a tool plus a specifier (`Bash(git status:*)`, `Read(//etc/**)`). In a path specifier a single leading `/` anchors at the settings file's source, not the filesystem root — an absolute path takes `//`.
 
 **Within one file**, rules evaluate `deny → ask → allow` — the first match wins, so deny always beats ask and ask always beats allow.
 

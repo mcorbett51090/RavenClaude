@@ -10,15 +10,28 @@ import cubejs, { type CubeApi } from "@cubejs-client/core";
 const clientsByTag = new Map<string, CubeApi>();
 let cachedToken: string | null = null;
 let cachedTokenExpiryMs = 0;
+let inflight: Promise<string> | null = null;
 
 const REFRESH_MARGIN_MS = 60_000; // refetch 60s before actual expiry
 
-async function fetchToken(): Promise<string> {
+/** Exported for tests; the app reaches it only through getCubeClient(). */
+export async function fetchToken(): Promise<string> {
   const now = Date.now();
   if (cachedToken && now < cachedTokenExpiryMs - REFRESH_MARGIN_MS) {
     return cachedToken;
   }
 
+  // Single-flight (review E-7): every widget mounts at once on a cold
+  // cache, so without this one page load POSTs /api/cube-token once per
+  // query against the route's 30/min limit.
+  inflight ??= requestToken().finally(() => {
+    inflight = null;
+  });
+  return inflight;
+}
+
+async function requestToken(): Promise<string> {
+  const now = Date.now();
   const res = await fetch("/api/cube-token", { method: "POST" });
   if (!res.ok) throw new Error(`cube-token fetch failed: ${res.status}`);
   const { token, expiresIn } = await res.json();

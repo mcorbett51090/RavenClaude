@@ -81,6 +81,11 @@ DEFAULT_CONFIDENCE_THRESHOLD = infer.DEFAULT_CONFIDENCE_THRESHOLD
 # w:sectPr/w:tblPr/… and DrawingML internals — is skipped as a node but still counted for anchor
 # indices via the shared rule). A w:drawing is a LEAF image node (not descended into).
 _WALK_LOCALS = frozenset(["body", "p", "r", "tbl", "tr", "tc", "drawing"])
+# B-10: transparent wrappers the walk does NOT descend into (hyperlinks, content controls, tracked
+# insertions, smart tags, simple fields, custom XML). A wrapper holding text becomes ONE needs-review
+# node anchored at the wrapper, so its runs are badged + counted instead of shipping unflagged.
+# Descending into wrappers as bindable runs is a follow-up; existing run anchors are unchanged.
+_WRAPPER_LOCALS = frozenset(["hyperlink", "sdt", "sdtContent", "ins", "smartTag", "fldSimple", "customXml"])
 _HEADING_STYLES = frozenset(["Title", "Heading1", "Heading2", "Heading3", "Heading4", "Heading5", "Heading6"])
 
 # A period-shaped token (Q1 2025 / 2025-Q1 / FY2024) — used to set/propagate source_period.
@@ -248,6 +253,45 @@ def _provenance(
 
 # ── the RSG body-walk (xml.etree; anchors via the shared rr_anchor grammar) ───────────────────
 
+def _wrapper_node(
+    el: ET.Element,
+    steps: list[tuple[str, int]],
+    bookmark: str | None,
+    template_id: str,
+    seen_ids: dict[str, int],
+    period_holder: list[str | None],
+    stats: dict[str, Any],
+) -> dict[str, Any]:
+    """B-10: one needs-review leaf for an unwalked wrapper (see _WRAPPER_LOCALS) that holds text."""
+    shaped = bool(infer.detect_data_shaped_literal(_run_text(el))["is_data_shaped"])
+    anchor = _anchor_for(steps, bookmark)
+    node_id = anchor["value"]
+    if node_id in seen_ids:
+        seen_ids[node_id] += 1
+        node_id = f"{node_id}#{seen_ids[node_id]}"
+    else:
+        seen_ids[node_id] = 0
+    stats["classes"]["needs-review"] = stats["classes"].get("needs-review", 0) + 1
+    stats["roles"]["unknown"] = stats["roles"].get("unknown", 0) + 1
+    stats["needs_review"] += 1
+    if shaped:
+        stats["data_shaped"] += 1
+    return {
+        "id": node_id,
+        "anchor": anchor,
+        "role": "unknown",
+        "class": "needs-review",
+        "confidence": 0.5,
+        "provenance": {
+            "method": "rule-based",
+            "source": template_id,
+            "source_period": period_holder[0] if shaped else None,
+        },
+        "data_shaped_literal": shaped,
+        "children": [],
+    }
+
+
 def _anchor_for(steps: list[tuple[str, int]], bookmark: str | None) -> dict[str, str]:
     """A stable OOXML node identity: a `bookmark(NAME)` path when a bookmark governs the node, else
     an absolute `body`-rooted body-walk path. Both are `kind:"ooxml_path"`. Built via the shared
@@ -342,6 +386,12 @@ def _walk(
         for i, child in enumerate(raw_children):
             cl = _local(child.tag)
             if cl not in _WALK_LOCALS:
+                if cl in _WRAPPER_LOCALS and _run_text(child).strip():
+                    idx = rr_anchor.ooxml_sibling_index(child_qnames, i)
+                    child_nodes.append(
+                        _wrapper_node(child, steps + [(cl, idx)], governance.get(i), template_id,
+                                      seen_ids, period_holder, stats)
+                    )
                 continue
             idx = rr_anchor.ooxml_sibling_index(child_qnames, i)
             child_steps = steps + [(cl, idx)]

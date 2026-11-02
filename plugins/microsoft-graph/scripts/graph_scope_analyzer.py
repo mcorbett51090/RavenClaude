@@ -69,6 +69,21 @@ NARROWER_ALTERNATIVES: dict[str, tuple[str, str]] = {
 # Permissions that always escalate to security-reviewer when present as APPLICATION scopes
 # or when they grant tenant-wide data access (heuristic substrings).
 TENANT_WIDE_MARKERS = (".All",)
+# An APPLICATION (app-role) grant on these workloads is tenant-wide by definition: there
+# is no signed-in user to bound it, so Mail.ReadWrite / Mail.Send / Calendars.ReadWrite
+# reach every mailbox even though the name carries no ".All". Names ending ".Selected"
+# are the scoped variants and are not escalated by this rule.
+APP_TENANT_WIDE_PREFIXES = (
+    "Mail.",
+    "MailboxSettings.",
+    "Calendars.",
+    "Contacts.",
+    "Notes.",
+    "Chat.",
+    "ChannelMessage.",
+    "OnlineMeetings.",
+    "Tasks.",
+)
 TIER0_SCOPES = {"Directory.ReadWrite.All", "RoleManagement.ReadWrite.Directory"}
 
 
@@ -133,7 +148,9 @@ def analyze(delegated: list[str], application: list[str]) -> Report:
                     NARROWER_ALTERNATIVES.get(scope, (None, ""))[0],
                 )
             )
-        elif any(m in scope for m in TENANT_WIDE_MARKERS):
+        elif any(m in scope for m in TENANT_WIDE_MARKERS) or (
+            scope.startswith(APP_TENANT_WIDE_PREFIXES) and not scope.endswith(".Selected")
+        ):
             alt = NARROWER_ALTERNATIVES.get(scope)
             report.findings.append(
                 Finding(

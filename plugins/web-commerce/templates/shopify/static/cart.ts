@@ -24,6 +24,26 @@ export interface ShopifyConfig {
   storefrontToken: string;
   /** Storefront GraphQL API version path segment. Defaults to "2026-07". */
   apiVersion?: string;
+  /** Abort a request Shopify has not answered within this many ms. Default 10_000. */
+  timeoutMs?: number;
+}
+
+const DEFAULT_TIMEOUT_MS = 10_000;
+
+/** Shopify's Storefront API did not answer within `timeoutMs`. */
+export class StorefrontTimeoutError extends Error {
+  readonly timeoutMs: number;
+
+  constructor(timeoutMs: number) {
+    super(`Shopify Storefront API request timed out after ${timeoutMs} ms`);
+    this.name = "StorefrontTimeoutError";
+    this.timeoutMs = timeoutMs;
+  }
+}
+
+function isAbortOrTimeout(err: unknown): boolean {
+  const name = (err as { name?: unknown } | null)?.name;
+  return name === "TimeoutError" || name === "AbortError";
 }
 
 export interface CartLineInput {
@@ -82,20 +102,29 @@ export async function storefrontFetch<T>(
   variables: Record<string, unknown>,
 ): Promise<T> {
   const apiVersion = config.apiVersion ?? "2026-07";
-  const res = await fetch(`https://${config.storeDomain}/api/${apiVersion}/graphql.json`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Shopify-Storefront-Access-Token": config.storefrontToken,
-    },
-    body: JSON.stringify({ query, variables }),
-  });
+  const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  let res: Response;
+  let json: GraphQLResponse<T>;
+  try {
+    res = await fetch(`https://${config.storeDomain}/api/${apiVersion}/graphql.json`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Storefront-Access-Token": config.storefrontToken,
+      },
+      body: JSON.stringify({ query, variables }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
 
-  if (!res.ok) {
-    throw new Error(`Shopify Storefront API request failed: ${res.status} ${res.statusText}`);
+    if (!res.ok) {
+      throw new Error(`Shopify Storefront API request failed: ${res.status} ${res.statusText}`);
+    }
+
+    json = (await res.json()) as GraphQLResponse<T>;
+  } catch (err) {
+    if (isAbortOrTimeout(err)) throw new StorefrontTimeoutError(timeoutMs);
+    throw err;
   }
-
-  const json = (await res.json()) as GraphQLResponse<T>;
   if (json.errors?.length) {
     throw new Error(
       `Shopify Storefront API error: ${json.errors.map((e) => e.message).join("; ")}`,

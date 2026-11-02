@@ -22,8 +22,13 @@
 
 A Superset embed React component handles four distinct concerns. Each is a seam to mark explicitly:
 
-1. **JWT acquisition seam** — calls the host app's JWT-issuer endpoint to get a short-lived token with tenant claims
-2. **Guest token exchange seam** — POSTs the JWT to Superset's `/api/v1/security/guest_token` endpoint to receive a Superset-specific guest token
+1. **Service-account login seam** (server-side, in `superset-guest-token-endpoint.ts`) — logs in to Superset (`POST /api/v1/security/login`, `provider: "db"`) as a service account whose role holds `can_grant_guest_token`, and gets a Superset access token. `[unverified - not run against a live Superset]`
+2. **Guest token exchange seam** — POSTs to Superset's `/api/v1/security/guest_token/` with that access token as the bearer (plus the tenant RLS clause) to receive a Superset-specific guest token. With `WTF_CSRF_ENABLED`, this POST also needs a CSRF token from `GET /api/v1/security/csrf_token/` and its session cookie.
+
+> **Revised 2026-10-20 (review E-8).** The original design sent a host-app JWT signed with
+> `JWT_SIGNING_KEY` as the guest_token bearer. Superset does not accept that: the caller must be
+> authenticated to Superset itself with `can_grant_guest_token`. The skeleton below still shows the
+> original host-JWT flow as history; the runnable endpoint is the source of truth.
 3. **SDK initialization seam** — invokes `embedDashboard()` from `@superset-ui/embedded-sdk` with the guest token, target div, and dashboard UUID
 4. **Theme + height override seam** — passes Superset-side theme params via the guest token's `extra` field; listens for postMessage resize events
 
@@ -130,7 +135,7 @@ The component above is *illustrative* — it documents the seams the runnable ve
 
 ## Security-review checklist (for the runnable .tsx version, when promoted)
 
-- [ ] JWT from host app, never client-constructed
+- [ ] Superset access token from a server-side service-account login, never client-side (and never a host-app JWT)
 - [ ] Tenant ID from JWT claim, never from URL / route params / body
 - [ ] Guest token expiration short (5-15 min)
 - [ ] postMessage origin check (the `event.origin !== supersetDomain` clause above)

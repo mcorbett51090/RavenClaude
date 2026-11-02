@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.5] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- A-21 roster login match is case-insensitive
+- A-22 transport errors fail soft per repo
+- A-29 report when pagination hits the 20-page ceiling
+- A-30 'Merged PRs' counts merges inside the window
+- A-31 config check warns on malformed logins and case-only duplicates
+
 ## [0.2.4] — 2026-09-16
 
 ### Fixed

@@ -28,7 +28,10 @@
 # READ-ONLY / FAIL-SAFE
 #   Same contract as watch-run-state.sh: resolve newest spectate-events.jsonl,
 #   never `tail -F <glob>`, re-resolve on rotation, portable stat, sourced-guard
-#   for tests.
+#   for tests. Also the same log choice: with $CLAUDE_SESSION_ID set, follow
+#   only runs/<that id>/ (no cross-session flapping); a log present at startup
+#   is joined at its end, a log first seen later is read from line 1 (so its
+#   session.start, the event that created it, is not lost).
 #
 # CLAUDE-CODE-ONLY
 #   Plugin monitors are Claude Code v2.1.105+. No Copilot equivalent — the
@@ -54,20 +57,35 @@ _interesting_kind() {
   esac
 }
 
+# The run-dir name the spectate emitter uses for $CLAUDE_SESSION_ID (same rule
+# as sanitize_session in hooks/spectate-emit.sh). Empty when the id is unset.
+session_run_name() {
+  [ -n "${CLAUDE_SESSION_ID:-}" ] || return 0
+  local s
+  s="$(printf '%s' "$CLAUDE_SESSION_ID" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
+  case "$s" in . | .. | "") s="unknown" ;; esac
+  printf '%s\n' "$s"
+}
+
 newest_spectate_log() {
   # Re-resolve each call so CLAUDE_PROJECT_DIR changes (tests / resume) bind.
   local runs_dir="${CLAUDE_PROJECT_DIR:-$PWD}/.ravenclaude/runs"
   [ -d "$runs_dir" ] || return 0
-  local newest="" newest_mt=0 _f _mt
-  while IFS= read -r -d '' _f; do
-    _mt="$(stat -c '%Y' "$_f" 2>/dev/null || stat -f '%m' "$_f" 2>/dev/null)" || continue
-    [ -n "$_mt" ] || continue
-    if [ "$_mt" -gt "$newest_mt" ] 2>/dev/null; then
-      newest_mt="$_mt"
-      newest="$_f"
-    fi
-  done < <(find "$runs_dir" -maxdepth 2 -name 'spectate-events.jsonl' -type f -print0 2>/dev/null)
-  [ -n "$newest" ] && printf '%s\n' "$newest"
+  # This session's own log only, when the id is known (never another session's).
+  local _sess
+  _sess="$(session_run_name)"
+  if [ -n "$_sess" ]; then
+    [ -f "$runs_dir/$_sess/spectate-events.jsonl" ] && printf '%s\n' "$runs_dir/$_sess/spectate-events.jsonl"
+    return 0
+  fi
+  # ONE `stat` over every candidate (xargs batches the list), not a fork per run
+  # dir (~6 s per call at 1,500 run dirs); same GNU/BSD split as watch-run-state.sh.
+  local _flag="-f" _fmt="%m %N"
+  if stat -c '%Y' "$runs_dir" >/dev/null 2>&1; then _flag="-c" _fmt="%Y %n"; fi  # noport: probe only; BSD -f is the default
+  find "$runs_dir" -maxdepth 2 -name 'spectate-events.jsonl' -type f -print0 2>/dev/null |
+    xargs -0 stat "$_flag" "$_fmt" 2>/dev/null |
+    awk '{ mt = $1 + 0; if (mt > best) { best = mt; line = $0 } }
+      END { if (line != "") { sub(/^[0-9]+ /, "", line); print line } }'
 }
 
 # Derive and print ONE notification line from ONE spectate JSONL line.
@@ -133,22 +151,43 @@ emit_spectate_derived() {
   printf '%s\n' "$line"
 }
 
+# True when $1 is one of the newline-separated lines of $2 (no pipe, so no
+# SIGPIPE-under-pipefail false negative on a long list).
+_line_in() {
+  local _l
+  while IFS= read -r _l; do
+    [ "$_l" = "$1" ] && return 0
+  done <<<"$2"
+  return 1
+}
+
 _run_spectate_monitor_loop() {
-  local current=""
+  local current="" first_pass=1 followed="" tail_from
   while true; do
     local log
     log="$(newest_spectate_log || true)"
 
     if [ -z "$log" ] || [ ! -f "$log" ]; then
       current=""
+      first_pass=0
       sleep "$POLL_SECONDS"
       continue
     fi
 
     if [ "$log" != "$current" ]; then
+      # Joined at its end only if it existed at startup or was followed before;
+      # a log first seen later is read from line 1 (its first event created it).
+      if _line_in "$log" "$followed"; then
+        tail_from="0"
+      else
+        if [ "$first_pass" -eq 1 ]; then tail_from="0"; else tail_from="+1"; fi
+        followed="$followed
+$log"
+      fi
+      first_pass=0
       current="$log"
       local tail_pid newer
-      ( tail -n0 -F "$log" 2>/dev/null | while IFS= read -r jsonl_line; do
+      ( tail -n "$tail_from" -F "$log" 2>/dev/null | while IFS= read -r jsonl_line; do
           emit_spectate_derived "$jsonl_line" || true
         done ) &
       tail_pid=$!

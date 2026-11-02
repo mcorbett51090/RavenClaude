@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the plugin uses [semantic versioning](https://semver.org/).
 
+## [0.1.1] — 2026-10-26
+
+### Changed
+
+- The routing table (§7) sends "build the tool owners use to make their own forms" to `web-design`'s new `form-builder` and `visual-builder` skills. This plugin keeps the server half of a submission; the authoring tool is construction and belongs to `web-design`.
+
 ## [0.1.0] — 2026-08-17
 
 Initial release. A **seam** between three existing owners rather than a new owner: `web-design` keeps form construction, accessibility and conversion diagnosis; `process-improvement` keeps control charts and control plans; `ravenclaude-core` keeps upload hardening, challenge-widget mechanics and every binding security verdict.

@@ -141,11 +141,23 @@ def safe_read_path(raw: str) -> Path:
 
 
 def read_text(raw: str) -> str:
-    return safe_read_path(raw).read_text(encoding="utf-8")
+    # B-19: an unreadable or non-UTF-8 input is a usage error (exit 2 + JSON error object), never a
+    # traceback with rc 1 that a wrapper reads as a gate FAIL. Charset sniffing is out of scope.
+    path = safe_read_path(raw)
+    try:
+        return path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        raise HarnessError(f"{raw!r} is not UTF-8 text ({exc}); re-encode it as UTF-8") from exc
+    except OSError as exc:
+        raise HarnessError(f"cannot read {raw!r}: {exc}") from exc
 
 
 def load_json(raw: str) -> object:
-    return json.loads(read_text(raw))
+    text = read_text(raw)
+    try:
+        return json.loads(text)
+    except ValueError as exc:  # json.JSONDecodeError is a ValueError
+        raise HarnessError(f"{raw!r} is not valid JSON: {exc}") from exc
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -371,9 +383,26 @@ _SIMPLE_ID_SELECTOR = re.compile(r"^#([A-Za-z][\w-]*)$")
 # licensed annotation, not a frozen-complement violation). All three are "bound anchors" the
 # manifest addresses; V2 asks "did anything change OUTSIDE the bound anchors?".
 _MUTABLE_CLASSES = ("surgical", "regenerate", "needs-review")
+# HTML V2 (B-2): only rewritten anchors are masked wholesale. A needs-review node's content must
+# stay untouched, so V2 checks it with just rebind's licensed annotation (the two attributes below
+# and the visible badge span) removed: binding more needs-review nodes never shrinks V2's coverage.
+_REWRITE_CLASSES = ("surgical", "regenerate")
+_REVIEW_FLAG_ATTRS = ("data-rebind-flag", "data-rebind-confidence")
+# Raw-text elements: newer html.parser builds read a badge inside <title>/<textarea> as TEXT, so
+# such a needs-review anchor stays masked wholesale (its previous treatment).
+_RAW_TEXT_TAGS = frozenset({"title", "textarea"})
 
 
-def excluded_regions(manifest: dict, template_text: str) -> tuple:
+def _is_review_badge(n: object) -> bool:
+    """True for the visible badge rebind_html inserts on a needs-review node."""
+    return (
+        isinstance(n, Element) and n.tag == "span"
+        and n.attr.get("data-rebind-flag") == "needs-review"
+        and "rebind-needs-review-badge" in n.attr.get("class", "").split()
+    )
+
+
+def excluded_regions(manifest: dict, template_text: str, classes: tuple = _MUTABLE_CLASSES) -> tuple:
     """The bound regions V2/V3 mask, resolved across BOTH anchor shapes infer emits:
       - element_id / simple '#id'  -> an element-id string (matched by Element.id)
       - compound css_selector      -> a stable structural PATH (tag, nth-of-type) tuple, resolved
@@ -382,7 +411,7 @@ def excluded_regions(manifest: dict, template_text: str) -> tuple:
     ids: set[str] = set()
     paths: set = set()
     for b in manifest.get("bindings", []):
-        if b.get("class") not in _MUTABLE_CLASSES:
+        if b.get("class") not in classes:
             continue
         anchor = b.get("anchor", {})
         kind = anchor.get("kind")
@@ -447,16 +476,20 @@ def value_domain(new_data: dict) -> set[tuple[str, str]]:
 # Leg V1 — value accuracy (recompute 2nd path + anchor + set-membership + cross-slot)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def leg_v1(template_root: Element, output_root: Element, manifest: dict, new_data: dict) -> dict:
+def leg_v1(template_root: Element, output_root: Element, manifest: dict, new_data: dict,
+           output_text: str | None = None) -> dict:
     values = new_data.get("values", {})
     output_typed = typed_values_in(output_root)
 
-    # expression -> bindings that carry it (surgical value slots addressed by element_id)
+    # expression -> bindings that carry it. B-29: css_selector slots (simple '#id' or the compound
+    # form infer emits for id-less nodes) are located too, via _resolve_binding_element; a slot
+    # that cannot be located is named in the evidence, never silently skipped.
     expr_bindings: dict[str, list[dict]] = {}
     for b in manifest.get("bindings", []):
         dq = b.get("data_query")
-        if dq and dq.get("expression") and b.get("anchor", {}).get("kind") == "element_id":
+        if dq and dq.get("expression"):
             expr_bindings.setdefault(dq["expression"], []).append(b)
+    skipped: list[str] = []
 
     anchor_failures: list[str] = []
     membership_failures: list[str] = []
@@ -490,18 +523,24 @@ def leg_v1(template_root: Element, output_root: Element, manifest: dict, new_dat
 
         slot_values: list[str] = []
         for b in bindings_for_expr:
-            node = find_by_id(output_root, b["anchor"]["value"])
+            anchor = b.get("anchor", {})
+            kind = anchor.get("kind")
+            label = "#" + anchor.get("value", "") if kind == "element_id" else anchor.get("value", "")
+            if kind not in ("element_id", "css_selector"):
+                skipped.append(f"{label} ({kind})")
+                continue
+            node = _resolve_binding_element(output_root, output_text, anchor)
             if node is None:
                 anchor_failures.append(
-                    "anchor #{} for {} missing from output".format(b["anchor"]["value"], expr)
+                    f"anchor {label} for {expr} missing from output"
                 )
                 continue
             node_typed = typed_values_in(node)
             typed_of_kind = sorted(v for (t, v) in node_typed if t == vtype)
             if expected_token not in node_typed:
                 anchor_failures.append(
-                    "#{} carries {} not {!r} (expected {})".format(
-                        b["anchor"]["value"], typed_of_kind or "no value", spec["value"], expected
+                    "{} carries {} not {!r} (expected {})".format(
+                        label, typed_of_kind or "no value", spec["value"], expected
                     )
                 )
             if typed_of_kind:
@@ -528,6 +567,8 @@ def leg_v1(template_root: Element, output_root: Element, manifest: dict, new_dat
             f"all {len(values)} recomputed values landed at their anchors and appear in-document; "
             "no cross-slot disagreement"
         )
+    if skipped:
+        evidence_parts.append("not located (anchor kind V1 cannot resolve): " + "; ".join(skipped))
     return {
         "leg": "V1",
         "verdict": verdict,
@@ -542,7 +583,7 @@ def leg_v1(template_root: Element, output_root: Element, manifest: dict, new_dat
 # Leg V2 — frozen-complement diff (canonical node-diff outside surgical/regen anchors)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def canonical_tokens(node: object, excluded_objs: set) -> list[str]:
+def canonical_tokens(node: object, excluded_objs: set, review_objs: set = frozenset()) -> list[str]:
     toks: list[str] = []
 
     def rec(n: object) -> None:
@@ -559,19 +600,27 @@ def canonical_tokens(node: object, excluded_objs: set) -> list[str]:
         elif isinstance(n, Decl):
             toks.append("#decl:" + normalize_ws(n.data))
         elif isinstance(n, Element):
-            if id(n) in excluded_objs:
+            if id(n) in excluded_objs or (id(n) in review_objs and n.tag in _RAW_TEXT_TAGS):
                 # a bound (surgical/regenerate/needs-review) anchor: value + attrs + inner are all
                 # legitimately mutable, so mask the whole subtree to a single identity placeholder
                 # (position preserved; the same placeholder in template + output => they match).
                 toks.append(f"[ANCHOR:{n.tag}#{n.id or ''}]")
                 return
+            review = id(n) in review_objs  # a needs-review anchor: drop only rebind's flag attrs
             attrs = " ".join(
                 "{}={!r}".format(k, v if v is not None else "")
                 for k, v in sorted(n.attrs, key=lambda kv: kv[0])
+                if not (review and k in _REVIEW_FLAG_ATTRS)
             )
             toks.append(f"<{n.tag} {attrs}>")
+            prev_el = None
             for c in n.children:
+                # rebind's badge: first child of a flagged paired node, or right after a flagged void one
+                if _is_review_badge(c) and (review or id(prev_el) in review_objs):
+                    continue
                 rec(c)
+                if isinstance(c, Element):
+                    prev_el = c
             toks.append(f"</{n.tag}>")
 
     rec(node)
@@ -579,9 +628,12 @@ def canonical_tokens(node: object, excluded_objs: set) -> list[str]:
 
 
 def leg_v2(template_root: Element, output_root: Element, manifest: dict, template_text: str) -> dict:
-    ids, paths = excluded_regions(manifest, template_text)
-    tmpl = canonical_tokens(template_root, excluded_objects(template_root, ids, paths))
-    out = canonical_tokens(output_root, excluded_objects(output_root, ids, paths))
+    ids, paths = excluded_regions(manifest, template_text, _REWRITE_CLASSES)
+    rids, rpaths = excluded_regions(manifest, template_text, ("needs-review",))
+    tmpl = canonical_tokens(template_root, excluded_objects(template_root, ids, paths),
+                            excluded_objects(template_root, rids, rpaths))
+    out = canonical_tokens(output_root, excluded_objects(output_root, ids, paths),
+                           excluded_objects(output_root, rids, rpaths))
     if tmpl == out:
         return {
             "leg": "V2", "verdict": "pass", "label": "proven",
@@ -863,7 +915,11 @@ def leg_v4(output_root: Element, taint: dict[str, str], output_text: str | None 
         corpus = corpus + " " + output_text
         corpus_typed = corpus_typed | extract_typed_values(output_text)
         surface += " + the full delivered bytes (comments/DOCTYPE — raw-byte backstop)"
-    return _v4_leg(corpus, corpus_typed, taint, surface)
+    # B-3: the typed extractor only sees $-currency / percent / dates / periods / comma-GROUPED
+    # numbers, so a taint figure written raw (`3102450`, `3102450.00`) in a data-* attribute, inline
+    # <script> chart JSON or plain text slipped through. Match value taints against the corpus's
+    # bare numeric tokens too, exactly as the Office lane does for its raw embedded caches.
+    return _v4_leg(corpus, corpus_typed, taint, surface, corpus_numbers=_raw_numbers(corpus))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1156,6 +1212,17 @@ class OfficeContainer:
         return self.parts.get("word/document.xml", b"")
 
 
+# B-28: zip-bomb guards that FAIL CLOSED. A container over a cap is refused, never scanned in part:
+# a silently truncated read let V4 pass on parts it never saw. Sizes are the declared uncompressed
+# sizes, checked before any read() (zipfile stops at the declared size and CRC-checks it).
+_OFFICE_MAX_PART_BYTES = 256 * 1024 * 1024
+_OFFICE_MAX_TOTAL_BYTES = 1024 * 1024 * 1024
+
+
+class _ContainerCapError(HarnessError):
+    """An OPC container over the part-count or size cap (B-28)."""
+
+
 def _office_parts_from_bytes(raw: bytes, source: str, require_document: bool,
                              max_parts: int = 8000) -> dict:
     if raw[:2] != b"PK":
@@ -1163,11 +1230,19 @@ def _office_parts_from_bytes(raw: bytes, source: str, require_document: bool,
     parts: dict = {}
     try:
         with zipfile.ZipFile(io.BytesIO(raw)) as zf:
-            for info in zf.infolist():
-                if info.is_dir():
-                    continue
-                if len(parts) >= max_parts:  # zip-bomb guard (part-count cap)
-                    break
+            infos = [info for info in zf.infolist() if not info.is_dir()]
+            if len(infos) > max_parts:
+                raise _ContainerCapError(
+                    f"{source}: {len(infos)} parts exceeds the {max_parts}-part cap — refusing a partial scan"
+                )
+            total = 0
+            for info in infos:
+                total += info.file_size
+                if info.file_size > _OFFICE_MAX_PART_BYTES or total > _OFFICE_MAX_TOTAL_BYTES:
+                    raise _ContainerCapError(
+                        f"{source}: part {info.filename!r} ({info.file_size} bytes uncompressed) breaks the "
+                        f"{_OFFICE_MAX_PART_BYTES}-byte part / {_OFFICE_MAX_TOTAL_BYTES}-byte container cap"
+                    )
                 parts[info.filename] = zf.read(info.filename)
     except zipfile.BadZipFile as exc:
         raise HarnessError(f"{source}: corrupt zip: {exc}")
@@ -1671,6 +1746,8 @@ def _decoded_container_office(container: OfficeContainer, _depth: int = 0) -> tu
                 st, sty = _decoded_container_office(nested, _depth + 1)
                 text_parts.append(st)
                 typed.update(sty)
+            except _ContainerCapError:  # B-28: an over-cap nested cache is never half-scanned
+                raise
             except Exception:  # a corrupt nested cache still gets a raw-literal scan
                 blob = data.decode("latin-1", "replace")
                 text_parts.append(blob)
@@ -1691,16 +1768,20 @@ def _decoded_container_office(container: OfficeContainer, _depth: int = 0) -> tu
 
 
 _RE_BARE_NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+# B-3: a second, grouping-aware pass — a comma only joins exact 3-digit groups — so a JSON array
+# such as `[3102450,2900000]` also yields `3102450` and `2900000`, not only the joined token.
+_RE_GROUPED_OR_BARE_NUMBER = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
 
 
 def _raw_numbers(corpus: str) -> set:
     """Canonical BARE numeric tokens in the corpus — the embedded-xlsx cache stores figures raw
     (e.g. `1284500`), which the typed extractor (currency/percent/grouped) never captures."""
     out: set = set()
-    for m in _RE_BARE_NUMBER.finditer(corpus):
-        c = canon_number(m.group())
-        if c is not None:
-            out.add(c)
+    for rx in (_RE_BARE_NUMBER, _RE_GROUPED_OR_BARE_NUMBER):
+        for m in rx.finditer(corpus):
+            c = canon_number(m.group())
+            if c is not None:
+                out.add(c)
     return out
 
 
@@ -1719,6 +1800,8 @@ def _office_embedded_cache_figures(container: OfficeContainer) -> set:
                     OfficeContainer(_office_parts_from_bytes(data, name, require_document=False)),
                     _depth=1,
                 )
+            except _ContainerCapError:  # B-28: never derive a partial taint from an over-cap cache
+                raise
             except Exception:
                 continue
             blob_numbers = _raw_numbers(data.decode("latin-1", "replace"))
@@ -2078,7 +2161,7 @@ def run_legs(template_root: Element, output_root: Element, manifest: dict, new_d
                 "evidence": f"harness crash while running {name}: {type(exc).__name__}: {exc}",
             }
 
-    guarded("V1", lambda: leg_v1(template_root, output_root, manifest, new_data))
+    guarded("V1", lambda: leg_v1(template_root, output_root, manifest, new_data, output_text))
     guarded("V2", lambda: leg_v2(template_root, output_root, manifest, template_text))
     guarded("V3", lambda: leg_v3(template_root, output_root, manifest, template_text))
     guarded("V4", lambda: leg_v4(output_root, taint, output_text))
@@ -2331,6 +2414,28 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+_TAINT_SHAPE = ('--taint must be a JSON object of {label: literal} with string literals, or the '
+                'taint-dict@1 artifact build_manifest --taint-out writes')
+_TAINT_DICT_SCHEMAS = ("report-regeneration/taint-dict@1", "taint-dict@1")
+
+
+def _taint_override(loaded: object) -> dict:
+    """B-4: --taint accepts the flat {label: literal} dict OR build_manifest's taint-dict@1 artifact
+    ({schema, template, values[], identity_strings[], all[]}), flattened to {label: literal}."""
+    if isinstance(loaded, dict) and loaded.get("schema") in _TAINT_DICT_SCHEMAS:
+        flat: dict = {}
+        for kind in ("identity_strings", "values"):
+            items = loaded.get(kind, [])
+            if not isinstance(items, list) or not all(isinstance(v, str) for v in items):
+                raise HarnessError(f"{_TAINT_SHAPE} (taint-dict@1 {kind!r} must be a list of strings)")
+            for i, v in enumerate(items):
+                flat[f"{kind}_{i}"] = v
+        return flat
+    if not isinstance(loaded, dict) or not all(isinstance(v, str) for v in loaded.values()):
+        raise HarnessError(_TAINT_SHAPE)
+    return loaded
+
+
 def main(argv: list[str]) -> int:
     args = build_parser().parse_args(argv)
     if args.disable_leg and not _disable_allowed():
@@ -2347,10 +2452,7 @@ def main(argv: list[str]) -> int:
     try:
         taint = None
         if args.taint:
-            loaded = load_json(args.taint)
-            if not isinstance(loaded, dict):
-                raise HarnessError("--taint must be a JSON object of {label: literal}")
-            taint = loaded
+            taint = _taint_override(load_json(args.taint))
         receipt = run_harness(
             args.template, args.output, args.manifest, args.new_data,
             taint=taint, disabled_legs=args.disable_leg, report_format=args.report_format,

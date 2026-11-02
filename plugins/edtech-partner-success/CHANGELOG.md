@@ -2,6 +2,19 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.12] — 2026-10-20
+
+### Fixed (2026-10-20 autonomous repo review, PR #1389)
+
+- H-7 PSM exporter serialises Decimal/date values and decodes OBJECT/ARRAY columns
+- H-8 PSM exporter --validate finds (or names) its schema and --allow-real-ids stops promising masking
+
+## [0.12.11] — 2026-10-18
+
+### Fixed
+
+- `skills/psm-dashboard-build/SKILL.md` tier-brief table pointed at seven filenames that do not exist. Corrected T0.5–T4 to the real archived brief names, repointed T0 at `plan.md` §"Tier 0", and marked T5 as having no brief yet (deferred). Docs only. **Migration:** none.
+
 ## [0.12.10] — 2026-09-18
 
 ### Fixed

@@ -1,0 +1,33 @@
+{
+  "_comment": "Gate 306 (scripts/check-headless-call-shape.py). Files whose claude -p sites do not pass --strict-mcp-config, keyed by path, with the number of sites in the file and the reason. A changed site count, a short reason, or a file that no longer needs the entry fails the gate.",
+  "exemptions": {
+    ".claude/workflows/rc-deep-research.js": {
+      "sites": 1,
+      "reason": "Dispatch-evaluator shell-out already passes --bare. Pairing --bare with --strict-mcp-config was not measured (knowledge/headless-claude-calls.md). Mirror of the skills copy (Gate 126)."
+    },
+    "plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js": {
+      "sites": 1,
+      "reason": "Skills copy of .claude/workflows/rc-deep-research.js; Gate 126 keeps them byte-identical. Same --bare reason."
+    },
+    "plugins/ravenclaude-core/skills/agent-dispatch-evaluator/reference/evaluate-dispatch.js": {
+      "sites": 1,
+      "reason": "Reference source for the copied dispatch-evaluator block in both rc-deep-research.js copies. Already --bare; change all three together."
+    },
+    "plugins/ravenclaude-core/hooks/agent-dispatch-evaluator.sh": {
+      "sites": 1,
+      "reason": "Already --bare with --tools=\"\". Pairing --bare with --strict-mcp-config was not measured (knowledge/headless-claude-calls.md)."
+    },
+    "plugins/ravenclaude-core/hooks/_host-canary.sh": {
+      "sites": 1,
+      "reason": "On-demand host probe (Tier D). It checks that a default claude -p session fires the project's hooks, so it keeps a default call shape on purpose. Not a per-call cost."
+    },
+    "plugins/ravenclaude-core/hooks/tests/live-nested-dispatch.sh": {
+      "sites": 1,
+      "reason": "Live test that has to dispatch a subagent, so it needs the default tool set. Run by hand, not per call."
+    },
+    "scripts/build-directory-edition.py": {
+      "sites": 1,
+      "reason": "Fixture text written into a scratch helper.py for the edition audit's self-test. It is a string, not an invocation."
+    }
+  }
+}

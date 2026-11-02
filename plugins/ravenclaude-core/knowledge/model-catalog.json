@@ -1,21 +1,29 @@
 {
   "_comment": "Single source of truth for the tribunal-seat / dashboard / template model IDs. The drift gate (scripts/check-model-ids.py, audit-gates Gate 134) fails the build if any governed file references a token in `stale` or any claude-* id not in `current`'s values. Update `current` here (and regenerate the dashboards + copilot package) when a model is superseded; move the retired id into `stale`. See CLAUDE.md milestone 'Canonical model catalog + drift gate'.",
-  "_context_windows_comment": "context_windows keys are the same aliases as `current` (opus/sonnet/haiku/fable), values are each model's real context-window ceiling in tokens, sourced from the claude-api skill's live model table (retrieved 2026-09-08): every current-generation Claude model is 1,000,000 except the haiku tier, which is 200,000. Consumed by scripts/context-usage-meter.py to resolve a session's real budget from its actual running model id instead of a hardcoded 200000 assumption -- see CLAUDE.md milestone 'Context-usage meter becomes model-aware'.",
+  "_context_windows_comment": "context_windows keys are the same aliases as `current` (opus/sonnet/haiku/fable), values are each model's real context-window ceiling in tokens. As of the 2026-10-17 playbook, every current pin including Haiku 5.5 is 1,000,000. An unresolved haiku-shaped id (for example the retired dated Haiku 4.5 pin) still falls back to a 200,000 heuristic in scripts/context-usage-meter.py so an older Haiku session is not told it has a 1,000,000 window. See CLAUDE.md milestone 'Context-usage meter becomes model-aware'.",
   "schema_version": 1,
   "current": {
-    "opus": "claude-opus-4-8",
-    "sonnet": "claude-sonnet-5",
-    "haiku": "claude-haiku-4-5-20251001",
-    "fable": "claude-fable-5"
+    "opus": "claude-opus-5-5",
+    "sonnet": "claude-sonnet-5-5",
+    "haiku": "claude-haiku-5-5",
+    "fable": "claude-fable-5-1"
   },
   "context_windows": {
     "opus": 1000000,
     "sonnet": 1000000,
-    "haiku": 200000,
+    "haiku": 1000000,
     "fable": 1000000
   },
-  "stale": ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"],
+  "stale": [
+    "claude-opus-4-7",
+    "claude-opus-4-8",
+    "claude-sonnet-4-6",
+    "claude-sonnet-5",
+    "claude-haiku-4-5",
+    "claude-haiku-4-5-20251001",
+    "claude-fable-5"
+  ],
   "freshness_notes": {
-    "opus_pin_2026-10-09": "current.opus (claude-opus-4-8) stays the governed pin for drift gates and Claude Code first-party references; the live first-party/Bedrock `opus` alias may resolve newer. Copilot coding-agent top Claude was Opus 5.5 per the 2026-09 lineup — see substrate-tier-map.json hosts.claude._note and ai-coding-model-guidance cross-tool-model-lineup-2026.md."
+    "pins_2026-10-17": "current pins follow the 2026-10-17 Claude API playbook (Opus 5.5 claude-opus-5-5, Sonnet 5.5 claude-sonnet-5-5, Haiku 5.5 claude-haiku-5-5, Fable 5.1 claude-fable-5-1). This session did not re-fetch the live alias table. Opus 5.5 defaults effort to medium, so set effort explicitly. Fable 5.1 is the quality-escalation pin only after Opus at xhigh demonstrably fails; do not pin legacy claude-fable-5 (same sticker price, 4x cache-read price, no per-message effort). The model-fallback ladder may still list Fable as an outage retry; that is not the quality-escalation rule."
   }
 }

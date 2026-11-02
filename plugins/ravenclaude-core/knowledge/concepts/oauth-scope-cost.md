@@ -6,7 +6,7 @@ kind: platform-fact
 order: 22
 summary: "Google grades OAuth scopes recommended, sensitive, or restricted. Restricted adds verification plus a 12-monthly third-party security assessment — check the scope before you design the feature."
 see_also: [permission-layers, web-access-guardrail, containment-posture]
-last_verified: 2026-07-21
+last_verified: 2026-10-20
 refresh_when: "Google changes its scope categories, moves a Drive scope between categories, changes the drive.file grant wording, or drops/replaces the CASA third-party security assessment or its 12-month recertification."
 sources:
   - label: "Google — Restricted scope verification (CASA security assessment)"
@@ -25,8 +25,8 @@ You sketch a feature: *"we'll make a folder in the customer's Google Drive, they
 
 Google sorts OAuth scopes into three buckets, and the bucket sets the price:
 
-- **Recommended / non-sensitive** — narrow, per-item access. No Google review. Ship today.
-- **Sensitive** — broader access to user data. *"Sensitive scopes require review by Google before any Google Account can grant access."* Weeks of back-and-forth, but no outside auditor.
+- **Recommended / non-sensitive** — narrow, per-item access. Google says these scopes *"only require basic OAuth App Verification"* — no scope-specific review. Ship today.
+- **Sensitive** — broader access to user data. *"Sensitive scopes require review by Google before any Google Account can grant access."* Google says the process *"typically takes 3-5 business days to complete"*, and its sensitive-scope page names no outside auditor.
 - **Restricted** — the highest-risk data. Verification **plus** an independent security assessment.
 
 The restricted tier is where the surprise lives. Google's own words: *"Every app that requests access to Google users' restricted data and has the ability to access data from or through a third-party server must go through a security assessment"* — standardised on the App Defense Alliance's **CASA** framework. And it does not end: *"apps must be reverified for compliance and complete a security assessment at least every 12 months after your assessor's Letter of Assessment (LOA) approval date."* Google warns that restricted-scope verification alone *"can potentially take several weeks to complete."*
@@ -55,8 +55,8 @@ The cheap redesign is usually right there: keep `drive.file` and put a Google Pi
 flowchart TD
   F[Feature idea] --> Q[Ask FIRST: which scope does this need?]
   Q --> C{Google's scope tier}
-  C -- recommended / non-sensitive --> R[Ship it · no Google review]
-  C -- sensitive --> S[Google review · weeks · no outside auditor]
+  C -- recommended / non-sensitive --> R[Ship it · basic app verification]
+  C -- sensitive --> S[Google review · ~3-5 business days · no outside auditor]
   C -- restricted --> T{Server touches<br/>the data?}
   T -- no --> V[Verification only]
   T -- yes --> A[Verification + CASA security assessment<br/>+ re-audit every 12 months]

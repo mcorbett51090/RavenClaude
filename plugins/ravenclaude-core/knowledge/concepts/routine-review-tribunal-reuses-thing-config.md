@@ -38,6 +38,6 @@ Measured 2026-09-11: `resolve_panels()` loads `thing-decision.py` via `importlib
 
 ## Why it matters
 
-If `.ravenclaude/comfort-posture.yaml` or `.ravenclaude/thing.yaml` ever repoints a seat to a different model (e.g. to raise Forseti's reasoning effort), the routine-review tribunal picks that up automatically on its next `panels` call — the same way the Thing and decision-review would. A script that had instead hardcoded `"agent": "security-reviewer", "model": "claude-opus-4-8"` would silently keep reviewing routine diffs with a stale seat long after the rest of the marketplace moved on.
+If `.ravenclaude/comfort-posture.yaml` or `.ravenclaude/thing.yaml` ever repoints a seat to a different model (e.g. to raise Forseti's reasoning effort), the routine-review tribunal picks that up automatically on its next `panels` call — the same way the Thing and decision-review would. A script that had instead hardcoded `"agent": "security-reviewer", "model": "claude-opus-5-5"` would silently keep reviewing routine diffs with a stale seat long after the rest of the marketplace moved on.
 
 Falsifier: a future edit to `routine-review-tribunal.py` that hardcodes a seat's model/agent instead of calling `resolve_panel_config`.

@@ -97,16 +97,58 @@ def _model_available() -> tuple[bool, str]:
     return True, ""
 
 
-def _ask(prompt: str) -> str | None:
+_USAGE_RECORDER = (
+    Path(__file__).resolve().parent.parent / "plugins" / "ravenclaude-core" / "scripts" / "headless-usage.py"
+)
+
+
+def _record_usage(envelope: str) -> None:
+    """Fail-open usage sidecar for `rc cache-report`. Never changes a verdict."""
+    if not _USAGE_RECORDER.is_file():
+        return
     try:
-        r = subprocess.run(
-            ["claude", "-p", prompt], capture_output=True, text=True, timeout=JUDGE_TIMEOUT
+        subprocess.run(
+            [sys.executable, str(_USAGE_RECORDER), "record", "--site", "inventory-nuance-judge", "--model", ""],
+            input=envelope,
+            text=True,
+            capture_output=True,
+            timeout=5,
+            check=False,
         )
+    except (OSError, subprocess.SubprocessError):
+        return
+
+
+def _ask(prompt: str) -> str | None:
+    # Lean call (Gate 306). A temp cwd keeps this repo's CLAUDE.md, project hooks and
+    # project MCP config out of the judge's prompt; --tools= and --strict-mcp-config keep
+    # tool and MCP definitions out of the prefix. The rubric is self-contained, so the
+    # judge needs none of it. The model is still the CLI default, as before.
+    try:
+        with tempfile.TemporaryDirectory() as scratch:
+            r = subprocess.run(
+                ["claude", "-p", "--output-format", "json", "--strict-mcp-config", "--tools=", prompt],
+                cwd=scratch,
+                capture_output=True,
+                text=True,
+                timeout=JUDGE_TIMEOUT,
+            )
     except (OSError, subprocess.SubprocessError):
         return None
     if r.returncode != 0:
         return None
-    out = (r.stdout or "").strip().lower()
+    raw = (r.stdout or "").strip()
+    text = raw
+    try:
+        envelope = json.loads(raw)
+    except json.JSONDecodeError:
+        envelope = None
+    if isinstance(envelope, dict):
+        _record_usage(raw)
+        if envelope.get("is_error"):
+            return None
+        text = str(envelope.get("result") or "")
+    out = text.strip().lower()
     if "restatement" in out:
         return "restatement"
     if "nuance" in out:

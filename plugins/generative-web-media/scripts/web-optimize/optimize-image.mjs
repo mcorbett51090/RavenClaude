@@ -18,11 +18,14 @@
  *
  * Run on demand via npx (no repo install needed):
  *   npx --yes --package=sharp@0.33.5 node optimize-image.mjs --in … --outdir … --name …
+ * sharp is resolved from the plain import, then SHARP_DIR, the current directory and
+ * the npx cache (the node_modules/.bin entries npx puts on PATH).
  */
 
-import { argv, exit, stderr, stdout } from "node:process";
+import { argv, env, exit, stderr, stdout } from "node:process";
 import { mkdir, access } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { createRequire } from "node:module";
+import { basename, delimiter, dirname, join } from "node:path";
 
 const DEFAULT_WIDTHS = [480, 768, 1200, 1600];
 
@@ -60,11 +63,37 @@ function loudFail(message) {
   exit(1);
 }
 
+// ESM `import("sharp")` resolves from this script's directory only: it ignores NODE_PATH
+// and the npx cache, which is where `npx --package=sharp` installs it (and where it puts
+// <cache>/node_modules/.bin on PATH). So after the plain import fails, resolve sharp the
+// CommonJS way from (1) SHARP_DIR, (2) the current directory, (3) the project dir of every
+// PATH entry that ends in node_modules/.bin.
+function sharpSearchDirs() {
+  const dirs = [];
+  if (env.SHARP_DIR) dirs.push(env.SHARP_DIR);
+  dirs.push(process.cwd());
+  for (const entry of (env.PATH ?? "").split(delimiter)) {
+    const bin = entry.replace(/[\\/]+$/, "");
+    if (basename(bin) === ".bin" && basename(dirname(bin)) === "node_modules") {
+      dirs.push(dirname(dirname(bin)));
+    }
+  }
+  return [...new Set(dirs)];
+}
+
 async function loadSharp() {
   try {
     const mod = await import("sharp");
     return mod.default ?? mod;
   } catch {
+    for (const dir of sharpSearchDirs()) {
+      try {
+        const mod = createRequire(join(dir, "noop.js"))("sharp");
+        return mod.default ?? mod;
+      } catch {
+        // not here — try the next candidate
+      }
+    }
     loudFail(
       "The `sharp` image library is not resolvable in this environment.\n" +
         "This script does NOT degrade to a silent success — it produces the AVIF/WebP\n" +

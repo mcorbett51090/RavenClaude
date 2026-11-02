@@ -66,11 +66,12 @@ python3 scripts/remeasure.py \
   --tb     skills/multi-currency-translation/examples/tb-eur-sub-2026-06.csv \
   --rates  skills/multi-currency-translation/examples/rates-temporal.json \
   --presentation-currency USD \
-  --out-tb eur-sub-usd.csv \
-  --out    eur-sub-translation.json
+  --out-tb  eur-sub-usd.csv \
+  --out-coa eur-sub-coa.csv \
+  --out     eur-sub-translation.json
 ```
 
-Then point the `consolidate.py` config's entity `tb` at the emitted USD trial balance. The engine blocks on: an invalid entity profile (`rc2`), a functional TB that is out of balance (`rc4`), a missing/invalid `rate_class` (`rc3`), a failed CTA self-check (`rc5`), and refuses a hyperinflation + current-rate combo (`rc7`).
+Then point the `consolidate.py` config's entity `tb` at the emitted USD trial balance **and its `coa` at the `--out-coa` file**. The translated TB carries a synthetic plug line (`__CTA__` for current-rate, `__REMEAS_GL__` for temporal) that a consumer's own COA does not map, so `consolidate.py --strict` BLOCKS on it as an unmapped account unless the entity's `coa` includes it. `--out-coa` writes your input COA unchanged plus exactly the plug row(s) the `--out-tb` uses (`__CTA__` → `BS`/`Equity`, `__REMEAS_GL__` → `IS`/`OtherIncomeExpense`, the same mapping the engine classifies them by; a COA that already maps them, like the shipped example, gets no duplicate). Passing `--out-tb` without `--out-coa` prints a stderr `NOTE` naming the rows consolidate will need. The engine blocks on: an invalid entity profile (`rc2`), a functional TB that is out of balance (`rc4`), a missing/invalid `rate_class` (`rc3`), a failed CTA self-check (`rc5`), and refuses a hyperinflation + current-rate combo (`rc7`).
 
 ## Correctness discipline
 

@@ -1,7 +1,7 @@
 # Gmail organization routine (hourly)
 
 > **Status:** created 2026-09-22 as Routine `trig_01UbUvCS2pNN4Z2NRsJicvPx` ("Gmail organization (hourly)"). **Owner:** Matt.
-> **Live copy:** the Routine's stored prompt is the copy that runs. This file mirrors it so the rules are reviewable in git; when one changes, change the other.
+> **Live copy:** the Routine's stored prompt is the copy that runs. This file mirrors it so the rules are reviewable in git; when one changes, change the other. Personal details (Matt's personal address, and the specific banks, brokerage and other services that send him login codes) are kept only in the live prompt; this mirror uses generic placeholders for them, so the two intentionally differ in those spots.
 
 ## What it does
 
@@ -21,8 +21,8 @@ Global rails, in the prompt's own priority order: never send/reply/forward/draft
 - **Why an hourly cadence.** Routines run at most hourly. Combined with the "older than 60 minutes" check, a code is trashed between one and two hours after arrival, which is the tightest bound the platform allows.
 - **Why the routine computes age itself.** Gmail search supports `older_than`/`newer_than` in days, months and years only, not hours. The prompt therefore searches `newer_than:2d` and compares each message's UTC `date` to the current time.
 - **Why label ids are re-fetched every run.** The Gmail MCP tools take label ids, not names. The prompt calls `list_labels` each run and maps names to ids rather than hardcoding ids that could drift.
-- **Label taxonomy** is the one already in the mailbox (Security, Finance, Finance/Chase, Finance & Legal, Business & Clients, Work, Work/GitHub, Work/AI Tools, Job Alerts, Receipts, Shopping, Newsletters, Travel, Home, Medical, Family, Accounts & Services, Boat, Jeep, Airstream). Legacy labels (Propeller, Brewery, trip/wedding labels) are left alone. Sender-to-label examples in the prompt came from a sample of the live inbox on 2026-09-22.
-- **Verification-code sender list** (Poshmark, ChatGPT/OpenAI, Tradier, x.ai, X, Starlink, Atlassian, Vercel, Slack, Stripe, LinkedIn, Discord) was taken from the last 30 days of real matches. It is a hint, not a fence: the subject/snippet classification in Part A is what decides.
+- **Label taxonomy** is the one already in the mailbox (Security, Finance (plus a per-bank sub-label), Finance & Legal, Business & Clients, Work, Work/GitHub, Work/AI Tools, Job Alerts, Receipts, Shopping, Newsletters, Travel, Home, Medical, Family, Accounts & Services, Boat, Jeep, Airstream). Legacy labels (Propeller, Brewery, trip/wedding labels) are left alone. Sender-to-label examples in the prompt came from a sample of the live inbox on 2026-09-22.
+- **Verification-code sender list** (the services that actually send Matt login codes) was taken from the last 30 days of real matches and lives only in the live prompt. It is a hint, not a fence: the subject/snippet classification in Part A is what decides.
 
 ## ⚠️ Connector attachment — required once, by hand
 
@@ -48,7 +48,7 @@ Older Routines on this account created from the UI (e.g. "Plugin research and bu
 ```text
 You are Matt's hourly Gmail organizer. You start from nothing each run: this prompt is the whole contract. Use ONLY the Gmail MCP tools (mcp__Gmail__*; load their schemas with ToolSearch first if they are name-only). Do not modify, commit, or push anything in the git repository you were started in; it is not part of this job.
 
-Matt's two addresses land in this one mailbox: matthewcorbett51090@gmail.com (personal) and matt@ravenpower.net (business, Raven Power).
+Matt's two addresses land in this one mailbox: his personal address and matt@ravenpower.net (business, Raven Power).
 
 Hard rules, in priority order:
 - NEVER send, reply, forward, or create drafts. NEVER mark anything as spam. NEVER mark anything read. NEVER delete labels or create new labels.
@@ -60,22 +60,22 @@ Hard rules, in priority order:
 PART A: Trash verification-code emails that are more than one hour old.
 1. Record the current UTC time first (from the system date; every message's `date` field is UTC).
 2. Search with mcp__Gmail__search_threads, pageSize 50, paginating with pageToken until exhausted, using this query:
-   newer_than:2d (subject:("verification code" OR "verification link" OR "login code" OR "log in code" OR "sign-in code" OR "sign in code" OR "confirmation code" OR "one time passcode" OR "one-time passcode" OR "one-time code" OR "security code" OR "your code" OR "temporary code" OR passcode OR OTP OR "verify your new device" OR "is your") OR from:(accountsecurity@poshmark.com OR noreply@tm.openai.com OR sysadmin@tradierbrokerage.com OR noreply@x.ai OR info@x.com OR no-reply@starlink.com OR id.atlassian.com OR system@vercel.com OR slack.com OR notifications@stripe.com OR security-noreply@linkedin.com))
-3. Classify EVERY message inside every returned thread individually (a thread can hold five codes). A message QUALIFIES only if its subject or snippet shows a one-time code, passcode, OTP, magic sign-in link, or new-device verification prompt that exists solely to complete a login, signup, or password reset. Known qualifying shapes: "Poshmark verification code", "Your temporary ChatGPT login code / verification code", "Tradier Brokerage One Time Passcode", "SpaceXAI sign-in code: NNN-NNN", "SpaceXAI confirmation code", "NNNNNN is your X verification code", "Your Starlink verification code", "XXXXXX is your verification code" (Atlassian), "NNNNNN is your Vercel log in code", "Slack confirmation code: XXX-XXX", "Your Stripe verification link", "Matthew, please verify your new device" (LinkedIn), "Verify Discord Login from New Location".
+   newer_than:2d (subject:("verification code" OR "verification link" OR "login code" OR "log in code" OR "sign-in code" OR "sign in code" OR "confirmation code" OR "one time passcode" OR "one-time passcode" OR "one-time code" OR "security code" OR "your code" OR "temporary code" OR passcode OR OTP OR "verify your new device" OR "is your") OR from:(<the known code-sender addresses>))
+3. Classify EVERY message inside every returned thread individually (a thread can hold five codes). A message QUALIFIES only if its subject or snippet shows a one-time code, passcode, OTP, magic sign-in link, or new-device verification prompt that exists solely to complete a login, signup, or password reset. Known qualifying shapes: "<Service> verification code", "Your temporary <Service> login code", "<Brokerage> One Time Passcode", "<Service> sign-in code: NNN-NNN", "NNNNNN is your <Service> verification code", "<Service> confirmation code: XXX-XXX", "Your <Service> verification link", "please verify your new device", "Verify <Service> Login from New Location".
    A message does NOT qualify if it is: a security notice about a completed event (new login, password changed, email added or verified, unrecognized device signed in), a receipt, a newsletter or CI notification that merely contains the word "code", a password-reset LINK email from support, or anything you are not sure about. When unsure, leave it and list it in the summary instead.
 4. For each qualifying message, compute age = now minus the message `date`. If age is greater than 60 minutes, call mcp__Gmail__trash_message with that message's id. Messages 60 minutes old or younger stay untouched; Matt may still need the code. Use trash_message, never trash_thread, so a non-code sibling message in the same thread survives.
 
 PART B: Organize the last day of inbox mail using Matt's EXISTING labels only.
 1. Call mcp__Gmail__list_labels once and build a name-to-labelId map. Never hardcode ids. The user labels that matter and what belongs in each:
-   - "Security": login alerts, password changes, new-device notices, 2FA setup, account-security warnings (Poshmark, Stripe, Discord, LinkedIn security, GitHub security).
-   - "Finance": bank, card, brokerage, mortgage, HOA dues, payment-due and payment-scheduled alerts, statements (Chase, Citi, Amex, Rocket Mortgage, Western Alliance, Tradier). Also add "Finance/Chase" for Chase mail.
+   - "Security": login alerts, password changes, new-device notices, 2FA setup, account-security warnings (from any service).
+   - "Finance": bank, card, brokerage, mortgage, HOA dues, payment-due and payment-scheduled alerts, statements from his banks, card issuers, brokerage and mortgage servicer. Also add the matching per-bank "Finance/<bank>" sub-label when one exists.
    - "Finance & Legal": tax, legal, insurance, contracts, government notices.
    - "Business & Clients": anything about Raven Power's business: Stripe, client intake, subscriptions, invoices, ravenpower.net operational mail (onboarding@resend.dev), partner and client correspondence.
    - "Work": employer and job-related work mail. "Work/GitHub": every notifications@github.com / noreply@github.com message. "Work/AI Tools": Claude, Anthropic, OpenAI/ChatGPT, Cursor, Vercel, x.ai product mail.
    - "Job Alerts": LinkedIn job alerts, recruiter mail, application confirmations (ashbyhq, greenhouse, lever).
    - "Receipts": order confirmations, payment receipts, purchase receipts (GitHub receipt, Tecovas order, Amazon orders).
    - "Shopping": retail marketing and promotions (Tecovas, Tonal, SwitchBot, Pet Supermarket, Target surveys).
-   - "Newsletters": editorial newsletters and digests (Claude Code weekly, LinkedIn group digests, Marriott/IHG/Amex marketing, catamaran and yacht listings, USPS Informed Delivery digest).
+   - "Newsletters": editorial newsletters and digests (Claude Code weekly, LinkedIn group digests, hotel and card-issuer marketing, catamaran and yacht listings, USPS Informed Delivery digest).
    - "Travel": flights, hotels, cruises, reservations that are booked (Resy confirmations, airline itineraries).
    - "Home": HOA community posts, home services (ARS HVAC), Ting monitoring, utilities, contractors.
    - "Medical": health providers, pharmacy (CVS), insurance EOBs, Omada Health.

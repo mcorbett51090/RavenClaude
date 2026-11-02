@@ -719,10 +719,10 @@ def self_test() -> int:
         if not cond:
             fails += 1
 
-    check("tier: haiku id -> fast", tier_of("claude-haiku-4-5-20251001") == "fast")
+    check("tier: haiku id -> fast", tier_of("claude-haiku-5-5") == "fast")
     check("tier: sonnet alias -> mid", tier_of("sonnet") == "mid")
-    check("tier: opus id -> frontier", tier_of("claude-opus-4-8") == "frontier")
-    check("tier: fable -> frontier", tier_of("claude-fable-5") == "frontier")
+    check("tier: opus id -> frontier", tier_of("claude-opus-5-5") == "frontier")
+    check("tier: fable -> frontier", tier_of("claude-fable-5-1") == "frontier")
     check("tier: unknown id stays unknown (never guessed)", tier_of("gpt-5.6") == "unknown")
 
     with tempfile.TemporaryDirectory() as td:
@@ -732,14 +732,14 @@ def self_test() -> int:
 
         short = " ".join(["w"] * 50)
         sig, adv = observe(
-            _payload(prompt=short, report=short, resolved="claude-haiku-4-5-20251001"), root
+            _payload(prompt=short, report=short, resolved="claude-haiku-5-5"), root
         )
         check("clean haiku dispatch -> OK, no advisory", sig == "OK" and adv == "")
 
         # must-fail canary: an over-cap report MUST be flagged.
         long_report = " ".join(["w"] * (DEFAULT_REPORT_CAP_WORDS + 1))
         sig, adv = observe(
-            _payload(prompt=short, report=long_report, resolved="claude-sonnet-5"), root
+            _payload(prompt=short, report=long_report, resolved="claude-sonnet-5-5"), root
         )
         check(
             "canary: over-cap report -> SIGNAL report_over_cap",
@@ -755,7 +755,7 @@ def self_test() -> int:
 
         long_brief = " ".join(["w"] * (DEFAULT_BRIEF_CAP_WORDS + 1))
         sig, adv = observe(
-            _payload(prompt=long_brief, report=short, resolved="claude-sonnet-5"), root
+            _payload(prompt=long_brief, report=short, resolved="claude-sonnet-5-5"), root
         )
         check(
             "over-cap brief -> SIGNAL brief_over_cap",
@@ -764,7 +764,7 @@ def self_test() -> int:
 
         sig, adv = observe(
             _payload(
-                prompt=short, report=short, subagent_type="Explore", resolved="claude-opus-4-8"
+                prompt=short, report=short, subagent_type="Explore", resolved="claude-opus-5-5"
             ),
             root,
         )
@@ -776,7 +776,7 @@ def self_test() -> int:
                     prompt=short,
                     report=short,
                     subagent_type="ravenclaude-core:scout",
-                    resolved="claude-opus-4-8",
+                    resolved="claude-opus-5-5",
                 ),
                 root,
             )[0]
@@ -789,7 +789,7 @@ def self_test() -> int:
                     prompt=short,
                     report=short,
                     subagent_type="architect",
-                    resolved="claude-opus-4-8",
+                    resolved="claude-opus-5-5",
                 ),
                 root,
             )[0]
@@ -806,7 +806,7 @@ def self_test() -> int:
         # async launch: no report, no flag on the report side, ledger still written.
         sig, _ = observe(
             _payload(
-                prompt=short, report=None, status="async_launched", resolved="claude-sonnet-5"
+                prompt=short, report=None, status="async_launched", resolved="claude-sonnet-5-5"
             ),
             root,
         )
@@ -839,7 +839,7 @@ def self_test() -> int:
             p["report_cap"] == 10 and p["brief_cap"] == 20 and p["advise"],
         )
         sig, adv = observe(
-            _payload(prompt=short, report=short, resolved="claude-haiku-4-5-20251001"), root
+            _payload(prompt=short, report=short, resolved="claude-haiku-5-5"), root
         )
         check(
             "tightened caps flag a 50-word report AND brief",
@@ -850,7 +850,7 @@ def self_test() -> int:
             "schema_version: 5\nhandoff_tax: off\n"
         )
         sig, adv = observe(
-            _payload(prompt=short, report=long_report, resolved="claude-sonnet-5"), root
+            _payload(prompt=short, report=long_report, resolved="claude-sonnet-5-5"), root
         )
         check(
             "handoff_tax: off -> SIGNAL still computed, advisory suppressed, ledger written",
@@ -902,7 +902,7 @@ def self_test() -> int:
                 prompt=short,
                 report=short,
                 subagent_type="general-purpose",
-                resolved="claude-sonnet-5",
+                resolved="claude-sonnet-5-5",
                 agent_id="gp1",
             ),
             root,
@@ -913,7 +913,7 @@ def self_test() -> int:
                 prompt=short,
                 report=short,
                 subagent_type="scout",
-                resolved="claude-haiku-4-5-20251001",
+                resolved="claude-haiku-5-5",
                 agent_id="sc2",
                 caller=("gp1", "general-purpose"),
             ),
@@ -949,7 +949,7 @@ def self_test() -> int:
                 prompt=short,
                 report=long_report,
                 subagent_type="scout",
-                resolved="claude-haiku-4-5-20251001",
+                resolved="claude-haiku-5-5",
                 agent_id="sc2b",
                 caller=("gp1", "general-purpose"),
             ),
@@ -970,7 +970,7 @@ def self_test() -> int:
                 prompt=short,
                 report=short,
                 subagent_type="Explore",
-                resolved="claude-haiku-4-5-20251001",
+                resolved="claude-haiku-5-5",
                 agent_id="ex3",
                 caller=("sc2", "scout"),
             ),
@@ -984,7 +984,7 @@ def self_test() -> int:
                 prompt=short,
                 report=short,
                 subagent_type="scout",
-                resolved="claude-haiku-4-5-20251001",
+                resolved="claude-haiku-5-5",
                 agent_id="sc9",
                 caller=("ghost", "claude"),
             ),
@@ -996,7 +996,7 @@ def self_test() -> int:
             last["depth"] == 2 and last["depth_is_lower_bound"] is True and adv == "",
         )
         # agent_type WITHOUT agent_id is a `claude --agent` session, not nesting.
-        p = _payload(prompt=short, report=short, resolved="claude-haiku-4-5-20251001")
+        p = _payload(prompt=short, report=short, resolved="claude-haiku-5-5")
         p["agent_type"] = "team-lead"
         sig, _ = observe(p, root)
         last = json.loads(lp.read_text().splitlines()[-1])
@@ -1005,7 +1005,7 @@ def self_test() -> int:
             sig == "OK" and last["nested"] is False and last["depth"] == 1,
         )
         # a blank agent_id is not an id
-        p = _payload(prompt=short, report=short, resolved="claude-haiku-4-5-20251001")
+        p = _payload(prompt=short, report=short, resolved="claude-haiku-5-5")
         p["agent_id"] = "   "
         check("nesting: blank agent_id is not a caller", observe(p, root)[0] == "OK")
         # ledger v2 lines carry the nesting keys; the flag is tallied.
@@ -1041,7 +1041,7 @@ def self_test() -> int:
                 subagent_type=st,
                 agent_id=aid,
                 caller=caller,
-                resolved="claude-haiku-4-5-20251001" if aid == "leaf" else "claude-sonnet-5",
+                resolved="claude-haiku-5-5" if aid == "leaf" else "claude-sonnet-5-5",
             )
             p["session_id"] = "liveorder"
             observe(p, root)
@@ -1073,7 +1073,7 @@ def self_test() -> int:
         )
         # must-fail canary for the leg: strip agent_id and the flag MUST vanish.
         clean = analyse(
-            _payload(prompt=short, report=short, resolved="claude-haiku-4-5-20251001"),
+            _payload(prompt=short, report=short, resolved="claude-haiku-5-5"),
             read_posture(root),
         )
         check(

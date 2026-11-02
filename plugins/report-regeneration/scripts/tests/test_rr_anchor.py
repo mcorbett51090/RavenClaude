@@ -108,6 +108,18 @@ class TestCompoundSelector(unittest.TestCase):
         self.assertEqual(node.tag, "meta")
         self.assertEqual(node.attrs.get("charset"), "utf-8")
 
+    def test_document_root_step_resolves_a_multi_root_fragment(self):
+        # B-9: infer roots a multi-root fragment's selectors at the synthetic '#document' umbrella.
+        frag = "<p>one</p><p>two</p>"
+        sel = {"kind": "css_selector", "value": "#document > p:nth-of-type(2)"}
+        self.assertEqual(rr_anchor.read_inner(frag, sel), "two")
+        self.assertEqual(rr_anchor.document_path(frag, sel), (("p", 2),))
+
+    def test_real_id_document_element_still_wins(self):
+        html = '<div id="document"><p>a</p><p>b</p></div>'
+        sel = {"kind": "css_selector", "value": "#document > p:nth-of-type(2)"}
+        self.assertEqual(rr_anchor.read_inner(html, sel), "b")
+
     def test_missing_step_raises(self):
         with self.assertRaises(rr_anchor.AnchorError):
             rr_anchor.resolve(FIXTURE, {"kind": "css_selector", "value": "#sec-one > h2:nth-of-type(5)"})
@@ -138,6 +150,20 @@ class TestSpansAndReplace(unittest.TestCase):
             rr_anchor.read_inner(FIXTURE, {"kind": "css_selector", "value": "#sec-one > h2:nth-of-type(1)"}),
             "Heading One",
         )
+
+    def test_non_newline_line_separators_do_not_shift_spans(self):
+        # B-8: html.parser counts lines by '\n' only; str.splitlines() also breaks on these, which
+        # shifted every later span and wrote into the wrong place.
+        anchor = {"kind": "css_selector", "value": "#wrap > p:nth-of-type(2)"}
+
+        def doc(sep):
+            return '<div id="wrap">\n<p>intro' + sep + 'text</p>\n<p>OLD</p>\n</div>\n'
+
+        control = rr_anchor.replace_inner(doc(""), anchor, "NEW")
+        for sep in ("\u2028", "\x85", "\x0c", "\x0b", "\x1c", "\r", "\r\n"):
+            with self.subTest(sep=repr(sep)):
+                out = rr_anchor.replace_inner(doc(sep), anchor, "NEW")
+                self.assertEqual(out, control.replace("introtext", "intro" + sep + "text"))
 
 
 class TestAgainstInferProducerOverCorpus(unittest.TestCase):

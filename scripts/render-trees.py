@@ -16,6 +16,10 @@ written as <id>.svg.
 CI never needs Chromium: rendering writes a source-hash manifest; `--check`
 re-derives hashes from the tree sources and diffs them against the committed
 SVGs, so a tree edited without a re-render fails CI without launching a browser.
+
+The SVGs are committed as 40 packed shards (`pack-NN.js`, see visual_pack.py), not one
+file each: the repo sits under the Claude Code Directory's 10,000-file limit that way.
+The manifest records `owner_shards` (plugin -> shard) so a new tree never reshuffles the rest.
 Only whoever edits a tree diagram needs mermaid-cli locally.
 
 Usage:
@@ -36,6 +40,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import importlib.util as _ilu
+
+import visual_pack as vp  # noqa: E402
 
 # Pin the renderer so committed SVGs stay reproducible across machines/time.
 MMDC_VERSION = "11.15.0"
@@ -199,8 +205,7 @@ def _check(root: Path, trees: list[dict]) -> int:
                 f"  ✗ {tid}: tree diagram changed since last render — re-run scripts/render-trees.py"
             )
             continue
-        if not (vis / f"{tid}.svg").exists():
-            problems.append(f"  ✗ {tid}: {tid}.svg missing")
+    problems.extend(vp.verify_trees(vis, manifest))
     stale = set(recorded) - {t["id"] for t in trees}
     for tid in sorted(stale):
         problems.append(
@@ -232,6 +237,7 @@ def main() -> int:
 
     vis = root / VISUALS_DIR
     vis.mkdir(parents=True, exist_ok=True)
+    previous_shards = vp.read_tree_manifest(vis).get("owner_shards")
     manifest = {"mmdc_version": MMDC_VERSION, "normalizer_version": NORMALIZER_VERSION, "trees": {}}
     # ── Render to a STAGING dir FIRST, then clear + write. Never delete before you
     # can replace. ── This used to unlink every *.svg in visuals/ and only THEN call
@@ -243,16 +249,19 @@ def main() -> int:
         rendered = _render_all(trees, Path(td))
     # Every render succeeded — NOW it is safe to clear the old set (so a removed tree
     # doesn't leave an orphan) and write the new one in.
-    for old in vis.glob("*.svg"):
+    for old in vis.glob("*.svg"):  # per-file SVGs from before the packs existed
         old.unlink()
     for t in trees:
-        tid = t["id"]
-        (vis / f"{tid}.svg").write_text(rendered[tid], encoding="utf-8")
-        manifest["trees"][tid] = _source_hash(t)
+        manifest["trees"][t["id"]] = _source_hash(t)
+    owner_shards = vp.write_tree_packs(vis, {t["id"]: rendered[t["id"]] for t in trees}, previous_shards)
+    manifest["owner_shards"] = {k: owner_shards[k] for k in sorted(owner_shards)}
     (vis / MANIFEST_NAME).write_text(
         json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    print(f"Rendered {len(trees)} decision-tree SVG(s) → {VISUALS_DIR}/")
+    print(
+        f"Rendered {len(trees)} decision-tree SVG(s) → {VISUALS_DIR}/ "
+        f"({len(set(owner_shards.values()))} packed shard(s))"
+    )
     return 0
 
 
