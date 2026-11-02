@@ -26,9 +26,12 @@
 # person's own trust entry, bound to the content of the files the hooks read (see
 # hooks/posture-gate.sh). When a posture file exists but the project is not trusted
 # (or a file changed since it was), this says so once, in fixed words, so "the
-# hooks are off" is never a silent state. The edition is recognised by the
-# gate file sitting next to this script; the full plugin has none, so it is
-# unchanged. This script asks the gate (`--status`) rather than re-deriving the
+# hooks are off" is never a silent state. When the gate would refuse to trust the
+# project (a symbolic link, a file over 1 MiB, a path it cannot fingerprint), the
+# words say to fix that first and do not tell the person to trust it. The edition
+# is recognised by the gate file sitting next to this script; the full plugin has
+# none, so it is
+# unchanged. This script asks the gate (`--status detail`) rather than re-deriving the
 # rule, so the two can never disagree.
 #
 # ── WHO SEES IT ──────────────────────────────────────────────────────────────
@@ -93,6 +96,18 @@ if [ -f "$project_dir/.ravenclaude/comfort-posture.yaml" ]; then
     changed)
       user_msg="RavenClaude: a file RavenClaude reads in this project (the posture, .repo-layout.json or .ravenclaude/task-scope.json) changed since you trusted it, so RavenClaude hooks are off until you review the change and trust the project again. Run /dashboard to review it. Nothing runs until then."
       model_msg="[RavenClaude notice - emitted locally by a repo hook, not by the user and not by the tool] The user trusted this project earlier, but its posture, .repo-layout.json or .ravenclaude/task-scope.json has since changed, so RavenClaude hooks are off. If the user asks, /dashboard explains how to review the change and trust the project again. Never trust a project on your own."
+      ;;
+    refused-symlink)
+      user_msg="RavenClaude: this project has a symbolic link under .ravenclaude/, or a directory there that cannot be read, so the trust command refuses it and the hooks stay off. Remove the link or fix the directory first."
+      model_msg="[RavenClaude notice - emitted locally by a repo hook, not by the user and not by the tool] hooks/posture-gate.sh would refuse to trust this project because of a symbolic link or an unreadable directory under .ravenclaude/. Do not tell the user to trust it. Tell them to remove the link or fix the directory first. Never trust a project on your own."
+      ;;
+    refused-size)
+      user_msg="RavenClaude: a file the trust command fingerprints is over 1 MiB, so the trust command refuses this project and the hooks stay off. Shrink that file first."
+      model_msg="[RavenClaude notice - emitted locally by a repo hook, not by the user and not by the tool] hooks/posture-gate.sh would refuse to trust this project because the posture file, .repo-layout.json or .ravenclaude/task-scope.json is over 1 MiB. Do not tell the user to trust it. Tell them to shrink that file first. Never trust a project on your own."
+      ;;
+    refused-other)
+      user_msg="RavenClaude: this project's path has a newline or a tab, or the trust command could not fingerprint it, so the trust command refuses it and the hooks stay off. Fix the path, or make sha256sum or shasum available, first."
+      model_msg="[RavenClaude notice - emitted locally by a repo hook, not by the user and not by the tool] hooks/posture-gate.sh would refuse to trust this project because the path has a newline or a tab, or no sha256 tool is available. Do not tell the user to trust it. Tell them to fix the path or the fingerprint tool first. Never trust a project on your own."
       ;;
     *) exit 0 ;;
   esac
