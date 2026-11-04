@@ -33,6 +33,7 @@
 | F2 | <…> | <2> | P1 | <annoyance · weaker attitudinal signal> |
 
 ## 5. Evidence strength & caveats
+- **External UI-pattern citations:** <solid / provisional / discarded, per `knowledge/ui-pattern-standing-bar-2026-11.md` — or "none". A discarded claim is omitted. A provisional claim stays labeled. A portal QA example is not a finding in this table.>
 - **Overall:** <directional signal from a small sample / conclusive from a powered sample>
 - **What this does NOT support:** <the claims the sample can't bear — e.g. population-level rates>
 - **Triangulation:** <do other methods/data agree? — or single-source caveat>

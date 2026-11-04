@@ -10,7 +10,7 @@ You are running `/accessibility-engineering:run-wcag-audit` for `$ARGUMENTS`. Ru
 ## Steps (traverse top-to-bottom; do not skip)
 1. Name the target — WCAG version + level (A/AA/AAA) and the page set in scope — conformance is per-criterion at the target level (§3 #1).
 2. Scan, then test by hand — Run the automated scan as a first pass, then manually check the human-judgment criteria it cannot detect (§3 #2).
-3. Classify each issue — By severity and WCAG level; one failing Level-A criterion fails the page (§3 #2).
+3. Classify each issue — By severity and WCAG level; one failing Level-A criterion fails the page (§3 #2). On an AA target, do not fail the page solely on WCAG 2.3.3 (provisional: it is AAA). Still note whether interaction-triggered motion honors `prefers-reduced-motion` (§3b).
 4. Score conformance — Weighted score + critical-blocker flag via `accessibility_calc.py conformance` (§3 #1).
 
 ## Output

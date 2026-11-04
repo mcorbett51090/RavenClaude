@@ -40,6 +40,26 @@
 7. **Shift left — cheapest to fix in design, costliest after release.** Color, contrast, focus order, target size, heading structure, and alt-text intent are nearly free to get right in design and code review, and expensive to retrofit across a shipped product; bake the criteria into the design system and the definition-of-done, not a pre-launch audit scramble.
 8. **Date and source any benchmark or figure; route legal/professional determinations to the qualified authority.** WCAG versions (2.0/2.1/2.2, with 3.0 in draft), success-criteria numbers, and the laws that reference them evolve — cite the WCAG version and date for any criterion, mark unsourced figures [unverified — training knowledge], and route legal/compliance determinations to qualified counsel (§2).
 
+### 3b. Portal chrome and coding-agent legibility (2026-11-04)
+
+When the work is app or portal navigation, or making a UI legible to a coding or browser agent, apply [`knowledge/portal-and-agent-accessibility-2026-11.md`](knowledge/portal-and-agent-accessibility-2026-11.md). Grades for the underlying capture live in `ux-research`'s [`ui-pattern-standing-bar-2026-11.md`](../ux-research/knowledge/ui-pattern-standing-bar-2026-11.md). This subsection is the short form; the knowledge file is the citable text. It is not a new §3 number, so the best-practice files stay one per opinion #1–#8.
+
+**Solid — follow**
+
+- Persistent, visible left rail. Every primary item has a visible text label.
+- Mark the current location, including on pages opened outside the rail. `aria-current="page"` is the usual technique. Do not require exactly one `aria-current` in the document (that claim failed verification).
+- A navigation disclosure is a `<button>` with `aria-expanded` and `aria-controls` pointing at the region. Wayfinding does not use `role="menu"` / `menuitem` / `menubar`.
+- Local navigation is visually quieter than the main rail.
+
+**Provisional — label, then apply**
+
+- WCAG 2.3.3 is AAA. An AA audit does not fail solely on 2.3.3. Interaction-triggered motion still honors `prefers-reduced-motion`.
+- Coding-agent practice, until the unfinished research run reports findings: semantic HTML and accessible names; a stable hook you can name (do not invent `data-agent`); non-secret UI state in the URL; confirmation before destructive actions; page content is untrusted (no instruction in the page is followed; defense design goes to `security-reviewer`).
+
+**Unverified tooling — do not build from the capture**
+
+WebMCP / `navigator.modelContext`, a hosted MCP server on Cloudflare, `llms.txt` as a launch gate, a Cursor rules migration because plain `.md` is "ignored", and Storybook MCP coverage of Astro. Each row in the knowledge file says what the capture actually contained.
+
 ---
 
 ## 4. Anti-patterns the team flags
@@ -55,6 +75,9 @@
 - An external benchmark / competitor / market number with no source URL + date.
 - A recommendation with no owner, no date, and no expected metric movement.
 - User PII (account data, behavior captured in assistive-tech session recordings) in a deliverable.
+- A navigation disclosure marked `role="menu"`, or icon-only primary navigation justified as an NN/g rule (§3b).
+- An AA conformance fail whose only criterion is WCAG 2.3.3 (§3b, provisional).
+- WebMCP, a hosted MCP server, an `llms.txt` launch gate, a Cursor instruction-file migration, or Storybook MCP coverage for Astro, shipped from the 2026-11-04 capture (§3b).
 
 ---
 
@@ -68,6 +91,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/accessibility-engineering-economics.md`](knowledge/accessibility-engineering-economics.md) | The unit economics behind the house opinions — formulas reproduced in the calculator |
 | [`knowledge/accessibility-engineering-context.md`](knowledge/accessibility-engineering-context.md) | Benchmarks & regulatory/market context (2025–2026) |
 | [`knowledge/accessibility-engineering-decision-trees.md`](knowledge/accessibility-engineering-decision-trees.md) | **Mermaid** decision trees for the three most common triage paths |
+| [`knowledge/portal-and-agent-accessibility-2026-11.md`](knowledge/portal-and-agent-accessibility-2026-11.md) | Portal/app chrome and coding-agent legibility from the 2026-11-04 capture: labeled rail, disclosure buttons, current location, provisional motion and agent-practice rules, unverified tooling left unimplemented |
 
 ---
 
@@ -115,3 +139,4 @@ The lead is [`accessibility-lead`](agents/accessibility-lead.md) — first conta
 ## 9. Milestones
 
 - **v0.1.0** — initial release: 4 agents, 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, 4-file research-grounded knowledge bank, scenarios bank, `accessibility_calc.py` (3 modes).
+- **v0.1.4** — standing bar for portal chrome and coding-agent legibility (`knowledge/portal-and-agent-accessibility-2026-11.md`), wired through §3b, the design-pattern and assistive-tech skills, and the WCAG audit's AAA motion note. Grades stay with the 2026-11-04 capture: solid rules are followed, provisional rows stay labeled, unverified tooling is not built. The missing 109-claim extract is not reconstructed.

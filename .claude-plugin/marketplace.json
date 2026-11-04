@@ -1883,7 +1883,7 @@
       "name": "accessibility-engineering",
       "source": "./plugins/accessibility-engineering",
       "description": "Accessibility Engineering specialist team \u2014 agents (accessibility-lead, wcag-audit-analyst, assistive-tech-testing-specialist, inclusive-design-strategist), skills, templates, commands, an advisory hook, best-practice rules, and a research-grounded knowledge bank. An accessibility team for an a11y lead or product owner accountable for WCAG conformance \u2014 it picks a conformance target and measures against it, treats automated scans as a fraction of the picture, holds keyboard and screen-reader parity as the floor, reaches for semantic HTML before ARIA, and verifies contrast ratios. Inherits ravenclaude-core protocols.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3605,7 +3605,7 @@
       "name": "ux-research",
       "source": "./plugins/ux-research",
       "description": "UX-research team \u2014 agents (ux-research-lead, research-execution-and-synthesis-specialist) that turn a fuzzy ask into a researchable question, pick a rigorous method (generative vs evaluative, qual vs quant, moderated vs unmoderated), run the study (usability tests, interviews, surveys), and synthesize evidence into decision-ready, bias-checked insight \u2014 without the research theater. The lead owns framing, method selection, the research plan, research-ops (recruiting, repository), and research ethics + participant-PII discipline (consent, anonymization). The specialist owns protocol & task design, non-leading moderation, survey design, and synthesis (affinity/thematic analysis, evidence strength, observation vs interpretation). skills, a knowledge bank + templates. Distinct from product-management (roadmap/prioritization), web-design (visual/interaction/IA design), experimentation-growth-engineering (online A/B stats), data-science-research (advanced quant). Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },

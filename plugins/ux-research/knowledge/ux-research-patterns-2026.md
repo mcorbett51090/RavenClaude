@@ -5,6 +5,8 @@
 
 The team's discipline: **research-theater gate first; method follows the question; sample follows the claim; observation stays separate from interpretation; participant data is PII from first contact; small samples are directional, not statistics; every insight ends in a decision.**
 
+UI-pattern evidence for portal and app chrome (what is solid, what stays provisional, what was discarded) is a separate file: [`ui-pattern-standing-bar-2026-11.md`](ui-pattern-standing-bar-2026-11.md). Read it before citing a navigation, token, skeleton, forms, Core Web Vitals, or Baseline claim. This patterns file does not restate those grades.
+
 ---
 
 ## The method matrix

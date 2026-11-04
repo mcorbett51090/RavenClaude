@@ -22,7 +22,7 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 - **agents** — `ux-research-lead` (question framing, method selection, sample/recruit, research-ops, ethics/participant-PII) and `research-execution-and-synthesis-specialist` (protocol & task design, non-leading moderation, usability testing, survey design, and synthesis from raw notes to prioritized insight).
 - **skills** — `plan-the-research-study`, `run-usability-and-interview-sessions`, `synthesize-research-into-insight`.
-- **knowledge files** — a Mermaid UX-research decision tree (research-theater gate, which-method, sample-size & rigor, consent/PII path) with method→answer trade-off tables and the bias catalog, and a dated 2026 UX-research-patterns reference (method matrix, moderation & survey best practices, bias counters, evidence-strength framing, research-ops/repository patterns, ethics/PII discipline, and a tooling map).
+- **knowledge files** — a Mermaid UX-research decision tree (research-theater gate, which-method, sample-size & rigor, consent/PII path) with method→answer trade-off tables and the bias catalog; a dated 2026 UX-research-patterns reference (method matrix, moderation & survey best practices, bias counters, evidence-strength framing, research-ops/repository patterns, ethics/PII discipline, and a tooling map); and the 2026-11-04 UI-pattern standing bar (solid navigation, token, and skeleton rules, with provisional and discarded claims kept at their grades).
 - **templates** — a research plan and a research findings report.
 
 ## Where it sits among the product & design plugins
