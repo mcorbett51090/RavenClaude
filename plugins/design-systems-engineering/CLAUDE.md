@@ -80,8 +80,11 @@ State the boundary in the answer whenever a request sits near one of these seams
   reference).
 - **v0.1.4 (2026-11-05)** — the tooling reference gains "Settings-surface primitives": the component contract
   (required props, native base, tokens by meaning) for `Switch`, `SegmentedControl`, `ChoiceTile`, `AmountTiles`,
-  `SliderField`, `InfoTip`, `SettingsCard`, `Sheet` and `UsageMeterCard`. API shapes are house design, labeled
-  `[inference]`; *which* control to use stays with `web-design`.
+  `SliderField`, `InfoTip`, `SettingsCard`, `Sheet`, `UsageMeterCard`, and the Connect-apps set (`ConnectorRow`,
+  `AccountList`, `AccountLabelField`, `BaseScopeTiles`, `ScopePills`, `Advanced` via `ScopeTileGroup`,
+  `RequiredScopeList`, `AdditionalAccessGroups`, `MakeDefaultRadios`, `AuthorizeFlow`). API shapes are house
+  design, labeled `[inference]`; *which* control to use stays with `web-design`. This plugin has no CHANGELOG;
+  this milestone is the release note.
 - **v0.1.3 (2026-10-26)** — the tooling reference gains "Multi-site section libraries — distribution and
   upgrades": six distribution models compared by how a fix reaches a shipped site, plus the rollout rules (props as a
   data contract, build provenance, drift detection before overwrite, rings, ejection, merge is not deployment). The

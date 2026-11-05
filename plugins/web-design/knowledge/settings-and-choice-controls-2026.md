@@ -181,94 +181,126 @@ panel on wide ones. It adds no ARIA pattern of its own `[inference]`.
    ([`reach-for-semantic-html-before-aria`](../best-practices/reach-for-semantic-html-before-aria.md); APG's page
    does not mention the native element `[docs-verified]`).
 2. **Drag handle and swipe-down are enhancements.** A visible Close button and Esc always exist (WCAG 2.5.7).
-3. **One sheet deep.** A sheet never opens a sheet `[inference]`. "Add another account" replaces the content.
+3. **One sheet deep.** A sheet never opens a sheet `[inference]`. Add account, Authorize on one account,
+   and Advanced all replace this sheet's content.
 4. **Sizing:** `max-height` in dynamic viewport units with the safe-area insets from
    [`adaptive-layout`](../skills/adaptive-layout/SKILL.md); content scrolls inside the sheet, the title and primary
    action stay visible `[inference]`.
-5. **State in the URL when not secret** (which sheet, which provider), so Back closes it and a reload resumes.
-   Tokens, codes and emails never go in the query string
+5. **State in the URL when not secret** (which sheet, which provider, which step), so a reload resumes and the
+   browser's Back control moves one step. From the accounts step, that Back closes the sheet. The in-sheet Back
+   button does the same. Tokens, codes, labels and emails never go in the query string `[inference]`
    ([`portal-and-agent-accessibility-2026-11.md`](../../accessibility-engineering/knowledge/portal-and-agent-accessibility-2026-11.md), provisional row).
 
-**Connector authorize flow** `[inference — design guidance, not a studied flow]`:
+### What was checked against Grok Bot help (2026-11-05)
 
-| Step | Surface | Content |
-|---|---|---|
-| 1 | Settings card row | Provider name, status chip (icon + text), one action: "Connect" |
-| 2 | Sheet opens | Title "Connect <Provider>"; **what it can access** as a short list in plain words (one line per scope); the account list as radio tiles with "Add another account" last |
-| 3 | Primary action | "Continue to <Provider>" leaves for the provider's own consent page. **Never collect the provider's credentials in your UI.** |
-| 4 | Return | Back on the row: "Connected as <account>"; focus to the row; "Saved" announced once |
-| 5 | Manage | Each connected account is a row: identifier, status, "Make default" (radio), "Disconnect" |
-| 6 | Failure | Status "Needs attention" + "Reconnect" (not color alone) |
+Two public help pages were fetched. The product UI was not opened, so a control that exists only in the app is
+not something these pages can confirm or deny.
 
-Disconnect confirms and **names what is lost** (provisional row in the same portal file). The authorize redirect,
-token storage, scope handling and callback validation are an authentication surface: **binding verdict →
-`ravenclaude-core` `security-reviewer`** (zero exceptions). This file specifies the visible surface only.
+| Page | What it says `[docs-verified 2026-11-05]` |
+|---|---|
+| [Connect apps](https://cursor.com/help/grok-bot/connect-apps) | Connect apps is in the sidebar. Adding an app ends in **Authorize** or **Authenticate**, then the provider's own sign-in in the browser. **Gmail connects one mailbox at a time** (disconnect to switch). **Notion can connect a second account.** On the phone the sign-in action is **Authorize**; on the desktop help for that same action the word is **Authenticate**. |
+| [How Tos](https://cursor.com/help/grok-bot/how-to), "How do I add a second account for the same app?" | Open the app from Connect apps. Under **Accounts**, choose **Add Another Account**, give it a label such as "work" or "personal", then **Authorize** and sign in. On the phone: **Add account**. If **Add Another Account** is missing, that app is one account at a time. The person later names the account by its label. |
 
-### 7a. Multiple accounts per connector (portal "Connect apps")
+Those two pages do not describe an "N accounts" count on the list row, a bottom sheet, base-scope tiles named
+**Minimal / Read only / Full / Requested**, scope pills, an Advanced editor, **Required** tiles, or **Additional
+Access** groups. That is absence from these pages, not a claim about the product UI.
 
-One connector can hold several accounts (two Google accounts, a work and a personal mailbox). The owner's
-requirement, added 2026-11-05. The design rules below are `[inference]`; no multi-account UI was studied.
+The four surfaces below are the owner's requirement for the portal `[user-described 2026-11-05]`. Where a
+help-page fact and that requirement differ, both stay. This section does not reproduce Grok Bot.
 
-1. **The connector row is a group, the account is the unit.** Row = provider name + count ("2 accounts"). Expanding
-   it (a disclosure `<button>` with `aria-expanded` / `aria-controls`, the solid rule in the standing bar) lists one
-   sub-row per account: identifier, status chip (icon + text), granted scopes as pills (§7b), overflow actions.
-2. **Each account is authorized, scoped and disconnected on its own.** Granting one account Calendar must not imply
-   it for another. Show the granted set per account, never per connector.
-3. **"Add another account" is always the last item** in the account list and in the picker. It starts the same
-   authorize flow for a new account; it never edits an existing one.
-4. **A default account, if you have one, is a radio** ("Make default") inside the list, with the current default
-   marked in text. If the app can act as any account, say which one a given action uses at the point of use
-   `[inference]`.
-5. **Identify accounts by something a person recognizes** (the email or handle the provider returns), never by an
-   internal id. The identifier is PII: keep it out of the URL, logs and analytics.
-6. **State any limit** on accounts per connector in the list header if one exists. Don't invent a number here.
-7. **Disconnecting one account** confirms, names the account and what stops working, and leaves the others alone.
-8. **Empty, one-account and many-account states are one component.** Don't build a special page for "only one".
+### 7a. Four surfaces, one sheet
 
-### 7b. Scope-then-authorize flow (owner-described target; reference UI not viewed)
+| # | Surface | What is on it | What moves forward |
+|---|---|---|---|
+| 1 | **Connect-apps list** | One row per connector: the provider's **brand icon**, the provider **name**, the account count as text ("2 accounts", or "Not connected" at zero), and a status chip when an account needs attention (icon + word) | **Authorize** opens the sheet. The button's name is "Authorize \<Provider\>" |
+| 2 | **Accounts sheet** | Title is the provider name plus the same brand icon. An **Accounts** list: one row per account with the person's label, the provider identifier when one exists, status as text, and granted scopes as pills. Each row has its own **Authorize**. **Add account** is last | **Authorize** on a row, or **Add account**, replaces this content with surface 3. No second sheet |
+| 3 | **Choose access** — visible text "Step 1 of 2: Choose access" | On Add account, a label field comes first. Then four **base-scope tiles**: **Minimal**, **Read only**, **Full**, **Requested**. The chosen scopes are **pills**. **Advanced** edits that set | **Continue**. Disabled until one base tile is selected, with the reason in text |
+| 4 | **Authorize** — visible text "Step 2 of 2: Authorize" | The account is already chosen, shown as text ("Authorize as \<label\>", or "New account" until the provider returns an identifier). **Required** tiles, then one or more **Additional Access** groups | **Authorize** hands off to the provider's consent page. This UI never collects the provider's password |
 
-The owner described a "Grok Bot-style" flow: **scope tiles → pills / Advanced / Continue → account Authorize with
-Required tiles and Additional Access.** `[user-described 2026-11-05; the Grok Bot interface was not fetched or
-viewed, so nothing here claims to match it, and the rules below are this repo's design reading of the description.]`
-Reading taken: **two screens** inside one modal sheet (§7). If Pills / Advanced / Continue sit on a third screen
-instead, every rule below still applies.
+Back from surface 4 returns to surface 3 with the label, the base tile and the Advanced edits intact. Back from
+surface 3 returns to the accounts list and has not called the provider. Esc or Close on any step closes the
+sheet and returns focus to the list button that opened it.
 
-| Screen | Contents | Primary action |
-|---|---|---|
-| **1. Choose access** | **Scope tiles** (checkbox tiles; one per capability in plain words: "Read calendar events"). Chosen tiles are echoed as **pills** in a summary. An **Advanced** disclosure holds the fine-grained scopes. | **Continue** (disabled until at least one scope is chosen, with the reason in text) |
-| **2. Authorize** | "Authorize as" **account picker** (radio tiles + "Add another account", §7a). Then **Required** tiles and an **Additional Access** group. | **Authorize** → hand off to the provider's own consent page |
+**Brand icon.** The owner required the provider's own mark on each connector `[user-described]`. Rendering:
 
-1. **Scope tiles are checkbox tiles** (§3): short title, one-line caption, native checkboxes. Group them under
-   headings that mean something to the person ("Calendar", "Email"), not provider scope strings. Show the raw scope
-   string only inside Advanced or a toggletip `[inference]`.
-2. **Pills summarize; they don't hide.** A pill list (`<ul>`) shows exactly the chosen scopes. If a pill has a ×,
-   it is a real `<button>` named "Remove <scope>", the matching tile unchecks, and "Removed <scope>" is announced
-   once in a `role="status"` region. Pills are never the only place a choice can be made or undone.
-3. **Advanced is a disclosure button** (`aria-expanded`, `aria-controls`), closed by default, with a count when
-   something inside is chosen ("Advanced (2)"). Fine-grained scopes inside it are the same checkbox tiles.
-4. **Continue is the single dominant action** (house opinion #8). Back returns to screen 1 with the choices intact.
-5. **Required tiles are statements, not controls.** A scope the app can't work without is shown as a static tile
-   with its title and a visible **"Required"** label. Don't render a locked, pre-checked checkbox: a disabled
-   control is skipped or announced as unavailable and invites the question "why can't I change it?" `[inference]`.
-   Lead with these so the person reads what is unavoidable first.
-6. **Additional Access is optional and starts unticked.** Same checkbox tiles; the heading says it is optional.
-   Nothing is pre-ticked (the repo's consent rule, [`form-builder-2026.md`](form-builder-2026.md) Consent row).
-   If Additional Access is requested later, as the app needs it, say so rather than front-loading it
-   `[inference — incremental consent; confirm the provider supports it]`.
-7. **What is shown must equal what is requested.** The pills, Required tiles and ticked Additional Access are the
-   complete scope list sent to the provider. A scope in the request but not on screen is a defect and a
-   security-review finding.
-8. **Step indication in text:** "Step 1 of 2: Choose access", "Step 2 of 2: Authorize". On each step change, focus
-   moves to the new step heading; the Close button and Esc work on both.
-9. **Per account, not per connector:** screen 2 authorizes the **picked account**. Changing the account re-checks
-   which Required scopes it already holds and says "already granted" in text.
-10. **Return from the provider:** back on the account row; the granted scopes appear as pills; focus goes to that
-    row; "Connected" is announced once (§7 step 4). A partial grant (the person declined something) shows exactly
-    what was granted, not what was asked for.
+1. The same asset appears on the list row and in the sheet title. Do not substitute a generic plug, a letter
+   tile, or another product's mark `[inference]`.
+2. The provider name is always visible text beside the icon, so the image is decorative (`alt=""`). With images
+   off, or in forced colors, the row still names the connector `[inference]`.
+3. The icon is not a status signal. Status is a chip with a word.
+
+**Accounts.** The account is the unit: scopes, authorize, disconnect and status belong to one account. A grant
+on one account does not apply to another.
+
+1. The count on the list is text. A badge with no text is not the count.
+2. The label is the short name the person chose. Grok's How Tos page says that label is how they refer to the
+   account later ("Use my work Notion") `[docs-verified 2026-11-05]`. Also show the email or handle the provider
+   returns, so two similar labels can be told apart `[inference]`. Both are PII: keep them out of the URL, logs
+   and analytics. Never show an internal id as the name.
+3. Add account starts a new authorization. It does not edit an existing one. Desktop help says "Add Another
+   Account"; the phone help and this portal say "Add account". Use one string on a screen, not both.
+4. A provider that allows only one account says so in the list header and hides Add account. Grok's help says
+   **Gmail is one mailbox** and **Notion can have a second** `[docs-verified 2026-11-05]`. That is a fact about
+   Grok's connectors, not a number to copy onto every portal connector, and not a licence to document two Gmail
+   mailboxes. Do not invent a cap.
+5. Disconnect confirms, names the label, says what stops, and leaves the connector's other accounts alone.
+6. Zero, one and many accounts are the same list. Zero still opens from Authorize and offers Add account when
+   the provider allows another.
+7. A default, where the product has one, is its own radio group ("Make default"), with the current default in
+   text. It is not the Authorize button. If an action can run as more than one account, name which one at the
+   point of use `[inference]`.
+8. On return from the provider, focus lands on that account's row, pills show what was **granted** (not what was
+   asked), and "Connected" is announced once. A partial grant shows the granted set only.
+
+**Choose access.** The four tile labels are the owner's `[user-described]`. The control type and the reading of
+each word are `[inference]`.
+
+1. One radio group: `fieldset` + `legend` "Access". The labels are exactly **Minimal**, **Read only**, **Full**,
+   **Requested**. Not a `<select>`, and not a fifth tile.
+2. This file does not list the scope ids behind each tile. The product supplies them. An empty preset is a
+   defect. Until the product defines the sets, read the words as: Minimal = the smallest set that still works;
+   Read only = no write, send or delete; Full = every scope this app may ask this provider for; Requested = the
+   set the current task asked for. If the product's sets differ, the product's sets win and this sentence is not
+   evidence of them.
+3. Selecting a tile replaces the pills with that preset. Switching tiles drops Advanced edits of the previous
+   preset. A `role="status"` region says "Access set to \<tile\>" once. That sentence was not tested with a
+   screen reader.
+4. Pills are a `<ul>` of exactly the scopes this step will carry forward. A removable pill is a `<button>` named
+   "Remove \<scope\>"; it unchecks that scope and the status region says "Removed \<scope\>" once. The pill is
+   not the only place the choice exists.
+5. **Advanced** is a disclosure button (`aria-expanded`, `aria-controls`), closed by default, named "Advanced".
+   It edits the selected preset: those scopes as checkbox tiles under plain-language headings ("Calendar",
+   "Email"). The raw scope string appears only in a toggletip. Advanced is not a third screen and not a text
+   box. When the set differs from the preset, the button shows a count ("Advanced (2)").
+6. A scope the product marks Required cannot be removed here. Say so in visible text beside the scope.
+   Do not use a disabled checkbox.
+7. Continue is the one primary action (house opinion #8). While it is disabled, the text "Choose an access level
+   to continue." is visible.
+
+**Authorize.** How surface 3 and surface 4 share one request is `[inference]`. The pieces the owner named
+(Required tiles, Additional Access groups) are `[user-described]`.
+
+1. Do not ask for the account again. Surface 2 already chose it. On an existing account, a Required scope it
+   already holds says "Already granted" in text.
+2. **Required** tiles are static, with the visible word **Required**. They are not a locked, pre-checked
+   checkbox. Lead with them.
+3. **Additional Access** is one group per area the person may decline. Each group is a `fieldset` whose legend
+   names the area and says it is optional. Checkbox tiles, unchecked at the start. Nothing optional is
+   pre-ticked (the consent rule in [`form-builder-2026.md`](form-builder-2026.md)).
+4. The request that is sent is exactly the scopes still visible as the request: the Choose-access scopes that
+   were not removed, every Required tile, and every Additional Access tile that is checked. Before Authorize, a
+   pill summary on this step shows that set. A scope in the request that appears on neither step is a defect
+   and a security-review finding.
+5. Do not promise that declined scopes can be requested later unless that provider's own docs say so
+   `[unverified]`.
+
+The authorize redirect, token storage, scope minimization and callback validation are an authentication
+surface: **binding verdict → `ravenclaude-core` `security-reviewer`** (zero exceptions). This file specifies
+the visible surface only.
 
 Markup, keys and the test script: the `accessibility-engineering` settings-controls file. Component contract:
-`design-systems-engineering` reference. Test plan (comprehension of Required versus Additional): `ux-research`.
-Everything about tokens, redirect, PKCE, scope minimization and callback validation: `security-reviewer`.
+the `design-systems-engineering` reference. What to test, including whether the four tile names are understood:
+`ux-research`.
 
 ## 8. Usage and status cards with progress
 
@@ -305,11 +337,16 @@ Everything about tokens, redirect, PKCE, scope minimization and callback validat
 | Segmented control built from `div`s or `role="tablist"` for a non-panel choice | Native radios (§3.1) |
 | Tile is a clickable `div` | Label + radio/checkbox |
 | Sheet with only a drag handle to close | Close button + Esc (§7.2) |
-| Connect flow that asks for the provider's password in your UI | Redirect to the provider; security review (§7) |
+| Connect flow that asks for the provider's password in your UI | Redirect to the provider; security review (§7a) |
+| A generic plug, a letter tile, or another brand's mark standing in for the connector | The provider's own icon, with the name in text (§7a, brand icon) |
+| Connect-apps row with no account count in text, or one Authorize that covers every account of that connector | Per-account Authorize inside the accounts sheet (§7a) |
+| A second sheet for Add account, for Advanced, or for the provider sign-in | One sheet; the provider's own page collects credentials (§7.3, §7a) |
+| Base access shown as a `<select>`, or as tiles other than Minimal / Read only / Full / Requested | The four radio tiles (§7a, Choose access) |
+| Two Gmail mailboxes documented as simultaneously connected, or a made-up account cap | Grok help: Gmail is one mailbox; state the provider's real limit (§7a, accounts rule 4) |
 | Connector shown as one connection when several accounts exist, or scopes shown per connector instead of per account | §7a |
-| A locked, pre-checked, disabled checkbox for a required scope; optional scopes pre-ticked | Static "Required" tile; Additional Access starts unticked (§7b.5–6) |
-| Scopes requested that are not on screen, or a pill list that differs from the request | §7b.7 + security review |
-| Pills that can be removed only with a pointer, or with no accessible name | Real button "Remove <scope>" (§7b.2) |
+| A locked, pre-checked, disabled checkbox for a required scope; optional scopes pre-ticked | Static "Required" tile; Additional Access groups start unticked (§7a, Authorize) |
+| Scopes requested that are not on screen, or a pill list that differs from the request | §7a Authorize rule 4 + security review |
+| Pills that can be removed only with a pointer, or with no accessible name | Real button "Remove \<scope\>" (§7a, Choose access rule 4) |
 | Usage bar with no number, or color-only threshold | §8.2 |
 
 ## 11. What this file does not establish
@@ -319,9 +356,11 @@ Everything about tokens, redirect, PKCE, scope minimization and callback validat
   `[unverified — fetch failed 2026-11-05]`. The "cap 5" above is a house default.
 - Apple HIG or Android controls guidance (touch-target sizes beyond WCAG's 24 px, sheet detents): `[unverified]`.
 - The Popover API and `popover` for toggletips: provisional in the standing bar; ship a support check.
-- That §7a–7b match any shipped product. The Grok Bot flow is described by the owner and was not viewed; the
-  portal's real Connect apps screens were not inspected either. Whether a given provider supports incremental
-  (later) consent is `[unverified]`.
+- That §7a matches Grok Bot's product UI. The two help pages above were fetched; the app was not opened. The
+  pages confirm Connect apps, an Accounts list, Add Another Account, a label, and Authorize, and they confirm
+  Gmail is one mailbox. They do not confirm the four scope tiles, the pills, Advanced, Required, or Additional
+  Access. Those remain `[user-described]`. Whether a given provider supports asking for more scopes later is
+  `[unverified]`.
 - Any specific screen-reader announcement. Test it ([`test-assistive-tech`](../../accessibility-engineering/skills/test-assistive-tech/SKILL.md)).
 
 ## Sources (retrieved 2026-11-05)
@@ -331,3 +370,4 @@ Everything about tokens, redirect, PKCE, scope minimization and callback validat
 - MDN: [`input type=range`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/range), [`input type=checkbox` (switch attribute)](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/checkbox), [`meter`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter)
 - GOV.UK Design System: [Select](https://design-system.service.gov.uk/components/select/), [Radios](https://design-system.service.gov.uk/components/radios/)
 - Heydon Pickering, [Inclusive Components: Tooltips & Toggletips](https://inclusive-components.design/tooltips-toggletips/)
+- Grok Bot help, fetched 2026-11-05 (the app itself was not opened): [Connect apps](https://cursor.com/help/grok-bot/connect-apps), [How Tos](https://cursor.com/help/grok-bot/how-to)

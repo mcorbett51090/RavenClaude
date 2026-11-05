@@ -68,7 +68,7 @@ When the work is a settings page, form or checkout built from switches, segmente
 - A switch is a checkbox with a visible, fixed label (Space toggles). The native `switch` attribute is experimental; do not depend on it.
 - A slider has a visible value, `aria-valuetext`, and a non-drag path. WCAG 2.5.7 is Level AA; the Understanding page is silent on whether a native range is exempt, so record it and recommend step buttons rather than failing on it alone.
 - "More info" is a toggletip (`<button>` + `role="status"`). Hover/focus popovers meet WCAG 1.4.13 (AA). APG's tooltip page is work in progress.
-- A sheet is a modal dialog: title, focus in and back, Tab contained, Esc, a Close button.
+- A sheet is a modal dialog: title, focus in and back, Tab contained, Esc, a Close button. Connect apps stays one sheet: accounts, then the four base-scope radios, pills and Advanced, then Required text and Additional Access groups.
 - No claim here is an assistive-technology result; run the script in the file.
 
 ---
@@ -102,7 +102,7 @@ The research-grounded reference the agents point to. Read the relevant file in f
 | [`knowledge/accessibility-engineering-economics.md`](knowledge/accessibility-engineering-economics.md) | The unit economics behind the house opinions — formulas reproduced in the calculator |
 | [`knowledge/accessibility-engineering-context.md`](knowledge/accessibility-engineering-context.md) | Benchmarks & regulatory/market context (2025–2026) |
 | [`knowledge/accessibility-engineering-decision-trees.md`](knowledge/accessibility-engineering-decision-trees.md) | **Mermaid** decision trees for the three most common triage paths |
-| [`knowledge/settings-controls-markup-and-keyboard-2026-11.md`](knowledge/settings-controls-markup-and-keyboard-2026-11.md) | Settings and choice controls (switch, segmented/radio tiles, slider, tooltip/toggletip, sheet, usage meter): per-control markup, keys, name/state, WCAG 2.5.7 / 1.4.13 / 2.5.8, an audit-result table and a keyboard-then-screen-reader script. Primary sources read 2026-11-05; unverified rows labeled; not an AT result |
+| [`knowledge/settings-controls-markup-and-keyboard-2026-11.md`](knowledge/settings-controls-markup-and-keyboard-2026-11.md) | Settings and choice controls (switch, segmented/radio tiles, slider, tooltip/toggletip, sheet, usage meter) and the Connect-apps sheet (brand icon, per-account Authorize, base-scope radios, pills, Advanced, Required, Additional Access): markup, keys, name/state, WCAG 2.5.7 / 1.4.13 / 2.5.8, an audit-result table and a keyboard-then-screen-reader script. Primary sources read 2026-11-05; unverified rows labeled; not an AT result |
 | [`knowledge/portal-and-agent-accessibility-2026-11.md`](knowledge/portal-and-agent-accessibility-2026-11.md) | Portal/app chrome and coding-agent legibility from the 2026-11-04 capture: labeled rail, disclosure buttons, current location, provisional motion and agent-practice rules, unverified tooling left unimplemented |
 
 ---

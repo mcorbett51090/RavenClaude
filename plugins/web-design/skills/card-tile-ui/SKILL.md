@@ -101,7 +101,7 @@ When the tiles hold **settings, choices or usage** rather than read-only informa
 3. **Continuous values get a slider with live preview**, a visible value, `aria-valuetext`, a reset, and −/+ step buttons (WCAG 2.5.7).
 4. **Words:** label ≤ ~4 words, caption ≤ 1 line, "more info" in a toggletip. Rule: [`settings-copy-is-a-label-and-a-caption-with-more-info-on-demand`](../../best-practices/settings-copy-is-a-label-and-a-caption-with-more-info-on-demand.md).
 5. **Usage cards:** a `<meter>` with the figure written out, one caption, one action; state never by color alone.
-6. **Connect/authorize and multi-account** open a modal sheet (title, Close button and Esc, one sheet deep); the provider's own page collects the credentials. Security review is mandatory for that flow.
+6. **Connect apps** is one modal sheet, not a stack: the list row shows the provider's own icon, the name, and "N accounts", and Authorize opens an accounts list (Authorize on each account, Add account). Choosing one replaces the sheet with base-scope tiles (Minimal / Read only / Full / Requested), pills, Advanced and Continue, then Required tiles and Additional Access groups. The provider's own page collects the credentials. Full rules: the knowledge file §7a. Security review is mandatory.
 
 Interactive selected states follow rule 8 above (hover lift is for clickable tiles) **and** the existing "more than color" line: a check, weight or outline. Markup and keys: [`accessibility-engineering` settings-controls file](../../../accessibility-engineering/knowledge/settings-controls-markup-and-keyboard-2026-11.md).
 

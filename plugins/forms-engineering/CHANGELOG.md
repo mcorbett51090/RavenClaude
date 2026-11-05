@@ -7,6 +7,7 @@ All notable changes to this plugin are documented here. Format follows [Keep a C
 ### Changed
 
 - The best-practices inherited-rules table now points "which control for a choice or setting, and how much copy" at `web-design`'s two new rules (`show-small-choice-sets-instead-of-hiding-them-in-a-dropdown`, `settings-copy-is-a-label-and-a-caption-with-more-info-on-demand`). Pointer only: nothing is restated here, per the seam rule.
+- The same table points connector setup (Connect-apps list, multi-account sheet, scope tiles, provider redirect) at `web-design`'s settings-and-choice file §7 and the accessibility markup contract. It is not an intake form, so it is not ruled here.
 
 ## [0.1.1] — 2026-10-26
 
