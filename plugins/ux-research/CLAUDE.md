@@ -53,6 +53,7 @@ Two agents, one clean seam: **frame & plan the research** (research-lead) ⇄ **
 9. **Confirmation bias in synthesis and leading questions in moderation are the two house enemies.** Guard both by name — seek disconfirming evidence; phrase neutrally.
 10. **Volatile method/tooling facts carry a retrieval date** (research-platform features, panel quality, sample-size heuristics, AI-analysis tools) and are re-verified before a stakeholder commitment.
 11. **A UI-pattern claim keeps the grade the evidence gave it.** Solid rules in [`knowledge/ui-pattern-standing-bar-2026-11.md`](knowledge/ui-pattern-standing-bar-2026-11.md) are the standing bar (labeled rail, disclosure buttons, tokens named by meaning in the Design Tokens Community Group report 2025.10, skeletons that reserve real content size). Provisional rows (Core Web Vitals thresholds, Baymard blur/keystroke/positive validation, popover and view-transition Baseline notes, WCAG 2.3.3 as AAA) stay labeled provisional. Discarded claims (icon-only nav as an NN/g rule, exactly one `aria-current`, the BBC/7digital 43% figure, DTCG theming without storing per-mode values) stay out. The 109-claim extract is not in this repo — do not reconstruct it. A portal QA walk is an example checklist, not a finding.
+12. **An evaluative review of an existing UI includes content placement.** Usability of the controls already on the page is not the whole pass. On a portal or signed-in product, each major content block gets Keep, Move (named route), or Remove / redirect before the review is called done. The verdict is a design note owned by `web-design` ([`content-belongs-on-the-page-that-owns-it`](../web-design/best-practices/content-belongs-on-the-page-that-owns-it.md)). It is not a user-research conclusion, and it does not re-grade the 2026-11-04 capture. The portal-walk checklist in the standing bar carries the cross-reference.
 
 ---
 
@@ -72,6 +73,7 @@ Two agents, one clean seam: **frame & plan the research** (research-lead) ⇄ **
 - Quoting a research-platform feature, a panel claim, or the "~5 users / ~85% of issues" heuristic with no retrieval date or rigor caveat.
 - Citing a discarded 2026-11-04 claim, or promoting a provisional UI benchmark to verified, or rebuilding the missing 109-claim JSON. The grades are in [`knowledge/ui-pattern-standing-bar-2026-11.md`](knowledge/ui-pattern-standing-bar-2026-11.md).
 - Treating a portal QA note (a rail item that 404s, a missing current-location cue, an editor left on the wrong account route) as a research conclusion about users. Page-content placement is `web-design`'s pass, linked from the standing bar's portal-walk checklist.
+- Closing an evaluative review of a portal or signed-in product after chrome, accessibility, and form controls, with no content-placement verdict. Whether people can use a block does not answer whether the block belongs on that page. The verdict stays a design note (`web-design`), not a finding about users.
 
 ---
 
@@ -112,7 +114,7 @@ Reference docs with `Last reviewed:` dates + confidence notation. Inline priors 
 |---|---|
 | [`knowledge/ux-research-decision-tree.md`](knowledge/ux-research-decision-tree.md) | Making a call — the Mermaid decision trees (research-theater gate, which method, sample size & rigor, consent/PII path) + method→answer trade-off tables + the bias catalog + seams to adjacent plugins |
 | [`knowledge/ux-research-patterns-2026.md`](knowledge/ux-research-patterns-2026.md) | Planning/running/synthesizing — the method matrix, moderation & survey best practices, the bias catalog and its counters, evidence-strength framing, research-ops/repository patterns, the ethics/PII discipline, and a dated 2026 tooling map |
-| [`knowledge/ui-pattern-standing-bar-2026-11.md`](knowledge/ui-pattern-standing-bar-2026-11.md) | Citing or applying a UI pattern for portal/app chrome — solid vs provisional vs discarded grades from the 2026-11-04 capture (navigation, tokens, skeletons; Baymard, CWV, Baseline, and motion labeled provisional; four failed claims left out). Not the missing 109-claim extract. The portal-walk checklist points at `web-design`'s page-content placement pass; that pointer is QA, not a new grade |
+| [`knowledge/ui-pattern-standing-bar-2026-11.md`](knowledge/ui-pattern-standing-bar-2026-11.md) | Citing or applying a UI pattern for portal/app chrome — solid vs provisional vs discarded grades from the 2026-11-04 capture (navigation, tokens, skeletons; Baymard, CWV, Baseline, and motion labeled provisional; four failed claims left out). The portal-walk checklist requires a content-placement verdict (Keep / Move / Remove) and points at `web-design`'s placement pass, decision tree, and rule. That row is QA, not a user finding and not a new grade. Not the missing 109-claim extract |
 
 ---
 

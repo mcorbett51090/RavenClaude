@@ -57,6 +57,7 @@ See [`CLAUDE.md`](CLAUDE.md) for the full team constitution.
 11. Third-party scripts are debt.
 12. One source of truth per design decision.
 13. Print and reduced-motion are not afterthoughts.
+14. On a portal or signed-in page, every major content block is Keep, Move, or Remove / redirect.
 
 Full list (plus anti-patterns) in [`CLAUDE.md`](CLAUDE.md) §3 / §4.
 

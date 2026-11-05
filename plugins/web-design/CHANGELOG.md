@@ -2,6 +2,17 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.23.2] — 2026-11-05
+
+### Added
+
+- **Content placement is a required step on every portal or signed-in UX review**, on top of 0.23.1. Each major content block (form, builder, editor, table, share kit, analytics panel, settings) gets **Keep**, **Move** (name the product area and route), or **Remove / redirect**. A pass that only checks nav chrome, accessibility, and form controls is incomplete.
+  - Rule: `best-practices/content-belongs-on-the-page-that-owns-it.md`.
+  - Decision tree: `knowledge/web-design-decision-trees.md`, "Content placement — keep, move, or remove a block".
+  - Procedure and anti-pattern: `skills/information-architecture/SKILL.md` §8.
+  - Gold-standard pipeline G2 acceptance line for signed-in pages.
+- `ux-research` 0.1.5 records the same step in synthesis and on the specialist. The verdict stays a design note. It does not re-grade the 2026-11-04 UI-pattern capture.
+
 ## [0.23.1] — 2026-11-05
 
 ### Added
@@ -20,7 +31,7 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
 
 ### Notes
 
-- Sibling additions: `accessibility-engineering` 0.1.5 (markup, keys, WCAG 2.5.7 / 1.4.13 contract), `design-systems-engineering` 0.1.4 (component contract), `forms-engineering` 0.1.2 (pointer), `ux-research` 0.1.3 (test plan for the hypotheses).
+- Sibling additions: `accessibility-engineering` 0.1.5 (markup, keys, WCAG 2.5.7 / 1.4.13 contract), `design-systems-engineering` 0.1.4 (component contract), `forms-engineering` 0.1.2 (pointer), `ux-research` 0.1.3 (test plan for the hypotheses). The 0.1.4 cross-link landed with 0.23.1; the synthesis step is 0.1.5.
 - Not built: a lint hook for `<select>` with few options. Worth a separate PR with its own must-fail fixture.
 
 ## [0.22.0] — 2026-10-27

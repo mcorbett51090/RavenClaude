@@ -55,6 +55,7 @@ plugin's `design_checkins` posture owns the pause, this is the shape of the prop
 - **Mobile-first**: touch targets ≥ 44pt, gesture-friendly, thumb-zone awareness
 - **Information density**: when to compress, when to expand
 - **Accessibility-aware design**: focus order, keyboard navigation, semantic structure influence at wireframe stage
+- **Content placement, on every portal or signed-in review**: for each major block (form, builder, editor, table, share kit, analytics panel, settings), record **Keep**, **Move** (name the product area and route), or **Remove / redirect**. Do this in the same loop as the UX and accessibility refresh. Chrome, accessibility, and form checks do not answer it. Rule: [`../best-practices/content-belongs-on-the-page-that-owns-it.md`](../best-practices/content-belongs-on-the-page-that-owns-it.md). Tree: [`../knowledge/web-design-decision-trees.md`](../knowledge/web-design-decision-trees.md).
 
 ## Opinions specific to this agent
 - **Wireframe in grayscale.** Color decisions distract from flow decisions.
@@ -95,6 +96,8 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 - Touch targets < 44pt on mobile
 - Click-here-to-do-X CTA copy ("click here") instead of action-descriptive ("Subscribe")
 - Cancel and confirm CTAs with same visual weight on a destructive action
+- A usability review of a portal or signed-in page that finishes after nav chrome, accessibility, and form controls, with no Keep / Move / Remove row for each major content block
+- A builder or editor left on a page whose nav parent is a different product entity (the 2026-11-05 miss `[user-reported]`: the card editor still on `/account/site` after `/account/cards/site`)
 
 ## Escalation routes
 - Visual / brand / token decisions → `visual-designer`
