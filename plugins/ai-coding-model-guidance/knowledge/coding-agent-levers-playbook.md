@@ -193,7 +193,7 @@ Hard catalog restrictions `[verify-at-use]`:
 | Acceptance command | exit 0 | non-zero, or not run |
 | Re-ask | you did not ask the user to confirm done | you asked "are we done?" |
 
-DONE: end the turn. NOT DONE: do the single failed line, then stop again. After the host's block cap, stop and say the command did not pass.
+DONE: end the turn. NOT DONE: do the single failed line, then stop again. After the host's block cap, stop and say the command did not pass. On RavenClaude that cap line is `VERDICT: STOP` (a user warning on Copilot, not a new prompt).
 
 **Anti-patterns**
 

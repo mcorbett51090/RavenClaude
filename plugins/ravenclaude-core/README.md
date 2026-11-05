@@ -13,8 +13,9 @@ Ships the orchestrator-worker dispatch model, generalist specialist agents (arch
 ```shell
 /plugin marketplace add mcorbett51090/RavenClaude
 /plugin install ravenclaude-core@ravenclaude
-/reload-plugins
 ```
+
+Since Claude Code v2.1.221 a plugin installed this way often loads without `/reload-plugins`. Run `/reload-plugins` only if the agents do not appear. Other hosts use `bash <marketplace>/scripts/ravenclaude install --host <copilot|codex|cursor|gemini|aider> --project <repo>` (see the root README).
 
 This is the prerequisite plugin — domain plugins (`power-platform`, `finance`, …) require it for the shared protocols below.
 
