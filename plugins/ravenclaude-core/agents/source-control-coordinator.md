@@ -163,7 +163,12 @@ and abort unless `state` is `OPEN`, `mergeStateStatus` is mergeable, `headRefOid
 validated, and every required check in `statusCheckRollup` reports success against that exact SHA
 (cross-checked against `gh pr checks <n>`, per `docs/remote-ci-autotrigger-runbook.md`'s
 `--watch`-can-miss-a-run caveat). A zero-checks or path-filter-skipped required check is an escalation,
-never an implicit pass. No admin-override merge flag is ever passed.
+never an implicit pass. A `neutral` or `skipped` conclusion is not `success` for a gate you are treating
+as required — GitHub counts both as satisfying a required check, so an advisory bot stays off that list.
+`DIRTY`, a non-empty worktree, or a tip that is not `headRefOid` is a remount, not a merge. A `BEHIND`
+tip that merges cleanly is updated before any sibling that conflicts. Full order:
+[`../knowledge/source-control-operating-practices.md`](../knowledge/source-control-operating-practices.md).
+No admin-override merge flag is ever passed.
 
 ## FOREIGN-STEWARD detection
 

@@ -32,7 +32,7 @@
       "name": "grok-bot-delegation",
       "source": "./plugins/grok-bot-delegation",
       "description": "Grok Bot delegation SOP for Chief of Staff \u2014 on every Matthew ask: match or create purpose-built expert bots (via grok-bot-creation), port or upstream RavenClaude skills, SendToAgent with a tight brief, then coordinate; escalate to Matthew only for decisions, auth, or irreversible actions. Also carries the fleet token-spend playbook: condensed returns, an effort ladder before spawn, routine hygiene, connectors over browser, CPCT measurement. Distinct from ravenclaude-core Team Lead orchestration (Claude Code) and ai-agent-engineering (building agentic products). Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -314,7 +314,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: specialist agents, skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage \u2192 brand kit), /wireframe (describe anything \u2192 validated model + high-fi Artifact + Mermaid), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /wireframe, /reset-plugin-cache, /handoff.",
-      "version": "0.360.2",
+      "version": "0.360.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1287,7 +1287,7 @@
       "name": "devops-cicd",
       "source": "./plugins/devops-cicd",
       "description": "DevOps & CI/CD delivery-pipeline team \u2014 agents (pipeline-engineer, release-engineer, gitops-engineer, build-and-artifact-engineer) for the path from commit to production: CI design (stages, caching, matrix, fail-fast, required checks), progressive delivery (blue-green, canary, feature-flagged rollouts, automated rollback), GitOps continuous delivery (Argo CD / Flux, desired-state in Git, drift detection), and build/artifact integrity (reproducible builds, semantic versioning, SBOM, provenance/SLSA, registry hygiene). skills, a decision-tree knowledge bank (deploy-strategy + CI-vs-CD-boundary trees + a dated 2026 tooling map), best-practices, templates, commands, an advisory hook. Seams: IaC -> terraform-iac, clusters -> cloud-native-kubernetes, telemetry/SLOs -> observability-sre, supply-chain verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.5",
+      "version": "0.3.6",
       "author": {
         "name": "Matt Corbett"
       },

@@ -55,7 +55,7 @@ graph TD
   F -- No --> H[Move toward trunk-based; shrink branch lifetime before adding process]
 ```
 
-_GitFlow's develop/release/hotfix lattice is overhead most teams pay without the multi-version need that justifies it._
+_GitFlow's develop/release/hotfix lattice is overhead most teams pay without the multi-version need that justifies it. The cited bar (daily merge, branch lifetime in hours, three or fewer active branches) and the hand-merge order are `best-practices/design-trunk-based-over-long-lived-branches.md` and `best-practices/merge-behind-clean-tips-before-dirty-ones.md`._
 
 ## Decision Tree: Monorepo vs polyrepo pipeline shape
 
