@@ -75,6 +75,10 @@ Section discipline: ≤ 6 sections on a home page; same shape every section (≈
 
 Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-references.md). Re-read when scoping a new site or evaluating an existing one against the field.
 
+**Page content before chrome (2026-11-05).** On a signed-in portal UX pass, verdict every major block — Keep, Move (name the route and product area), or Remove/redirect — before wireframe polish. If the nav already has a route for an editor, the old page keeps a link, not the editor. Reported miss `[user-described]`: card editor on `/account/site` vs `/account/cards/site`. Pass: [`../knowledge/content-placement-page-ia-2026-11.md`](../knowledge/content-placement-page-ia-2026-11.md).
+
+**Settings and form controls (2026-11-05).** Show small choice sets instead of a dropdown: switch for on/off that applies now, segmented control for 2–5 options, radio tiles for 3–7 with detail, amount tiles for presets, slider with live preview for continuous values; label ≤ ~4 words, one caption line, "more info" in a toggletip. Connect apps uses the same tiles: a list row with the brand icon and "N accounts", then one sheet for accounts, the four access tiles (Minimal / Read only / Full / Requested), and Required versus Additional Access. House defaults, not a measured result. Ladder and limits: [`../knowledge/settings-and-choice-controls-2026.md`](../knowledge/settings-and-choice-controls-2026.md) §7a.
+
 **Craft bar (2026-10-26).** Two flows the owner's reference brands do best: **qualify-first** (Starlink puts the address field, a price anchor and one Get Started in the hero; Tesla's configurator decides one attribute group at a time with a running total) and **one primary action per viewport**, persisting as a compact CTA-only bar after the hero. From game menus: every state designed including *no data*, deltas ("old → new") at decision points, Back that always pops one layer and restores focus, and confirm-or-undo (never hold-only) for destructive actions. Drive the [`interface-craft`](../skills/interface-craft/SKILL.md) skill; references: [`../knowledge/interface-craft-reference-brands-2026.md`](../knowledge/interface-craft-reference-brands-2026.md), [`../knowledge/game-ui-lessons-for-the-web-2026.md`](../knowledge/game-ui-lessons-for-the-web-2026.md). **Builders (2026-10-26):** an owner-facing editor gets two disclosure levels (simple and advanced), templates first, onboarding in the order the owner thinks, and constraint-aware warnings while typing — see [`visual-builder`](../skills/visual-builder/SKILL.md) and [`form-builder`](../skills/form-builder/SKILL.md).
 
 ## Anti-patterns you flag
@@ -87,6 +91,7 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 - Loading state that's a full-screen spinner blocking everything
 - Empty state that just says "No items" with no path forward
 - Mobile screens designed in 1440 desktop frame and "scaled down"
+- An editor polished on a page whose nav already points at a dedicated route for that editor
 - Touch targets < 44pt on mobile
 - Click-here-to-do-X CTA copy ("click here") instead of action-descriptive ("Subscribe")
 - Cancel and confirm CTAs with same visual weight on a destructive action

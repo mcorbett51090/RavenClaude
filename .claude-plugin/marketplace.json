@@ -402,7 +402,7 @@
       "name": "web-design",
       "source": "./plugins/web-design",
       "description": "Web design & build specialist team \u2014 web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). skills (the gold-standard-website-pipeline gated build pipeline, static-site build, design-system audit, card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party hygiene, Fluent UI v9 + React implementation), templates, an advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors \u2014 the design agents carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.22.0",
+      "version": "0.23.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1883,7 +1883,7 @@
       "name": "accessibility-engineering",
       "source": "./plugins/accessibility-engineering",
       "description": "Accessibility Engineering specialist team \u2014 agents (accessibility-lead, wcag-audit-analyst, assistive-tech-testing-specialist, inclusive-design-strategist), skills, templates, commands, an advisory hook, best-practice rules, and a research-grounded knowledge bank. An accessibility team for an a11y lead or product owner accountable for WCAG conformance \u2014 it picks a conformance target and measures against it, treats automated scans as a fraction of the picture, holds keyboard and screen-reader parity as the floor, reaches for semantic HTML before ARIA, and verifies contrast ratios. Inherits ravenclaude-core protocols.",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3605,7 +3605,7 @@
       "name": "ux-research",
       "source": "./plugins/ux-research",
       "description": "UX-research team \u2014 agents (ux-research-lead, research-execution-and-synthesis-specialist) that turn a fuzzy ask into a researchable question, pick a rigorous method (generative vs evaluative, qual vs quant, moderated vs unmoderated), run the study (usability tests, interviews, surveys), and synthesize evidence into decision-ready, bias-checked insight \u2014 without the research theater. The lead owns framing, method selection, the research plan, research-ops (recruiting, repository), and research ethics + participant-PII discipline (consent, anonymization). The specialist owns protocol & task design, non-leading moderation, survey design, and synthesis (affinity/thematic analysis, evidence strength, observation vs interpretation). skills, a knowledge bank + templates. Distinct from product-management (roadmap/prioritization), web-design (visual/interaction/IA design), experimentation-growth-engineering (online A/B stats), data-science-research (advanced quant). Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.2",
+      "version": "0.1.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4115,7 +4115,7 @@
       "name": "design-systems-engineering",
       "source": "./plugins/design-systems-engineering",
       "description": "Design-systems engineering team \u2014 agents (design-systems-architect, design-tokens-and-component-engineer) answering 'what is the shared system every product surface builds from, and how is it versioned and adopted?': design-token architecture (primitive \u2192 semantic \u2192 component tiers, theming/dark-mode/multi-brand), component-library API design (composition vs configuration, controlled/uncontrolled, a11y baked in), Storybook/docs, Figma\u2192code token pipeline (Style Dictionary), and versioning/adoption (semver, changesets, codemod-backed breaking changes, deprecation, governance, adoption metrics). skills, a knowledge bank (a Mermaid decision tree + a dated 2026 tooling reference). Distinct from frontend-engineering (builds apps that CONSUME the system), accessibility-engineering (WCAG compliance), and web-design (site visual design) \u2014 this team owns the SYSTEM those build from. Tooling specifics volatile: retrieval-dated + verify-at-use. Needs ravenclaude-core.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4204,7 +4204,7 @@
       "name": "forms-engineering",
       "source": "./plugins/forms-engineering",
       "description": "Forms engineering \u2014 the seam between how a form is built, how the request stream behind it is run, and where its trust boundary sits. Owns what no other plugin does: intake taxonomy and triage routing that make a request stream deterministic; the form measurement contract (which events, which denominator, what counts as a defect) and its hand-off to statistical process control; the server half of a submission that web-design routes out by rule (client/server validation parity, honeypot design and its assistive-tech exemption, double-submit and submission idempotency, webhook signature verification, PII minimisation); and form-platform selection on durable axes rather than a feature matrix. Client-side form construction and form accessibility stay with web-design. Upload hardening and challenge-widget mechanics stay with ravenclaude-core, which this plugin cites rather than restates, and every binding security verdict routes to ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },

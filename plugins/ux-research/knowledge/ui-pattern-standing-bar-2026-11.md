@@ -104,6 +104,7 @@ A local walk on 2026-11-04 (fixture data, light theme, five personas, 24 routes,
 3. **The account menu exposes the current item to assistive technology.** The walk found no current-item marker on Profile, security, connectors, sessions, what's-new, or help. That is a checklist miss. It is not evidence for the discarded "exactly one `aria-current`" claim.
 4. **The rail label and the page heading use the same words.** The walk's example: rail "Members", heading "Members area".
 5. **A rail item with no icon, beside items that have one, is a visual alignment check.** It is not, by itself, an accessibility failure. The walk's example: Forms was plain text while its group had glyphs.
+6. **The page body matches the route the nav already chose.** Before chrome notes, inventory each major block: Keep, Move (name the route and the product area), or Remove/redirect. An editor left on a page after the nav points at a dedicated route is a placement miss. The reported example `[user-described 2026-11-05]`, product not opened for this row: a card editor still on `/account/site` when cards are at `/account/cards/site`. The pass is [`web-design`'s content-placement addendum](../../web-design/knowledge/content-placement-page-ia-2026-11.md). This row is QA. It is not a research finding and it is not a grade on the 2026-11-04 capture.
 
 The walk also recorded, as checked-and-fine context rather than rules: rail links that were in scope landed where they pointed; a missing-site persona saw locked items with a call to action; the empty persona saw a completion form; the light theme was the default; flag-off routes 404 by design. Those observations stay observations about that fixture walk.
 
@@ -113,3 +114,4 @@ The walk also recorded, as checked-and-fine context rather than rules: rail link
 - A provisional row promoted to solid because it matches training knowledge.
 - A discarded row brought back as balance.
 - A change to another product repository. This file is the standing bar for future work. It is not a patch list.
+- A Keep / Move / Remove table treated as a study result. Placement is the web-design pass linked above.

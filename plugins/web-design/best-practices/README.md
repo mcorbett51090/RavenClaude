@@ -6,7 +6,7 @@ Named, citable rules for the `web-design` plugin's specialist agents and any con
 
 ## Index
 
-_29 rules. Each file is one named, citable rule; read and apply it whole._
+_32 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -38,6 +38,9 @@ _29 rules. Each file is one named, citable rule; read and apply it whole._
 | [`css-custom-properties-bridge-tokens-to-components.md`](./css-custom-properties-bridge-tokens-to-components.md) | Pattern — CSS custom properties are the bridge between the token system and components; semantic tokens in `:root`, components consume semantic tokens, dark-mode overrides only the semantic layer. | Setting up or extending a design token system; implementing dark mode; theming a component. |
 | [`form-labels-are-not-placeholders.md`](./form-labels-are-not-placeholders.md) | Absolute rule — every form field has a persistent `<label>` (or `aria-label`/`aria-labelledby`); placeholder text is supplementary, never the label. WCAG 1.3.1. | Writing or reviewing any form — inputs, selects, textareas; CMS form components. |
 | [`dark-mode-via-prefers-color-scheme.md`](./dark-mode-via-prefers-color-scheme.md) | Pattern — dark mode is implemented via `prefers-color-scheme: dark` (system preference, no JS required) with a class-based toggle layer for user override; not toggle-only. | Implementing dark mode; auditing a site's theming; adding the color-scheme meta tag. |
+| [`show-small-choice-sets-instead-of-hiding-them-in-a-dropdown.md`](./show-small-choice-sets-instead-of-hiding-them-in-a-dropdown.md) | Pattern — for small choice sets show the options: switch for on/off, segmented control for 2–5, radio tiles for 3–7 with detail, amount tiles for presets, a slider with live preview for continuous values. A `<select>` is the last resort. | Building or reviewing a settings page, checkout or form that has a dropdown, a toggle, a slider or a set of tiles. |
+| [`settings-copy-is-a-label-and-a-caption-with-more-info-on-demand.md`](./settings-copy-is-a-label-and-a-caption-with-more-info-on-demand.md) | Pattern — a short label, a one-line caption, and a toggletip for "more info". Decisive information stays visible; tooltips are a last resort. | A form or settings page reads as a wall of text; adding help text, a tooltip or an info icon. |
+| [`place-page-content-before-polishing-chrome.md`](./place-page-content-before-polishing-chrome.md) | Absolute rule — on a signed-in portal UX pass, every major block is Keep, Move (named route), or Remove/redirect before chrome polish. | Reviewing or restyling an account page; a nav item already has its own route and the old page still holds the editor. |
 
 ---
 

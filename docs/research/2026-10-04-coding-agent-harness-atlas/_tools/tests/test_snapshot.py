@@ -20,10 +20,12 @@ from snapshot import (  # noqa: E402
     coverage_metrics,
     first_changelog_date,
     index_hashes,
+    load_enumeration_pack,
     merged_origins,
     npm_version,
     split_origins,
     split_rows,
+    store_surface_enumeration,
     unmatched_origins,
     url_set_for,
     vscode_version,
@@ -246,6 +248,44 @@ class RecordTests(unittest.TestCase):
             (p3 / "s.origins-sitemap-all.jsonl").write_text(json.dumps({"url": "https://x.example/y", "source": "sitemap", "origin": "o"}) + "\n")
             got = merged_origins(tmp, "s")
         self.assertEqual([r["url"] for r in got], ["https://x.example/a", "https://x.example/b"])
+
+
+class EnumerationPackTests(unittest.TestCase):
+    def test_store_round_trips_and_drops_legacy_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            enum = Path(tmp)
+            (enum / "claude-code.json").write_text('{"legacy": true}\n', encoding="utf-8")
+            (enum / "claude-code.manifest.jsonl").write_text("legacy\n", encoding="utf-8")
+            from atlas_common import dump_json
+
+            # A member this build does not rewrite stays in the pack.
+            dump_json(enum / snapshot.ENUMERATION_PACK, {"grok-bot-pairs.json": '{"pairs": []}\n'})
+            store_surface_enumeration(
+                enum,
+                "claude-code",
+                [{"url": "https://example.test/a", "outcome": "fetched"}],
+                [{"url": "https://example.test/a", "source": "index", "origin": "sitemap"}],
+                ["https://example.test/a"],
+                {"surface": "claude-code", "retrieved": "2026-10-04"},
+            )
+            self.assertFalse((enum / "claude-code.json").exists())
+            self.assertFalse((enum / "claude-code.manifest.jsonl").exists())
+            pack = load_enumeration_pack(enum / snapshot.ENUMERATION_PACK)
+            self.assertEqual(pack["grok-bot-pairs.json"], '{"pairs": []}\n')
+            self.assertEqual(
+                pack["claude-code.manifest.jsonl"],
+                '{"outcome": "fetched", "url": "https://example.test/a"}\n',
+            )
+            self.assertEqual(pack["claude-code.urls.txt"], "https://example.test/a\n")
+            record = json.loads(pack["claude-code.json"])
+            self.assertEqual(record["surface"], "claude-code")
+            self.assertEqual(sorted(pack), [
+                "claude-code.json",
+                "claude-code.manifest.jsonl",
+                "claude-code.origins.jsonl",
+                "claude-code.urls.txt",
+                "grok-bot-pairs.json",
+            ])
 
 
 class SplitAndCoverageTests(unittest.TestCase):

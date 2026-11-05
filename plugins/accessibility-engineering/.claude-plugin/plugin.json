@@ -1,6 +1,6 @@
 {
   "name": "accessibility-engineering",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Accessibility Engineering specialist team — agents (accessibility-lead, wcag-audit-analyst, assistive-tech-testing-specialist, inclusive-design-strategist), skills, templates, commands, an advisory hook, best-practice rules, and a research-grounded knowledge bank. An accessibility team for an a11y lead or product owner accountable for WCAG conformance — it picks a conformance target and measures against it, treats automated scans as a fraction of the picture, holds keyboard and screen-reader parity as the floor, reaches for semantic HTML before ARIA, and verifies contrast ratios. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

@@ -40,6 +40,9 @@ Signed: [name] — [YYYY-MM-DD]
 - [ ] Viewport tag is `width=device-width, initial-scale=1` with no zoom lock; `viewport-fit=cover` only if all four safe-area insets are used
 - [ ] Every viewport-height section writes `vh` first, then `svh`/`lvh`/`dvh` (checked in the BUILT CSS)
 - [ ] Checked on a real iPhone and iPad, or the Xcode Device Hub simulator, in both orientations
+- [ ] Signed-in portal UX pass: every account route opened while signed in (rail, account menu, and tabs), not only the route in the task — see [`../knowledge/content-placement-page-ia-2026-11.md`](../knowledge/content-placement-page-ia-2026-11.md). Marketing-only: `N/A — no signed-in routes`
+- [ ] Each major block is Keep, Move (route + product area named), or Remove/redirect, written before chrome polish
+- [ ] No editor or builder left on a page after nav already points at its dedicated route (reported miss: card editor on `/account/site` vs `/account/cards/site`)
 - [ ] Focus indicators visible on all interactive surfaces
 - [ ] Touch targets ≥ 44pt on mobile
 

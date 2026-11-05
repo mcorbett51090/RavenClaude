@@ -74,6 +74,8 @@ Each URL gets one verdict. No "we'll decide later" — the audit ends with a que
 
 **Cannibalization** (two pages ranking for the same keyword, splitting traffic) is the most common consolidation trigger. Spot it in Search Console by sorting by keyword and finding URLs that share top-10 positions.
 
+**Not this matrix.** Blocks on a signed-in portal page use Keep | Move | Remove/redirect in [`../../knowledge/content-placement-page-ia-2026-11.md`](../../knowledge/content-placement-page-ia-2026-11.md). KKCR scores whole URLs for a content audit. Do not paste KKCR onto an account page, and do not paste placement verdicts onto a marketing crawl.
+
 ## 4. Redirect plan when consolidating / retiring
 
 Every URL that goes away needs a destination:
