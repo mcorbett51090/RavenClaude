@@ -32,12 +32,15 @@ description: Enforce the Structured Output Protocol — every sub-agent handoff 
   },
   "confidence": 0.0-1.0,
   "risks_or_open_questions": [...],
-  "next_actions": [...]
+  "next_actions": [...],
+  "done_verdict": "DONE" | "NOT DONE",
+  "done_checklist": ["[PASS] <check that exited 0>", "[FAIL] <the one open check>"]
 }
 ---RESULT_END---
 ```
 
 4. For non-JSON narrative work (e.g., full design spec), still include a final delimited structured summary block as above.
+5. **Done verdict.** `done_verdict` is `DONE` only when every `done_checklist` line is `[PASS]`. Then stop. Do not ask whether the work is done. `NOT DONE` means do the single `[FAIL]` line and stop again. Never emit `DONE` while a line is `[FAIL]`.
 
 ## Example Invocation (for Team Lead or skills)
 "Delegate this as a Focused Task to the Coder. Use the Structured Output Skill. Require the Coder to return reasoning + the exact ---RESULT_START--- block with status, summary, code_changes summary, and handoff if needed."

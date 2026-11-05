@@ -147,12 +147,20 @@ echo "x" > "$sb_dod/x.py"
 git -C "$sb_dod" add x.py 2>/dev/null
 
 # G70.4a — first run, no confirm file, trusted:false -> exit 2 (block)
+# The block text is the next Copilot prompt. It must name NOT DONE and forbid
+# the "are we done?" re-ask. A bare "not yet verified" reason is the loop.
 rc_dod1=0
-CLAUDE_PROJECT_DIR="$sb_dod" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_dod\",\"session_id\":\"s1\"}" >/dev/null 2>&1 || rc_dod1=$?
+err_dod1="$(CLAUDE_PROJECT_DIR="$sb_dod" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_dod\",\"session_id\":\"s1\"}" 2>&1 >/dev/null)" || rc_dod1=$?
 if [ "$rc_dod1" -eq 2 ]; then
   pass "G70.4a untrusted first run -> exit 2 (block)"
 else
   fail "G70.4a untrusted first run should exit 2; got rc=$rc_dod1"
+fi
+if printf '%s' "$err_dod1" | grep -q 'VERDICT: NOT DONE' \
+  && printf '%s' "$err_dod1" | grep -q 'do not ask if the work is done'; then
+  pass "G70.4a trust block names NOT DONE and forbids the re-ask"
+else
+  fail "G70.4a trust block missing the stop-rule verdict; got: $(printf '%s' "$err_dod1" | head -c 180)"
 fi
 
 # G70.4b — after touching confirm file -> exit 0 (proceeds; the echo cmd passes)
@@ -224,7 +232,62 @@ if [ "$rc_dod4" -eq 2 ]; then
 else
   fail "G70.4d same-commit cmd+trusted:true should still exit 2; got rc=$rc_dod4"
 fi
-rm -rf "$sb_dod" "$sb_dod_trusted" "$sb_dod_samecommit" 2>/dev/null || true
+# G70.4e — trust refusals count toward max_blocks, then the turn is released
+# without ever running the command. The old path exited 2 forever, so Copilot
+# re-prompted "are we done?" on every Stop.
+sb_cap="$(mktemp -d)"
+mkdir -p "$sb_cap/.ravenclaude"
+cat > "$sb_cap/.ravenclaude/comfort-posture.yaml" <<'YAML'
+definition_of_done:
+  cmd: "touch ran-marker"
+  max_blocks: 2
+  trusted: false
+YAML
+git -C "$sb_cap" init -q
+echo "x" > "$sb_cap/x.py"
+git -C "$sb_cap" add x.py 2>/dev/null
+rc_cap1=0
+CLAUDE_PROJECT_DIR="$sb_cap" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_cap\",\"session_id\":\"cap\"}" >/dev/null 2>&1 || rc_cap1=$?
+rc_cap2=0
+CLAUDE_PROJECT_DIR="$sb_cap" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_cap\",\"session_id\":\"cap\"}" >/dev/null 2>&1 || rc_cap2=$?
+if [ "$rc_cap1" -eq 2 ] && [ "$rc_cap2" -eq 0 ] && [ ! -e "$sb_cap/ran-marker" ]; then
+  pass "G70.4e trust blocks hit max_blocks then release without running cmd"
+else
+  fail "G70.4e expected exit 2 then 0 and no ran-marker; got rc1=$rc_cap1 rc2=$rc_cap2 marker=$([ -e "$sb_cap/ran-marker" ] && echo yes || echo no)"
+fi
+
+# G70.4f — an authorized failing command blocks with VERDICT: NOT DONE (JSON).
+sb_fail="$(mktemp -d)"
+mkdir -p "$sb_fail/.ravenclaude"
+cat > "$sb_fail/.ravenclaude/comfort-posture.yaml" <<'YAML'
+definition_of_done:
+  cmd: "false"
+  trusted: false
+YAML
+git -C "$sb_fail" init -q
+echo "x" > "$sb_fail/x.py"
+git -C "$sb_fail" add x.py 2>/dev/null
+hash_fail="$(printf '%s' "false" | sha256sum | tr -dc '0-9a-f' | cut -c1-16)"
+mkdir -p "$sb_fail/.ravenclaude/runs/dod-gate/fail1"
+touch "$sb_fail/.ravenclaude/runs/dod-gate/fail1/confirmed-$hash_fail"
+out_fail="$(CLAUDE_PROJECT_DIR="$sb_fail" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_fail\",\"session_id\":\"fail1\"}" 2>/dev/null)" || true
+if printf '%s' "$out_fail" | jq -e '.decision=="block" and (.reason | contains("VERDICT: NOT DONE")) and (.reason | contains("do not ask if the work is done"))' >/dev/null 2>&1; then
+  pass "G70.4f failing command -> JSON NOT DONE checklist"
+else
+  fail "G70.4f failing command should emit VERDICT: NOT DONE; got: $(printf '%s' "$out_fail" | head -c 180)"
+fi
+
+# G70.4g — Copilot stop adapter forwards that verdict (top-level AND nested)
+# and does not substitute the old "not yet verified done" prompt.
+ADAPTER="$REPO_ROOT/plugins/ravenclaude-core/hooks/copilot-hook-adapter.sh"
+out_ad="$(printf '%s' "{\"cwd\":\"$sb_dod\",\"sessionId\":\"s-adapter\",\"stop_hook_active\":false}" | CLAUDE_PROJECT_DIR="$sb_dod" bash "$ADAPTER" stop "$HOOK_DOD" 2>/dev/null)" || true
+if printf '%s' "$out_ad" | jq -e '.decision=="block" and .hookSpecificOutput.decision=="block" and .hookSpecificOutput.hookEventName=="Stop" and (.reason | contains("VERDICT: NOT DONE")) and (.reason | contains("not yet verified done") | not)' >/dev/null 2>&1; then
+  pass "G70.4g Copilot stop adapter forwards NOT DONE, not the vague fallback"
+else
+  fail "G70.4g adapter stop verdict wrong; got: $(printf '%s' "$out_ad" | head -c 220)"
+fi
+
+rm -rf "$sb_dod" "$sb_dod_trusted" "$sb_dod_samecommit" "$sb_cap" "$sb_fail" 2>/dev/null || true
 
 # ── G70.5 — guard-web-access first-use ask ───────────────────────────────────
 echo ""

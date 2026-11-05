@@ -87,15 +87,11 @@ fi
 
 cat >&2 <<'EOF'
 
-────────────────────────────────────────────────────────────────────
-  ⚠  Source files changed this session.
-  Before declaring the task complete, run the full quality gate:
-
-      /run-full-test-suite
-
-  Format → lint → typecheck → unit → integration. Fail fast.
-  See CLAUDE.md §4.
-────────────────────────────────────────────────────────────────────
+VERDICT: NOT DONE until the quality gate has been run once.
+Checklist:
+- [ ] /run-full-test-suite   (format, lint, typecheck, unit, integration; fail fast)
+Stop rule: exit 0 on that command is DONE. Stop. Do not ask if the work is done.
+This notice fires once per session. It is not a new task and it is not a question.
 
 EOF
 

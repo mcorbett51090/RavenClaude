@@ -310,24 +310,47 @@ case "$mode" in
     #     coalesced because the field is documented snake_case in both Copilot
     #     config formats and this adapter should not depend on which one the host
     #     version emits.
-    # Do NOT touch the dec=="block"/rc==2 emit below (Gate 20 covers it) and do
-    # NOT add an additionalContext forward — there is no such output field on
+    # Do NOT add an additionalContext forward — there is no such output field on
     # Copilot's stop event [docs-verified 2026-09-02]; rev-1's P6c is struck.
+    #
+    # The block reason IS the next user prompt (this file's header; GitHub
+    # hooks-reference agentStop). Keep the verdict text. A fallback that only
+    # says "not yet verified done" is what made Chat sessions re-ask.
+    # stderr is kept when the hook blocks with exit 2 and no JSON reason
+    # (dod-gate's first-run trust check). Exit 0 + no decision stays an allow,
+    # even if the hook wrote a notice to stderr (remind-tests).
     claude_stdin="$(printf '%s' "$payload" | jq -c \
       '{cwd: (.cwd // .workspaceRoot // "."),
         session_id: (.sessionId // .session_id // ""),
         reason: (.stopReason // .stop_reason // ""),
         stop_hook_active: (.stop_hook_active // .stopHookActive // false)}' 2>/dev/null)"
-    out="$(printf '%s' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>/dev/null)"; rc=$?
+    err_file="$(mktemp 2>/dev/null || echo /dev/null)"
+    out="$(printf '%s' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>"$err_file")"; rc=$?
+    hook_stderr="$(cat "$err_file" 2>/dev/null || true)"
+    [ "$err_file" = /dev/null ] || rm -f "$err_file" 2>/dev/null
     # A Claude Stop block is either {"decision":"block","reason":...} on stdout or exit 2.
-    dec="$(printf '%s' "$out" | jq -r '.decision // empty' 2>/dev/null)"
-    reason="$(printf '%s' "$out" | jq -r '.reason // empty' 2>/dev/null)"
+    # Local VS Code Chat reads the same pair nested under hookSpecificOutput
+    # [docs-verified 2026-11-05 — code.visualstudio.com/docs/agents/reference/hooks-reference].
+    # Copilot's harness reads the top-level fields and ignores the extra object.
+    dec="$(printf '%s' "$out" | jq -r '.decision // .hookSpecificOutput.decision // empty' 2>/dev/null)"
+    reason="$(printf '%s' "$out" | jq -r '.reason // .hookSpecificOutput.reason // empty' 2>/dev/null)"
     if [ "$dec" = "block" ] || [ "$rc" -eq 2 ]; then
-      [ -z "$reason" ] && reason="RavenClaude definition-of-done gate: work is not yet verified done."
-      # Best-effort: emit BOTH a structured decision and the plain reason, mirroring
-      # the sessionstart dual-emit, since Copilot's exact stop-block shape is
-      # unverified (VERIFY-IN-COPILOT). Fail-open if Copilot ignores it.
-      jq -cn --arg r "$reason" '{decision:"block",reason:$r}'
+      if [ -z "$reason" ]; then
+        reason="$(printf '%s' "$hook_stderr" | head -c 2500)"
+      fi
+      if [ -z "$reason" ]; then
+        reason="$(cat <<'EOF'
+VERDICT: NOT DONE
+Stop rule: do not ask if the work is done. Do not end the turn.
+Checklist:
+- [FAIL] the definition-of-done gate blocked this stop and did not name the failed check
+- [PASS] the configured command exits 0
+Do the failed check, then stop again. If the next stop is not blocked, the verdict is DONE — end the turn and do not re-ask.
+EOF
+)"
+      fi
+      jq -cn --arg r "$reason" \
+        '{decision:"block",reason:$r,hookSpecificOutput:{hookEventName:"Stop",decision:"block",reason:$r}}'
       printf '%s\n' "$reason" >&2
     fi
     exit 0
