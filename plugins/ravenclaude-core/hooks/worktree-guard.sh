@@ -990,12 +990,17 @@ case "$SUBCMD" in
     if [ "$(_wg_lease_mode)" != "off" ] && [ "$session" != "unknown" ] \
        && _wg_lease_should_enforce; then
       _wg_holder="$(_wg_lease_holder)"
-      _wg_holder_pid="$(_wg_json_field "$LEASE_FILE" pid 2>/dev/null || true)"
-      # Same chat process, different session-id string. Copilot Chat runs the
-      # plugin hooks and the adapter hooks as children of one process; those
-      # two id strings used to look like two holders and stall the tree.
+      _wg_holder_thash="$(_wg_json_field "$LEASE_FILE" transcript_hash 2>/dev/null || true)"
+      _wg_my_thash=""
+      if [ -n "${wg_transcript_path:-}" ]; then
+        _wg_my_thash="$(_wg_sha256 "$wg_transcript_path" 2>/dev/null || true)"
+      fi
+      # Same chat, two hook copies. Copilot runs the plugin hooks and the
+      # adapter with different session-id strings. They share transcript_path.
+      # A shared parent pid is not enough: two sessions under one test process
+      # would then look like one chat and the lease would stop protecting the tree.
       if [ -z "$_wg_holder" ] || [ "$_wg_holder" = "$session" ] \
-        || { [ -n "$_wg_holder_pid" ] && [ "$_wg_holder_pid" = "$SESSION_PID" ]; }; then
+        || { [ -n "$_wg_holder_thash" ] && [ -n "$_wg_my_thash" ] && [ "$_wg_holder_thash" = "$_wg_my_thash" ]; }; then
         _wg_lease_write "$wg_transcript_path" || true   # claim / heartbeat; failure is not fatal
       elif [ -f "$LEASE_DIR/release.md" ] && [ -n "$_wg_holder" ] && [ "$(_wg_release_field "$LEASE_DIR/release.md" holder)" = "$_wg_holder" ]; then
         # LAYER 1 — explicit release marker, written OUTSIDE this tree at

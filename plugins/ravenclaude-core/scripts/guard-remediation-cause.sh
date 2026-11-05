@@ -36,6 +36,10 @@
 # false-positive gate passes. A gate that starts by blocking is a gate that gets
 # switched off before anyone has measured whether it was right.
 #
+# rc-state-scope: session
+# rc-state-key: CLAUDE_SESSION_ID
+# rc-state-rationale: the blind advisory text is printed once per session; the blind hook event still fires on every call
+# rc-state-escape: none — the marker only skips repeat text and does not authorize a denied command
 # ── BLINDNESS POLICY -- AN OWNER-VISIBLE DECISION, NOT AN OVERSIGHT ─────────
 # `guard-premise.sh` DENIES on "beacon absent but a Bash tool has run", on the
 # principle that a check which cannot see must not report clean. This gate does
