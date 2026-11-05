@@ -2821,7 +2821,7 @@ predicate names anything the command has not done yet.
 
 **Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md)
 
-_Last verified: 2026-10-09_
+_Last verified: 2026-11-05_
 
 
 ---

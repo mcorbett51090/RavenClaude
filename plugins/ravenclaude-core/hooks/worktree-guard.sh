@@ -957,6 +957,14 @@ case "$SUBCMD" in
     # programs. Variables, eval, globs and encodings can evade it — the real
     # backstop is the bwrap sandbox write allowlist (cwd + /tmp). Helper error
     # => fail closed. Escape: RC_WORKTREE_BASH_WRITE_ACK=1.
+    # Human-only DoD confirm file. A Bash touch/redirect must not approve the gate.
+    if [ "$tn" = "Bash" ] && [ -n "$cmd" ] \
+      && printf '%s' "$cmd" | grep -Eq 'dod-gate/.*/confirmed-' \
+      && printf '%s' "$cmd" | grep -Eq '(touch|tee|cp|mv|mkdir|install|>)'; then
+      printf '%s\n' "worktree-guard: DENIED — the definition-of-done confirm file is human-only. Do not create it. A person creates it outside this session, or the stop gate releases at max_blocks with VERDICT: STOP." >&2
+      _emit_hook_event "worktree-guard.sh" "deny" "Bash" "" "dod-confirm-human-only" "2"
+      exit 2
+    fi
     if [ "$tn" = "Bash" ] && [ -n "$cmd" ] && [ "${RC_WORKTREE_BASH_WRITE_ACK:-}" != "1" ]; then
       _wg_helper="$(dirname "${BASH_SOURCE[0]}")/worktree-guard-bash.py"
       [ -f "$_wg_helper" ] || _wg_fail_closed "bash-write helper missing: ${_wg_helper}"
@@ -982,7 +990,12 @@ case "$SUBCMD" in
     if [ "$(_wg_lease_mode)" != "off" ] && [ "$session" != "unknown" ] \
        && _wg_lease_should_enforce; then
       _wg_holder="$(_wg_lease_holder)"
-      if [ -z "$_wg_holder" ] || [ "$_wg_holder" = "$session" ]; then
+      _wg_holder_pid="$(_wg_json_field "$LEASE_FILE" pid 2>/dev/null || true)"
+      # Same chat process, different session-id string. Copilot Chat runs the
+      # plugin hooks and the adapter hooks as children of one process; those
+      # two id strings used to look like two holders and stall the tree.
+      if [ -z "$_wg_holder" ] || [ "$_wg_holder" = "$session" ] \
+        || { [ -n "$_wg_holder_pid" ] && [ "$_wg_holder_pid" = "$SESSION_PID" ]; }; then
         _wg_lease_write "$wg_transcript_path" || true   # claim / heartbeat; failure is not fatal
       elif [ -f "$LEASE_DIR/release.md" ] && [ -n "$_wg_holder" ] && [ "$(_wg_release_field "$LEASE_DIR/release.md" holder)" = "$_wg_holder" ]; then
         # LAYER 1 — explicit release marker, written OUTSIDE this tree at

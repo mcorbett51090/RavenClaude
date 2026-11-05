@@ -10,9 +10,14 @@ import re
 import shlex
 import sys
 
-root, cwd = os.path.realpath(sys.argv[1]), sys.argv[2]
+root, cwd = os.path.realpath(sys.argv[1]), os.path.realpath(sys.argv[2])
 cmd = sys.stdin.read()
 ALLOW = [root, "/tmp", "/var/tmp", "/dev/null", "/dev/stdout", "/dev/stderr", "/dev/fd", "/proc/self/fd"]
+# Copilot Chat with no project uses ~/.copilot/chats/<id> as cwd. Writes inside
+# that one session folder are the chat's own scratch, not a sibling worktree.
+_chats = os.path.realpath(os.path.expanduser("~/.copilot/chats"))
+if cwd == _chats or cwd.startswith(_chats + os.sep):
+    ALLOW.append(cwd)
 for _e in [os.environ.get("TMPDIR"), os.environ.get("RC_WG_GUARD_HOME"), "/workspace/cli-out"] + os.environ.get("RC_WG_EXTRA_WRITE_ROOTS", "").split(":"):
     if _e: ALLOW.append(os.path.realpath(_e))
 bad = []
@@ -20,8 +25,13 @@ bad = []
 def outside(p):
     p = p.strip().strip("'\"")
     if not p or p.startswith("&") or p == "-": return False
-    if p.startswith("$") or "$(" in p or "`" in p:
-        return not p.startswith(("$TMPDIR", "${TMPDIR")) and not re.match(r"^\$\{?(PWD|CLAUDE_PROJECT_DIR)\}?(/|$)", p)
+    if "$(" in p or "`" in p:
+        return True
+    if "$" in p:
+        expanded = os.path.expandvars(p)
+        if expanded == p or "$" in expanded:
+            return not p.startswith(("$TMPDIR", "${TMPDIR")) and not re.match(r"^\$\{?(PWD|CLAUDE_PROJECT_DIR)\}?(/|$)", p)
+        p = expanded
     p = os.path.expanduser(p)
     a = os.path.realpath(os.path.join(cwd, p))
     return not any(a == r or a.startswith(r.rstrip("/") + "/") for r in ALLOW)
@@ -57,10 +67,13 @@ for s in segs:
         # inline (-c/-e) or heredoc/stdin programs: look for absolute/home path literals used in writes
         if any(t in ("-c", "-e", "-E", "--eval", "-") for t in toks) or "<<" in s or "<<HEREDOC" in s:
             pass
-for _m in re.finditer(r"(?:python[0-9.]*|node|perl|ruby)\b[^\n]*?(?:\s-[ceE]\s|\s-\s|<<)", cmd):
+# Heredoc bodies are data, not writes. The interpreter scan used to read
+# example paths inside the body and deny the command.
+_scan = re.sub(r"<<-?\s*['\"]?(\w+)['\"]?.*?\n\1\b", " <<HEREDOC\n", cmd, flags=re.S)
+for _m in re.finditer(r"(?:python[0-9.]*|node|perl|ruby)\b[^\n]*?(?:\s-[ceE]\s|\s-\s|<<)", _scan):
     # best-effort: any quoted absolute/~ path literal in the whole command that looks write-ish
-    if re.search(r"open\([^)]*['\"][wax]b?\+?['\"]|write_text|write_bytes|writeFile|appendFile|createWriteStream|shutil\.|os\.(rename|replace|remove|unlink|makedirs|mkdir)|rmtree|unlinkSync|rmSync|open\s*\(?\s*\w+\s*,\s*['\"]\+?>|print\s*\{", cmd):
-        for p in re.findall(r"['\"]((?:/|~/)[^'\"\s]*)['\"]", cmd):
+    if re.search(r"open\([^)]*['\"][wax]b?\+?['\"]|write_text|write_bytes|writeFile|appendFile|createWriteStream|shutil\.|os\.(rename|replace|remove|unlink|makedirs|mkdir)|rmtree|unlinkSync|rmSync|open\s*\(?\s*\w+\s*,\s*['\"]\+?>|print\s*\{", _scan):
+        for p in re.findall(r"['\"]((?:/|~/)[^'\"\s]*)['\"]", _scan):
             if not p.startswith(("/usr/", "/bin/", "/lib", "/etc/", "/opt/", "/proc/", "/sys/")): flag("inline-interpreter", p)
     break
 if bad:

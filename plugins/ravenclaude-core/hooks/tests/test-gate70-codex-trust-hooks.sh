@@ -146,21 +146,16 @@ git -C "$sb_dod" init -q
 echo "x" > "$sb_dod/x.py"
 git -C "$sb_dod" add x.py 2>/dev/null
 
-# G70.4a — first run, no confirm file, trusted:false -> exit 2 (block)
-# The block text is the next Copilot prompt. It must name NOT DONE and forbid
-# the "are we done?" re-ask. A bare "not yet verified" reason is the loop.
+# G70.4a — first run, no confirm file. The reason is JSON on stdout (exit 0).
+# Copilot drops stderr when the hook exits 2 and shows only "code 2", so the
+# authorize-file text never arrived. The text must name NOT DONE, forbid the
+# re-ask, and tell the agent not to create the confirm file itself.
 rc_dod1=0
-err_dod1="$(CLAUDE_PROJECT_DIR="$sb_dod" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_dod\",\"session_id\":\"s1\"}" 2>&1 >/dev/null)" || rc_dod1=$?
-if [ "$rc_dod1" -eq 2 ]; then
-  pass "G70.4a untrusted first run -> exit 2 (block)"
+out_dod1="$(CLAUDE_PROJECT_DIR="$sb_dod" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_dod\",\"session_id\":\"s1\"}" 2>/dev/null)" || rc_dod1=$?
+if [ "$rc_dod1" -eq 0 ] && printf '%s' "$out_dod1" | jq -e '.decision=="block" and .hookSpecificOutput.decision=="block" and (.reason | contains("VERDICT: NOT DONE")) and (.reason | contains("do not ask if the work is done")) and (.reason | contains("Do not create the confirm file"))' >/dev/null 2>&1; then
+  pass "G70.4a untrusted first run -> stdout NOT DONE, human-only approve"
 else
-  fail "G70.4a untrusted first run should exit 2; got rc=$rc_dod1"
-fi
-if printf '%s' "$err_dod1" | grep -q 'VERDICT: NOT DONE' \
-  && printf '%s' "$err_dod1" | grep -q 'do not ask if the work is done'; then
-  pass "G70.4a trust block names NOT DONE and forbids the re-ask"
-else
-  fail "G70.4a trust block missing the stop-rule verdict; got: $(printf '%s' "$err_dod1" | head -c 180)"
+  fail "G70.4a trust block should be JSON NOT DONE on stdout; rc=$rc_dod1 got: $(printf '%s' "$out_dod1" | head -c 180)"
 fi
 
 # G70.4b — after touching confirm file -> exit 0 (proceeds; the echo cmd passes)
@@ -210,7 +205,7 @@ fi
 
 # G70.4d — the b26 regression itself: trusted:true set in the SAME commit as
 # cmd (the finding's exact trigger — one PR/commit setting both fields
-# together) must NOT bypass -> still exit 2, confirm-file challenge stands.
+# together) must NOT bypass -> JSON block, confirm-file challenge stands.
 sb_dod_samecommit="$(mktemp -d)"
 mkdir -p "$sb_dod_samecommit/.ravenclaude"
 git -C "$sb_dod_samecommit" init -q
@@ -226,11 +221,11 @@ git -C "$sb_dod_samecommit" commit -q -m "one commit sets both cmd and trusted"
 echo "x" > "$sb_dod_samecommit/x.py"
 git -C "$sb_dod_samecommit" add x.py 2>/dev/null
 rc_dod4=0
-CLAUDE_PROJECT_DIR="$sb_dod_samecommit" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_dod_samecommit\",\"session_id\":\"s3\"}" >/dev/null 2>&1 || rc_dod4=$?
-if [ "$rc_dod4" -eq 2 ]; then
-  pass "G70.4d same-commit cmd+trusted:true (b26 attack) -> exit 2 (still blocked)"
+out_dod4="$(CLAUDE_PROJECT_DIR="$sb_dod_samecommit" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_dod_samecommit\",\"session_id\":\"s3\"}" 2>/dev/null)" || rc_dod4=$?
+if [ "$rc_dod4" -eq 0 ] && printf '%s' "$out_dod4" | jq -e '.decision=="block" and (.reason | contains("VERDICT: NOT DONE"))' >/dev/null 2>&1; then
+  pass "G70.4d same-commit cmd+trusted:true (b26 attack) -> JSON block (still blocked)"
 else
-  fail "G70.4d same-commit cmd+trusted:true should still exit 2; got rc=$rc_dod4"
+  fail "G70.4d same-commit cmd+trusted:true should still block; rc=$rc_dod4 got: $(printf '%s' "$out_dod4" | head -c 160)"
 fi
 # G70.4e — trust refusals count toward max_blocks, then the turn is released
 # without ever running the command. The old path exited 2 forever, so Copilot
@@ -247,13 +242,15 @@ git -C "$sb_cap" init -q
 echo "x" > "$sb_cap/x.py"
 git -C "$sb_cap" add x.py 2>/dev/null
 rc_cap1=0
-CLAUDE_PROJECT_DIR="$sb_cap" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_cap\",\"session_id\":\"cap\"}" >/dev/null 2>&1 || rc_cap1=$?
+out_cap1="$(CLAUDE_PROJECT_DIR="$sb_cap" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_cap\",\"session_id\":\"cap\"}" 2>/dev/null)" || rc_cap1=$?
 rc_cap2=0
-CLAUDE_PROJECT_DIR="$sb_cap" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_cap\",\"session_id\":\"cap\"}" >/dev/null 2>&1 || rc_cap2=$?
-if [ "$rc_cap1" -eq 2 ] && [ "$rc_cap2" -eq 0 ] && [ ! -e "$sb_cap/ran-marker" ]; then
-  pass "G70.4e trust blocks hit max_blocks then release without running cmd"
+err_cap2="$(CLAUDE_PROJECT_DIR="$sb_cap" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_cap\",\"session_id\":\"cap\"}" 2>&1 >/dev/null)" || rc_cap2=$?
+if [ "$rc_cap1" -eq 0 ] && printf '%s' "$out_cap1" | jq -e '.decision=="block"' >/dev/null 2>&1 \
+  && [ "$rc_cap2" -eq 0 ] && printf '%s' "$err_cap2" | grep -q 'VERDICT: STOP' \
+  && [ ! -e "$sb_cap/ran-marker" ]; then
+  pass "G70.4e trust blocks hit max_blocks then STOP without running cmd"
 else
-  fail "G70.4e expected exit 2 then 0 and no ran-marker; got rc1=$rc_cap1 rc2=$rc_cap2 marker=$([ -e "$sb_cap/ran-marker" ] && echo yes || echo no)"
+  fail "G70.4e expected JSON block then STOP and no ran-marker; got rc1=$rc_cap1 rc2=$rc_cap2 marker=$([ -e "$sb_cap/ran-marker" ] && echo yes || echo no)"
 fi
 
 # G70.4f — an authorized failing command blocks with VERDICT: NOT DONE (JSON).

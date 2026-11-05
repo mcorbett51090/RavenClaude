@@ -249,15 +249,25 @@ if [ "$dod_trusted" != "true" ]; then
     fi
     reason="$(_dod_not_done \
       "definition_of_done.cmd is not authorized for this session (attempt ${blocks}/${max_blocks}). This is not a test failure." \
-      "Next action (only this): touch \"$confirm_file\"
-Then stop. The gate will run:
+      "A person approves this. Do not create the confirm file yourself. Creating it from this session is denied.
+A person creates this file outside the agent:
+  $confirm_file
+The gate will then run:
   $dod_cmd
 Do not redo the task. Do not ask the user whether you are done.
 To trust this command for the repo, set definition_of_done.trusted: true in a later commit than the cmd line.
-If you did not set this cmd, remove it from .ravenclaude/comfort-posture.yaml before doing anything else.")"
+If you did not set this cmd, remove it from .ravenclaude/comfort-posture.yaml before doing anything else.
+This refusal counts toward max_blocks. At the cap the verdict is STOP and the turn ends.")"
+    # stdout JSON, exit 0. Copilot shows "hook exited with code 2" and drops
+    # stderr when the hook exits 2, so the authorize-file reason never arrived.
+    # decision:block on stdout is what both the Copilot harness and Local Chat read.
     printf '%s\n' "$reason" >&2
-    _emit_hook_event "dod-gate.sh" "deny" "Stop" "$cmd_hash" "dod-first-run-untrusted" 2
-    exit 2
+    if command -v jq >/dev/null 2>&1; then
+      jq -cn --arg r "$reason" \
+        '{decision:"block",reason:$r,hookSpecificOutput:{hookEventName:"Stop",decision:"block",reason:$r}}'
+    fi
+    _emit_hook_event "dod-gate.sh" "deny" "Stop" "$cmd_hash" "dod-first-run-untrusted" 0
+    exit 0
   fi
 fi
 

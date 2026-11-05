@@ -2881,7 +2881,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard-bash.py",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:6e7824d8db344594c2f78976f00d13a4bb2cb84871f0acb0ca53634ab889f58a",
+      "covers_digest": "sha256:6db01c9c72c5ef729edf50525e92922e385a5dece858f077f52b53b1eb830714",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3624,7 +3624,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-09",
+      "last_verified": "2026-11-05",
       "refresh_when": null,
       "sources": [
         {
@@ -3649,7 +3649,7 @@
         "plugins/ravenclaude-core/scripts/preflight-command-review.sh",
         "plugins/ravenclaude-core/scripts/replay-outcome-rules.py"
       ],
-      "covers_digest": "sha256:cddcf638730ab7883b25c2c00d979968898210bcbae7a970cae6253558b75234",
+      "covers_digest": "sha256:0dcd03dcd3a046f3128888970657a24830cc4170b4d58ac67020204cbeaab122",
       "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
       "nuance_evidence": {
         "measured": "2026-08-25",

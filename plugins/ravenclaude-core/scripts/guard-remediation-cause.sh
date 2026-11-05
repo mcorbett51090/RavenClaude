@@ -609,6 +609,18 @@ except Exception: print("")' 2>/dev/null || true)"
 }
 
 _grc_advise_blind() {
+  # Once per session. The audit event above still fires every time. Repeating
+  # this block on every Bash call was the start-of-session noise in Copilot Chat.
+  local _blind_sid _blind_mark
+  _blind_sid="${CLAUDE_SESSION_ID:-ppid-$PPID}"
+  _blind_sid="$(printf '%s' "$_blind_sid" | tr -dc 'A-Za-z0-9._-' | cut -c1-80)"
+  [ -n "$_blind_sid" ] || _blind_sid="ppid-$PPID"
+  _blind_mark="${CLAUDE_PROJECT_DIR:-.}/.ravenclaude/runs/cause-triage/${_blind_sid}/blind-advised"
+  if [ -f "$_blind_mark" ]; then
+    return 0
+  fi
+  mkdir -p "$(dirname "$_blind_mark")" 2>/dev/null || true
+  : > "$_blind_mark" 2>/dev/null || true
   cat <<'ADVISORY'
 [cause-gate] I AM BLIND — no triage beacon this session; my clean verdict means nothing.
 
