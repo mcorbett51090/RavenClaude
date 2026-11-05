@@ -304,7 +304,11 @@ reason="$(_dod_not_done \
   "Failed output (tail):
 ${tail}")"
 if command -v jq >/dev/null 2>&1; then
-  jq -cn --arg r "$reason" '{decision:"block",reason:$r}'
+  # Top-level decision/reason is the Copilot harness contract (reason becomes
+  # the next prompt). hookSpecificOutput is what Local VS Code Chat reads
+  # (hooks-reference Stop output, fetched 2026-11-05). One object, both.
+  jq -cn --arg r "$reason" \
+    '{decision:"block",reason:$r,hookSpecificOutput:{hookEventName:"Stop",decision:"block",reason:$r}}'
 else
   printf '%s\n' "$reason" >&2
   exit 2

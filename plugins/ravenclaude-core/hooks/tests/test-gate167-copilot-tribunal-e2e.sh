@@ -271,6 +271,52 @@ else
   bad "ask_user no longer warns — someone mapped it. Read the adapter's ask_user comment and generate-copilot-hooks.py's route-decision-review.sh _SKIP entry before doing that; it was a deliberate decision, not an oversight."
 fi
 
+# ── G167.9 — PascalCase Chat tool_input object reaches the tribunal ──────────
+# Probed 2026-11-05 against the pre-fix adapter: this payload's command was
+# translated to "" (the adapter read only camelCase toolArgs). The generated
+# hooks.json uses PascalCase, which is the shape VS Code Copilot Chat sends.
+echo "── G167.9: PascalCase tool_input object is denied, both envelopes ───────"
+rc=0
+jq -cn --arg cwd "$PROJ" --arg cmd "$FORCED_PUSH" \
+  '{hook_event_name:"PreToolUse",tool_name:"Bash",tool_input:{command:$cmd},cwd:$cwd,session_id:"g167i"}' \
+  | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" bash-pretool "$ORCH" \
+      >"$TMP/out-i.json" 2>"$TMP/err-i.txt" || rc=$?
+decision_i="$(jq -r '.permissionDecision // empty' "$TMP/out-i.json" 2>/dev/null)"
+nested_i="$(jq -r '.hookSpecificOutput.permissionDecision // empty' "$TMP/out-i.json" 2>/dev/null)"
+event_i="$(jq -r '.hookSpecificOutput.hookEventName // empty' "$TMP/out-i.json" 2>/dev/null)"
+if [ "$decision_i" = "deny" ] && [ "$nested_i" = "deny" ] && [ "$event_i" = "PreToolUse" ]; then
+  ok "Chat PascalCase tool_input -> deny at top level and under hookSpecificOutput"
+else
+  bad "Chat PascalCase payload was not denied on both envelopes (top='${decision_i:-<none>}' nested='${nested_i:-<none>}' event='${event_i:-<none>}')"
+  printf '     stdout: %s\n' "$(head -c 400 "$TMP/out-i.json" 2>/dev/null)"
+fi
+
+# ── G167.10 — file-pretool reads tool_input.file_path (not only toolArgs) ────
+echo "── G167.10: file-pretool sees PascalCase tool_input.file_path ────────────"
+STUB_FP="$TMP/record-path.sh"
+cat > "$STUB_FP" <<'STUB'
+#!/bin/bash
+# exit 2 only when the path actually arrived
+if [ "$1" = "notes.md" ]; then
+  echo "saw notes.md" >&2
+  exit 2
+fi
+exit 0
+STUB
+chmod +x "$STUB_FP"
+rc=0
+jq -cn --arg cwd "$PROJ" \
+  '{hook_event_name:"PreToolUse",tool_name:"Edit",tool_input:{file_path:"notes.md"},cwd:$cwd,session_id:"g167j"}' \
+  | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" file-pretool "$STUB_FP" \
+      >"$TMP/out-j.json" 2>"$TMP/err-j.txt" || rc=$?
+decision_j="$(jq -r '.permissionDecision // empty' "$TMP/out-j.json" 2>/dev/null)"
+if [ "$decision_j" = "deny" ] && grep -q 'notes.md' "$TMP/out-j.json" 2>/dev/null; then
+  ok "file-pretool deny names the Chat tool_input path"
+else
+  bad "file-pretool dropped the Chat path (decision='${decision_j:-<none>}')"
+  printf '     stdout: %s\n' "$(head -c 300 "$TMP/out-j.json" 2>/dev/null)"
+fi
+
 echo
 if [ "$FAIL" -gt 0 ]; then
   printf 'FAIL: %d of %d assertion(s) failed\n' "$FAIL" "$((PASS + FAIL))" >&2

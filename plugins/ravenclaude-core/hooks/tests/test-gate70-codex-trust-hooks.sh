@@ -271,8 +271,8 @@ hash_fail="$(printf '%s' "false" | sha256sum | tr -dc '0-9a-f' | cut -c1-16)"
 mkdir -p "$sb_fail/.ravenclaude/runs/dod-gate/fail1"
 touch "$sb_fail/.ravenclaude/runs/dod-gate/fail1/confirmed-$hash_fail"
 out_fail="$(CLAUDE_PROJECT_DIR="$sb_fail" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_fail\",\"session_id\":\"fail1\"}" 2>/dev/null)" || true
-if printf '%s' "$out_fail" | jq -e '.decision=="block" and (.reason | contains("VERDICT: NOT DONE")) and (.reason | contains("do not ask if the work is done"))' >/dev/null 2>&1; then
-  pass "G70.4f failing command -> JSON NOT DONE checklist"
+if printf '%s' "$out_fail" | jq -e '.decision=="block" and .hookSpecificOutput.decision=="block" and .hookSpecificOutput.hookEventName=="Stop" and (.reason | contains("VERDICT: NOT DONE")) and (.reason | contains("do not ask if the work is done"))' >/dev/null 2>&1; then
+  pass "G70.4f failing command -> JSON NOT DONE checklist (top-level and Local Chat)"
 else
   fail "G70.4f failing command should emit VERDICT: NOT DONE; got: $(printf '%s' "$out_fail" | head -c 180)"
 fi
@@ -287,7 +287,27 @@ else
   fail "G70.4g adapter stop verdict wrong; got: $(printf '%s' "$out_ad" | head -c 220)"
 fi
 
-rm -rf "$sb_dod" "$sb_dod_trusted" "$sb_dod_samecommit" "$sb_cap" "$sb_fail" 2>/dev/null || true
+# G70.4h — after max_blocks the adapter allows the stop and shows STOP to the
+# user. It must not emit decision:block (that text would be the next prompt).
+sb_stop="$(mktemp -d)"
+mkdir -p "$sb_stop/.ravenclaude"
+cat > "$sb_stop/.ravenclaude/comfort-posture.yaml" <<'YAML'
+definition_of_done:
+  cmd: "false"
+  max_blocks: 1
+  trusted: false
+YAML
+git -C "$sb_stop" init -q
+echo "x" > "$sb_stop/x.py"
+git -C "$sb_stop" add x.py 2>/dev/null
+out_stop="$(printf '%s' "{\"cwd\":\"$sb_stop\",\"sessionId\":\"stopcap\",\"stop_hook_active\":true}" | CLAUDE_PROJECT_DIR="$sb_stop" bash "$ADAPTER" stop "$HOOK_DOD" 2>/dev/null)" || true
+if printf '%s' "$out_stop" | jq -e '(.systemMessage | contains("VERDICT: STOP")) and (.decision == null)' >/dev/null 2>&1; then
+  pass "G70.4h cap release is systemMessage STOP, not another block prompt"
+else
+  fail "G70.4h cap release should warn STOP without decision block; got: $(printf '%s' "$out_stop" | head -c 220)"
+fi
+
+rm -rf "$sb_dod" "$sb_dod_trusted" "$sb_dod_samecommit" "$sb_cap" "$sb_fail" "$sb_stop" 2>/dev/null || true
 
 # ── G70.5 — guard-web-access first-use ask ───────────────────────────────────
 echo ""
