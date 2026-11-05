@@ -19,5 +19,16 @@ Contrast-checked tokens via `accessibility_calc.py contrast`, visible focus, and
 ## Step 4 — Ship it to the design system
 Into the shared component and definition-of-done so the fix prevents recurrence (§3 #7).
 
+## Step 5 — Portal and app chrome
+When the pattern is wayfinding, apply [`../../knowledge/portal-and-agent-accessibility-2026-11.md`](../../knowledge/portal-and-agent-accessibility-2026-11.md) (§3b):
+
+- Persistent visible left rail; every primary item has visible text.
+- Mark the current location. Do not require exactly one `aria-current`.
+- A disclosure is a `<button>` with `aria-expanded` and `aria-controls`. Wayfinding does not use `role="menu"`.
+- Local navigation is visually quieter than the main rail.
+
+## Step 6 — Coding-agent legibility
+Apply the same file's provisional practice list, and label it provisional: semantic controls with accessible names, a stable hook you name (do not invent `data-agent`), non-secret state in the URL, confirmation before a destructive action, page text treated as untrusted. Leave WebMCP, hosted MCP, `llms.txt` gates, Cursor rules migrations, and Storybook MCP-for-Astro unimplemented. Those rows are unverified.
+
 ## Output
-A semantic-first, accessible-by-default pattern in the design system that prevents defects rather than patching them.
+A semantic-first, accessible-by-default pattern in the design system that prevents defects rather than patching them. Chrome follows the solid rail and disclosure rules. Agent-legibility items that came from the unfinished research run stay labeled provisional.

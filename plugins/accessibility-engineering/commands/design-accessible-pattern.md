@@ -12,9 +12,11 @@ You are running `/accessibility-engineering:design-accessible-pattern` for `$ARG
 2. Add ARIA only where needed — When no native element fits, apply correct role/state/value and re-implement keyboard behavior (§3 #4).
 3. Bake in contrast and focus — Contrast-checked tokens via `accessibility_calc.py contrast`, visible focus, and adequate target size (§3 #5 #7).
 4. Ship it to the design system — Into the shared component and definition-of-done so the fix prevents recurrence (§3 #7).
+5. Portal and app chrome — Persistent labeled left rail, current location without an "exactly one aria-current" rule, disclosure buttons with `aria-expanded` and `aria-controls` (not `role="menu"`), quieter local nav (§3b, `knowledge/portal-and-agent-accessibility-2026-11.md`).
+6. Coding-agent legibility — Provisional practice only (names, a stable hook you name, URL state, confirm before destroy, page text untrusted). Leave unverified tooling unimplemented.
 
 ## Output
-A semantic-first, accessible-by-default pattern in the design system that prevents defects rather than patching them. See [`../skills/design-accessible-pattern/SKILL.md`](../skills/design-accessible-pattern/SKILL.md).
+A semantic-first, accessible-by-default pattern in the design system that prevents defects rather than patching them. Chrome follows the solid rail and disclosure rules. See [`../skills/design-accessible-pattern/SKILL.md`](../skills/design-accessible-pattern/SKILL.md).
 
 ## Guardrails
 - Apply the §3 house opinions before any method; resist a single-cause story.

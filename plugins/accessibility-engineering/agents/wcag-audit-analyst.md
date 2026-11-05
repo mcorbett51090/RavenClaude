@@ -40,6 +40,7 @@ Make conformance measurable. You audit each WCAG success criterion against the n
 - Conformance is per-criterion at the target level; one failing Level A criterion fails the page at every level.
 - Weighted score = issues weighted by severity and level, with critical (Level A blocker) issues flagged separately.
 - Use [`../scripts/accessibility_calc.py`](../scripts/accessibility_calc.py) `conformance` and `contrast` modes.
+- WCAG 2.3.3 is AAA in the 2026-11-04 capture, and that grade is provisional. An AA score does not absorb it. Reduced-motion is still checked. See [`../knowledge/portal-and-agent-accessibility-2026-11.md`](../knowledge/portal-and-agent-accessibility-2026-11.md).
 
 Read the relevant [`../knowledge/`](../knowledge/) file in full when the situation matches.
 

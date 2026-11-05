@@ -9,7 +9,7 @@ You are running `/accessibility-engineering:test-assistive-tech` for `$ARGUMENTS
 
 ## Steps (traverse top-to-bottom; do not skip)
 1. Walk it by keyboard — No traps, visible focus, logical order, every control reachable and operable (§3 #3).
-2. Test with a screen reader — Name, role, value, state changes, and live-region announcements conveyed correctly (§3 #3).
+2. Test with a screen reader — Name, role, value, state changes, and live-region announcements conveyed correctly (§3 #3). On a rail: current location is announced (do not fail merely because `aria-current` appears twice); disclosures announce expanded state and are not menus (§3b).
 3. Cover the AT a population uses — Multiple screen readers/magnification/switch as scope demands; date the AT/browser versions (§3 #8).
 4. Rank the gaps — Order AT-found defects by user-impact via `accessibility_calc.py remediation`.
 

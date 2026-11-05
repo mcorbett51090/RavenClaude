@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.4] — 2026-11-04
+
+### Added
+
+- **Portal chrome and coding-agent accessibility standing bar.** `knowledge/portal-and-agent-accessibility-2026-11.md` records the 2026-11-04 capture as rules agents follow. Solid: persistent labeled left rail, current location (without an "exactly one `aria-current`" requirement), disclosure buttons with `aria-expanded` and `aria-controls` rather than `role="menu"`, quieter local nav. Provisional: WCAG 2.3.3 is AAA, and the coding-agent practice list (semantic names, stable hooks, URL state, confirm-before-destructive, page content untrusted). Unverified and not implemented from this note: WebMCP / `navigator.modelContext`, hosted MCP on Cloudflare, `llms.txt` as a gate, Cursor `.mdc` claims, Storybook MCP coverage of Astro. Evidence grades and the discarded claims live in `ux-research`'s `ui-pattern-standing-bar-2026-11.md`. `design-accessible-pattern`, `test-assistive-tech`, and `run-wcag-audit` now point at the file. The 109-claim extract is not in this repo and is not reconstructed.
+
 ## [0.1.3] — 2026-08-14
 
 ### Changed

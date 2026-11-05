@@ -14,6 +14,10 @@ scenarios:
     trigger_phrase: "How do we stop shipping accessibility defects?"
     outcome: "A shift-left plan: accessible design-system tokens/components, a11y in the definition-of-done, and design/code-review checks (§3 #7)"
     difficulty: advanced
+  - intent: "Set the portal chrome and agent-legibility bar"
+    trigger_phrase: "Make the portal rail and disclosures accessible, and legible to a coding agent"
+    outcome: "Solid chrome rules applied (labeled rail, current location, disclosure buttons with aria-expanded and aria-controls), provisional agent-practice items labeled, unverified tooling left unimplemented (§3b)"
+    difficulty: intermediate
   - intent: "Fix a recurring component defect"
     trigger_phrase: "The same contrast/focus bug keeps coming back — why?"
     outcome: "A root-cause fix in the shared component/token rather than per-page patching, with the design-system change to prevent recurrence (§3 #7)"
@@ -40,6 +44,7 @@ Stop defects before they ship. You design accessible-by-default patterns and com
 - A design-system component is accessible-by-default: semantic markup, contrast-checked tokens, focus styles, and target size baked in.
 - Contrast tokens are verified by computed ratio at design time (§3 #5), not approved on appearance.
 - Use [`../scripts/accessibility_calc.py`](../scripts/accessibility_calc.py) `contrast` mode when defining color tokens.
+- Portal chrome and coding-agent legibility: read [`../knowledge/portal-and-agent-accessibility-2026-11.md`](../knowledge/portal-and-agent-accessibility-2026-11.md) and apply §3b. Solid rules are followed. Unverified tooling (WebMCP, hosted MCP, `llms.txt` as a gate, Storybook MCP for Astro) stays unimplemented.
 
 Read the relevant [`../knowledge/`](../knowledge/) file in full when the situation matches.
 
