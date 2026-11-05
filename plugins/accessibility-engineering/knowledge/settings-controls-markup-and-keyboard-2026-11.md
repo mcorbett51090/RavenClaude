@@ -26,6 +26,12 @@ Apply §3 #3 and #4 first: keyboard and screen-reader parity is the floor, nativ
 | **Sheet / overlay** | Native `<dialog>.showModal()` where the repo's [`semantic-html` rule](../../web-design/best-practices/reach-for-semantic-html-before-aria.md) allows; otherwise `role="dialog"` + `aria-modal="true"` | Tab/Shift+Tab contained; Esc closes; focus lands inside on open and returns to the opener on close (APG Dialog Modal) | Visible title is the name (`aria-labelledby`) | Close only by swipe/drag; stack a second sheet; mark `aria-modal` unless outside content is actually blocked |
 | **Usage meter** | `<meter min max value low high optimum>` inside a `<label>`-associated block; implicit role `meter` (MDN) | None (not interactive) | Visible text states the figure ("6.2 of 10 GB") | Color as the only threshold signal; a bar with no text equivalent |
 | **Save status** | `role="status"` (polite) | — | "Saved" once per commit | Announce every slider tick or keystroke `[inference]` |
+| **Scope tiles (connect flow)** | Native `input type="checkbox"` per tile in a `fieldset`/`legend` (one group per provider area) | Space toggles each; Tab order follows the visual order | Visible title is the name; caption via `aria-describedby` | A clickable `div`; a pre-ticked optional scope |
+| **Scope pills** | `<ul>` of chosen scopes; if removable, each pill carries a real `<button>` named "Remove <scope>" | Enter/Space on the button | A `role="status"` region says "Removed <scope>" once `[inference]` | Remove by pointer only; an unnamed × |
+| **"Advanced" disclosure** | `<button>` with `aria-expanded` and `aria-controls` (the solid disclosure rule in [`portal-and-agent-accessibility-2026-11.md`](portal-and-agent-accessibility-2026-11.md)) | Enter/Space | Name says what opens; show a count when something inside is chosen | `role="menu"`; opening on hover |
+| **"Required" tile** | A static list item with the title and the visible word "Required". It is **not** an input `[inference]` | None (not interactive) | Read as normal text | A disabled, pre-checked checkbox (often skipped or announced as unavailable) |
+| **Multi-step authorize flow** | One modal dialog (above); steps replace the content inside it | Esc closes on every step | "Step 2 of 2: Authorize" as visible text; focus moves to the new step heading `[inference]` | Moving the sheet to a new URL without restoring focus; losing choices on Back |
+| **Account list** | `<ul>` of accounts under a disclosure; "Make default" is a native radio group in a `fieldset`; "Add another account" is a `<button>` | Arrows within the radio group; Tab to row actions | Each row's name is the account identifier plus the connector, status as text | Naming rows "Account 1/2"; status by color only |
 
 ## WCAG 2.2 criteria that these controls trigger
 
@@ -51,6 +57,8 @@ Apply §3 #3 and #4 first: keyboard and screen-reader parity is the floor, nativ
 | Sheet closes only by swipe, or focus is not returned | Pattern fail (APG) |
 | `aria-describedby` present on a toggletip button | Not a WCAG failure; flag for AT testing `[secondary source]` |
 | Usage state conveyed by bar color only | Fail 1.4.1 |
+| Required scope rendered as a disabled pre-checked checkbox | Pattern note: recommend a static "Required" tile `[inference]`; fail only if it breaks 1.4.1 or 4.1.2 |
+| Pills removable only by pointer, or the scope list on screen differs from the request | Pattern fail (keyboard parity, §3 #3); the mismatch routes to `security-reviewer` |
 
 ## Test script (keyboard first, then one screen reader)
 
@@ -61,7 +69,8 @@ Apply §3 #3 and #4 first: keyboard and screen-reader parity is the floor, nativ
 5. Toggletip: Enter shows the text and it is announced; Esc clears it.
 6. Sheet: focus moves in, is contained, Esc closes, focus returns to the exact opener; the close button works without a pointer.
 7. Usage card: the figure is read as text, not only a percentage.
-8. Run once with NVDA or VoiceOver and write down which one. Do not generalise to other AT.
+8. Connect flow: tick scope tiles, confirm the pills match exactly, remove one pill with the keyboard, open and close Advanced, press Continue and check focus lands on the "Step 2 of 2" heading; Back keeps the choices. Required items read as text, not as controls. With two accounts, pick one and confirm the announced identifier is the account, not a number.
+9. Run once with NVDA or VoiceOver and write down which one. Do not generalise to other AT.
 
 ## Limits
 

@@ -104,6 +104,11 @@ The API shapes below are house design `[inference]`, not a studied or vendor-ver
 | `SettingsCard` / `SettingsRow` | `heading` + `level`; row `label` | semantic `section`/`h2`; control associated by `<label>` | caption ≤ 1 line; row click target is the label |
 | `Sheet` | `title`, a non-removable Close button | native `<dialog>.showModal()` | sheet on narrow viewports, dialog or side panel wider; never opens another sheet |
 | `UsageMeterCard` | `title`, `value`, `max`, `unitLabel`, text equivalent | `<meter>` | threshold word or icon required; one action slot |
+| `ScopeTileGroup` / `ScopeTile` | `legend`, tile `title`, `scopeId` | native checkboxes | optional scopes start unticked; `scopeId` is never shown, only its plain-language title |
+| `ScopePills` | `items[{id,label}]`, `onRemove?` | `<ul>` + `<button>` per pill when removable | removal button name is "Remove <label>"; status announcement once per removal |
+| `RequiredScopeList` | `items[{id,label}]` | `<ul>` of static tiles with the word "Required" | not an input; no disabled checkbox |
+| `AccountPicker` | `legend`, `accounts[{id,identifier,status}]`, `onAddAccount` | `fieldset` + radios, "Add another account" `<button>` last | identifier is the visible name; PII stays out of URL and logs |
+| `AuthorizeFlow` | `steps[]` (each with a heading), `onAuthorize(accountId, scopeIds)` | `Sheet` (native `<dialog>`) | "Step n of m" as text; focus to step heading; **the scope ids sent equal the ids rendered** (a test asserts it) |
 
 - **Tokens by meaning** (solid rule in the 2026-11-04 standing bar): `control.selected.fill`, `control.selected.outline`, `tile.selected.border`, `meter.fill.default`, `meter.fill.warning`. Per-mode values live where you can point at them.
 - **Accessible name is a required prop,** never optional; that is how "a11y baked in" is enforced by the compiler rather than a review.

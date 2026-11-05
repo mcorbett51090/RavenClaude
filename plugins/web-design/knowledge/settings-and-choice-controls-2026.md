@@ -204,6 +204,72 @@ Disconnect confirms and **names what is lost** (provisional row in the same port
 token storage, scope handling and callback validation are an authentication surface: **binding verdict →
 `ravenclaude-core` `security-reviewer`** (zero exceptions). This file specifies the visible surface only.
 
+### 7a. Multiple accounts per connector (portal "Connect apps")
+
+One connector can hold several accounts (two Google accounts, a work and a personal mailbox). The owner's
+requirement, added 2026-11-05. The design rules below are `[inference]`; no multi-account UI was studied.
+
+1. **The connector row is a group, the account is the unit.** Row = provider name + count ("2 accounts"). Expanding
+   it (a disclosure `<button>` with `aria-expanded` / `aria-controls`, the solid rule in the standing bar) lists one
+   sub-row per account: identifier, status chip (icon + text), granted scopes as pills (§7b), overflow actions.
+2. **Each account is authorized, scoped and disconnected on its own.** Granting one account Calendar must not imply
+   it for another. Show the granted set per account, never per connector.
+3. **"Add another account" is always the last item** in the account list and in the picker. It starts the same
+   authorize flow for a new account; it never edits an existing one.
+4. **A default account, if you have one, is a radio** ("Make default") inside the list, with the current default
+   marked in text. If the app can act as any account, say which one a given action uses at the point of use
+   `[inference]`.
+5. **Identify accounts by something a person recognizes** (the email or handle the provider returns), never by an
+   internal id. The identifier is PII: keep it out of the URL, logs and analytics.
+6. **State any limit** on accounts per connector in the list header if one exists. Don't invent a number here.
+7. **Disconnecting one account** confirms, names the account and what stops working, and leaves the others alone.
+8. **Empty, one-account and many-account states are one component.** Don't build a special page for "only one".
+
+### 7b. Scope-then-authorize flow (owner-described target; reference UI not viewed)
+
+The owner described a "Grok Bot-style" flow: **scope tiles → pills / Advanced / Continue → account Authorize with
+Required tiles and Additional Access.** `[user-described 2026-11-05; the Grok Bot interface was not fetched or
+viewed, so nothing here claims to match it, and the rules below are this repo's design reading of the description.]`
+Reading taken: **two screens** inside one modal sheet (§7). If Pills / Advanced / Continue sit on a third screen
+instead, every rule below still applies.
+
+| Screen | Contents | Primary action |
+|---|---|---|
+| **1. Choose access** | **Scope tiles** (checkbox tiles; one per capability in plain words: "Read calendar events"). Chosen tiles are echoed as **pills** in a summary. An **Advanced** disclosure holds the fine-grained scopes. | **Continue** (disabled until at least one scope is chosen, with the reason in text) |
+| **2. Authorize** | "Authorize as" **account picker** (radio tiles + "Add another account", §7a). Then **Required** tiles and an **Additional Access** group. | **Authorize** → hand off to the provider's own consent page |
+
+1. **Scope tiles are checkbox tiles** (§3): short title, one-line caption, native checkboxes. Group them under
+   headings that mean something to the person ("Calendar", "Email"), not provider scope strings. Show the raw scope
+   string only inside Advanced or a toggletip `[inference]`.
+2. **Pills summarize; they don't hide.** A pill list (`<ul>`) shows exactly the chosen scopes. If a pill has a ×,
+   it is a real `<button>` named "Remove <scope>", the matching tile unchecks, and "Removed <scope>" is announced
+   once in a `role="status"` region. Pills are never the only place a choice can be made or undone.
+3. **Advanced is a disclosure button** (`aria-expanded`, `aria-controls`), closed by default, with a count when
+   something inside is chosen ("Advanced (2)"). Fine-grained scopes inside it are the same checkbox tiles.
+4. **Continue is the single dominant action** (house opinion #8). Back returns to screen 1 with the choices intact.
+5. **Required tiles are statements, not controls.** A scope the app can't work without is shown as a static tile
+   with its title and a visible **"Required"** label. Don't render a locked, pre-checked checkbox: a disabled
+   control is skipped or announced as unavailable and invites the question "why can't I change it?" `[inference]`.
+   Lead with these so the person reads what is unavoidable first.
+6. **Additional Access is optional and starts unticked.** Same checkbox tiles; the heading says it is optional.
+   Nothing is pre-ticked (the repo's consent rule, [`form-builder-2026.md`](form-builder-2026.md) Consent row).
+   If Additional Access is requested later, as the app needs it, say so rather than front-loading it
+   `[inference — incremental consent; confirm the provider supports it]`.
+7. **What is shown must equal what is requested.** The pills, Required tiles and ticked Additional Access are the
+   complete scope list sent to the provider. A scope in the request but not on screen is a defect and a
+   security-review finding.
+8. **Step indication in text:** "Step 1 of 2: Choose access", "Step 2 of 2: Authorize". On each step change, focus
+   moves to the new step heading; the Close button and Esc work on both.
+9. **Per account, not per connector:** screen 2 authorizes the **picked account**. Changing the account re-checks
+   which Required scopes it already holds and says "already granted" in text.
+10. **Return from the provider:** back on the account row; the granted scopes appear as pills; focus goes to that
+    row; "Connected" is announced once (§7 step 4). A partial grant (the person declined something) shows exactly
+    what was granted, not what was asked for.
+
+Markup, keys and the test script: the `accessibility-engineering` settings-controls file. Component contract:
+`design-systems-engineering` reference. Test plan (comprehension of Required versus Additional): `ux-research`.
+Everything about tokens, redirect, PKCE, scope minimization and callback validation: `security-reviewer`.
+
 ## 8. Usage and status cards with progress
 
 1. **Pick the element by meaning.** A quantity inside a known range (storage used, seats, quota) is a
@@ -240,6 +306,10 @@ token storage, scope handling and callback validation are an authentication surf
 | Tile is a clickable `div` | Label + radio/checkbox |
 | Sheet with only a drag handle to close | Close button + Esc (§7.2) |
 | Connect flow that asks for the provider's password in your UI | Redirect to the provider; security review (§7) |
+| Connector shown as one connection when several accounts exist, or scopes shown per connector instead of per account | §7a |
+| A locked, pre-checked, disabled checkbox for a required scope; optional scopes pre-ticked | Static "Required" tile; Additional Access starts unticked (§7b.5–6) |
+| Scopes requested that are not on screen, or a pill list that differs from the request | §7b.7 + security review |
+| Pills that can be removed only with a pointer, or with no accessible name | Real button "Remove <scope>" (§7b.2) |
 | Usage bar with no number, or color-only threshold | §8.2 |
 
 ## 11. What this file does not establish
@@ -249,6 +319,9 @@ token storage, scope handling and callback validation are an authentication surf
   `[unverified — fetch failed 2026-11-05]`. The "cap 5" above is a house default.
 - Apple HIG or Android controls guidance (touch-target sizes beyond WCAG's 24 px, sheet detents): `[unverified]`.
 - The Popover API and `popover` for toggletips: provisional in the standing bar; ship a support check.
+- That §7a–7b match any shipped product. The Grok Bot flow is described by the owner and was not viewed; the
+  portal's real Connect apps screens were not inspected either. Whether a given provider supports incremental
+  (later) consent is `[unverified]`.
 - Any specific screen-reader announcement. Test it ([`test-assistive-tech`](../../accessibility-engineering/skills/test-assistive-tech/SKILL.md)).
 
 ## Sources (retrieved 2026-11-05)
