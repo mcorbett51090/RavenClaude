@@ -35,6 +35,7 @@ Two agents, one clean seam: **frame & plan the research** (research-lead) ⇄ **
 - **Advanced quantitative / statistical modeling** → escalate to `data-science-research`.
 - **WCAG conformance audit** (vs usability testing with disabled participants, which is this team) → escalate to `accessibility-engineering`.
 - **Testing a settings-surface redesign** (tiles / segmented controls / sliders / short copy versus dropdowns and long help text, including the Connect-apps accounts sheet and the four base-scope tiles) → `research-execution-and-synthesis-specialist`, using the hypotheses and measures in [`knowledge/ux-research-patterns-2026.md`](knowledge/ux-research-patterns-2026.md) § "Testing a settings-surface redesign". Those are untested hypotheses: no study in this repo backs the preference. The control choice itself is `web-design`'s [`settings-and-choice-controls-2026.md`](../web-design/knowledge/settings-and-choice-controls-2026.md).
+- **Where a signed-in page's blocks belong** (Keep / Move / Remove before chrome polish) → `web-design` [`content-placement-page-ia-2026-11.md`](../web-design/knowledge/content-placement-page-ia-2026-11.md). That pass is QA. It is not a study, and a placement miss is not a finding this team grades.
 - **Which UI pattern the 2026-11-04 capture supports** (portal rail, tokens, skeletons, a cited benchmark) → read [`knowledge/ui-pattern-standing-bar-2026-11.md`](knowledge/ui-pattern-standing-bar-2026-11.md) and keep its grade. Markup and assistive-tech checks → `accessibility-engineering` [`portal-and-agent-accessibility-2026-11.md`](../accessibility-engineering/knowledge/portal-and-agent-accessibility-2026-11.md). Building the screen → `web-design`.
 
 ---
@@ -70,7 +71,7 @@ Two agents, one clean seam: **frame & plan the research** (research-lead) ⇄ **
 - Recency/availability bias — letting the last session or the vivid quote outweigh the whole corpus.
 - Quoting a research-platform feature, a panel claim, or the "~5 users / ~85% of issues" heuristic with no retrieval date or rigor caveat.
 - Citing a discarded 2026-11-04 claim, or promoting a provisional UI benchmark to verified, or rebuilding the missing 109-claim JSON. The grades are in [`knowledge/ui-pattern-standing-bar-2026-11.md`](knowledge/ui-pattern-standing-bar-2026-11.md).
-- Treating a portal QA note (a rail item that 404s, a missing current-location cue) as a research conclusion about users.
+- Treating a portal QA note (a rail item that 404s, a missing current-location cue, an editor left on the wrong account route) as a research conclusion about users. Page-content placement is `web-design`'s pass, linked from the standing bar's portal-walk checklist.
 
 ---
 
@@ -111,7 +112,7 @@ Reference docs with `Last reviewed:` dates + confidence notation. Inline priors 
 |---|---|
 | [`knowledge/ux-research-decision-tree.md`](knowledge/ux-research-decision-tree.md) | Making a call — the Mermaid decision trees (research-theater gate, which method, sample size & rigor, consent/PII path) + method→answer trade-off tables + the bias catalog + seams to adjacent plugins |
 | [`knowledge/ux-research-patterns-2026.md`](knowledge/ux-research-patterns-2026.md) | Planning/running/synthesizing — the method matrix, moderation & survey best practices, the bias catalog and its counters, evidence-strength framing, research-ops/repository patterns, the ethics/PII discipline, and a dated 2026 tooling map |
-| [`knowledge/ui-pattern-standing-bar-2026-11.md`](knowledge/ui-pattern-standing-bar-2026-11.md) | Citing or applying a UI pattern for portal/app chrome — solid vs provisional vs discarded grades from the 2026-11-04 capture (navigation, tokens, skeletons; Baymard, CWV, Baseline, and motion labeled provisional; four failed claims left out). Not the missing 109-claim extract |
+| [`knowledge/ui-pattern-standing-bar-2026-11.md`](knowledge/ui-pattern-standing-bar-2026-11.md) | Citing or applying a UI pattern for portal/app chrome — solid vs provisional vs discarded grades from the 2026-11-04 capture (navigation, tokens, skeletons; Baymard, CWV, Baseline, and motion labeled provisional; four failed claims left out). Not the missing 109-claim extract. The portal-walk checklist points at `web-design`'s page-content placement pass; that pointer is QA, not a new grade |
 
 ---
 

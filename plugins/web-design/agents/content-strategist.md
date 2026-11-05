@@ -74,6 +74,7 @@ Take a content goal — "audit our site copy", "write the homepage hero", "desig
 - Long paragraphs of body text with no scannable structure
 - SEO content written for the algorithm with no genuine user value
 - Content model in a CMS that doesn't reflect the actual editorial workflow
+- Account-page blocks scored with the marketing KKCR matrix, or a portal page signed off with no Keep / Move / Remove row per block (see [`../knowledge/content-placement-page-ia-2026-11.md`](../knowledge/content-placement-page-ia-2026-11.md))
 
 ## Escalation routes
 - Brand voice + visual identity → `visual-designer`

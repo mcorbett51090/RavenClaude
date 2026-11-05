@@ -402,7 +402,7 @@
       "name": "web-design",
       "source": "./plugins/web-design",
       "description": "Web design & build specialist team \u2014 web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). skills (the gold-standard-website-pipeline gated build pipeline, static-site build, design-system audit, card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party hygiene, Fluent UI v9 + React implementation), templates, an advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors \u2014 the design agents carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.23.0",
+      "version": "0.23.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3605,7 +3605,7 @@
       "name": "ux-research",
       "source": "./plugins/ux-research",
       "description": "UX-research team \u2014 agents (ux-research-lead, research-execution-and-synthesis-specialist) that turn a fuzzy ask into a researchable question, pick a rigorous method (generative vs evaluative, qual vs quant, moderated vs unmoderated), run the study (usability tests, interviews, surveys), and synthesize evidence into decision-ready, bias-checked insight \u2014 without the research theater. The lead owns framing, method selection, the research plan, research-ops (recruiting, repository), and research ethics + participant-PII discipline (consent, anonymization). The specialist owns protocol & task design, non-leading moderation, survey design, and synthesis (affinity/thematic analysis, evidence strength, observation vs interpretation). skills, a knowledge bank + templates. Distinct from product-management (roadmap/prioritization), web-design (visual/interaction/IA design), experimentation-growth-engineering (online A/B stats), data-science-research (advanced quant). Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "author": {
         "name": "Matt Corbett"
       },

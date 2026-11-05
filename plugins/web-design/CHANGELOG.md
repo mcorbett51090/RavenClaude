@@ -2,6 +2,13 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.23.1] — 2026-11-05
+
+### Added
+
+- **`knowledge/content-placement-page-ia-2026-11.md`**: the signed-in portal pass. Every major block is **Keep**, **Move** (name the route and product area), or **Remove/redirect** before chrome polish. The anti-pattern is an editor left on a page after nav already points at a dedicated route. The reported miss `[user-described]` is a card editor still on `/account/site` when cards live at `/account/cards/site`. Five process steps: placement before polish, a signed-in walk of every account route, no "nav looks fine" without an inventory, one editor per route, name the destination before the diff. Not a user study, and not the marketing KKCR matrix.
+- **Best-practice** `place-page-content-before-polishing-chrome`. Checklist rows in `templates/site-architecture.md` (the gold-standard pipeline's G2 artifact) and `templates/launch-checklist.md`. `ux-research` 0.1.4 points at the pass from the portal-walk checklist and does not grade it.
+
 ## [0.23.0] — 2026-11-05
 
 ### Added

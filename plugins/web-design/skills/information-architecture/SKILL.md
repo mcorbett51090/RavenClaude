@@ -178,6 +178,7 @@ Audit with a crawler (Screaming Frog) after the redirect map is in place but **b
 - **Org-chart sitemap** — IA that mirrors the company's department structure ("Marketing", "Sales Ops"). Users don't think in org-chart terms.
 - **Mystery-meat nav** — labels users have to hover to understand. "Discover", "Solutions" (without context), "Resources" (catch-all).
 - **Two competing taxonomies** — a sidebar that says one thing, breadcrumbs that say another, URL that says a third.
+- **Nav updated, page body not** — a signed-in editor still rendered on the old URL after the nav points at a dedicated route. That is page-content placement, not a sitemap problem. Run [`../../knowledge/content-placement-page-ia-2026-11.md`](../../knowledge/content-placement-page-ia-2026-11.md) on every signed-in portal UX pass before chrome polish.
 - **Sitemap.xml drift** — manually-maintained sitemap that lags the actual content. Generate from the CMS / build.
 - **Locale routing via cookie / IP only** — user lands at `/`, gets redirected based on IP. Breaks back-button, hides locale from URL, breaks SEO. Use prefix routing.
 - **"Coming soon" pages in the IA** — placeholder URLs that ship to production. Either build it or omit it.
@@ -188,5 +189,6 @@ Audit with a crawler (Screaming Frog) after the redirect map is in place but **b
 - Template: [`../../templates/site-architecture.md`](../../templates/site-architecture.md)
 - Skill: [`../seo-technical-audit/SKILL.md`](../seo-technical-audit/SKILL.md)
 - Skill: [`../content-audit/SKILL.md`](../content-audit/SKILL.md)
+- Signed-in block placement (Keep / Move / Remove), distinct from this skill's sitemap: [`../../knowledge/content-placement-page-ia-2026-11.md`](../../knowledge/content-placement-page-ia-2026-11.md)
 - Agent: [`../../agents/web-architect.md`](../../agents/web-architect.md)
 - Agent: [`../../agents/ux-designer.md`](../../agents/ux-designer.md)

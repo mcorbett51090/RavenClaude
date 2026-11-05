@@ -79,6 +79,7 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 - Self-hosted images / fonts without a CDN
 - Build pipeline that depends on a single developer's local machine
 - IA where the URL structure doesn't reflect the navigation structure
+- A signed-in route whose body still holds a tool the nav has already given its own URL (see [`../knowledge/content-placement-page-ia-2026-11.md`](../knowledge/content-placement-page-ia-2026-11.md))
 - Headless CMS chosen because it's trendy, not because the content team needs draft / publish / multi-user editing
 - `robots.txt` that disallows `/` accidentally
 - Sitemap that includes URLs returning 404
