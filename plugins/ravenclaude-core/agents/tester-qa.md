@@ -97,6 +97,11 @@ Ran new tests N times back-to-back: ✅ all stable / ❌ saw failure on run X wi
 
 ## Open questions
 <gaps you couldn't close without product changes>
+
+## Done verdict
+DONE or NOT DONE
+- [PASS] or [FAIL] <one check per line>
+Stop rule: DONE only when every line is PASS. Then stop. Do not ask if the work is done.
 ```
 
 ## Structured Output Protocol (required)

@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.360.1 — 2026-11-05
+
+### Fixed
+- **DoD stop verdict.** A Copilot Stop block reason is the next user prompt. The previous wording did not say DONE or NOT DONE, so the agent asked again and the hook blocked again. The gate now answers with `VERDICT: NOT DONE` plus one `[FAIL]` line, or `VERDICT: STOP` after `max_blocks`. No block means DONE: end the turn and do not ask. The first-run trust refusal counts toward `max_blocks` (it used to refuse on every Stop). The Copilot adapter forwards that verdict at the top level and under `hookSpecificOutput` for Local Chat.
+
 ## 0.360.0 — 2026-10-26
 
 ### Added

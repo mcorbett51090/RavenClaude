@@ -50,6 +50,15 @@ definition_of_done:
 - Configure a `cmd` that requires user input or opens a browser — the gate runs non-interactively at Stop.
 - Set `max_blocks: 0` — that disables the anti-deadlock cap and can permanently block a session on a failing test.
 - Use the gate as a substitute for CI — it catches agent-introduced regressions in the session; CI catches everything else.
+- Ask "are we done?" after a stop. Copilot feeds a block `reason` back as the next prompt. Only the first line decides.
+
+**Stop rule**
+
+| First line of the gate message | Verdict | Next action |
+|---|---|---|
+| *(the stop was allowed)* | **DONE** | End the turn. Do not ask. |
+| `VERDICT: NOT DONE` | one `[FAIL]` line | Do that line, then stop again. Do not ask. |
+| `VERDICT: STOP` | cap reached | End the turn. Say the gate did not pass. Do not ask. |
 
 ## Edge cases / when the rule does NOT apply
 

@@ -2353,7 +2353,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-23_
+_Last verified: 2026-11-05_
 
 
 ---
@@ -2449,7 +2449,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-11-05_
 
 
 ---
@@ -2821,7 +2821,7 @@ predicate names anything the command has not done yet.
 
 **Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md)
 
-_Last verified: 2026-10-09_
+_Last verified: 2026-11-05_
 
 
 ---
