@@ -753,9 +753,12 @@ Two **deterministic, model-free** hooks port Claude Code's native auto-mode safe
 
 Checklist before you try to stop after a source change:
 
-- [ ] The configured command was run, or you created the confirm file the gate named
+- [ ] The gate ran the configured command, or a person created the confirm file outside this session
 - [ ] That command exited 0
+- [ ] You did not create `.ravenclaude/runs/dod-gate/<session>/confirmed-*` yourself. Write and Bash attempts are denied
 - [ ] You are not waiting on the user to decide whether you are done
+
+The confirm file is human-only. Do not `touch` it, and do not ask the user whether you are done. A trust refusal counts toward `max_blocks`. At the cap the first line is `VERDICT: STOP` and the turn ends.
 
 Config (all knobs optional; sensible defaults):
 
@@ -1304,7 +1307,7 @@ T3 is live for `shell_readonly`, `shell_remote_mutate`, and `shell_code_exec` (a
 RavenClaude runs under **GitHub Copilot CLI** (GA Feb 2026), not just Claude Code. Copilot CLI is itself a plugin host with lifecycle **hooks** (`sessionStart` / `preToolUse` / `postToolUse` / `userPromptSubmitted` / `sessionEnd` / `errorOccurred`), **Agent Skills** (it reads `.claude/skills` directly, among other dirs), **custom instructions** (`AGENTS.md` / `CLAUDE.md` / `.github/copilot-instructions.md` / `.github/instructions/*.instructions.md`, all auto-included), **custom agents**, and **MCP** — so most of the plugin ports. **The full, docs-verified customization surface** — every instruction-file path + precedence, the native custom-agent dirs, the agent-skill dirs + `allowed-tools`, the hooks event-set + config location, and how RavenClaude maps onto each — is the canonical reference in [`knowledge/copilot-cli-customization.md`](knowledge/copilot-cli-customization.md) (verified 2026-06-09 against the GitHub Copilot CLI docs). The RavenClaude-specific wiring:
 
 - **Generated package** — [`scripts/generate-copilot-plugin.py`](../../scripts/generate-copilot-plugin.py) projects the canonical plugin into a Copilot plugin at [`copilot/`](copilot/) (`plugin.json` + `agents/*.agent.md`). It is **generated, never hand-maintained** (single source of truth; `--check` freshness gate, like the dashboard/repo-guide generators). It declares only `agents` — skills + hooks ship via the installer's repo-level surfaces (below), not bundled.
-- **Hook adapter** — [`hooks/copilot-hook-adapter.sh`](hooks/copilot-hook-adapter.sh) translates the I/O envelopes so the **existing, unmodified** hook scripts run under Copilot: Copilot's PreToolUse stdin (`toolName` + `toolArgs`-as-JSON-string) ⇄ Claude's (`tool_name`/`tool_input`), and Claude's `hookSpecificOutput.permissionDecision` / exit-2-block ⇄ Copilot's **top-level** `permissionDecision`. Also maps SessionStart `additionalContext`.
+- **Hook adapter** — [`hooks/copilot-hook-adapter.sh`](hooks/copilot-hook-adapter.sh) translates the I/O envelopes so the **existing, unmodified** hook scripts run under Copilot: PreToolUse stdin is camelCase `toolName` + `toolArgs` (a JSON string) or PascalCase `tool_input` (an object, the shape VS Code Copilot Chat sends); both map to Claude's `tool_name` / `tool_input`. A PreToolUse deny is **top-level** `permissionDecision` with no `hookSpecificOutput` wrapper (Copilot ignores a wrapper-only payload; Gate 20 requires the top-level key). Stop still emits both shapes. A cap release (`VERDICT: STOP`) is a user warning, not a new prompt. SessionStart `additionalContext` is mapped as before.
 - **Enforcement hooks ship as repo-level `.github/hooks/*.json`**, NOT plugin-level — Copilot bug [github/copilot-cli#2540](https://github.com/github/copilot-cli/issues/2540) (plugin `preToolUse` hooks don't fire) forces this; repo-level hooks do fire. Migrate to plugin-level when #2540 closes.
 - **Installer / updater** — [`scripts/ravenclaude`](../../scripts/ravenclaude) (`setup` / `install` / `update` / `status` / `init-codespace`) wires skills→`.claude/skills`, hooks→`.github/hooks` (via the adapter), and the bundled MCP→`~/.copilot/mcp-config.json`, and prints an `rc` launch alias. `setup` is the one-shot superset: `install` + seed & apply a balanced comfort-posture + write the `rc` alias.
 - **Frictionless update (the design pillar):** we deliberately do **NOT** use Copilot's install-and-cache mechanism (its re-install-to-update flow is the pain point). The plugin loads **live** via `copilot --plugin-dir copilot/`, and every other surface (`.claude/skills`, `.github/hooks`, MCP config, AGENTS.md) is read live from disk — so an **update is just `git pull`** (`ravenclaude update` / the `rc` alias). No re-install, ever.
@@ -2692,7 +2695,7 @@ so a read-only `git log`/`status`/`diff`/`show`/`fetch` never fires:
    (feat|fix|chore|docs|refactor|test|build|ci|perf|style|revert) → WARN. A commit with no inline
    message (editor / `-F <file>`) is not inspected — there is no subject to see.
 2. **branch-name** — a new-branch creation (`checkout -b` / `switch -c` / a plain `branch <name>`) off
-   the `(feat|fix|chore|docs|refactor|agent)/` prefix table in
+   the `(feat|fix|chore|docs|refactor|agent|release)/` prefix table in
    [`rules/git-workflow.md`](rules/git-workflow.md) → WARN. Listing / deleting / renaming a branch is
    not a creation and is not flagged.
 3. **push-to-a-protected-branch** — a direct **non-force** push whose refspec targets `main`/`master`
@@ -4067,7 +4070,7 @@ framing (v0.303.0's milestone, corrected in the same commit that ships this one 
 |---|---|---|---|
 | **Claude Code** | native `Stop` event | **YES** | canonical `hooks.json` registration |
 | **Copilot CLI** | via the `stop)` adapter case | **YES** | `hooks/copilot-hook-adapter.sh`'s `stop)` case wraps `handoff-nudge.sh`; the P6c′ reshape above forwards `reason`/`stop_hook_active` through it |
-| **Copilot Chat (VS Code)** | `Stop`/`agentStop` per Copilot's own doc set | **YES, structurally-limited** | same CLI projection reaches Chat Preview (one generated `.github/hooks/ravenclaude.json` serves both surfaces); see the `nag`-is-dead gap below — the hook DOES fire, what it can DELIVER is capped |
+| **Copilot Chat (VS Code)** | `Stop`/`agentStop` per Copilot's own doc set | **YES, structurally-limited** | same CLI projection reaches Chat Preview (one generated `.github/hooks/ravenclaude.json` serves both surfaces); see the `nag`-is-dead gap below — the hook DOES fire, what it can DELIVER is capped. Leave `chat.useClaudeHooks` off while that file is present (one install) |
 | **Codex CLI** | `Stop` is in Codex's documented hook event set | **YES, docs-verified, never live-verified** | `knowledge/codex-cli-customization.md:35` — *"`SubagentStop`, `Stop`"* named explicitly; Codex speaks the Claude Code hook contract natively (no adapter, `hooks/codex-hook-env.sh` is an env shim only) |
 | **Gemini CLI** | no verified compaction-**or-Stop**-adjacent event | **`_SKIP`, honest** | `scripts/generate-gemini-hooks.py:100` — *"Stop — same unverified lifecycle mapping as dod-gate.sh"* |
 | **Grok TUI** | no hook surface at all | **NO — structural, not a gap** | row 1f (claims-table): RavenClaude has zero hook wiring on Grok; no `grok-hook-adapter.sh` exists, so nothing here could fire regardless of what Grok itself supports |

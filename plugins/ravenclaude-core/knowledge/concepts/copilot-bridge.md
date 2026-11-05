@@ -6,7 +6,7 @@ kind: ravenclaude-built
 order: 54
 summary: "RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install."
 see_also: [layout-hook, hook-lifecycle]
-last_verified: 2026-06-09
+last_verified: 2026-11-05
 refresh_when: "The Copilot package generator, the hook adapter's envelope mapping, Copilot's plugin-hook bug status, or the GitHub Copilot CLI customization surface (instruction files / agents / skills / hooks) changes."
 sources:
   - label: "ravenclaude-core constitution — Copilot CLI bridge"
@@ -17,7 +17,7 @@ sources:
     url: "scripts/generate-copilot-plugin.py"
 ---
 
-Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (mapping its `toolName`/`toolArgs` ⇄ Claude's `tool_name`/`tool_input`, the lowercase tool-name *values* ⇄ Claude's PascalCase, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing.
+Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (camelCase `toolName`/`toolArgs` as a JSON string, or PascalCase `tool_input` as an object, ⇄ Claude's `tool_name`/`tool_input`; lowercase tool-name *values* ⇄ Claude's PascalCase; a PreToolUse deny is top-level `permissionDecision` with no `hookSpecificOutput` wrapper, which Copilot ignores; Gate 20 requires the top-level key; Stop still emits both shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing. On VS Code Copilot Chat, leave `chat.useClaudeHooks` off while `.github/hooks/ravenclaude.json` is present so the Claude settings hooks do not run a second copy.
 
 > **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37]`. "Unmodified scripts run under Copilot" is true of the *translation*, not of the *coverage*: the Copilot hooks file is hand-maintained, and **12+ shipped hooks are not in it**, so they never fire on that host at all (MH-12, open). Read this card as "the bridge does not require forking the hooks", **not** as "every guardrail you see under Claude Code is also protecting you under Copilot". The authoritative per-component answer is [`../host-support.json`](../host-support.json), and it is the one to trust if this card and it ever disagree.
 

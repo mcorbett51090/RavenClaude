@@ -8573,7 +8573,7 @@ fi
 echo "── Gate 189: git-protocol nudge — default-warn, block-only-on-knob ────────"
 # The in-loop git-protocol hook (default WARN). It WARNs on a non-Conventional-
 # Commits `git commit -m` subject or a new-branch creation off the repo's own
-# (feat|fix|chore|docs|refactor|agent)/ prefix convention, and BLOCKS (exit 2) only
+# (feat|fix|chore|docs|refactor|agent|release)/ prefix convention, and BLOCKS (exit 2) only
 # when the `git_protocol: block` knob is set. A direct non-force push to
 # main/master is advisory-only and NEVER blocks. It deliberately does not touch
 # force operations (guard-destructive.sh owns those). The test invokes the hook via

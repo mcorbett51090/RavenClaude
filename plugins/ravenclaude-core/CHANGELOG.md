@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.360.2 — 2026-11-05
+
+### Changed
+- **Active guidance matches the 0.360.1 Stop and Copilot behavior.** Docs no longer tell an agent to create the definition-of-done confirm file. A person creates it outside the session. Write and Bash attempts stay denied. The trust refusal counts toward `max_blocks`. Adapter notes now include PascalCase `tool_input` objects, a top-level PreToolUse `permissionDecision` (Gate 20; no `hookSpecificOutput` wrapper), and `VERDICT: STOP` as a user warning. The worktree lease is shared on session id or `transcript_hash`, not on a shared parent pid. `release/` is in the branch-prefix table. Leave `chat.useClaudeHooks` off when `.github/hooks/ravenclaude.json` is present.
+
 ## 0.360.1 — 2026-11-05
 
 ### Fixed

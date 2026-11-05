@@ -227,16 +227,19 @@ model_fallback:
 # commented in the seed; consumers opt in per-repo via the dashboard.
 #
 # First-run trust check (added 2026-06-03 — closes Codex desktop trust review
-# Finding 1): when `cmd` is set, dod-gate.sh refuses to execute it on first run
-# until the agent runs `touch <confirm-path>` to authorize. The cmd hash is the
-# sentinel — rotating the cmd value re-triggers the confirm. Set `trusted: true`
-# to skip the first-run confirm for this repo (you've reviewed the YAML and
-# accept silent execution). Blast radius: trusted=true means any future YAML
-# edit to `cmd` runs silently on the next Stop.
+# Finding 1; human-only since 2026-11-05): when `cmd` is set, dod-gate.sh
+# refuses to execute it until a person creates the confirm file outside the
+# agent session. The agent must not create it. Write and Bash attempts are
+# denied. The refusal counts toward max_blocks, then the gate releases with
+# VERDICT: STOP. The cmd hash is the sentinel — rotating the cmd value
+# re-triggers the confirm. Set `trusted: true` in a later commit than the cmd
+# line to skip the first-run confirm (you have reviewed the YAML and accept
+# silent execution). Blast radius: trusted=true means any future YAML edit to
+# `cmd` runs silently on the next Stop.
 # definition_of_done:
 #   cmd: "npm test && npm run lint"   # your repo's real test/build/lint command
 #   max_blocks: 8                     # consecutive Stop-blocks before force-allow
-#   trusted: false                    # default — first run requires `touch <path>` confirm
+#   trusted: false                    # default — a person confirms outside the session
 
 # Skill-wiring exclusion (v0.319.0+). `ravenclaude setup --with-plugin <name>`
 # symlinks a plugin's WHOLE skills/ directory into .claude/skills/ — every
