@@ -6,7 +6,7 @@ Named, citable rules for the `web-design` plugin's specialist agents and any con
 
 ## Index
 
-_33 rules. Each file is one named, citable rule; read and apply it whole._
+_34 rules. Each file is one named, citable rule; read and apply it whole._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -25,6 +25,7 @@ _33 rules. Each file is one named, citable rule; read and apply it whole._
 | [`perf-protect-lcp-with-preload-and-priority.md`](./perf-protect-lcp-with-preload-and-priority.md) | Absolute rule — the Largest Contentful Paint element is preloaded, priority-hinted, correctly sized, and never deferred. Lazy-loading the LCP image is a bug. | LCP is the loading metric users feel as "is it there yet," with a 2026 "good" threshold of **< 2.5 s** at field p75 [verify-at-build — CWV thresholds]… |
 | [`perf-reserve-space-to-prevent-cls.md`](./perf-reserve-space-to-prevent-cls.md) | Absolute rule — every element that arrives after first paint (image, font, ad, embed, injected banner) has its space reserved before it lands. CLS > 0.1 ships only with a written justification (house opinion #7). | Cumulative Layout Shift measures content jumping under the user — the "I tapped the wrong button because it moved" failure. |
 | [`reach-for-semantic-html-before-aria.md`](./reach-for-semantic-html-before-aria.md) | Absolute rule — semantic-HTML-first is a P1 design constraint, not a polish item. | The first rule of ARIA is: **don't.** Most "wrong" ARIA is worse than no ARIA — a `role` or state that drifts out of sync with the visible UI breaks t… |
+| [`run-the-portal-review-before-polish.md`](./run-the-portal-review-before-polish.md) | Absolute rule — place every major block (Keep / Move / Remove) before chrome, accessibility, or form polish counts as done. | A usable editor on the wrong route survives a contrast pass. The standing list is the portal and public-site review checklist. |
 | [`seo-semantic-structure-and-metadata.md`](./seo-semantic-structure-and-metadata.md) | Pattern — every shippable page has a title, meta description, canonical, OG/Twitter cards, a clean heading structure, and validating schema where it earns citations. SEO and a11y are one surface (house opinion #10). | Discoverability now spans two surfaces: classic search rank *and* citation inside AI-synthesized answers (AI Overviews, ChatGPT, Perplexity, Gemini, C… |
 | [`static-first-needs-no-justification.md`](./static-first-needs-no-justification.md) | Absolute rule — SSG is the default; SSR or CSR ships only with a written reason (house opinion #9). | Choosing a rendering model, or a marketing page that renders on the server or the client with no stated reason. |
 | [`ux-form-design-and-error-handling.md`](./ux-form-design-and-error-handling.md) | Pattern — every form is a conversion surface. Each field is friction and needs a reason; validation and errors are designed, not defaulted. | Forms are where conversion is won or lost, and most form failures are self-inflicted: placeholder-as-label (broken for a11y and disappears on focus), … |

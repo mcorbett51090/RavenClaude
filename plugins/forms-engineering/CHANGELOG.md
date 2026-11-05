@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the plugin uses [semantic versioning](https://semver.org/).
 
+## [0.1.3] — 2026-11-05
+
+### Changed
+
+- Inherited-rules table points a portal form or choice-control review at `web-design`'s portal checklist. This plugin does not restate placement, the `#review` loop, or `#review-out`. The Website placement ship gate stays `check-content-placement.mjs`.
+
 ## [0.1.2] — 2026-11-05
 
 ### Changed

@@ -2,6 +2,19 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.23.3] — 2026-11-05
+
+### Added
+
+- **`knowledge/portal-and-site-review-checklist-2026-11.md`** — the standing review for a signed-in portal and for public pages reviewed beside one. Each row has a check, what to look for, a fail example, a pass example, and whether it blocks ship. Order is mandatory: PLACE (Keep / Move / Remove, naming route and product area) before chrome, accessibility, or form polish.
+- **`best-practices/run-the-portal-review-before-polish.md`** — the citable rule. A contrast pass does not close a review that never placed the blocks.
+- Sections: shell and org-versus-user context, focus census, forms (tiles and `Saved · HH:MM` are separate from a builder's "Saved · Unpublished changes"), multi-account connect sheets, login-bundle ratchet and prefetch, purge and the security handoff, 400px and 1280px, empty / locked / beta, analytics home, copy, and public-versus-portal SEO.
+- A gate table stating which product-repo test would enforce each Block row. Placement's ship gate is `check-content-placement.mjs` on `account/**` and shell/nav files (Website #953). This plugin does not add that script, and it does not rename it.
+- The report shape matches the Collab playbook (`#review`: one line per class or `N/A — reason`; `#placement` required; `#review-out` left alone). Class titles stay in that playbook.
+- `ux-research` 0.1.6 points an evaluative review at this checklist. `forms-engineering` 0.1.3 points at it and does not restate it.
+- An explicit invite to drop the weak rows (choice-control as a merge block, reading level on portal screens, `llms.txt` on the portal, missing prefetch on a safe link).
+- Wired into house opinion 14, the portal routing line, the review agents, `information-architecture` §8, `accessibility-review` Pass 3, `content-audit` (KKCR is not placement), the gold-standard pipeline's audit-only case, and the launch checklist.
+
 ## [0.23.2] — 2026-11-05
 
 ### Added

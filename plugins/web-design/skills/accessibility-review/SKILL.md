@@ -41,6 +41,8 @@ Inspect the DOM:
 
 ### Pass 3 — Keyboard navigation
 
+On a portal or signed-in page, also fill the A11Y rows in [`../../knowledge/portal-and-site-review-checklist-2026-11.md`](../../knowledge/portal-and-site-review-checklist-2026-11.md) (focus census, ring, obscured focus, names, live save status). Do this after PLACE. AA does not fail on 2.4.13 or 2.3.3 alone.
+
 With mouse / trackpad disconnected (or covered):
 - Tab through every interactive element
 - Check focus is **visible** (focus indicator not removed)

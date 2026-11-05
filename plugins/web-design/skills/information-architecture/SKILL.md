@@ -160,7 +160,7 @@ Audit with a crawler (Screaming Frog) after the redirect map is in place but **b
 
 ## 8. Content placement on a page that already exists
 
-Sitemap shape says where a *page* sits. This step says whether a *block* belongs on the page you are looking at. Run it on every portal or signed-in product UX review, in the same loop as the UX and accessibility refresh. Chrome, accessibility, and form review do not substitute for it.
+Sitemap shape says where a *page* sits. This step says whether a *block* belongs on the page you are looking at. On a portal review, run PLACE in [`../../knowledge/portal-and-site-review-checklist-2026-11.md`](../../knowledge/portal-and-site-review-checklist-2026-11.md) before this skill's sitemap, card-sort, or redirect plan. Chrome, accessibility, and form review do not substitute for it.
 
 The blocks: forms, builders, editors, tables, share kits, analytics panels, settings. Shared chrome (rail, account menu, page title) is not a block.
 
@@ -176,7 +176,9 @@ Traverse the content-placement tree in [`../../knowledge/web-design-decision-tre
 
 **Anti-pattern — builder or editor on a page whose nav parent is a different product entity.** The page's URL and nav parent name one thing (the site). The block edits another thing (the card). Reported 2026-11-05 `[user-reported]`: the full card editor still lived on `/account/site` after the Site card already had `/account/cards/site`. A summary or a link to the card's route can stay. The editor cannot.
 
-A marketing or legal page with one job records `N/A — single-purpose page`. KKCR in [`../content-audit/SKILL.md`](../content-audit/SKILL.md) scores the URL; it does not place the block.
+A marketing or legal page with one job records `N/A — single-purpose page`. KKCR in [`../content-audit/SKILL.md`](../content-audit/SKILL.md) scores the URL; it does not place the block. A card-sort of 8 or more people is for a nav restructure. It is not a prerequisite for moving a tool that already has a home.
+
+On the Website product the ship gate for this section is `check-content-placement.mjs`, covering `account/**` and shell/nav files (Website #953). Do not give that gate another name.
 
 ## Hygiene checklist
 

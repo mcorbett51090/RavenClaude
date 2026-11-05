@@ -60,6 +60,10 @@ Take a content goal — "audit our site copy", "write the homepage hero", "desig
 - **Numbers in numerals (10) over words (ten) above 10**; both conventions defensible below — but pick one.
 - **Oxford comma is a style choice, but a *settled* style choice.** Decide once.
 
+## Portal and public-site review
+
+Own the COPY rows in [`../knowledge/portal-and-site-review-checklist-2026-11.md`](../knowledge/portal-and-site-review-checklist-2026-11.md) after PLACE. Rail, heading, and document title name the same object. Reading-level is a public-launch block, not a portal ship gate. KKCR scores a URL; it does not decide which route a block lives on.
+
 ## Anti-patterns you flag
 - Clever-headline-pattern hiding the proposition
 - Sentence case + Title Case mixed across the same surface

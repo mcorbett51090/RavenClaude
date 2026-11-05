@@ -24,6 +24,7 @@ This plugin is a **seam**, not a new owner. Most of what a form needs is already
 | Challenge-widget mechanics — token lifetime, replay, server-side verification, hostname scope | [`../../ravenclaude-core/knowledge/concepts/cloudflare-who-gets-in.md`](../../ravenclaude-core/knowledge/concepts/cloudflare-who-gets-in.md) |
 | Validate untrusted input at the boundary and encode at the output | [`../../ravenclaude-core/rules/security.md`](../../ravenclaude-core/rules/security.md) §Untrusted input |
 | The binding security verdict on any form change | [`../../ravenclaude-core/agents/security-reviewer.md`](../../ravenclaude-core/agents/security-reviewer.md) — zero-exception |
+| Where a form, editor, or choice control sits in a portal (Keep / Move / Remove), and the rest of a signed-in review | [`../../web-design/knowledge/portal-and-site-review-checklist-2026-11.md`](../../web-design/knowledge/portal-and-site-review-checklist-2026-11.md) — one line per `#review` class or `N/A — reason`; `#placement` is required; `#review-out` is not re-checked here. Website ship gate: `check-content-placement.mjs` on `account/**` and shell/nav files |
 
 ---
 
