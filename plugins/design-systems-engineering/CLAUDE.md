@@ -78,6 +78,10 @@ State the boundary in the answer whenever a request sits near one of these seams
 - **v0.1.0 (2026-07-22)** — initial team: 2 agents, 3 skills (token architecture, component-library
   build, versioning & adoption), a 2-doc knowledge bank (decision tree + dated 2026 tooling
   reference).
+- **v0.1.4 (2026-11-05)** — the tooling reference gains "Settings-surface primitives": the component contract
+  (required props, native base, tokens by meaning) for `Switch`, `SegmentedControl`, `ChoiceTile`, `AmountTiles`,
+  `SliderField`, `InfoTip`, `SettingsCard`, `Sheet` and `UsageMeterCard`. API shapes are house design, labeled
+  `[inference]`; *which* control to use stays with `web-design`.
 - **v0.1.3 (2026-10-26)** — the tooling reference gains "Multi-site section libraries — distribution and
   upgrades": six distribution models compared by how a fix reaches a shipped site, plus the rollout rules (props as a
   data contract, build provenance, drift detection before overwrite, rings, ejection, merge is not deployment). The

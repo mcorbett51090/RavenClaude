@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.5] — 2026-11-05
+
+### Added
+
+- **Settings and choice controls contract.** `knowledge/settings-controls-markup-and-keyboard-2026-11.md`: per-control markup, keys, name and state for switch, segmented control / radio tiles, slider, tooltip, toggletip, sheet, usage meter and save status; WCAG 2.5.7 (AA), 1.4.13 (AA) and 2.5.8 as they land on these controls; an audit-result table; a keyboard-then-screen-reader test script. Rows are tagged `[docs-verified 2026-11-05]` (APG, WCAG 2.2 Understanding, MDN, GOV.UK, Inclusive Components), `[inference]` or `[unverified]`. Native checkbox `switch` is experimental; the Understanding page for 2.5.7 is silent on native ranges; APG's tooltip page is work in progress. Separate from the 2026-11-04 capture and re-grades nothing in it. Wired through `CLAUDE.md` §3c and `design-accessible-pattern` Step 7. No assistive-technology session produced it.
+
 ## [0.1.4] — 2026-11-04
 
 ### Added

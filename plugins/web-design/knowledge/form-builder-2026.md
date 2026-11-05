@@ -125,7 +125,7 @@ values are MDN's.
 | Date (memorable) | day / month / year inputs | `bday-*` for birthdays | GOV.UK date input | P1 |
 | Single choice | radios in `fieldset`/`legend` | — | don't pre-select; offer "None / I don't know" | P1 |
 | Multiple choice | checkboxes in `fieldset` | — | "Select all that apply"; exclusive "None" after an "or" divider | P1 |
-| Dropdown | `select`, combobox for long lists | e.g. `country-name` | a last resort (GOV.UK); simple mode suggests radios at ≤ 7 options `[inference]` | P1 |
+| Dropdown | `select`, combobox for long lists | e.g. `country-name` | a last resort (GOV.UK); simple mode suggests radios at ≤ 7 options `[inference]`. For settings and small sets prefer segmented controls / tiles: [`settings-and-choice-controls-2026.md`](settings-and-choice-controls-2026.md) §2 | P1 |
 | Yes / No | two radios | — | an explicit "No" beats a lone checkbox `[inference]` | P1 |
 | Rating / NPS / scale | radio group | — | each radio named ("4 of 5"); label the endpoints | P1 |
 | Website | `type=url` | `url` | — | P1 |
@@ -145,7 +145,7 @@ values are MDN's.
 | Ranking | list with Up/Down buttons, drag optional | — | APG rearrangeable listbox; Typeform staff called its ranking block a hard barrier `[via snippet]` | P3 |
 | Matrix / grid | a radio group per row | — | stack rows on mobile | P3 |
 | Repeatable group | "add another" loop | — | one item per loop, summary with Change/Remove, state the maximum (DWP/MoJ patterns) `[via snippet]` | P3 |
-| Slider | native `range` + a numeric box | — | add typed entry for precision | P3 |
+| Slider | native `range` + a numeric box | — | add typed entry for precision; live preview, visible value, `aria-valuetext` and step buttons: [`settings-and-choice-controls-2026.md`](settings-and-choice-controls-2026.md) §5 | P3 |
 
 Fillout lists 51 types and tells API consumers to "discard fields with unknown types"; scope the first release
 to about fifteen.

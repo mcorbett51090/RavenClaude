@@ -85,6 +85,33 @@ the distribution choice dominates the cost of every later fix.
 
 ---
 
+## Settings-surface primitives (added 2026-11-05)
+
+Component contract for the controls that replace dropdowns and long help text. **Which** control to use is
+`web-design`'s [`settings-and-choice-controls-2026.md`](../../web-design/knowledge/settings-and-choice-controls-2026.md);
+the markup and keys are `accessibility-engineering`'s
+[`settings-controls-markup-and-keyboard-2026-11.md`](../../accessibility-engineering/knowledge/settings-controls-markup-and-keyboard-2026-11.md).
+The API shapes below are house design `[inference]`, not a studied or vendor-verified spec.
+
+| Primitive | Required props (types enforce them) | Built on | Notes |
+|---|---|---|---|
+| `Switch` | `label` (fixed text), `checked`/`onCheckedChange` | `<input type=checkbox>` | `pending` + rollback on failure; `description` slot is one line |
+| `SegmentedControl` | `legend`, `items[{value,label}]`, `value`, `onValueChange` | `fieldset` + radios | dev warning above 5 items or labels past ~12 characters |
+| `ChoiceTile` / `ChoiceTileGroup` | `legend`, `type: radio\|checkbox`, tile `title` | native radio/checkbox, tile = `<label>` | `description` and trailing `value` slots; no interactive children |
+| `AmountTiles` | `legend`, `presets[]`, `allowOther` | radios + one text input (`inputmode=decimal`) | currency is part of the group label |
+| `SliderField` | `label`, `min`, `max`, `step`, `format(value)` → `aria-valuetext` | `input type=range` + `<output>` | `onPreview` (every `input`) separate from `onCommit` (`change`); `reset`; −/+ step buttons on by default |
+| `InfoTip` (toggletip) | `label` ("More about …"), `children` ≤ 2 sentences | `<button type=button>` + `role=status` | Esc and outside click clear it |
+| `SettingsCard` / `SettingsRow` | `heading` + `level`; row `label` | semantic `section`/`h2`; control associated by `<label>` | caption ≤ 1 line; row click target is the label |
+| `Sheet` | `title`, a non-removable Close button | native `<dialog>.showModal()` | sheet on narrow viewports, dialog or side panel wider; never opens another sheet |
+| `UsageMeterCard` | `title`, `value`, `max`, `unitLabel`, text equivalent | `<meter>` | threshold word or icon required; one action slot |
+
+- **Tokens by meaning** (solid rule in the 2026-11-04 standing bar): `control.selected.fill`, `control.selected.outline`, `tile.selected.border`, `meter.fill.default`, `meter.fill.warning`. Per-mode values live where you can point at them.
+- **Accessible name is a required prop,** never optional; that is how "a11y baked in" is enforced by the compiler rather than a review.
+- **Versioning:** adding a required prop is a breaking change; ship a codemod per the versioning skill.
+- **Not covered:** a vendor comparison of component libraries' switch/segmented implementations. That was not researched.
+
+---
+
 ## What this reference is *not*
 
 - **Not a WCAG conformance source** — for audit criteria, remediation, and legal posture, route to

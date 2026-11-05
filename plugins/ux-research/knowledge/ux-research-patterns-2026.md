@@ -105,6 +105,24 @@ Every finding carries its weight, stated explicitly:
 
 ---
 
+## Testing a settings-surface redesign (added 2026-11-05)
+
+`web-design` now prefers visible choice controls (tiles, segmented controls, sliders with preview, switches) and short copy over dropdowns and long help text ([`settings-and-choice-controls-2026.md`](../../web-design/knowledge/settings-and-choice-controls-2026.md)). **No study in this repository shows that preference is better.** It rests on GOV.UK's published statement about selects, platform guidance, and convention. Treat each line below as a hypothesis to test, not a result to quote. This section does not re-grade or extend the 2026-11-04 UI standing bar.
+
+| Hypothesis | Method | Measure | Decision it informs |
+|---|---|---|---|
+| H1: for 2–5 options, a segmented control or tiles are chosen faster and with fewer wrong picks than a `<select>` | Moderated task test, same tasks on both variants (within-subjects, order rotated), ~5 per segment for a **directional** read | Task success, time on task, wrong-option count, "what did you pick?" recall | Ship tiles, keep the select, or mix |
+| H2: a slider with live preview gets to the preferred text size in fewer back-and-forth adjustments | Think-aloud on text-size and density tasks, plus a participant who uses browser zoom | Adjustments to settle, final size vs stated preference, zoom conflicts | Slider vs named stops |
+| H3: trimmed copy is understood as well as the long version | Comprehension probe after each setting ("what happens if you turn this on?"), then the same probe on the long version | Correct-answer rate per setting, where it differs | Which text moves into a toggletip and which must stay visible |
+| H4: people find and use the "more info" toggletip when they need it | Task that needs the hidden detail; no hint | Found without help (yes/no), time, assistive-tech users included | Keep it, or move the text into the caption |
+
+- **Recruit assistive-technology users** (screen reader, keyboard-only, magnification) as a stratum, not an afterthought. A WCAG audit is a different job and routes to `accessibility-engineering`.
+- **Report with a denominator and evidence strength.** "4 of 5 chose correctly" is directional, never "80% of users" (house opinion #3). Removing words has lowered conversion before; read the [`forms-engineering` scenario](../../forms-engineering/scenarios/2026-08-17-we-removed-fields-and-conversion-fell.md) before attributing a change to the copy.
+- **Observation, then interpretation,** on separate lines (house opinion #5). A QA walk finding is not a study result.
+- **Consent and PII first** (house opinion #6), especially for settings that touch connected accounts: use test accounts, never a participant's real connector.
+
+---
+
 ## 2026 research tooling map (dated — volatile, re-verify before quoting)
 
 - **Usability testing / research platforms** — moderated + unmoderated testing, recruiting panels, and analysis tooling exist across several vendors (e.g. UserTesting, Maze, Lookback, Dovetail-style analysis/repository tools, and others); specific feature sets, panel quality, and pricing are volatile. _(Retrieved 2026-07-13.)_

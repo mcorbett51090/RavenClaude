@@ -2,6 +2,19 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.23.0] — 2026-11-05
+
+### Added
+
+- **`knowledge/settings-and-choice-controls-2026.md`**: the control ladder for settings and small choice sets (switch · segmented control · radio tiles · amount tiles · slider with live preview · combobox, `<select>` last), the settings-versus-question split, short-copy budgets with toggletips, a bottom-sheet connect/authorize and multi-account flow, `<meter>` usage cards, page composition, and a table of detectable anti-pattern signatures. Facts read from APG, WCAG 2.2 Understanding, MDN and GOV.UK on 2026-11-05 are tagged `[docs-verified]`; house defaults are `[inference]`; unfetched items are `[unverified]`. **No user study backs the preference**, and the file says so. It is not the missing forms gap-fill from the 2026-11-04 capture and re-grades none of its rows.
+- **Two best-practice rules**: `show-small-choice-sets-instead-of-hiding-them-in-a-dropdown` and `settings-copy-is-a-label-and-a-caption-with-more-info-on-demand`.
+- **`card-tile-ui`** gains a "Settings and status surfaces" section; the `ux-designer` and `frontend-implementer` agents gain a short pointer; `form-builder-2026.md` Dropdown and Slider rows link to the ladder; `CLAUDE.md` §4 gains three anti-patterns.
+
+### Notes
+
+- Sibling additions: `accessibility-engineering` 0.1.5 (markup, keys, WCAG 2.5.7 / 1.4.13 contract), `design-systems-engineering` 0.1.4 (component contract), `forms-engineering` 0.1.2 (pointer), `ux-research` 0.1.3 (test plan for the hypotheses).
+- Not built: a lint hook for `<select>` with few options. Worth a separate PR with its own must-fail fixture.
+
 ## [0.22.0] — 2026-10-27
 
 ### Added

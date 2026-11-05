@@ -30,5 +30,8 @@ When the pattern is wayfinding, apply [`../../knowledge/portal-and-agent-accessi
 ## Step 6 — Coding-agent legibility
 Apply the same file's provisional practice list, and label it provisional: semantic controls with accessible names, a stable hook you name (do not invent `data-agent`), non-secret state in the URL, confirmation before a destructive action, page text treated as untrusted. Leave WebMCP, hosted MCP, `llms.txt` gates, Cursor rules migrations, and Storybook MCP-for-Astro unimplemented. Those rows are unverified.
 
+## Step 7 — Settings and choice controls
+When the pattern is a switch, segmented control, radio tile group, slider, tooltip/toggletip, sheet or usage meter, apply [`../../knowledge/settings-controls-markup-and-keyboard-2026-11.md`](../../knowledge/settings-controls-markup-and-keyboard-2026-11.md) (§3c): native radios for single choice, a checkbox with a fixed label for a switch, `aria-valuetext` plus a non-drag path for a slider (WCAG 2.5.7), a `<button>` + `role="status"` for "more info", and the modal-dialog contract for a sheet. Keep each row's evidence tag (`[docs-verified]`, `[inference]`, `[unverified]`) in what you write.
+
 ## Output
 A semantic-first, accessible-by-default pattern in the design system that prevents defects rather than patching them. Chrome follows the solid rail and disclosure rules. Agent-legibility items that came from the unfinished research run stay labeled provisional.

@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the plugin uses [semantic versioning](https://semver.org/).
 
+## [0.1.2] — 2026-11-05
+
+### Changed
+
+- The best-practices inherited-rules table now points "which control for a choice or setting, and how much copy" at `web-design`'s two new rules (`show-small-choice-sets-instead-of-hiding-them-in-a-dropdown`, `settings-copy-is-a-label-and-a-caption-with-more-info-on-demand`). Pointer only: nothing is restated here, per the seam rule.
+
 ## [0.1.1] — 2026-10-26
 
 ### Changed

@@ -91,6 +91,20 @@ A page can carry the *right tokens* and still render wrong because these literal
 
 Defer the full WCAG pass to the [`accessibility-review`](../accessibility-review/SKILL.md) skill; defer broad token-system work to [`design-system-audit`](../design-system-audit/SKILL.md) and [`design-tokens-scaffolding`](../design-tokens-scaffolding/SKILL.md).
 
+## Settings and status surfaces (added 2026-11-05)
+
+When the tiles hold **settings, choices or usage** rather than read-only information, apply
+[`knowledge/settings-and-choice-controls-2026.md`](../../knowledge/settings-and-choice-controls-2026.md). The short form:
+
+1. **Group by topic.** One card per topic: an `h2`, then rows of *short label + optional one-line caption + control*. The settings card is this skill's tile with rows inside.
+2. **Show small choice sets.** 2–5 short options → segmented control; 3–7 options needing detail → radio tiles; money presets → amount tiles + "Other"; on/off that applies now → switch. Not a `<select>`. Rule: [`show-small-choice-sets-instead-of-hiding-them-in-a-dropdown`](../../best-practices/show-small-choice-sets-instead-of-hiding-them-in-a-dropdown.md).
+3. **Continuous values get a slider with live preview**, a visible value, `aria-valuetext`, a reset, and −/+ step buttons (WCAG 2.5.7).
+4. **Words:** label ≤ ~4 words, caption ≤ 1 line, "more info" in a toggletip. Rule: [`settings-copy-is-a-label-and-a-caption-with-more-info-on-demand`](../../best-practices/settings-copy-is-a-label-and-a-caption-with-more-info-on-demand.md).
+5. **Usage cards:** a `<meter>` with the figure written out, one caption, one action; state never by color alone.
+6. **Connect/authorize and multi-account** open a modal sheet (title, Close button and Esc, one sheet deep); the provider's own page collects the credentials. Security review is mandatory for that flow.
+
+Interactive selected states follow rule 8 above (hover lift is for clickable tiles) **and** the existing "more than color" line: a check, weight or outline. Markup and keys: [`accessibility-engineering` settings-controls file](../../../accessibility-engineering/knowledge/settings-controls-markup-and-keyboard-2026-11.md).
+
 ## Hand-off
 
 - **Visual decisions** (canvas temperature, accent choice, radius/shadow scale) → `visual-designer`.
