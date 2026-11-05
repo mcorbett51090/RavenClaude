@@ -137,6 +137,8 @@ When the audit feeds a re-platform:
 - [ ] If the inventory includes a signed-in product: each major block also has a placement verdict (Keep / Move / Remove) from `information-architecture` §8 — KKCR alone does not place the block
 - [ ] Quarterly mini-audit scheduled in the team's calendar
 
+KKCR scores a URL. It does not decide which route a block lives on. Placement of an editor, a share kit, or an analytics panel is PLACE in [`../../knowledge/portal-and-site-review-checklist-2026-11.md`](../../knowledge/portal-and-site-review-checklist-2026-11.md).
+
 ## Anti-patterns
 
 - **Audit-then-shelf** — the spreadsheet exists; the remediation never happens. The audit's value is the queue, not the inventory.

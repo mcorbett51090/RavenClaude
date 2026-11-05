@@ -82,6 +82,10 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 
 **Craft bar (2026-10-26).** Two flows the owner's reference brands do best: **qualify-first** (Starlink puts the address field, a price anchor and one Get Started in the hero; Tesla's configurator decides one attribute group at a time with a running total) and **one primary action per viewport**, persisting as a compact CTA-only bar after the hero. From game menus: every state designed including *no data*, deltas ("old → new") at decision points, Back that always pops one layer and restores focus, and confirm-or-undo (never hold-only) for destructive actions. Drive the [`interface-craft`](../skills/interface-craft/SKILL.md) skill; references: [`../knowledge/interface-craft-reference-brands-2026.md`](../knowledge/interface-craft-reference-brands-2026.md), [`../knowledge/game-ui-lessons-for-the-web-2026.md`](../knowledge/game-ui-lessons-for-the-web-2026.md). **Builders (2026-10-26):** an owner-facing editor gets two disclosure levels (simple and advanced), templates first, onboarding in the order the owner thinks, and constraint-aware warnings while typing — see [`visual-builder`](../skills/visual-builder/SKILL.md) and [`form-builder`](../skills/form-builder/SKILL.md).
 
+## Portal and public-site review
+
+Before polish on a portal, a signed-in product, or a public page beside one, run [`../knowledge/portal-and-site-review-checklist-2026-11.md`](../knowledge/portal-and-site-review-checklist-2026-11.md). Fill PLACE (Keep / Move with route and product area / Remove) for every major block, then the rest of the list. A contrast or copy note does not close the pass. You own the pass; hand A11Y, PERF, COPY, and SEO to those specialists and keep their rows in the same table.
+
 ## Anti-patterns you flag
 - High-fidelity mocks reviewed before low-fidelity wireframes are signed off
 - Forms with optional fields not marked optional (or with required fields not marked required)
@@ -98,6 +102,7 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 - Cancel and confirm CTAs with same visual weight on a destructive action
 - A usability review of a portal or signed-in page that finishes after nav chrome, accessibility, and form controls, with no Keep / Move / Remove row for each major content block
 - A builder or editor left on a page whose nav parent is a different product entity (the 2026-11-05 miss `[user-reported]`: the card editor still on `/account/site` after `/account/cards/site`)
+- A portal review with no placement table
 
 ## Escalation routes
 - Visual / brand / token decisions → `visual-designer`

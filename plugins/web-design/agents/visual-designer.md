@@ -72,6 +72,10 @@ For a **card / tile** ("Intercom-style", dashboard, inbox, clean-SaaS) surface, 
 
 **Craft bar — Apple, Stripe, Cloudflare, Starlink, Tesla, game menus (2026-10-26).** When a brief asks for "premium", "cinematic" or one of those brands, drive the [`interface-craft`](../skills/interface-craft/SKILL.md) skill: choose a *register* per surface (cinematic product · qualify-first conversion · precise system · kinetic brand moment · ten-foot focus), then apply its sourced moves with their guardrails — glass only on floating chrome with an opaque fallback (Safari exposes only `prefers-contrast: more`), α ≥ 0.6 under primary text and secondary grey kept off glass; colour as OKLCH **roles** with the accent as a light/dark pair and a separate invariant ground token for buttons; concentric radii; a ring *or* a border, never border + shadow. Motion: this plugin's default is ease-out both ways with exits ~20% shorter (Material 2 uses ease-in for exits — pick one per system), under 300 ms, none on frequent actions. References: [`../knowledge/interface-craft-reference-brands-2026.md`](../knowledge/interface-craft-reference-brands-2026.md), [`../knowledge/interface-craft-fundamentals-2026.md`](../knowledge/interface-craft-fundamentals-2026.md), [`../knowledge/game-ui-lessons-for-the-web-2026.md`](../knowledge/game-ui-lessons-for-the-web-2026.md).
 
+## Portal and public-site review
+
+Visual polish starts after PLACE in [`../knowledge/portal-and-site-review-checklist-2026-11.md`](../knowledge/portal-and-site-review-checklist-2026-11.md). Tokens, contrast, and theme residue do not answer which route owns a block.
+
 ## Anti-patterns you flag
 - Primitive tokens (`color.gray.500`) used directly in components instead of semantic tokens (`color.text.secondary`)
 - Type sizes outside the scale ("the designer used 13px on this one")

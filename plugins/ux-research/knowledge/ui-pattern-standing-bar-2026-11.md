@@ -95,6 +95,10 @@ WCAG 2.3.3 (Animation from Interactions) is **AAA**, not part of an AA target. G
 
 Every agent-tooling claim from this capture is unverified. The solid pattern rules above are not permission to build WebMCP, a hosted MCP server, or an `llms.txt` gate. Follow the accessibility-engineering file's split between provisional practice and unverified tools.
 
+## A full portal or site review is not this file
+
+The walk below is five example rows from one fixture. A thorough review — placement before polish, focus census, forms, connectors, login bundle, purge, locked and beta states, analytics home — is [`../../web-design/knowledge/portal-and-site-review-checklist-2026-11.md`](../../web-design/knowledge/portal-and-site-review-checklist-2026-11.md). Run that list when the ask is a review. Keep the result labeled QA. Do not promote a row into a finding about users, and do not re-grade the solid / provisional / discarded sections above.
+
 ## Portal walk — example checklist, not research
 
 A local walk on 2026-11-04 (fixture data, light theme, five personas, 24 routes, rail destinations clicked) is QA. The items below are example checklist rows for a portal review. One product's bug does not become a user-research finding. The walk's P2/P3 labels are that walk's ranks, not this plugin's severity scale.
