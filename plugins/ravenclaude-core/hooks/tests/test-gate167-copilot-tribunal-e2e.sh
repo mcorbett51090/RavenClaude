@@ -275,19 +275,17 @@ fi
 # Probed 2026-11-05 against the pre-fix adapter: this payload's command was
 # translated to "" (the adapter read only camelCase toolArgs). The generated
 # hooks.json uses PascalCase, which is the shape VS Code Copilot Chat sends.
-echo "── G167.9: PascalCase tool_input object is denied, both envelopes ───────"
+echo "── G167.9: PascalCase tool_input object is denied at top level ─────────"
 rc=0
 jq -cn --arg cwd "$PROJ" --arg cmd "$FORCED_PUSH" \
   '{hook_event_name:"PreToolUse",tool_name:"Bash",tool_input:{command:$cmd},cwd:$cwd,session_id:"g167i"}' \
   | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" bash-pretool "$ORCH" \
       >"$TMP/out-i.json" 2>"$TMP/err-i.txt" || rc=$?
 decision_i="$(jq -r '.permissionDecision // empty' "$TMP/out-i.json" 2>/dev/null)"
-nested_i="$(jq -r '.hookSpecificOutput.permissionDecision // empty' "$TMP/out-i.json" 2>/dev/null)"
-event_i="$(jq -r '.hookSpecificOutput.hookEventName // empty' "$TMP/out-i.json" 2>/dev/null)"
-if [ "$decision_i" = "deny" ] && [ "$nested_i" = "deny" ] && [ "$event_i" = "PreToolUse" ]; then
-  ok "Chat PascalCase tool_input -> deny at top level and under hookSpecificOutput"
+if [ "$decision_i" = "deny" ] && ! printf '%s' "$(cat "$TMP/out-i.json")" | jq -e 'has("hookSpecificOutput")' >/dev/null 2>&1; then
+  ok "Chat PascalCase tool_input -> top-level deny, no wrapper"
 else
-  bad "Chat PascalCase payload was not denied on both envelopes (top='${decision_i:-<none>}' nested='${nested_i:-<none>}' event='${event_i:-<none>}')"
+  bad "Chat PascalCase payload deny shape wrong (top='${decision_i:-<none>}')"
   printf '     stdout: %s\n' "$(head -c 400 "$TMP/out-i.json" 2>/dev/null)"
 fi
 

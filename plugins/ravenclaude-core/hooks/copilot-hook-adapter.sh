@@ -93,25 +93,19 @@ _rc_tool_object() {
   ' 2>/dev/null || printf '%s' '{}'
 }
 
-# Copilot harness reads top-level permissionDecision. Local Chat reads the same
-# pair under hookSpecificOutput (code.visualstudio.com hooks-reference, Stop's
-# sibling PreToolUse section, fetched 2026-11-05). One JSON object, both.
+# Copilot PreToolUse reads top-level permissionDecision. Gate 20 requires that
+# key and rejects a hookSpecificOutput wrapper (a wrapper-only payload is
+# ignored). Stop still emits both shapes; that event is not this function.
 _emit_pretool_decision() {
   local dec="$1" reason="$2" revised="${3:-}"
   if [ -n "$revised" ]; then
     jq -cn --arg d "$dec" --arg r "$reason" --arg c "$revised" \
       '{permissionDecision:$d,
         permissionDecisionReason:($r + " [revised command: " + $c + "]"),
-        updatedInput:{command:$c},
-        hookSpecificOutput:{hookEventName:"PreToolUse",
-          permissionDecision:$d,
-          permissionDecisionReason:($r + " [revised command: " + $c + "]"),
-          updatedInput:{command:$c}}}'
+        updatedInput:{command:$c}}'
   else
     jq -cn --arg d "$dec" --arg r "$reason" \
-      '{permissionDecision:$d,permissionDecisionReason:$r,
-        hookSpecificOutput:{hookEventName:"PreToolUse",
-          permissionDecision:$d,permissionDecisionReason:$r}}'
+      '{permissionDecision:$d,permissionDecisionReason:$r}'
   fi
 }
 
