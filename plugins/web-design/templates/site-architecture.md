@@ -42,6 +42,14 @@
 | Blog post | `/blog/[year]/[slug]/` | `BlogPost.astro` | [...] |
 | ... | ... | ... | ... |
 
+## Content placement (signed-in / portal pages)
+
+Skip with `N/A — single-purpose page` when the page has one job (a marketing page, a legal page). Otherwise every major block gets one verdict before this IA is signed. A builder or editor on a page whose nav parent is a different product entity is Move or Remove, not Keep. Procedure: `skills/information-architecture` §8.
+
+| Route | Block | Verdict (Keep / Move / Remove) | Destination route, if not Keep |
+|---|---|---|---|
+| `/…` | [editor / table / form / share kit / analytics / settings] | | |
+
 ## Navigation
 
 ### Primary navigation

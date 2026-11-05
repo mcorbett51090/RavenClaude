@@ -80,6 +80,7 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 - Build pipeline that depends on a single developer's local machine
 - IA where the URL structure doesn't reflect the navigation structure
 - A signed-in route whose body still holds a tool the nav has already given its own URL (see [`../knowledge/content-placement-page-ia-2026-11.md`](../knowledge/content-placement-page-ia-2026-11.md))
+- A builder or editor on a page whose nav parent is a different product entity — place it with [`information-architecture`](../skills/information-architecture/SKILL.md) §8 (Keep / Move / Remove) before the review is done
 - Headless CMS chosen because it's trendy, not because the content team needs draft / publish / multi-user editing
 - `robots.txt` that disallows `/` accidentally
 - Sitemap that includes URLs returning 404

@@ -231,6 +231,44 @@ See the [`information-architecture`](../skills/information-architecture/SKILL.md
 
 ---
 
+## Decision Tree: Content placement — keep, move, or remove a block
+
+**When this applies:** You are reviewing a portal or signed-in product page (or designing one) and a block might belong to a different product area. Observable inputs: the page's job, the block's job, and whether another route already owns that job. Run this on every such review, including a pass whose other work is chrome, accessibility, or forms.
+
+**Added:** 2026-11-05. The motivating miss is owner-reported `[user-reported]`, not a live crawl: the full card editor was still on `/account/site` after `/account/cards/site` existed.
+
+```mermaid
+flowchart TD
+    START[A portal or signed-in page is under review] --> LIST[List each major block: form, builder, editor, table, share kit, analytics, settings]
+    LIST --> Q1{Does this block do this page's job?}
+    Q1 -->|Yes, and no other route owns that job| KEEP[Keep]
+    Q1 -->|Not sure yet| NAME[Write the page job and the block job in one line each, then choose again]
+    Q1 -->|The nav parent is a different product entity, or another route already owns this job| Q2{Is this the only copy of the tool?}
+    Q2 -->|Yes — this is the real editor, on the wrong page| MOVE[Move — name the product area and the route]
+    Q2 -->|No — a duplicate or a leftover| REMOVE[Remove / redirect to the route that owns it]
+```
+
+**Rationale per leaf:**
+
+- _Name both jobs_ — you do not have a verdict yet. Write one line for the page and one line for the block, then take Keep, Move, or Remove / redirect. "Not sure" is not a verdict.
+- _Keep_ — the block is this page. Site name and domain settings stay on the site page. A link or summary that opens another entity's editor also stays; it is a pointer, not the editor.
+- _Move_ — the block is the real tool and the page's nav parent names a different entity. Put the tool on the entity's route. Do not leave a second full editor behind.
+- _Remove / redirect_ — the owning route already exists (the 2026-11-05 card editor). Delete or redirect the leftover. Do not Keep it because the controls happen to work.
+
+**Tradeoffs summary:**
+
+| Leaf | User keeps | You must name | Watch out |
+|---|---|---|---|
+| Keep | The tool where they already are | The page's one job | A pointer is Keep; a second editor is not |
+| Move | One home for the tool | Product area + destination route | Moving without a route invents a page |
+| Remove / redirect | One home, and the old URL does not dead-end | The route that remains | Leaving both copies teaches the wrong page |
+
+A marketing or legal page with one job does not enter this tree. Record `N/A — single-purpose page`.
+
+The rule is [`../best-practices/content-belongs-on-the-page-that-owns-it.md`](../best-practices/content-belongs-on-the-page-that-owns-it.md). The procedure is [`information-architecture`](../skills/information-architecture/SKILL.md) §8.
+
+---
+
 ## Decision Tree: Conversion — reduce fields vs add trust vs split into steps
 
 **When this applies:** A form/funnel underperforms and you're choosing the intervention. Observable inputs: where users drop off, how many fields, and whether the ask feels risky to the user.
@@ -491,7 +529,7 @@ See [`answer-engine-optimization-2026.md`](answer-engine-optimization-2026.md) f
 
 ## See also
 
-- [`../best-practices/`](../best-practices/) — the named rules these trees terminate in (`perf-*`, `a11y-*`, `visual-*`, `frontend-*`, `content-*`, `seo-*`)
+- [`../best-practices/`](../best-practices/) — the named rules these trees terminate in (`perf-*`, `a11y-*`, `visual-*`, `frontend-*`, `content-*`, `seo-*`), including [`content-belongs-on-the-page-that-owns-it`](../best-practices/content-belongs-on-the-page-that-owns-it.md) for the placement tree
 - [`web-platform-capabilities-2026.md`](web-platform-capabilities-2026.md), [`modern-web-stacks-2026.md`](modern-web-stacks-2026.md), [`modern-css-2026.md`](modern-css-2026.md), [`answer-engine-optimization-2026.md`](answer-engine-optimization-2026.md), [`design-systems-and-component-architecture-2026.md`](design-systems-and-component-architecture-2026.md) — the dated freshness anchors
 - [`../CLAUDE.md`](../CLAUDE.md) §3 (house opinions) + §4 (anti-patterns) — the constraints these trees encode
 - [`../../../docs/best-practices/decision-trees-in-knowledge-files.md`](../../../docs/best-practices/decision-trees-in-knowledge-files.md) — the marketplace convention this file follows

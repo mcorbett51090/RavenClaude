@@ -45,6 +45,7 @@ Signed: [name] — [YYYY-MM-DD]
 - [ ] No editor or builder left on a page after nav already points at its dedicated route (reported miss: card editor on `/account/site` vs `/account/cards/site`)
 - [ ] Focus indicators visible on all interactive surfaces
 - [ ] Touch targets ≥ 44pt on mobile
+- [ ] Content placement recorded for every major block on each signed-in / portal page (Keep / Move to a named route / Remove or redirect). A builder or editor is not left on a page whose nav parent is a different product entity — see `best-practices/content-belongs-on-the-page-that-owns-it`
 
 Signed: [name] — [YYYY-MM-DD]
 
