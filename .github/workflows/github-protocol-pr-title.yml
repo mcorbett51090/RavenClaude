@@ -1,11 +1,23 @@
 # Dogfood of templates/agent-ready-repo/github-protocol-pr-title.yml.template
 # (P3 §1.5). Title reaches Python only via env: — never interpolated into run.
+#
+# workflow_dispatch used to exit 0 when the event had no title (the payload
+# has none). That reported the required check green without reading a title.
+# Dispatch now looks up open PRs whose head SHA is this commit and validates
+# those titles. No open PR with this head → fail, so a dispatch cannot satisfy
+# the ruleset by skipping the check. The consumer template is unchanged: its
+# comment still says a dispatch with no PR should stay green.
 name: GitHub protocol — PR title
 
 on:
   pull_request:
     types: [opened, edited, reopened, synchronize]
   workflow_dispatch:
+
+# Read-only. A title edit and a push can both be in flight; keep the latest.
+concurrency:
+  group: pr-title-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions: {}
 
@@ -15,27 +27,86 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: read
     steps:
       - name: Validate PR title
         env:
+          EVENT_NAME: ${{ github.event_name }}
           PR_TITLE: ${{ github.event.pull_request.title }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           python3 - <<'PY'
+          import json
           import os
           import re
           import sys
+          import urllib.request
 
-          title = os.environ.get("PR_TITLE", "")
           pattern = re.compile(
               r"^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)"
               r"(\([\w .,/-]+\))?!?: .+"
           )
-          if not title:
-              print("No PR title in the event payload — skipping.")
-              sys.exit(0)
-          if not pattern.match(title):
-              print(f"::error::PR title is not Conventional-Commits-shaped: {title!r}")
-              print("Expected e.g. 'feat(api): add pagination' or 'fix: correct typo'.")
+          sha_re = re.compile(r"^[0-9a-f]{40}$")
+
+          def check(title, label):
+              if not title or not pattern.match(title):
+                  print(f"::error::PR title is not Conventional-Commits-shaped ({label}): {title!r}")
+                  print("Expected e.g. 'feat(api): add pagination' or 'fix: correct typo'.")
+                  return 1
+              print(f"OK PR title ({label}): {title}")
+              return 0
+
+          event = os.environ["EVENT_NAME"]
+          if event == "pull_request":
+              title = os.environ.get("PR_TITLE", "")
+              if not title:
+                  print("::error::pull_request event has an empty title — refusing to pass")
+                  sys.exit(1)
+              sys.exit(check(title, "event"))
+
+          # workflow_dispatch. The required check must validate a real title.
+          repo = os.environ["REPO"]
+          sha = os.environ["HEAD_SHA"]
+          token = os.environ["GH_TOKEN"]
+          if not sha_re.match(sha) or not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
+              print("::error::refusing to query pulls: repo or sha is not the expected shape")
               sys.exit(1)
-          print(f"OK PR title: {title}")
+          url = f"https://api.github.com/repos/{repo}/commits/{sha}/pulls?per_page=100"
+          pulls = []
+          while url:
+              req = urllib.request.Request(
+                  url,
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": "application/vnd.github+json",
+                      "X-GitHub-Api-Version": "2022-11-28",
+                      "User-Agent": "ravenclaude-pr-title",
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as resp:
+                      pulls.extend(json.load(resp))
+                      url = None
+                      for part in (resp.headers.get("Link") or "").split(","):
+                          if 'rel="next"' in part:
+                              url = part.split(";")[0].strip().lstrip("<").rstrip(">")
+              except Exception as exc:
+                  print(f"::error::could not list PRs for {sha}: {exc}")
+                  sys.exit(1)
+          heads = [
+              p for p in pulls
+              if p.get("state") == "open" and (p.get("head") or {}).get("sha") == sha
+          ]
+          if not heads:
+              print(
+                  f"::error::workflow_dispatch found no open PR whose head is {sha}. "
+                  "Refusing to report success without a title."
+              )
+              sys.exit(1)
+          rc = 0
+          for pr in heads:
+              rc |= check(pr.get("title") or "", f"#{pr.get('number')}")
+          sys.exit(rc)
           PY

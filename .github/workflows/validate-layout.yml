@@ -28,8 +28,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          # Depth 2, not 0. On push run 40731151786 (2026-10-28) the full-history
+          # checkout was 160s of a 166s job; the two layout scripts were ≤1s.
+          # A depth-1 checkout of this repo (validate-schemas run 40728535976 the
+          # same day) was 14s. Push and workflow_dispatch diff HEAD~1, which
+          # depth 2 contains. pull_request fetches the merge-base commit below
+          # and two-dot diffs it, so the commits in between are not required.
+          fetch-depth: 2
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Validate .repo-layout.json
         run: |
@@ -43,18 +50,75 @@ jobs:
 
       - name: Determine base ref
         id: base
-        # Event name and base ref reach the shell only via env: — never
+        # Event name, SHAs, and the repo reach Python only via env: — never
         # interpolated into run: (zizmor template-injection).
         env:
-          BASE_REF: ${{ github.base_ref }}
           EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
-            echo "ref=origin/${BASE_REF}" >> "$GITHUB_OUTPUT"
-          else
-            # For push to main and workflow_dispatch, diff against previous commit
-            echo "ref=HEAD~1" >> "$GITHUB_OUTPUT"
-          fi
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+          import urllib.request
+
+          sha_re = re.compile(r"^[0-9a-f]{40}$")
+          out_path = os.environ["GITHUB_OUTPUT"]
+
+          def emit(ref: str, two_dot: str) -> None:
+              with open(out_path, "a", encoding="utf-8") as fh:
+                  fh.write(f"ref={ref}\n")
+                  fh.write(f"two_dot={two_dot}\n")
+
+          if os.environ["EVENT_NAME"] != "pull_request":
+              subprocess.run(["git", "rev-parse", "--verify", "HEAD~1"], check=True)
+              emit("HEAD~1", "0")
+              sys.exit(0)
+
+          base = os.environ["BASE_SHA"]
+          head = os.environ["HEAD_SHA"]
+          repo = os.environ["REPO"]
+          if not (
+              sha_re.match(base)
+              and sha_re.match(head)
+              and re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo)
+          ):
+              print("::error::base or head sha is not 40 hex, or repo is an unexpected shape")
+              sys.exit(1)
+          url = f"https://api.github.com/repos/{repo}/compare/{base}...{head}"
+          req = urllib.request.Request(
+              url,
+              headers={
+                  "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+                  "Accept": "application/vnd.github+json",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "User-Agent": "ravenclaude-layout",
+              },
+          )
+          try:
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  mb = (json.load(resp).get("merge_base_commit") or {}).get("sha") or ""
+          except Exception as exc:
+              print(f"::error::compare API failed, refusing to skip the diff check: {exc}")
+              sys.exit(1)
+          if not sha_re.match(mb):
+              print(f"::error::compare API returned no merge base ({mb!r})")
+              sys.exit(1)
+          # One commit: its tree. Name-only diff does not need the commits
+          # between this and HEAD. Tested 2026-11-05 against this repo: two
+          # depth-1 fetches, then `git diff BASE HEAD --name-only`, exit 0.
+          subprocess.run(
+              ["git", "fetch", "--no-tags", "--depth=1", f"https://github.com/{repo}.git", mb],
+              check=True,
+          )
+          subprocess.run(["git", "cat-file", "-e", f"{mb}^{{commit}}"], check=True)
+          emit(mb, "1")
+          PY
 
       - name: Check added/changed paths against allowed_globs (diff)
         # The match logic lives in scripts/check-layout.py — the SAME script the
@@ -63,7 +127,14 @@ jobs:
         # gating while CI stayed green).
         env:
           LAYOUT_BASE: ${{ steps.base.outputs.ref }}
-        run: python3 scripts/check-layout.py --diff "${LAYOUT_BASE}"
+          LAYOUT_TWO_DOT: ${{ steps.base.outputs.two_dot }}
+        run: |
+          set -euo pipefail
+          args=(--diff "$LAYOUT_BASE")
+          if [[ "$LAYOUT_TWO_DOT" == "1" ]]; then
+            args+=(--two-dot)
+          fi
+          python3 scripts/check-layout.py "${args[@]}"
 
       - name: Check EVERY tracked file against allowed_globs (full tree)
         # The diff check only sees Added/Copied/Renamed paths, so a pre-existing or
