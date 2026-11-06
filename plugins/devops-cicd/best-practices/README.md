@@ -6,7 +6,7 @@ Named, citable rules for the `devops-cicd` plugin's specialists. Each file is **
 
 ## Index
 
-_26 rules._
+_28 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -22,6 +22,8 @@ _26 rules._
 | [`deploy-ephemeral-preview-environment-per-pr.md`](./deploy-ephemeral-preview-environment-per-pr.md) | Pattern | Choosing a PR review workflow |
 | [`gitops-no-plaintext-secrets.md`](./gitops-no-plaintext-secrets.md) | Absolute rule | Handling secrets in a GitOps config repo |
 | [`design-trunk-based-over-long-lived-branches.md`](./design-trunk-based-over-long-lived-branches.md) | Pattern | Choosing a branching strategy |
+| [`merge-behind-clean-tips-before-dirty-ones.md`](./merge-behind-clean-tips-before-dirty-ones.md) | Pattern | Ordering merges, updating a branch that lags the base, or resolving a conflict |
+| [`secrets-sync-from-one-store-do-not-hand-dual-write.md`](./secrets-sync-from-one-store-do-not-hand-dual-write.md) | Absolute rule | Writing a secret into a vault and a runtime |
 | [`pipeline-test-your-pipeline.md`](./pipeline-test-your-pipeline.md) | Pattern | Modifying CI/CD pipeline definitions |
 | [`gitops-drift-detection-must-alert.md`](./gitops-drift-detection-must-alert.md) | Absolute rule | Setting up GitOps drift detection |
 | [`release-semver-is-a-contract.md`](./release-semver-is-a-contract.md) | Absolute rule | Versioning artifacts or APIs |
