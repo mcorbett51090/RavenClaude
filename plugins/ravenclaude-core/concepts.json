@@ -3024,7 +3024,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:b1c7b32ddb78ae9c42efb8cdbf1b3b86f281e5d79929fd3bf8bfd5e5d8b2c316",
+      "covers_digest": "sha256:6c4579f16ff362a2c631738ade7225f0644e2af478309c053b1768f308ffee15",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -4428,7 +4428,7 @@
         "plugins/ravenclaude-core/knowledge/coordinator-ledger-convention.md",
         "plugins/ravenclaude-core/scripts/ledger.py"
       ],
-      "covers_digest": "sha256:983feeaa5cda1ad9db0b67c063002ed45ef2e016f7bb415cb3301225138faa18",
+      "covers_digest": "sha256:9560f7f3ea8b8c09c36f3ffea5749dd79eed8b428842328537e092ab3c22bf27",
       "nuance": "--repo-root/--actor are ledger.py's TOP-LEVEL parser flags, added before add_subparsers(); a build plan citing them AFTER `append` fails with 'unrecognized arguments', verified live. A companion claim (fresh ledger = exit 2/UNKNOWN) was also wrong: cmd_init always appends a ledger_init event, so the true fresh state is exit 0/PASS.",
       "nuance_evidence": {
         "measured": "2026-09-09",
