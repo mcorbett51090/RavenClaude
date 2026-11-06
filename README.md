@@ -16,7 +16,7 @@ Today this marketplace ships **184 plugins** (live inventory: **[portal Marketpl
 
 **[`ravenclaude-core`](plugins/ravenclaude-core/)** is the foundation: Team Lead + specialist agents, dispatch playbooks, gates, hooks, templates, comfort-posture, and the Learn / teaching surfaces on the dashboard. Domain plugins (Power Platform, cloud, finance, security, and many more) install beside it.
 
-### What's new in core (through **0.324.7**)
+### What's new in core (bullets below stop at **0.324.7**; later notes are in `plugins/ravenclaude-core/CHANGELOG.md`, including the 0.360.1 stop verdict)
 
 - **Thing tribunal** — opt-in command-review for risky tools; **hardening EDIT** behind `command_review.hardening_edit` (**default ON**; set false to opt out). Force-push / mirror-push / hard-rule floors stay DENY under EDIT ON.
 - **Runes ready-queue** — Oath-hook + `rc runes`; dashboard **Runes at session start** opt-in (`runes:` absent ⇒ off); may auto-claim ungated ready work when On; never auto Longship merge.
@@ -38,8 +38,9 @@ Quick start in Claude Code (inside a session):
 ```text
 /plugin marketplace add mcorbett51090/RavenClaude
 /plugin install ravenclaude-core@ravenclaude
-/reload-plugins
 ```
+
+Since Claude Code v2.1.221 this often loads without `/reload-plugins`. Run that only if the agents do not appear.
 
 Or from your shell:
 
@@ -50,14 +51,14 @@ claude plugin install ravenclaude-core@ravenclaude
 
 The marketplace name is `ravenclaude` (from [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json)), so every install id is `<plugin>@ravenclaude`.
 
-There are **two install paths**, depending on which agent host you use. Pick one and follow that column — the surfaces don't overlap (the `/plugin` slash commands exist only in Claude Code; the `ravenclaude` script exists only on the Copilot side).
+Claude Code uses the `/plugin` slash commands. Every other supported host uses `scripts/ravenclaude` with `--host copilot` (the default), `codex`, `cursor`, `gemini`, or `aider`. The table below is Path A (Claude Code) and Path B (Copilot CLI / Codespace). For the other hosts, use Path B's clone and `setup`/`install` line and add `--host <name>`.
 
 |  | **Path A — Claude Code** (recommended if you have it) | **Path B — GitHub Copilot CLI / Codespace** |
 |---|---|---|
 | **Audience** | You run `claude` and want the marketplace's agents/skills/hooks inside it. | You run `copilot` (or want the dashboard + governance in a Codespace without Claude Code). |
-| **Install** | `/plugin marketplace add mcorbett51090/RavenClaude` <br> `/plugin install ravenclaude-core@ravenclaude` <br> `/reload-plugins` | `git clone https://github.com/mcorbett51090/RavenClaude.git ~/RavenClaude` <br> `bash ~/RavenClaude/scripts/ravenclaude setup --project .` <br> `source ~/.bashrc` |
-| **Add a plugin** | `/plugin install power-platform@ravenclaude` <br> `/reload-plugins` | `bash ~/RavenClaude/scripts/ravenclaude setup --project . --with-plugin power-platform` |
-| **Update later** | `/plugin marketplace update ravenclaude` <br> `/reload-plugins` | `rc` (the alias = `ravenclaude update && copilot --plugin-dir …`) |
+| **Install** | `/plugin marketplace add mcorbett51090/RavenClaude` <br> `/plugin install ravenclaude-core@ravenclaude` | `git clone https://github.com/mcorbett51090/RavenClaude.git ~/RavenClaude` <br> `bash ~/RavenClaude/scripts/ravenclaude setup --project .` <br> `source ~/.bashrc` |
+| **Add a plugin** | `/plugin install power-platform@ravenclaude` | `bash ~/RavenClaude/scripts/ravenclaude setup --project . --with-plugin power-platform` |
+| **Update later** | `/plugin marketplace update ravenclaude` | `rc` (the alias = `ravenclaude update && copilot --plugin-dir …`) |
 | **Pin a SHA** | `/plugin marketplace add mcorbett51090/RavenClaude#<sha>` | `git -C ~/RavenClaude checkout <sha>` |
 | **Launch** | (nothing — Claude Code loads the plugin automatically) | `rc` in a NEW terminal (or `bash -i -c rc` from a non-interactive shell) |
 

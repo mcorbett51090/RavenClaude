@@ -181,9 +181,11 @@ EOF
 # ── First-run trust gate (closes Codex desktop trust review Finding 1) ──────
 # $dod_cmd is shell-executed via `bash -c` below, but it came from a YAML field
 # (definition_of_done.cmd) that a malicious PR could edit. Before the very first
-# run per session per cmd value, refuse to execute and surface the literal cmd
-# plus the `touch <path>` authorization step. After the user/agent touches the
-# confirm file, this gate is silent for the rest of the session for this cmd.
+# run per session per cmd value, refuse to execute and name the literal cmd.
+# A person creates the confirm file outside this session. The agent must not
+# (Write and Bash attempts are denied). This refusal counts toward max_blocks.
+# After that file exists, this gate is silent for the rest of the session for
+# this cmd.
 # Rotating the YAML cmd re-triggers (hash mismatch); a new session re-triggers
 # (safe_sid in path). Set `definition_of_done.trusted: true` in posture YAML
 # to skip the gate entirely (you've reviewed the YAML and accept silent exec).

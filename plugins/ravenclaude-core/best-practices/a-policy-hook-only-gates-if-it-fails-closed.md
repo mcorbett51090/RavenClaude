@@ -63,7 +63,11 @@ affirmative act and everything else fail toward blocked — don't let an error p
 
 - **To block with a reason the model can act on, use the JSON `deny` path** — print
   `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"…"}}`
-  and `exit 0`. The reason is fed back to the agent so it can adjust. This is what
+  and `exit 0`. That envelope is the Claude Code hook contract. The Copilot adapter
+  turns a PreToolUse deny into **top-level** `permissionDecision` and drops the
+  wrapper (Copilot ignores a wrapper-only payload). Do not author the Copilot
+  envelope inside a Claude hook script. The reason is fed back to the agent so it
+  can adjust. This is what
   [`../hooks/route-decision-review.sh`](../hooks/route-decision-review.sh) does to
   deny an `AskUserQuestion` with the tribunal's verdict + reasoning, and what
   [`../hooks/enforce-layout.sh`](../hooks/enforce-layout.sh) does to deny an

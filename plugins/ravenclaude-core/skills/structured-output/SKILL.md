@@ -1,6 +1,6 @@
 ---
 name: structured-output
-description: Enforce the Structured Output Protocol — every sub-agent handoff ends with a `---RESULT_START--- ... ---RESULT_END---` JSON block alongside the human-readable Markdown. Team Lead parses the JSON for routing; Markdown stays for human review. Active across all 14 core specialists.
+description: Enforce the Structured Output Protocol — every sub-agent handoff ends with a `---RESULT_START--- ... ---RESULT_END---` JSON block alongside the human-readable Markdown. Team Lead parses the JSON for routing; Markdown stays for human review. Active across the core specialist agents.
 ---
 
 # Structured Output Skill (New)

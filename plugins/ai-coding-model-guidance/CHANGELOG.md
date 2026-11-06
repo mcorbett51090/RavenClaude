@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Deep-layer **coding-agent levers playbook** + HARD GATE link from quota-exhaustion tree/skill; tree unchanged as gate.
+- The playbook stop rule names RavenClaude's `VERDICT: STOP` at the block cap.
 
 ## [0.3.22] — 2026-11-05
 
