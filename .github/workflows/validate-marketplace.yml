@@ -184,17 +184,8 @@ jobs:
           fetch-depth: 2
           persist-credentials: false
 
-      - name: Set up Node.js
-        # The render/round-trip *.mjs gates inside scripts/audit-gates.sh run
-        # under node/npx (the Prettier lint itself now lives in the standalone
-        # `lint_prettier` job below — this setup is for audit-gates.sh's own
-        # node-dependent gates, e.g. the Heimdall/Víðarr/Norns/... render tests
-        # and Gate 9's prettier fixture-pair). audit-gates.sh HARD-FAILS in CI
-        # when node/npx is absent (a skip is not a pass), so provision node
-        # explicitly rather than relying on the runner image happening to ship it.
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "20"
+      # Node stays on gate_audit (the *.mjs render gates) and lint_prettier.
+      # Nothing left in this job calls node or npx.
 
       - name: Validate marketplace.json
         run: |
@@ -672,13 +663,14 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────────
 
   # ────────────────────────────────────────────────────────────────────────────────
-  # The gate audit, SHARDED. This used to be one serial `for suite in …` step inside
-  # `core` (527s on a runner, 95% of the job). Measured 2026-10-05 by running every
-  # `--suite` on its own: the 18 suites sum to the same work, `hooks` (~138s) and
-  # `ratchet` (~121s) are by far the largest, and nothing else exceeds ~50s — so four
-  # shards finish in about the time of the single biggest suite (~160s) instead of the
-  # sum of all of them. Wall-clock only: this repo is public, so standard-runner
-  # minutes are unmetered; the speed is what is being bought.
+  # The gate audit, SHARDED. This used to be one serial loop inside `core` (527s,
+  # 95% of that job). Wall-clock is the slowest shard. On dispatch run 42071502762
+  # (2026-11-05) the October weights still had core at 13s, so the planner packed
+  # shard 3 to 316s of suites (core had grown to 167s) while shard 2 finished in
+  # 113s. Re-weighted from that run and raised SHARDS from 4 to 5, which lands on
+  # the single-suite floor (~168s). A sixth shard does not shorten that floor.
+  # This repo is public, so standard-runner minutes are unmetered; the speed is
+  # what is being bought.
   #
   # ⛔ COVERAGE IS STRUCTURAL, NOT A MAINTAINED LIST. `suites` asks the script for its
   # own suite list (`--list-suites`, exactly what the old loop did), packs whatever it
@@ -700,9 +692,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
-      # Four shards ~ the size of the biggest suite (see the block comment above). One
+      # Five shards ~ the size of the biggest suite (see the block comment above). One
       # line to change; SHARDS=1 reproduces the old single serial run.
-      SHARDS: "4"
+      SHARDS: "5"
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
@@ -725,13 +717,13 @@ jobs:
           import json, os, sys
 
           SHARDS = int(os.environ["SHARDS"])
-          # Seconds per suite on a CI runner (a local run of each suite, scaled so the
-          # total matches the 527s the serial loop measured). BALANCE ONLY — see above.
+          # Seconds per suite on dispatch run 42071502762 (2026-11-05), rounded.
+          # BALANCE ONLY — a suite missing here is still scheduled at DEFAULT.
           WEIGHT = {
-              "hooks": 138, "ratchet": 121, "tribunal": 48, "portal": 46,
-              "inventory": 30, "claims": 27, "security": 27, "handoff": 26,
-              "core": 13, "hosts": 13, "forge": 10, "format": 10, "streams": 7,
-              "convergence": 3, "forms": 3, "lint": 2, "macos": 2, "wireframe": 1,
+              "core": 167, "hooks": 163, "inventory": 99, "ratchet": 98,
+              "portal": 72, "tribunal": 63, "security": 38, "handoff": 33,
+              "claims": 33, "hosts": 20, "format": 11, "forge": 10, "streams": 10,
+              "lint": 5, "forms": 4, "convergence": 3, "macos": 3, "wireframe": 2,
           }
           DEFAULT = 30  # an unmeasured suite is still scheduled
 

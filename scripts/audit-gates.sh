@@ -2619,6 +2619,26 @@ printf 'nope\n' > "$CL/stray.txt"
 git -C "$CL" add -A >/dev/null 2>&1
 rc=0; python3 scripts/check-layout.py --root "$CL" --all >/dev/null 2>&1 || rc=$?
 gate "check-layout (--all, off-allow-list file)" must_fail "$rc"
+# --two-dot is what validate-layout.yml passes once BASE is already the merge
+# base (the clone no longer has the commits in between). A linear add of an
+# off-list file must still fail; an empty range (HEAD..HEAD) must still pass.
+TW="$TMP/cl-twodot"
+mkdir -p "$TW/docs"
+git -C "$TW" init -q
+git -C "$TW" config user.email t@t
+git -C "$TW" config user.name t
+printf '{ "allowed_globs": ["docs/**", ".repo-layout.json"], "forbidden_globs": [], "suggestions": {} }\n' > "$TW/.repo-layout.json"
+printf 'a\n' > "$TW/docs/a.md"
+git -C "$TW" add -A
+git -C "$TW" commit -qm base
+tw_base=$(git -C "$TW" rev-parse HEAD)
+printf 'nope\n' > "$TW/stray.txt"
+git -C "$TW" add -A
+git -C "$TW" commit -qm add-stray
+rc=0; python3 scripts/check-layout.py --root "$TW" --diff "$tw_base" --two-dot >/dev/null 2>&1 || rc=$?
+gate "check-layout (--two-dot, added off-list file)" must_fail "$rc"
+rc=0; python3 scripts/check-layout.py --root "$TW" --diff HEAD --two-dot >/dev/null 2>&1 || rc=$?
+gate "check-layout (--two-dot, empty range)" must_pass "$rc"
 
 echo
 echo "── Gate 6: Behavioral enforce-layout ─────────────────────────────────────"

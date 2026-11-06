@@ -7,6 +7,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Read-only. Cancel a superseded run on the same ref instead of letting it
+# finish after the head has moved (same shape as validate-layout.yml).
+concurrency:
+  group: workflow-hygiene-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions: {}
 
 jobs:
