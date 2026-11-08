@@ -10,7 +10,7 @@
 
 ## Why this exists
 
-Spectate shipped as an observe-only livestream (v0.1) and grew through **v0.13** in PRs #1331 / #1333 / #1334 / #1335 / #1336 (2026-10-09–10). The knowledge file records *what each version wired*. The skill records *open the URL and arm the Claude-only push mirror*. Neither is a "this blank screen means X — do Y" rule. Mixing the surfaces up is how a session:
+Spectate shipped as an observe-only livestream (v0.1) and grew through **v0.16** (v0.9–v0.13 in PRs #1331 / #1333 / #1334 / #1335 / #1336; v0.14 Gemini lifecycle #1341; v0.15 PostToolUseFailure #1343; v0.16 PermissionDenied / StopFailure #1344). The knowledge file records *what each version wired*. The skill records *open the URL and arm the Claude-only push mirror*. Neither is a "this blank screen means X — do Y" rule. Mixing the surfaces up is how a session:
 
 | Wrong move | What the code does instead |
 |---|---|
@@ -72,23 +72,25 @@ Launcher bind: default `--port 8000`, walk **10** ports (`8000`–`8010`). Failu
 1. **Project root mismatch.** Emit writes under `${CLAUDE_PROJECT_DIR}/.ravenclaude/runs/<session>/spectate-events.jsonl`. The server lists `${PWD}/.ravenclaude/runs/` from `rc spectate`. If those differ, the UI is looking at a different tree. `CLAUDE_PROJECT_DIR` unset or not a directory → emit returns 0 without writing.
 2. **No stream file.** `GET /__spectate/nodes?session=…` returns **404** `no_spectate_stream` (body may include `has_hook_events: true` — hook-events exist, spectate-events do not). Session id must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$` or you get **400** `invalid_session_id`. A missing run dir is **404** `session_not_found`. A symlinked run dir or file is opened with `O_NOFOLLOW` and reads as absent.
 3. **Honest idle.** Capability `unknown` or zero events → status `idle`. That is the reducer contract, not a defect. `source_hint` on `/__spectate/nodes` is `live` only when the last event is ≤ **60 s** old and `session.end` has not landed; otherwise `recorded` (or `demo` when `synthetic: true`).
-4. **Host never wired that event.** A missing `session.end` on Gemini is a skip in `generate-gemini-hooks.py`, not a lost write. See the emit matrix below.
+4. **Host never wired that event.** A missing Gemini `subagent.stop` / `compact.post` / `tool.fail` / `permission.*` is a skip in `generate-gemini-hooks.py`, not a lost write. Gemini **does** emit `session.end` (v0.14). See the emit matrix below.
 
-### Emit matrix (v0.13) — what the generators wire
+### Emit matrix (v0.16) — what the generators wire
 
 `spectate-emit.sh` is observe-only: always exit **0**, empty stdout, never blocks. One scrubbed `rc.spectate.v1` line per hook event. It copies `tool_use_id` / `toolUseId` into `corr_id` when present; it never mints an id. Prompt text is not stored (`prompt_chars` only). Tool targets are a sanitized argv0 / path / origin — not the raw command.
 
 | Host | Emit wired | Explicitly not wired |
 |---|---|---|
-| **claude-code** | SessionStart / End, UserPromptSubmit, Pre/PostToolUse, Stop, SubagentStart / Stop, Pre/PostCompact, PermissionRequest | — |
-| **codex-cli** | Same observe set as Claude (native contract). `tool_use_id` **supported** | `spectate-steer.sh` stays unwired (`_EVENT_UNWIRED_REASON`) |
-| **cursor** | SessionStart / End, UserPromptSubmit, Stop, Bash-PreToolUse, afterFileEdit, preToolUse / postToolUse, PreCompact, SubagentStart / Stop | PermissionRequest; PostCompact (no verified `postCompact` lane) |
-| **copilot-cli** | SessionStart / End, SubagentStart / Stop, plus the mapped tool/stop lanes | PostCompact is a fail-safe inert projection (Chat's eight-event set omits it) |
-| **gemini-cli** | SessionStart, PreToolUse, PostToolUse | UserPromptSubmit, Stop, SubagentStart / Stop, Pre/PostCompact, PermissionRequest, SessionEnd |
+| **claude-code** | SessionStart / End, UserPromptSubmit, Pre/PostToolUse, PostToolUseFailure (`tool.fail`), Stop, StopFailure (`turn.end` asserted `failed`), SubagentStart / Stop, Pre/PostCompact, PermissionRequest, PermissionDenied (`permission.resolve` deny-harness) | — |
+| **codex-cli** | Same observe set as Claude through v0.15 (`tool_use_id` **supported**), including PostToolUseFailure | `spectate-steer.sh` stays unwired (`_EVENT_UNWIRED_REASON`). PermissionDenied / StopFailure (v0.16) are Claude Code auto-mode / API-error lanes — not wired |
+| **cursor** | SessionStart / End, UserPromptSubmit, Stop, Bash-PreToolUse, afterFileEdit, preToolUse / postToolUse, PreCompact, SubagentStart / Stop, postToolUseFailure (`tool.fail`; no tool-call id) | PermissionRequest; PostCompact (no verified `postCompact` lane); PermissionDenied / StopFailure |
+| **copilot-cli** | SessionStart / End, SubagentStart / Stop, mapped tool/stop lanes, plus `posttoolfailure` (live; no tool-call id, own `tool-<name>` node) | PostCompact is a fail-safe inert projection (Chat's eight-event set omits it). PermissionDenied / StopFailure skipped |
+| **gemini-cli** | SessionStart / **End** (v0.14), PreToolUse, PostToolUse, PreCompress→`compact.pre`, BeforeAgent→`prompt.submit`, AfterAgent→`turn.end` | UserPromptSubmit (BeforeAgent stands in), Stop (AfterAgent stands in), SubagentStart / Stop, PostCompact, PostToolUseFailure, PermissionRequest / Denied, StopFailure |
 | **grok-build** | Harness detect via `GROK_BUILD` / `GROK_SESSION_ID` / `GROK_HOME` / `GROK_HOOK_EVENT` (deny cells `partial`) | Event-catalog cells stay `unknown` (atlas row unverified) |
 | **grok-bot** | — | Atlas F06 undocumented; every cell `unknown` |
 
-Push mirror (`watch-spectate.sh`): Claude Code only, starts on `on-skill-invoke:spectate`, not `always`. It notifies **derived labels** only (`kind` / `asserted_status` / `tool.name` / `tool.family` / `steer.action`) for `permission.*`, `steer.applied`, `tool.fail`, `session.*`, `subagent.*`, `*.truncated`. It does not echo paths, prompts, note text, or `tool.target`.
+v0.16 on Claude Code only: `PermissionDenied` → `permission.resolve` (`deny: {by: harness, source: auto-mode}`, node = `tool_use_id`) and `StopFailure` → `turn.end` with `asserted_status: failed`. `reason` collapses to a fixed `deny.rule` token; `StopFailure`'s `error` / `error_details` / `last_assistant_message` are never read. Codex / Gemini / Cursor / Copilot skip both events.
+
+Push mirror (`watch-spectate.sh`): Claude Code only, starts on `on-skill-invoke:spectate`, not `always`. It notifies **derived labels** only (`kind` / `asserted_status` / `tool.name` / `tool.family` / `steer.action`) for `permission.*`, `steer.applied`, `tool.fail`, `session.*`, `subagent.*`, `*.truncated`. A failed `turn.end` (StopFailure) notifies; a clean Stop does not. It does not echo paths, prompts, note text, or `tool.target`.
 
 ### Steer (opt-in)
 
@@ -136,7 +138,7 @@ Sessions rank: non-synthetic **with** a stream, then non-synthetic without, then
 - Don't read emit's exit 0 as "a line was appended."
 - Don't treat `idle` + `unknown` as `unavailable-harness`.
 - Don't mint `corr_id` / `tool_use_id` from `generation_id` or a hash of the tool name.
-- Don't expect Gemini SessionEnd / SubagentStop / compact / PermissionRequest events, or Cursor PermissionRequest / PostCompact.
+- Don't expect Gemini SubagentStart/Stop, PostCompact, PostToolUseFailure, PermissionRequest/Denied, or StopFailure. SessionEnd, PreCompress, BeforeAgent, and AfterAgent **are** wired (v0.14). Don't expect Cursor PermissionRequest / PostCompact / PermissionDenied / StopFailure.
 - Don't expect the push mirror on Copilot / Codex / Cursor / Gemini.
 - Don't open Spectate off loopback. The peer check is fail-closed.
 - Don't commit `.ravenclaude/runs/` — it is gitignored on purpose.
@@ -157,7 +159,7 @@ Sessions rank: non-synthetic **with** a stream, then non-synthetic without, then
 
 ## See also
 
-- [`plugins/ravenclaude-core/knowledge/spectate.md`](../../plugins/ravenclaude-core/knowledge/spectate.md) — version honesty (v0.2–v0.13), surfaces, fonts, constraints
+- [`plugins/ravenclaude-core/knowledge/spectate.md`](../../plugins/ravenclaude-core/knowledge/spectate.md) — version honesty (v0.2–v0.16), surfaces, fonts, constraints
 - [`plugins/ravenclaude-core/knowledge/concepts/harness-spectate.md`](../../plugins/ravenclaude-core/knowledge/concepts/harness-spectate.md) — idle + cause-not-established; unknown ≠ unavailable
 - [`plugins/ravenclaude-core/knowledge/spectate-capabilities.json`](../../plugins/ravenclaude-core/knowledge/spectate-capabilities.json) — 8 harnesses × 14 keys + `tool_use_id`
 - [`plugins/ravenclaude-core/skills/spectate/SKILL.md`](../../plugins/ravenclaude-core/skills/spectate/SKILL.md) — open + Claude-only push mirror
@@ -168,8 +170,10 @@ Sessions rank: non-synthetic **with** a stream, then non-synthetic without, then
 
 ## Provenance
 
-Weekly docs scan (2026-10-11). Spectate v0.9–v0.13 landed 2026-10-09–10 (PRs #1331, #1333, #1334, #1335, #1336) with a knowledge file, skill, and Gate 294, but no operator diagnostic in `docs/best-practices/`. Verified this session against `plugins/ravenclaude-core/bin/rc` (`spectate` launcher), `scripts/spectate_demo.py`, `scripts/spectate_store.py` (`seed_status`, `nodes_response`, `apply_steer`, `wait_for_steer_decision`, `LIVE_WINDOW_SECONDS=60`, `MAX_SSE_STREAMS=4`, `PERMISSION_WAIT_S=45`), `scripts/serve-dashboards.py` (`_spectate_gate`, `_spectate_peer_ok`, `/__spectate/*`), `hooks/spectate-emit.sh` (`CLAUDE_PROJECT_DIR` guard, `KIND_BY_EVENT`, `corr_id`), `hooks/spectate-steer.sh` (posture grep + fail-open), `dashboard-assets/spectate/app.js` (`POLL_NODES_MS=2000`, `STORAGE_PREFIX`), `monitors/watch-spectate.sh`, and the Cursor / Gemini / Codex / Copilot hook generators' spectate skip maps. Live probes this session: `seed_status` four cases above; `spectate_steer_enabled` missing/on/off.
+Weekly docs scan (2026-10-11). Spectate v0.9–v0.13 landed 2026-10-09–10 (PRs #1331, #1333, #1334, #1335, #1336) with a knowledge file, skill, and Gate 294, but no operator diagnostic in `docs/best-practices/`. Verified that session against `plugins/ravenclaude-core/bin/rc` (`spectate` launcher), `scripts/spectate_demo.py`, `scripts/spectate_store.py` (`seed_status`, `nodes_response`, `apply_steer`, `wait_for_steer_decision`, `LIVE_WINDOW_SECONDS=60`, `MAX_SSE_STREAMS=4`, `PERMISSION_WAIT_S=45`), `scripts/serve-dashboards.py` (`_spectate_gate`, `_spectate_peer_ok`, `/__spectate/*`), `hooks/spectate-emit.sh` (`CLAUDE_PROJECT_DIR` guard, `KIND_BY_EVENT`, `corr_id`), `hooks/spectate-steer.sh` (posture grep + fail-open), `dashboard-assets/spectate/app.js` (`POLL_NODES_MS=2000`, `STORAGE_PREFIX`), `monitors/watch-spectate.sh`, and the Cursor / Gemini / Codex / Copilot hook generators' spectate skip maps. Live probes that session: `seed_status` four cases above; `spectate_steer_enabled` missing/on/off.
+
+Emit matrix restamped 2026-11-08 against `knowledge/spectate.md` (v0.16), `hooks.json` (`PostToolUseFailure` / `PermissionDenied` / `StopFailure`), and the four host generators' skip maps: Gemini SessionEnd / PreCompress / BeforeAgent / AfterAgent are wired (v0.14); Gemini still skips SubagentStart/Stop, PostCompact, PostToolUseFailure, PermissionRequest/Denied, StopFailure. Codex/Cursor/Copilot skip v0.16 PermissionDenied / StopFailure. Copilot `posttoolfailure` is live (no tool-call id).
 
 ---
 
-_Last reviewed: 2026-10-11_
+_Last reviewed: 2026-11-08 (emit matrix restamped to v0.16; Gemini SessionEnd / PreCompress / BeforeAgent / AfterAgent are wired)_
