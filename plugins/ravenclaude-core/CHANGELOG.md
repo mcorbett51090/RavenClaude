@@ -2,6 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.360.4 — 2026-11-08
+
+### Fixed
+- **DoD confirm file cannot be written from Bash via python/dd/heredoc.** The human-only deny required `touch|tee|cp|mv|mkdir|install|>`, so `python3 -c "open('.ravenclaude/runs/dod-gate/<sid>/confirmed-<hash>','w')"`, `Path.write_text`, `dd of=`, and a python heredoc were allowed. An agent that created that file could then execute an untrusted `definition_of_done.cmd`. Any Bash that names `dod-gate/.*/confirmed-` is now denied.
+
 ## 0.360.2 — 2026-11-05
 
 ### Changed

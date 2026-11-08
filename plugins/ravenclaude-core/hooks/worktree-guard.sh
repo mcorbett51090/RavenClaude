@@ -957,10 +957,11 @@ case "$SUBCMD" in
     # programs. Variables, eval, globs and encodings can evade it — the real
     # backstop is the bwrap sandbox write allowlist (cwd + /tmp). Helper error
     # => fail closed. Escape: RC_WORKTREE_BASH_WRITE_ACK=1.
-    # Human-only DoD confirm file. A Bash touch/redirect must not approve the gate.
+    # Human-only DoD confirm file. Deny ANY Bash that names the path — not just
+    # touch/tee/cp/mv/mkdir/install/>. python -c / pathlib / dd of= / heredocs
+    # write the file without those verbs and then the stop gate runs the cmd.
     if [ "$tn" = "Bash" ] && [ -n "$cmd" ] \
-      && printf '%s' "$cmd" | grep -Eq 'dod-gate/.*/confirmed-' \
-      && printf '%s' "$cmd" | grep -Eq '(touch|tee|cp|mv|mkdir|install|>)'; then
+      && printf '%s' "$cmd" | grep -Eq 'dod-gate/.*/confirmed-'; then
       printf '%s\n' "worktree-guard: DENIED — the definition-of-done confirm file is human-only. Do not create it. A person creates it outside this session, or the stop gate releases at max_blocks with VERDICT: STOP." >&2
       _emit_hook_event "worktree-guard.sh" "deny" "Bash" "" "dod-confirm-human-only" "2"
       exit 2

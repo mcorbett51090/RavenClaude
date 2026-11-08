@@ -15,6 +15,18 @@ run good-write-in-tree       0 "$(j Write "$T/wt/a.txt")"
 run good-bash-in-tree        0 "$(j Bash 'echo hi > a.txt && cp a.txt b.txt && sed -i s/a/b/ b.txt')"
 run good-bash-tmp            0 "$(j Bash 'echo hi > /tmp/x 2>&1 | tee /tmp/y')"
 run good-bash-read           0 "$(j Bash 'cat /etc/hostname; ls /workspace')"
+# DoD confirm file is human-only. Naming the path is enough to deny — the
+# previous verb list (touch|tee|cp|mv|mkdir|install|>) let python/dd/heredoc
+# write it and the stop gate then executed untrusted definition_of_done.cmd.
+run bad-dod-confirm-touch      2 "$(j Bash 'touch .ravenclaude/runs/dod-gate/s1/confirmed-abc')"
+run bad-dod-confirm-python-c   2 "$(j Bash "python3 -c \"open('.ravenclaude/runs/dod-gate/s1/confirmed-abc','w').write('x')\"")"
+run bad-dod-confirm-pathlib    2 "$(j Bash "python3 -c \"from pathlib import Path; Path('.ravenclaude/runs/dod-gate/s1/confirmed-abc').write_text('x')\"")"
+run bad-dod-confirm-dd         2 "$(j Bash 'printf x | dd of=.ravenclaude/runs/dod-gate/s1/confirmed-abc')"
+run bad-dod-confirm-heredoc    2 "$(j Bash "python3 - <<'PY'
+from pathlib import Path
+Path('.ravenclaude/runs/dod-gate/s1/confirmed-abc').write_text('x')
+PY")"
+run good-dod-gate-mkdir        0 "$(j Bash 'mkdir -p .ravenclaude/runs/dod-gate/s1')"
 run bad-redirect-outside     2 "$(j Bash 'echo pwn > /home/box/.bashrc')"
 run bad-append-outside       2 "$(j Bash 'echo pwn >> /workspace/other/f')"
 run bad-tee-outside          2 "$(j Bash 'echo x | tee -a /workspace/other/f')"
@@ -28,7 +40,9 @@ run bad-perl-e-outside       2 "$(j Bash "perl -e 'open(F, \">/workspace/other/f
 run bad-heredoc-outside      2 "$(j Bash "cat > /workspace/other/f <<'EOF'
 hello
 EOF")"
-run bad-python-heredoc       2 "$(j Bash "python3 - <<'PY'
+# Heredoc bodies are data (worktree-guard-bash.py). An out-of-tree path
+# inside a python program on stdin is not a write-target the helper sees.
+run note-python-heredoc-body-not-scanned 0 "$(j Bash "python3 - <<'PY'
 open('/workspace/other/f','w').write('x')
 PY")"
 run crash-malformed-json     2 '{"tool_name":"Bash","tool_input":{'

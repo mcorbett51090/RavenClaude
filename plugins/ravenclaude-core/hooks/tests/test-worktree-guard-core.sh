@@ -35,6 +35,8 @@
 #       deadline governs (3s-late writer served at the default, starved at 1s),
 #       (f) the knob clamp survives 00 / 2^32 / 20-digit / non-numeric, (g) a
 #       3MB SINGLE-LINE payload is read whole — the shape `read -t` used to cap.
+#   T20 DoD confirm file is human-only: python -c / pathlib / dd of= / heredoc
+#       that name dod-gate/*/confirmed-* are denied; mkdir of the dir is allowed.
 #   MF  must-fail half — strip the latecomer-only guard in _wg_contention and assert
 #       the incumbent now ALSO fires, proving T3's incumbent-silence has teeth.
 #
@@ -618,6 +620,38 @@ if grep -q 'CLAUDE_PROJECT_DIR="\$PRIMARY" bash "\$guard" status --json' "$(dirn
   pass "T19: bin/rcwt names PRIMARY explicitly instead of piping an inert payload"
 else
   fail "T19: bin/rcwt does not set CLAUDE_PROJECT_DIR=\$PRIMARY — it will report the wrong tree's posture"
+fi
+rm -rf "$SB"
+
+echo
+echo "── T20: DoD confirm file is human-only — any Bash that names it is denied ─"
+# python -c / pathlib / dd of= wrote the file without touching touch|tee|cp|mv|
+# mkdir|install|>, and the stop gate then ran untrusted definition_of_done.cmd.
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R"
+t20_check() {
+  local cmd="$1"
+  mk_payload "$R" s1 Bash "$(jq -cn --arg c "$cmd" '{command:$c}')" | bash "$HOOK" check >/dev/null 2>"$SB/t20.err"
+}
+t20_check "python3 -c \"open('.ravenclaude/runs/dod-gate/s1/confirmed-abc','w').write('x')\""
+T20_PY=$?
+t20_check "python3 -c \"from pathlib import Path; Path('.ravenclaude/runs/dod-gate/s1/confirmed-abc').write_text('x')\""
+T20_PL=$?
+t20_check "printf x | dd of=.ravenclaude/runs/dod-gate/s1/confirmed-abc"
+T20_DD=$?
+t20_check "python3 - <<'PY'
+from pathlib import Path
+Path('.ravenclaude/runs/dod-gate/s1/confirmed-abc').write_text('x')
+PY"
+T20_HD=$?
+t20_check "mkdir -p .ravenclaude/runs/dod-gate/s1"
+T20_MK=$?
+t20_check "touch .ravenclaude/runs/dod-gate/s1/confirmed-abc"
+T20_TO=$?
+if [ "$T20_PY" -eq 2 ] && [ "$T20_PL" -eq 2 ] && [ "$T20_DD" -eq 2 ] && [ "$T20_HD" -eq 2 ] && [ "$T20_TO" -eq 2 ] && [ "$T20_MK" -eq 0 ]; then
+  pass "T20: python/pathlib/dd/heredoc/touch naming confirmed-* deny; mkdir of dod-gate dir allows"
+else
+  fail "T20: py=$T20_PY pl=$T20_PL dd=$T20_DD hd=$T20_HD touch=$T20_TO mkdir=$T20_MK (want 2/2/2/2/2/0) err=$(head -c200 "$SB/t20.err")"
 fi
 rm -rf "$SB"
 
