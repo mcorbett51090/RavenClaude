@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.361.0 — 2026-11-10
+
+### Added
+- **Worktree + branch cleanup lifecycle, closing four gaps in `cleanup-worktrees`.** `scripts/worktree-clean.sh` (moved to its canonical home at `plugins/ravenclaude-core/scripts/`, with a thin root shim, same pattern as `cleanup-branches.sh`) now:
+  1. **Ships with the plugin** — a marketplace/plugin install gets the actual cleaner, not just the skill that referenced it.
+  2. **Discovers every worktree via `git worktree list --porcelain`**, not only `.claude/worktrees/` — a sibling or ad-hoc worktree is covered, addressed via a new `--target <path>` flag anchored to porcelain membership (the resolved path must equal one git itself reported, not a directory-prefix check).
+  3. **Classifies two new states, `OPEN-PR` and `STALE`**, alongside the existing `clean`/`DIRTY`/`IGNORED`/`DETACHED-unreachable`/`UNKNOWN-*`, plus `LOCKED` and `PRUNABLE` (git's own `locked`/`prunable` porcelain fields). `OPEN-PR` and `UNKNOWN`/`LOCKED` refuse removal even with `--force`; `STALE` (age-based, or an unverifiable PR status folded in) gets the same force contract as `IGNORED`/`DETACHED-unreachable`.
+  4. **Unifies the lifecycle** — remove → `git worktree prune` → branch retirement via `cleanup-branches.sh`'s own safety checks (never a second, parallel `-D` path). `--all` now defaults to a dry-run preview; `--execute` performs it, and never forces a flagged class.
+  - A new **SessionEnd hook** (`scripts/worktree-cleanup-report.sh`, registered alongside — never replacing — `spectate-emit.sh`) runs `--status --no-network` at session end and, when there is anything beyond the main worktree, flushes a dry-run report to `.ravenclaude/runs/worktree-cleanup/report.md`. It never mutates: `SessionEnd`'s `additionalContext`/blocking are not supported by the host `[docs-verified]`, so this mirrors the documented "flush artifacts, emit a summary" contract via a file write, same as the plugin's other SessionEnd hooks. Opt out with `RC_WORKTREE_CLEANUP_REPORT=off`.
+  - **Gate 308** (`hooks/tests/test-worktree-clean-lifecycle.sh`) exercises every class, the dry-run default, the unified lifecycle, an installed-plugin layout, the SessionEnd report, and three teeth mutants — all against scratch git repos, never this box's own worktrees.
+
+### Migration
+- `scripts/worktree-clean.sh --all` **no longer removes anything by default** — it now previews; pass `--execute` for the prior bulk-removal behavior. A single `<slug>`/`--target` removal is unchanged.
+
 ## 0.360.0 — 2026-10-26
 
 ### Added

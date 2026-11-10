@@ -482,6 +482,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/scripts/worktree-cleanup-report.sh\"",
+            "timeout": 10,
+            "comment": "Worktree-cleanup dry-run report. OPT-OUT via RC_WORKTREE_CLEANUP_REPORT=off. On session end, runs the shipped worktree-clean.sh in `--status --no-network` mode (git-worktree-list --porcelain discovery, so sibling/ad-hoc worktrees are covered too; zero network calls \u2014 no gh invocations on every session end) and, when anything beyond the solo main worktree exists, FLUSHES a DRY-RUN-ONLY summary to .ravenclaude/runs/worktree-cleanup/report.md for a human or a later session to read \u2014 a SessionEnd hook's stdout is not injected into any live context (the session is ending; there is no further turn), so this writes a file rather than attempting systemMessage/additionalContext, matching the documented SessionEnd contract ('flush run artifacts, emit a summary') and the existing SessionEnd siblings in this plugin (stream-session-close.sh / thing-denial-kb-sync.sh). NEVER removes a worktree, prunes, or deletes a branch \u2014 report only; mutation always needs an explicit human --execute. Fail-safe: no git / no bash / no worktree-clean.sh / any error -> silent no-op, always exits 0. Registered here only (not the dev-mirror .claude/settings.json): the dev-mirror fires on this machine's own ~17 real /workspace worktrees at every session end, which the HARD STOP in the originating task forbids inspecting outside a test fixture. See skills/cleanup-worktrees/SKILL.md."
+          },
+          {
+            "type": "command",
             "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",
             "timeout": 5,
             "comment": "Spectate observe-only emitter (v0.12). Appends ONE scrubbed rc.spectate.v1 line (session.end / subagent.stop). DERIVED VALUES ONLY \u2014 never writes prompt text, task/summary, tool args, or secrets. Fail-safe: always exit 0; empty stdout; never blocks."
