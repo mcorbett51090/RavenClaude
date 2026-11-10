@@ -71,6 +71,10 @@ Already-dated implementations to avoid: scroll-jacked horizontal sections (disor
 
 Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-references.md). Re-read before scoping an interactive build.
 
+**Page content before chrome (2026-11-05).** Before restyling a signed-in page, write Keep / Move / Remove for each major block. If nav already routes a builder to its own URL, delete that builder from the old page and leave a link. Do not ship a second editor because the component was already imported. Pass: [`../knowledge/content-placement-page-ia-2026-11.md`](../knowledge/content-placement-page-ia-2026-11.md).
+
+**Settings and form controls (2026-11-05).** Build the visible-choice controls on native inputs: segmented control and radio tiles = `fieldset` + radios with the input visually hidden (clip, never `display:none`); switch = a checkbox with a fixed label; slider = `input type=range` + `<output>` + `aria-valuetext` + −/+ buttons (WCAG 2.5.7); "more info" = a `<button>` plus a `role="status"` region; connect sheets = one native `<dialog>.showModal()` whose content steps from the accounts list to the four base-scope radios, pills and Advanced, then to Required and Additional Access. Contract: [`../knowledge/settings-and-choice-controls-2026.md`](../knowledge/settings-and-choice-controls-2026.md) §7a and the `accessibility-engineering` settings-controls file.
+
 **Every screen size (2026-10-26).** The [`adaptive-layout`](../skills/adaptive-layout/SKILL.md) skill is the build contract for desktop, phone (both orientations), tablet, iPad windows and foldables like iPhone Duo: the exact viewport tag (no zoom lock; `viewport-fit=cover` only with all four `env(safe-area-inset-*)` edges), `vh` **then** `svh`/`lvh`/`dvh` (the CSS minifier deletes the earlier duplicate, so the wrong order ships plain `vh`), `minmax(0, 1fr)` tracks, container queries for components, 16px form text, 24px targets, and a device matrix with ±1px breakpoint boundaries before calling a layout done. Never sniff the user agent — iPad Safari sends a Mac one. Sources: [`../knowledge/apple-adaptive-web-2026.md`](../knowledge/apple-adaptive-web-2026.md).
 
 **Craft recipes (2026-10-26).** The [`interface-craft`](../skills/interface-craft/SKILL.md) skill carries the build side: static-first heroes (a preloaded `fetchpriority="high"` `<picture>` is the LCP; video/WebGL only after first frame, capability-gated, paused off-screen, with a visible pause control), motion written inside `prefers-reduced-motion: no-preference`, scroll-driven animation and cross-document view transitions **only** behind `@supports` (not Baseline), `@starting-style` for dialog/popover entry, a two-tone `:focus-visible` ring with focus restored to the invoker, and verification on the rendered page in both themes at 390 and 1440 px. For **many sites built from shared sections**, drive [`block-composed-site`](../skills/block-composed-site/SKILL.md): the agent writes a typed manifest, never markup — and the section frame must spread the parent's `data-astro-cid-*` attribute or every block-root style silently fails. References: [`../knowledge/interface-craft-fundamentals-2026.md`](../knowledge/interface-craft-fundamentals-2026.md), [`../knowledge/block-based-site-composition-2026.md`](../knowledge/block-based-site-composition-2026.md). **Builders (2026-10-26):** for a form, card or pass editor follow [`visual-builder`](../skills/visual-builder/SKILL.md) — the preview uses the same renderer as the output, click-to-insert before drag, a menu move on every item with a live-region announcement, undo as patches, autosave with a revision check — and [`form-builder`](../skills/form-builder/SKILL.md) for the definition model and logic interpreter.
@@ -89,6 +93,7 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 - React state used where URL / local-storage / form-default would suffice
 - Components that take a "config object" with 12 boolean flags — split or compose
 - Components that don't render correctly when their content is 2x the expected length
+- A builder component left mounted on a page after the nav item for it points somewhere else
 
 ## Escalation routes
 - Visual / token decisions → `visual-designer`
@@ -109,6 +114,10 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 ## Declarative visualization (Vega-Lite / SVG)
 
 When a page needs a custom chart — heatmaps, dumbbell plots, annotated lines, small-multiples — reach for **Vega-Lite** via vega-embed (`vegaEmbed('#el', spec, opts)`) or the Evidence/Observable fence block. Use inline **SVG** for icon shapes and decorative overlays. The cross-surface spec-authoring method, security rules, and starter templates: [`../../ravenclaude-core/skills/declarative-visualization/SKILL.md`](../../ravenclaude-core/skills/declarative-visualization/SKILL.md). **Security is load-bearing:** run `lint.py` — `data.url`, remote `transform.lookup`, custom `loader`, and SVG `<script>`/`on*` are forbidden (Gate 101). Bind data via `data.name` + `view.change()` in JS; never `data.url` in committed specs.
+
+## Portal and public-site review
+
+If the surface is a portal or a public page beside one, do not treat a visual pass as done until PLACE in [`../knowledge/portal-and-site-review-checklist-2026-11.md`](../knowledge/portal-and-site-review-checklist-2026-11.md) is filled. A rendered route is the evidence. Mounting the component in a unit test does not pass a Block row.
 
 ## Visual feedback loop
 

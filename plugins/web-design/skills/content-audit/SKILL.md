@@ -74,6 +74,10 @@ Each URL gets one verdict. No "we'll decide later" — the audit ends with a que
 
 **Cannibalization** (two pages ranking for the same keyword, splitting traffic) is the most common consolidation trigger. Spot it in Search Console by sorting by keyword and finding URLs that share top-10 positions.
 
+**Not this matrix.** Blocks on a signed-in portal page use Keep | Move | Remove/redirect in [`../../knowledge/content-placement-page-ia-2026-11.md`](../../knowledge/content-placement-page-ia-2026-11.md) and [`../../best-practices/content-belongs-on-the-page-that-owns-it.md`](../../best-practices/content-belongs-on-the-page-that-owns-it.md). KKCR scores whole URLs for a content audit. Do not paste KKCR onto an account page, and do not paste placement verdicts onto a marketing crawl.
+
+KKCR scores a **URL**. It does not ask whether a builder, editor, table, share kit, analytics panel, or settings block on that URL belongs to a different product area. On a signed-in product, also run content placement in [`../information-architecture/SKILL.md`](../information-architecture/SKILL.md) §8 and record Keep / Move / Remove beside the KKCR verdict. Do not collapse "this editor is on the wrong route" into Rewrite or Retire.
+
 ## 4. Redirect plan when consolidating / retiring
 
 Every URL that goes away needs a destination:
@@ -130,7 +134,10 @@ When the audit feeds a re-platform:
 - [ ] Owner assigned per content area
 - [ ] Refresh cadence documented
 - [ ] If re-platforming: content model mapped + staging crawl complete
+- [ ] If the inventory includes a signed-in product: each major block also has a placement verdict (Keep / Move / Remove) from `information-architecture` §8 — KKCR alone does not place the block
 - [ ] Quarterly mini-audit scheduled in the team's calendar
+
+KKCR scores a URL. It does not decide which route a block lives on. Placement of an editor, a share kit, or an analytics panel is PLACE in [`../../knowledge/portal-and-site-review-checklist-2026-11.md`](../../knowledge/portal-and-site-review-checklist-2026-11.md).
 
 ## Anti-patterns
 

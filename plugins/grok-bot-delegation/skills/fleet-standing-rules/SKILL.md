@@ -48,6 +48,18 @@ HARD blocker-first+parallel (Oct 13 6:22): check P&D critical path first, take e
 ### Owner auto-scale (CoS/Deputy variant)
 Owner auto-scale (Oct 12 6:04): post-launch owners may upgrade own system ≤+$50/mo then report to CoS (CoS tells Matthew); >$50/mo or pre-launch → Matthew card via CoS.
 
+## Source control — Website and Master Overseer (2026-11-05)
+
+The procedure is `ravenclaude-core` `knowledge/source-control-operating-practices.md`. These lines are what Website ops and Master Overseer (CoS) follow. They add to the verbatim blocks above. They do not relax them.
+
+1. **Behind-first merge order is standing GO.** Sage already owns merge order. When several pull requests are green, merge up-to-date tips first, then tips that are only behind and merge cleanly (update the branch, wait for checks on the new SHA), and leave a dirty tip until those have landed.
+2. **Dirty means conflict, uncommitted files, or a tip that is not the reviewed SHA.** Do not merge it. Remount: a fresh worktree from current `origin/main`, replay only that pull request's commits, and stop for the code owner on a hunk. Sage commits the resolution the owner chose. Sage does not invent it.
+3. **An update-branch commit with an unchanged diff needs no AppSec or Grok re-review.** A hunk edit does. That split is already in the HARD DH guards. Keep it.
+4. **Read required checks on the exact head SHA.** Neutral or skipped is not a pass for a review bot, and not a pass for `check-content-placement.mjs`. That script name stays (Website #953). It covers `account/**` and shell/nav. A placement failure blocks ship. Do not add a `paths:` filter to its workflow.
+5. **Secrets.** The RavenPower 1Password vault is the source. Auth or Platform writes the runtime copy in the same change and confirms the name is present. Do not print the value. If the runtime write fails, finish it or put the vault entry back before calling the change done. Preview secrets and production secrets are different names. Coding bots still never print or set secrets.
+6. **Preview, then production.** A UI review cites the pipeline's preview URL. Platform deploys production only from merged `main`, behind the prod gate. No bot deploy. No go-live. This section does not authorize either.
+7. **Do not copy RavenClaude's admin ruleset bypass onto Website.** Do not bypass a ruleset. Do not turn RavenClaude auto-merge back on. CoS hands Sage the order. CoS does not merge.
+
 ## Domain ownership + seams (Matthew-approved items 10/11, 2026-10-13 7:59 ET)
 - finops-cloud-cost → Platform 2bf206d0 · pricing stays with Finance & GTM 9dae5ae9
 - data-governance-privacy, regulatory-compliance → Legal Ops 94949dc8 (AppSec 06191dd0 reviews the technical side)

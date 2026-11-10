@@ -27,6 +27,12 @@
 
 Signed: [name] — [YYYY-MM-DD]
 
+## Portal or signed-in surface
+
+If this launch includes a signed-in product, or public pages beside one, fill [`../knowledge/portal-and-site-review-checklist-2026-11.md`](../knowledge/portal-and-site-review-checklist-2026-11.md) before the boxes below. PLACE first. A Block row that is blank is a no-go. Public SEO boxes and portal noindex are both required when both surfaces ship. 400px and 1280px signed-in are the portal widths; the device matrix below stays the public bar.
+
+Signed: ux-designer — [YYYY-MM-DD] | N/A — public site only, no signed-in surface
+
 ## UX designer
 
 - [ ] All screens cover empty / loading / error / success states
@@ -40,8 +46,12 @@ Signed: [name] — [YYYY-MM-DD]
 - [ ] Viewport tag is `width=device-width, initial-scale=1` with no zoom lock; `viewport-fit=cover` only if all four safe-area insets are used
 - [ ] Every viewport-height section writes `vh` first, then `svh`/`lvh`/`dvh` (checked in the BUILT CSS)
 - [ ] Checked on a real iPhone and iPad, or the Xcode Device Hub simulator, in both orientations
+- [ ] Signed-in portal UX pass: every account route opened while signed in (rail, account menu, and tabs), not only the route in the task — see [`../knowledge/content-placement-page-ia-2026-11.md`](../knowledge/content-placement-page-ia-2026-11.md). Marketing-only: `N/A — no signed-in routes`
+- [ ] Each major block is Keep, Move (route + product area named), or Remove/redirect, written before chrome polish
+- [ ] No editor or builder left on a page after nav already points at its dedicated route (reported miss: card editor on `/account/site` vs `/account/cards/site`)
 - [ ] Focus indicators visible on all interactive surfaces
 - [ ] Touch targets ≥ 44pt on mobile
+- [ ] Content placement recorded for every major block on each signed-in / portal page (Keep / Move to a named route / Remove or redirect). A builder or editor is not left on a page whose nav parent is a different product entity — see `best-practices/content-belongs-on-the-page-that-owns-it`
 
 Signed: [name] — [YYYY-MM-DD]
 

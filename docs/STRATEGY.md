@@ -1,6 +1,6 @@
 # STRATEGY.md — RavenClaude direction
 
-> **Last reviewed:** 2026-06-02. Decision memo, not a pitch. Written for the next session that opens this repo and asks "what's the plan?" Re-read when (a) the public/private boundary feels wrong, (b) a real consulting engagement asks "can we have this?", (c) a domain plugin matures past its first engagement and the boundary calls itself into question, or (d) the SaaS direction stops feeling like a long bet and starts feeling like a real one.
+> **Last reviewed:** 2026-06-02. Decision memo, not a pitch. **Visibility note (2026-11-05):** the root README now describes this repo as public to read. The "repo itself is private" sentences below are the 2026-06-02 decision, not the current hosting fact. Re-read the public/private split before acting on them. Written for the next session that opens this repo and asks "what's the plan?" Re-read when (a) the public/private boundary feels wrong, (b) a real consulting engagement asks "can we have this?", (c) a domain plugin matures past its first engagement and the boundary calls itself into question, or (d) the SaaS direction stops feeling like a long bet and starts feeling like a real one.
 
 ## TL;DR
 

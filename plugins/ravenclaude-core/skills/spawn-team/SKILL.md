@@ -234,6 +234,7 @@ Step <N> of <playbook name>. Previous step produced <X>. Next step expects <Y>.
 - Inputs: <exact paths / excerpts — never the conversation>
 - Tools you need: <subset; read-only for scouts>
 - Success check: <the deterministic thing the Team Lead will run to verify>
+- Done verdict: DONE only when that check exits 0. Then stop. Do not ask if the work is done. NOT DONE names the one failed line.
 - Max output: <N> words + the Structured Output Protocol JSON. Longer material -> write it to
   .ravenclaude/runs/<run-id>/<phase>.{md,json} and return the path.
 

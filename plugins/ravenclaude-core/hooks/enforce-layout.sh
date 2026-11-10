@@ -45,6 +45,20 @@ if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
 fi
 [[ -z "$file" ]] && exit 0
 
+# The definition-of-done confirm file is a person's approval. The agent must
+# not write it (BTCSI session: the agent created the file and the gate then
+# ran). This deny is independent of .repo-layout.json.
+case "$file" in
+  */.ravenclaude/runs/dod-gate/*/confirmed-*|.ravenclaude/runs/dod-gate/*/confirmed-*)
+    echo "[enforce-layout] DENIED — definition-of-done confirm file is human-only. Do not create it. A person creates it outside this session, or the stop gate releases at max_blocks with VERDICT: STOP." >&2
+    if command -v jq >/dev/null 2>&1; then
+      jq -cn --arg r "definition-of-done confirm file is human-only. Do not create it." \
+        '{permissionDecision:"deny",permissionDecisionReason:$r,hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+    fi
+    exit 2
+    ;;
+esac
+
 project_root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 manifest="$project_root/.repo-layout.json"
 task_scope="$project_root/.ravenclaude/task-scope.json"

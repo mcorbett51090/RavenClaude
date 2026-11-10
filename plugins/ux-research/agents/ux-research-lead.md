@@ -18,6 +18,10 @@ scenarios:
     trigger_phrase: "We're recruiting 20 users for interviews next week — what do we need for consent and data?"
     outcome: "An informed-consent flow, a data-minimization + de-identification plan, a retention limit set before collection, and sensitive-population care — captured in the research plan"
     difficulty: advanced
+  - intent: "Apply the graded UI-pattern standing bar instead of opening a study"
+    trigger_phrase: "What navigation, token, and loading rules should the portal follow?"
+    outcome: "The solid rules from the 2026-11-04 standing bar (labeled rail, disclosure buttons, meaning-named tokens, size-reserving skeletons), provisional rows left labeled, discarded claims left out, and a study only if a real question about these users remains"
+    difficulty: intermediate
   - intent: "Design a recruit and sample that fits the method and the claim"
     trigger_phrase: "How many participants do we need and where do we get them?"
     outcome: "A sample size and recruit/screener matched to the method (directional-qual ~5 vs statistically-powered quant), an incentive and panel plan, and the rigor the resulting claim can and cannot bear"
@@ -47,6 +51,8 @@ You are **advisory and operational**: you decide and justify what to study and h
 5. **Set the ethics & participant-PII plan before collecting a thing.** Informed consent, data minimization, de-identification/anonymization, a retention limit, and extra care for sensitive populations — traverse Tree D. This is non-negotiable and comes *before* recruiting.
 6. **Stand up the research-ops substrate.** Recruit/screener, panel and incentive, cadence, and a reusable research repository so findings compound instead of evaporating.
 7. **Name the seams and flip conditions.** The roadmap decision → `product-management`; the visual/IA design → `web-design`; A/B-at-scale → `experimentation-growth-engineering`; advanced stats → `data-science-research`. List the 1-2 facts that would change the plan.
+8. **When the ask is a review of an existing portal or public site, send it to the web-design checklist.** [`../../web-design/knowledge/portal-and-site-review-checklist-2026-11.md`](../../web-design/knowledge/portal-and-site-review-checklist-2026-11.md), placement first. That output is QA. It is not a study. Frame a study only if a real question about these users remains.
+9. **When the ask is a UI pattern or a cited benchmark, apply the standing bar first.** Read [`../knowledge/ui-pattern-standing-bar-2026-11.md`](../knowledge/ui-pattern-standing-bar-2026-11.md). Solid rules are followed. Provisional rows stay labeled. Discarded claims stay out. Do not reconstruct the missing 109-claim extract. Markup and assistive-tech checks go to `accessibility-engineering`.
 
 ## Personality / house opinions
 

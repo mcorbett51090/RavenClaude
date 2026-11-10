@@ -2,6 +2,51 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.23.3] — 2026-11-05
+
+### Added
+
+- **`knowledge/portal-and-site-review-checklist-2026-11.md`** — the standing review for a signed-in portal and for public pages reviewed beside one. Each row has a check, what to look for, a fail example, a pass example, and whether it blocks ship. Order is mandatory: PLACE (Keep / Move / Remove, naming route and product area) before chrome, accessibility, or form polish.
+- **`best-practices/run-the-portal-review-before-polish.md`** — the citable rule. A contrast pass does not close a review that never placed the blocks.
+- Sections: shell and org-versus-user context, focus census, forms (tiles and `Saved · HH:MM` are separate from a builder's "Saved · Unpublished changes"), multi-account connect sheets, login-bundle ratchet and prefetch, purge and the security handoff, 400px and 1280px, empty / locked / beta, analytics home, copy, and public-versus-portal SEO.
+- A gate table stating which product-repo test would enforce each Block row. Placement's ship gate is `check-content-placement.mjs` on `account/**` and shell/nav files (Website #953). This plugin does not add that script, and it does not rename it.
+- The report shape matches the Collab playbook (`#review`: one line per class or `N/A — reason`; `#placement` required; `#review-out` left alone). Class titles stay in that playbook.
+- `ux-research` 0.1.6 points an evaluative review at this checklist. `forms-engineering` 0.1.3 points at it and does not restate it.
+- An explicit invite to drop the weak rows (choice-control as a merge block, reading level on portal screens, `llms.txt` on the portal, missing prefetch on a safe link).
+- Wired into house opinion 14, the portal routing line, the review agents, `information-architecture` §8, `accessibility-review` Pass 3, `content-audit` (KKCR is not placement), the gold-standard pipeline's audit-only case, and the launch checklist.
+
+## [0.23.2] — 2026-11-05
+
+### Added
+
+- **Content placement is a required step on every portal or signed-in UX review**, on top of 0.23.1. Each major content block (form, builder, editor, table, share kit, analytics panel, settings) gets **Keep**, **Move** (name the product area and route), or **Remove / redirect**. A pass that only checks nav chrome, accessibility, and form controls is incomplete.
+  - Rule: `best-practices/content-belongs-on-the-page-that-owns-it.md`.
+  - Decision tree: `knowledge/web-design-decision-trees.md`, "Content placement — keep, move, or remove a block".
+  - Procedure and anti-pattern: `skills/information-architecture/SKILL.md` §8.
+  - Gold-standard pipeline G2 acceptance line for signed-in pages.
+- `ux-research` 0.1.5 records the same step in synthesis and on the specialist. The verdict stays a design note. It does not re-grade the 2026-11-04 UI-pattern capture.
+
+## [0.23.1] — 2026-11-05
+
+### Added
+
+- **`knowledge/content-placement-page-ia-2026-11.md`**: the signed-in portal pass. Every major block is **Keep**, **Move** (name the route and product area), or **Remove/redirect** before chrome polish. The anti-pattern is an editor left on a page after nav already points at a dedicated route. The reported miss `[user-described]` is a card editor still on `/account/site` when cards live at `/account/cards/site`. Five process steps: placement before polish, a signed-in walk of every account route, no "nav looks fine" without an inventory, one editor per route, name the destination before the diff. Not a user study, and not the marketing KKCR matrix.
+- **Best-practice** `place-page-content-before-polishing-chrome`. Checklist rows in `templates/site-architecture.md` (the gold-standard pipeline's G2 artifact) and `templates/launch-checklist.md`. `ux-research` 0.1.4 points at the pass from the portal-walk checklist and does not grade it.
+
+## [0.23.0] — 2026-11-05
+
+### Added
+
+- **`knowledge/settings-and-choice-controls-2026.md`**: the control ladder for settings and small choice sets (switch · segmented control · radio tiles · amount tiles · slider with live preview · combobox, `<select>` last), the settings-versus-question split, short-copy budgets with toggletips, a bottom-sheet connect/authorize and multi-account flow, `<meter>` usage cards, page composition, and a table of detectable anti-pattern signatures. Facts read from APG, WCAG 2.2 Understanding, MDN and GOV.UK on 2026-11-05 are tagged `[docs-verified]`; house defaults are `[inference]`; unfetched items are `[unverified]`. **No user study backs the preference**, and the file says so. It is not the missing forms gap-fill from the 2026-11-04 capture and re-grades none of its rows.
+- **Connect apps guidance** (`settings-and-choice-controls-2026.md` §7a): the portal sequence is four surfaces in one sheet — Connect-apps list (brand icon, name, "N accounts", Authorize) → accounts sheet (Authorize per account, Add account) → Choose access (base-scope tiles **Minimal / Read only / Full / Requested**, pills, Advanced, Continue) → Authorize (static Required tiles, unticked Additional Access groups, then the provider's page). Grok help fetched 2026-11-05 ([Connect apps](https://cursor.com/help/grok-bot/connect-apps), [How Tos](https://cursor.com/help/grok-bot/how-to)) confirms Accounts, Add Another Account, a label, and Authorize, and says **Gmail is one mailbox** while Notion can have a second. Those pages do not describe the four tiles, pills, Advanced, Required, or Additional Access; those stay `[user-described]`. The app was not opened. An earlier "two Google mailboxes" example was wrong against that help page and is removed.
+- **Two best-practice rules**: `show-small-choice-sets-instead-of-hiding-them-in-a-dropdown` and `settings-copy-is-a-label-and-a-caption-with-more-info-on-demand`.
+- **`card-tile-ui`** gains a "Settings and status surfaces" section; the `ux-designer` and `frontend-implementer` agents gain a short pointer; `form-builder-2026.md` Dropdown and Slider rows link to the ladder; `CLAUDE.md` §4 gains three anti-patterns.
+
+### Notes
+
+- Sibling additions: `accessibility-engineering` 0.1.5 (markup, keys, WCAG 2.5.7 / 1.4.13 contract), `design-systems-engineering` 0.1.4 (component contract), `forms-engineering` 0.1.2 (pointer), `ux-research` 0.1.3 (test plan for the hypotheses). The 0.1.4 cross-link landed with 0.23.1; the synthesis step is 0.1.5.
+- Not built: a lint hook for `<select>` with few options. Worth a separate PR with its own must-fail fixture.
+
 ## [0.22.0] — 2026-10-27
 
 ### Added

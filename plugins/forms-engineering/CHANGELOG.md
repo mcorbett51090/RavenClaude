@@ -2,6 +2,19 @@
 
 All notable changes to this plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the plugin uses [semantic versioning](https://semver.org/).
 
+## [0.1.3] — 2026-11-05
+
+### Changed
+
+- Inherited-rules table points a portal form or choice-control review at `web-design`'s portal checklist. This plugin does not restate placement, the `#review` loop, or `#review-out`. The Website placement ship gate stays `check-content-placement.mjs`.
+
+## [0.1.2] — 2026-11-05
+
+### Changed
+
+- The best-practices inherited-rules table now points "which control for a choice or setting, and how much copy" at `web-design`'s two new rules (`show-small-choice-sets-instead-of-hiding-them-in-a-dropdown`, `settings-copy-is-a-label-and-a-caption-with-more-info-on-demand`). Pointer only: nothing is restated here, per the seam rule.
+- The same table points connector setup (Connect-apps list, multi-account sheet, scope tiles, provider redirect) at `web-design`'s settings-and-choice file §7 and the accessibility markup contract. It is not an intake form, so it is not ruled here.
+
 ## [0.1.1] — 2026-10-26
 
 ### Changed

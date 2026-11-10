@@ -21,7 +21,7 @@
 #      not authored, so they never warn or block.
 #   2. branch-name — on a NEW-BRANCH creation (checkout -b <name> / switch -c
 #      <name> / plain `branch <name>`), WARN when <name> does not match the repo's
-#      prefix convention `^(feat|fix|chore|docs|refactor|agent)/` (rules/git-workflow.md).
+#      prefix convention `^(feat|fix|chore|docs|refactor|agent|release)/` (rules/git-workflow.md).
 #      Default warn; blocks ONLY when the knob is `block`.
 #   3. push-to-a-protected-branch — a direct, non-force push whose refspec targets
 #      main / master is ADVISORY ONLY: it emits a nudge and NEVER blocks at any
@@ -114,7 +114,7 @@ CC_RE = re.compile(
     r"(?:\([^)]+\))?!?:\s.+"
 )
 # This repo's branch-prefix convention (rules/git-workflow.md).
-BR_RE = re.compile(r"^(?:feat|fix|chore|docs|refactor|agent)/")
+BR_RE = re.compile(r"^(?:feat|fix|chore|docs|refactor|agent|release)/")
 # Git's OWN generated commit subjects — the shapes `git revert` / `git merge` /
 # `--fixup` / `--squash` emit. They are not human-authored, so they are exempt from
 # the Conventional-Commits check (never warn, never block — no subject to fix).
@@ -302,7 +302,7 @@ case "$kind" in
     ;;
   branch-name)
     reason="branch-name-off-convention"
-    nudge="[enforce-git-protocol] new branch '$val' does not match the repo's prefix convention (feat|fix|chore|docs|refactor|agent)/…"
+    nudge="[enforce-git-protocol] new branch '$val' does not match the repo's prefix convention (feat|fix|chore|docs|refactor|agent|release)/…"
     remediation="[enforce-git-protocol] Rename to e.g. 'feat/$val' (see rules/git-workflow.md)."
     blockable=1
     ;;

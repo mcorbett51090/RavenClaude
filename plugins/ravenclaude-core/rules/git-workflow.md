@@ -11,6 +11,7 @@ Expands on §3 of CLAUDE.md.
 | `docs/` | docs only |
 | `refactor/` | code shape change, no behavior change |
 | `agent/<role>/` | branches owned by a sub-agent worktree |
+| `release/` | a release branch (version cut or changelog-only ship) |
 
 Slug: kebab-case, ≤ 40 chars, descriptive but tight. `feat/auth-refresh-rotation`, not `feat/stuff`.
 
@@ -44,6 +45,7 @@ When a hook fails: **fix the underlying issue and create a NEW commit**. Never a
 - Base from `origin/main` (fetched fresh).
 - The Team Lead creates and tears down worktrees via [`new-worktree`](../skills/new-worktree/SKILL.md) and [`cleanup-worktrees`](../skills/cleanup-worktrees/SKILL.md).
 - Two agents, two worktrees. Never share.
+- **Session lease.** `worktree-guard.sh` treats a second writer as the same chat only when the session id matches, or the `transcript_path` hash matches. A shared parent process id is not enough: two sessions under one process stay two chats. Copilot's plugin hooks and the adapter are one chat with two session-id strings; they share the lease because the transcript hash matches.
 
 ## Branch hygiene — retiring merged branches and worktrees
 

@@ -16,6 +16,16 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 ### Migration
 - `scripts/worktree-clean.sh --all` **no longer removes anything by default** — it now previews; pass `--execute` for the prior bulk-removal behavior. A single `<slug>`/`--target` removal is unchanged.
 
+## 0.360.2 — 2026-11-05
+
+### Changed
+- **Active guidance matches the 0.360.1 Stop and Copilot behavior.** Docs no longer tell an agent to create the definition-of-done confirm file. A person creates it outside the session. Write and Bash attempts stay denied. The trust refusal counts toward `max_blocks`. Adapter notes now include PascalCase `tool_input` objects, a top-level PreToolUse `permissionDecision` (Gate 20; no `hookSpecificOutput` wrapper), and `VERDICT: STOP` as a user warning. The worktree lease is shared on session id or `transcript_hash`, not on a shared parent pid. `release/` is in the branch-prefix table. Leave `chat.useClaudeHooks` off when `.github/hooks/ravenclaude.json` is present.
+
+## 0.360.1 — 2026-11-05
+
+### Fixed
+- **DoD stop verdict.** A Copilot Stop block reason is the next user prompt. The previous wording did not say DONE or NOT DONE, so the agent asked again and the hook blocked again. The gate now answers with `VERDICT: NOT DONE` plus one `[FAIL]` line, or `VERDICT: STOP` after `max_blocks`. No block means DONE: end the turn and do not ask. The first-run trust refusal counts toward `max_blocks` (it used to refuse on every Stop). The Copilot adapter forwards that verdict at the top level and under `hookSpecificOutput` for Local Chat.
+
 ## 0.360.0 — 2026-10-26
 
 ### Added

@@ -3,8 +3,11 @@
 ``versions`` reads the version files P3 saved beside each mirror (an npm registry answer, the
 redirect target of the VS Code updates page, the first date on the Cursor changelog) and writes
 ``data/versions.json``. ``build`` reads the manifests, the scope rules and the corpus summaries
-and writes ``data/snapshot.json`` plus one enumeration record and one URL baseline per surface.
-Nothing here fetches.
+and writes ``data/snapshot.json`` plus the enumeration pack
+(``data/enumeration/enumeration.pack.json``): one string member per surface file
+the build used to write separately (manifest, origins, URL baseline, record).
+A member already in the pack that this build does not rewrite (the Grok Bot
+page-pairing record) is kept. Nothing here fetches.
 
 Usage: python3 snapshot.py versions --run-dir DIR [--out FILE]
        python3 snapshot.py build --run-dir DIR [--out FILE] [--enum-dir DIR] [--freeze-end DATE]
@@ -22,6 +25,11 @@ from pathlib import Path
 from atlas_common import DATA_DIR, assert_worktree, dump_json, load_json
 from corpus import ORIGIN_SKIP
 from discover import _try_canonical, parse_llms_txt, parse_sitemap, url_set_digest
+
+# One pack, not one file per surface. Gate 302 counts tracked files; these records
+# are generated and were not read back as separate paths. The member text is the
+# file the old writer would have written.
+ENUMERATION_PACK = "enumeration.pack.json"
 
 SURFACE_IDS = (
     "claude-code",
@@ -262,10 +270,41 @@ def unmatched_origins(origins, manifest_rows):
     return sorted({o["url"] for o in origins if _try_canonical(o["url"]) not in have})
 
 
-def _write_jsonl(path, records):
-    with open(path, "w", encoding="utf-8", newline="\n") as fh:
-        for record in records:
-            fh.write(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n")
+def _jsonl_text(records):
+    return "".join(json.dumps(record, sort_keys=True, ensure_ascii=False) + "\n" for record in records)
+
+
+def load_enumeration_pack(path):
+    """``{filename: exact file text}``. A missing pack is an empty map."""
+    path = Path(path)
+    if not path.is_file():
+        return {}
+    data = load_json(path)
+    if not isinstance(data, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in data.items()):
+        raise SnapshotError(f"{path} is not a map of filename to text")
+    return data
+
+
+def store_surface_enumeration(enum_dir, sid, manifest_out, origins_out, baseline, record):
+    """Write this surface into the pack and delete the legacy per-file outputs."""
+    enum_dir = Path(enum_dir)
+    enum_dir.mkdir(parents=True, exist_ok=True)
+    pack_path = enum_dir / ENUMERATION_PACK
+    pack = load_enumeration_pack(pack_path)
+    pack[f"{sid}.manifest.jsonl"] = _jsonl_text(manifest_out)
+    pack[f"{sid}.origins.jsonl"] = _jsonl_text(origins_out)
+    pack[f"{sid}.urls.txt"] = "\n".join(baseline) + "\n"
+    pack[f"{sid}.json"] = json.dumps(record, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    dump_json(pack_path, pack)
+    for name in (
+        f"{sid}.manifest.jsonl",
+        f"{sid}.origins.jsonl",
+        f"{sid}.urls.txt",
+        f"{sid}.json",
+    ):
+        legacy = enum_dir / name
+        if legacy.is_file():
+            legacy.unlink()
 
 
 def _surface_rules(surface):
@@ -334,12 +373,12 @@ def _cmd_build(args):
             raise SnapshotError(
                 f"{sid}: {len(missing)} enumerated URLs have no manifest row, for example {missing[:3]}"
             )
-        enum_dir.mkdir(parents=True, exist_ok=True)
-        _write_jsonl(enum_dir / f"{sid}.manifest.jsonl", manifest_out)
-        _write_jsonl(enum_dir / f"{sid}.origins.jsonl", origins_out)
-        (enum_dir / f"{sid}.urls.txt").write_text("\n".join(baseline) + "\n", encoding="utf-8")
-        dump_json(
-            enum_dir / f"{sid}.json",
+        store_surface_enumeration(
+            enum_dir,
+            sid,
+            manifest_out,
+            origins_out,
+            baseline,
             {
                 "surface": sid,
                 "retrieved": version["retrieved"],

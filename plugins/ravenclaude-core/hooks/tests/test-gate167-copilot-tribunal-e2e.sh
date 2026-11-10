@@ -271,6 +271,50 @@ else
   bad "ask_user no longer warns — someone mapped it. Read the adapter's ask_user comment and generate-copilot-hooks.py's route-decision-review.sh _SKIP entry before doing that; it was a deliberate decision, not an oversight."
 fi
 
+# ── G167.9 — PascalCase Chat tool_input object reaches the tribunal ──────────
+# Probed 2026-11-05 against the pre-fix adapter: this payload's command was
+# translated to "" (the adapter read only camelCase toolArgs). The generated
+# hooks.json uses PascalCase, which is the shape VS Code Copilot Chat sends.
+echo "── G167.9: PascalCase tool_input object is denied at top level ─────────"
+rc=0
+jq -cn --arg cwd "$PROJ" --arg cmd "$FORCED_PUSH" \
+  '{hook_event_name:"PreToolUse",tool_name:"Bash",tool_input:{command:$cmd},cwd:$cwd,session_id:"g167i"}' \
+  | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" bash-pretool "$ORCH" \
+      >"$TMP/out-i.json" 2>"$TMP/err-i.txt" || rc=$?
+decision_i="$(jq -r '.permissionDecision // empty' "$TMP/out-i.json" 2>/dev/null)"
+if [ "$decision_i" = "deny" ] && ! printf '%s' "$(cat "$TMP/out-i.json")" | jq -e 'has("hookSpecificOutput")' >/dev/null 2>&1; then
+  ok "Chat PascalCase tool_input -> top-level deny, no wrapper"
+else
+  bad "Chat PascalCase payload deny shape wrong (top='${decision_i:-<none>}')"
+  printf '     stdout: %s\n' "$(head -c 400 "$TMP/out-i.json" 2>/dev/null)"
+fi
+
+# ── G167.10 — file-pretool reads tool_input.file_path (not only toolArgs) ────
+echo "── G167.10: file-pretool sees PascalCase tool_input.file_path ────────────"
+STUB_FP="$TMP/record-path.sh"
+cat > "$STUB_FP" <<'STUB'
+#!/bin/bash
+# exit 2 only when the path actually arrived
+if [ "$1" = "notes.md" ]; then
+  echo "saw notes.md" >&2
+  exit 2
+fi
+exit 0
+STUB
+chmod +x "$STUB_FP"
+rc=0
+jq -cn --arg cwd "$PROJ" \
+  '{hook_event_name:"PreToolUse",tool_name:"Edit",tool_input:{file_path:"notes.md"},cwd:$cwd,session_id:"g167j"}' \
+  | CLAUDE_PROJECT_DIR="$PROJ" bash "$ADAPTER" file-pretool "$STUB_FP" \
+      >"$TMP/out-j.json" 2>"$TMP/err-j.txt" || rc=$?
+decision_j="$(jq -r '.permissionDecision // empty' "$TMP/out-j.json" 2>/dev/null)"
+if [ "$decision_j" = "deny" ] && grep -q 'notes.md' "$TMP/out-j.json" 2>/dev/null; then
+  ok "file-pretool deny names the Chat tool_input path"
+else
+  bad "file-pretool dropped the Chat path (decision='${decision_j:-<none>}')"
+  printf '     stdout: %s\n' "$(head -c 300 "$TMP/out-j.json" 2>/dev/null)"
+fi
+
 echo
 if [ "$FAIL" -gt 0 ]; then
   printf 'FAIL: %d of %d assertion(s) failed\n' "$FAIL" "$((PASS + FAIL))" >&2

@@ -11,6 +11,15 @@
 # Self-limited: blocks at most `max_blocks` (default 8) consecutive times per
 # session, then force-allows with a warning — Claude Code force-overrides Stop
 # after 8, but Copilot CLI has no such guarantee, so the cap must be ours.
+# The first-run trust refusal counts toward the same cap. It used to exit 2
+# on every Stop without advancing the counter, and Copilot turns that block
+# reason into the next user prompt. A reason that does not say NOT DONE or
+# STOP makes the agent ask whether the work is finished, then stop again.
+#
+# Verdicts the agent is allowed to act on (the reason text, nothing else):
+#   VERDICT: NOT DONE — one [FAIL] line. Do that, then stop again. Do not ask.
+#   VERDICT: STOP     — max_blocks reached. End the turn. Do not ask.
+#   no verdict line   — this hook allowed the stop. That is DONE.
 #
 # No `definition_of_done.cmd` configured -> exit 0 (the advisory remind-tests.sh
 # nudge still fires). No posture file -> zero cost. Deterministic: the gate is a
@@ -47,7 +56,7 @@ fi
 # (SessionStart / adapters), else keep the payload cwd.
 _payload_cwd="$cwd"
 # A RELATIVE payload cwd (the Copilot adapter supplies "." when both .cwd and
-# .workspaceRoot are absent) makes the walk-up below spin forever: `dirname .`
+# .workspaceRoot were omitted) makes the walk-up below spin forever: `dirname .`
 # is `.`, a fixed point that is neither empty nor "/". Resolve a relative cwd to
 # absolute first, and break on a fixed point (belt-and-suspenders). [1b-1]
 case "$_payload_cwd" in
@@ -132,12 +141,51 @@ blocks=0
 [ -r "$bf" ] && blocks="$(cat "$bf" 2>/dev/null || echo 0)"
 case "$blocks" in (*[!0-9]*|"") blocks=0;; esac
 
+# Copilot injects a Stop block reason as the next user prompt. These shapes
+# are the whole stop rule.
+_dod_not_done() {
+  local why="$1"
+  local detail="${2:-}"
+  cat <<EOF
+VERDICT: NOT DONE
+Stop rule: do not ask if the work is done. Do not end the turn. Do the single [FAIL] line, then stop again. If the next stop is not blocked, the verdict is DONE — end the turn and do not re-ask.
+
+Checklist:
+- [FAIL] ${why}
+- [PASS] the definition-of-done command exits 0
+- [DONE] only when every line is PASS
+
+${detail}
+EOF
+}
+
+_dod_bump_block() {
+  blocks=$((blocks + 1))
+  printf '%s' "$blocks" > "$bf" 2>/dev/null || true
+}
+
+_dod_force_stop() {
+  local why="$1"
+  rm -f "$bf" 2>/dev/null || true
+  cat >&2 <<EOF
+VERDICT: STOP
+The definition-of-done gate is releasing this turn after ${blocks} blocks (${why}).
+Checklist:
+- [FAIL] the gate command has not exited 0, or it was not authorized
+- [DONE] you stop now anyway
+Stop rule: end the turn. Tell the user the gate did not pass. Do not ask if the work is done. Do not start another check.
+EOF
+  exit 0
+}
+
 # ── First-run trust gate (closes Codex desktop trust review Finding 1) ──────
 # $dod_cmd is shell-executed via `bash -c` below, but it came from a YAML field
 # (definition_of_done.cmd) that a malicious PR could edit. Before the very first
-# run per session per cmd value, refuse to execute and surface the literal cmd
-# plus the `touch <path>` authorization step. After the user/agent touches the
-# confirm file, this gate is silent for the rest of the session for this cmd.
+# run per session per cmd value, refuse to execute and name the literal cmd.
+# A person creates the confirm file outside this session. The agent must not
+# (Write and Bash attempts are denied). This refusal counts toward max_blocks.
+# After that file exists, this gate is silent for the rest of the session for
+# this cmd.
 # Rotating the YAML cmd re-triggers (hash mismatch); a new session re-triggers
 # (safe_sid in path). Set `definition_of_done.trusted: true` in posture YAML
 # to skip the gate entirely (you've reviewed the YAML and accept silent exec).
@@ -196,24 +244,32 @@ if [ "$dod_trusted" != "true" ]; then
   confirm_file="${confirm_dir}/confirmed-${cmd_hash}"
   if [ ! -f "$confirm_file" ]; then
     mkdir -p "$confirm_dir" 2>/dev/null || true
-    cat >&2 <<EOF
-
-[dod-gate] FIRST-RUN TRUST CHECK — refusing to execute until authorized.
-
-definition_of_done.cmd from .ravenclaude/comfort-posture.yaml:
+    _dod_bump_block
+    if [ "$blocks" -ge "$max_blocks" ]; then
+      _emit_hook_event "dod-gate.sh" "allow" "Stop" "$cmd_hash" "dod-first-run-untrusted-cap" 0
+      _dod_force_stop "the command was not authorized, so it was not run"
+    fi
+    reason="$(_dod_not_done \
+      "definition_of_done.cmd is not authorized for this session (attempt ${blocks}/${max_blocks}). This is not a test failure." \
+      "A person approves this. Do not create the confirm file yourself. Creating it from this session is denied.
+A person creates this file outside the agent:
+  $confirm_file
+The gate will then run:
   $dod_cmd
-
-To authorize for this session (one-time, this cmd value):
-  touch "$confirm_file"
-
-To trust definition_of_done permanently for this repo (no further prompts):
-  set 'definition_of_done.trusted: true' in .ravenclaude/comfort-posture.yaml
-
-If you did NOT set this cmd, remove it from the YAML before doing anything else.
-
-EOF
-    _emit_hook_event "dod-gate.sh" "deny" "Stop" "$cmd_hash" "dod-first-run-untrusted" 2
-    exit 2
+Do not redo the task. Do not ask the user whether you are done.
+To trust this command for the repo, set definition_of_done.trusted: true in a later commit than the cmd line.
+If you did not set this cmd, remove it from .ravenclaude/comfort-posture.yaml before doing anything else.
+This refusal counts toward max_blocks. At the cap the verdict is STOP and the turn ends.")"
+    # stdout JSON, exit 0. Copilot shows "hook exited with code 2" and drops
+    # stderr when the hook exits 2, so the authorize-file reason never arrived.
+    # decision:block on stdout is what both the Copilot harness and Local Chat read.
+    printf '%s\n' "$reason" >&2
+    if command -v jq >/dev/null 2>&1; then
+      jq -cn --arg r "$reason" \
+        '{decision:"block",reason:$r,hookSpecificOutput:{hookEventName:"Stop",decision:"block",reason:$r}}'
+    fi
+    _emit_hook_event "dod-gate.sh" "deny" "Stop" "$cmd_hash" "dod-first-run-untrusted" 0
+    exit 0
   fi
 fi
 
@@ -244,24 +300,27 @@ fi
 
 if [ "$rc" -eq 0 ]; then
   rm -f "$bf" 2>/dev/null || true
-  exit 0   # work is done — allow the stop
+  exit 0   # no verdict line: DONE. The agent stops. Do not re-ask.
 fi
 
-blocks=$((blocks + 1))
-printf '%s' "$blocks" > "$bf" 2>/dev/null || true
+_dod_bump_block
 
 if [ "$blocks" -ge "$max_blocks" ]; then
-  rm -f "$bf" 2>/dev/null || true
-  printf '%s\n' "Definition-of-done still failing after ${blocks} attempts; releasing the Stop gate so the session can end. The gate command (\`${dod_cmd}\`) is NOT passing — review before relying on this work." >&2
-  exit 0   # force-allow so we can't deadlock
+  _dod_force_stop "the gate command has not exited 0"
 fi
 
 # Block the stop and feed the failing output back so the agent keeps working.
 tail="$(printf '%s' "$out" | tail -c 1500 | tr -d '\000-\010\013\014\016-\037')"
-reason="Definition-of-done not met (attempt ${blocks}/${max_blocks}). The gate command \`${dod_cmd}\` failed (exit ${rc}). Fix it before stopping:
-${tail}"
+reason="$(_dod_not_done \
+  "gate command exit ${rc} (attempt ${blocks}/${max_blocks}): ${dod_cmd}" \
+  "Failed output (tail):
+${tail}")"
 if command -v jq >/dev/null 2>&1; then
-  jq -cn --arg r "$reason" '{decision:"block",reason:$r}'
+  # Top-level decision/reason is the Copilot harness contract (reason becomes
+  # the next prompt). hookSpecificOutput is what Local VS Code Chat reads
+  # (hooks-reference Stop output, fetched 2026-11-05). One object, both.
+  jq -cn --arg r "$reason" \
+    '{decision:"block",reason:$r,hookSpecificOutput:{hookEventName:"Stop",decision:"block",reason:$r}}'
 else
   printf '%s\n' "$reason" >&2
   exit 2

@@ -54,6 +54,24 @@ Key decisions:
 - Add slow tests (>10 min) to the required set without sharding them; a slow gate is an ignored gate.
 - Allow status checks to be required only for non-admins — that's branch protection theater.
 - Treat a consistently-red required check as acceptable; fix it or remove it.
+- Put a `paths:` or `branches:` filter on a workflow you are about to require. A skipped workflow stays pending and the pull request cannot merge. Gate a step with `if:` instead. The write-up is `ravenclaude-core` `knowledge/github-actions-hardening.md` rule 5.
+- Add an advisory reviewer to the required list. GitHub's troubleshooting page, retrieved 2026-11-05 from <https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks>, treats `success`, `skipped`, and `neutral` as conclusions that satisfy a required check. A bot that exits neutral when it did not review anything would then satisfy the gate. Keep it off the list. A gate you mean to enforce exits non-zero when it fails.
+
+## Strict, or a merge queue
+
+GitHub's protected-branch doc, retrieved 2026-11-05 from <https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches>:
+
+| Setting | Merge requirement |
+|---|---|
+| **Strict** ("Require branches to be up to date before merging" checked) | The head must include the latest base. This is GitHub's default once required checks are on. |
+| **Loose** (checkbox clear) | A green branch that lags the base can merge. The combination can fail after it lands. |
+| **Merge queue** | The queue gives the same up-to-date benefit and tests a group built from the latest base. Doc: <https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue>. Required workflows also trigger on `merge_group`. |
+
+Use strict when people merge by hand. Use a queue on a busy default branch, and do not also hand-merge ahead of it. Hand-merge order, when there is no queue, is [`merge-behind-clean-tips-before-dirty-ones.md`](./merge-behind-clean-tips-before-dirty-ones.md).
+
+`enforce_admins: true` is the default for a **product** default branch. A marketplace that keeps an admin bypass so docs can land on `main` has scoped that bypass to itself. Do not copy the bypass onto a product code branch, and do not use it to land a red check.
+
+**Content placement on a product that has the gate.** RavenPower-Website's ship gate is `check-content-placement.mjs` (Website #953), covering `account/**` and shell/nav files. Do not rename it. The workflow runs on every pull request (no `paths:` filter). The job exits non-zero when placement fails, including on a diff that touches those paths. A prose Keep / Move / Remove note does not replace the check. The pass is `web-design` `knowledge/content-placement-page-ia-2026-11.md`. This plugin does not add the script to a product repo.
 
 ## Edge cases / when the rule does NOT apply
 

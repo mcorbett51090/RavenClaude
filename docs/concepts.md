@@ -1227,9 +1227,11 @@ _Last verified: 2026-06-08_
 
 The **definition-of-done gate** closes the gap that command review can't see: it gates work **correctness**, not command safety. The Thing tribunal asks "is this command dangerous?"; this gate asks "is the work actually finished, or does it just *look* finished?" It is a `Stop` hook — it fires when the agent tries to end its turn — and if a `definition_of_done.cmd` is configured in `.ravenclaude/comfort-posture.yaml`, it runs that command (your tests, build, lint) and **blocks the stop until the command exits zero**. That turns "looks done" into "is done" without the human having to be the verification loop.
 
-The gate is **scoped and self-limiting** so it never becomes an obstacle. It only fires when *source files actually changed* this session (it inspects `git status --porcelain` for code extensions), so a docs-only or read-only session ends cleanly. When the command fails, the gate feeds the tail of the failing output back to the agent so it can fix the problem and try again. To guarantee it can't deadlock, it blocks at most **`max_blocks`** (default 8) consecutive times, then **force-allows** the stop with a warning — Claude Code force-overrides Stop after 8 anyway, but Copilot CLI gives no such guarantee, so the cap is built in. With no `definition_of_done.cmd` set, the gate is inert and the advisory `remind-tests.sh` nudge handles the reminder instead.
+The gate is **scoped and self-limiting** so it never becomes an obstacle. It only fires when *source files actually changed* this session (it inspects `git status --porcelain` for code extensions), so a docs-only or read-only session ends cleanly. When the command fails, the gate feeds the tail of the failing output back to the agent so it can fix the problem and try again. To guarantee it can't deadlock, it blocks at most **`max_blocks`** (default 8) consecutive times, then releases the stop with `VERDICT: STOP` (end the turn; do not ask). Claude Code force-overrides Stop after 8 anyway, but Copilot CLI gives no such guarantee, so the cap is ours. On Copilot that release is a user warning, not a new prompt. The first-run trust refusal counts toward that same cap. With no `definition_of_done.cmd` set, the gate is inert and the advisory `remind-tests.sh` nudge handles the reminder instead.
 
-One safety detail: the configured command is shell-executed, and it comes from a YAML field a malicious pull request could edit. So before the *first* run per session for a given command value, the gate refuses to execute and surfaces the literal command plus a one-line `touch` step to authorize it (or set `definition_of_done.trusted: true` to skip the prompt permanently). Rotating the command or starting a new session re-triggers the check. Like the other guardrails it is **opt-in and deterministic** — the verdict is just a command's exit code, no model in the loop — so it ports unchanged to Copilot through the adapter's `stop` mode.
+Copilot turns a Stop block reason into the next user prompt, so the first line is a verdict. No block means **DONE**: end the turn and do not ask. `VERDICT: NOT DONE` means do the single `[FAIL]` line, then stop again. `VERDICT: STOP` means `max_blocks` is reached: end the turn and say the gate did not pass.
+
+One safety detail: the configured command is shell-executed, and it comes from a YAML field a malicious pull request could edit. So before the first run per session for a given command value, the gate refuses to execute and names the literal command. **A person** creates `.ravenclaude/runs/dod-gate/<session>/confirmed-<hash>` outside the agent session. The agent must not create it. Write and Bash attempts are denied. Set `definition_of_done.trusted: true` in a later commit than the `cmd` line to skip the prompt. Rotating the command or starting a new session re-triggers the check. The diagram node "ask to authorize" means that person, not the agent. Like the other guardrails it is **opt-in and deterministic** — the verdict is a command's exit code, no model in the loop — so it ports through the adapter's `stop` mode. The trust refusal is stdout JSON (`decision: block`) at exit 0, because Copilot drops stderr when a hook exits 2.
 
 ```mermaid
 flowchart TD
@@ -1250,7 +1252,7 @@ flowchart TD
 
 **Sources:** [dod-gate.sh hook](../plugins/ravenclaude-core/hooks/dod-gate.sh) · [ravenclaude-core constitution — Auto-mode guardrails](../plugins/ravenclaude-core/CLAUDE.md)
 
-_Last verified: 2026-06-08_
+_Last verified: 2026-11-05_
 
 
 ---
@@ -1952,9 +1954,9 @@ _Last verified: 2026-05-26_
 
 > RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install.
 
-Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (mapping its `toolName`/`toolArgs` ⇄ Claude's `tool_name`/`tool_input`, the lowercase tool-name *values* ⇄ Claude's PascalCase, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing.
+Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (camelCase `toolName`/`toolArgs` as a JSON string, or PascalCase `tool_input` as an object, ⇄ Claude's `tool_name`/`tool_input`; lowercase tool-name *values* ⇄ Claude's PascalCase; a PreToolUse deny is top-level `permissionDecision` with no `hookSpecificOutput` wrapper, which Copilot ignores; Gate 20 requires the top-level key; Stop still emits both shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing. On VS Code Copilot Chat, leave `chat.useClaudeHooks` off while `.github/hooks/ravenclaude.json` is present so the Claude settings hooks do not run a second copy.
 
-> **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37]`. "Unmodified scripts run under Copilot" is true of the *translation*, not of the *coverage*: the Copilot hooks file is hand-maintained, and **12+ shipped hooks are not in it**, so they never fire on that host at all (MH-12, open). Read this card as "the bridge does not require forking the hooks", **not** as "every guardrail you see under Claude Code is also protecting you under Copilot". The authoritative per-component answer is [`../host-support.json`](../plugins/ravenclaude-core/knowledge/host-support.json), and it is the one to trust if this card and it ever disagree.
+> **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37; coverage corrected 2026-11-05]`. "Unmodified scripts run under Copilot" is true of the *translation*, not of the *coverage*. **MH-12 is closed** (0.219.0): `scripts/generate-copilot-hooks.py` projects the Copilot hooks file from the canonical manifest, and Gate 158 fails the build if a hook is neither wired nor explicitly skipped. Skips are written into the generated file with reasons. Read this card as "the bridge does not require forking the hooks", **not** as "every guardrail you see under Claude Code is also protecting you under Copilot". The authoritative per-component answer is [`../host-support.json`](../plugins/ravenclaude-core/knowledge/host-support.json), and it is the one to trust if this card and it ever disagree.
 
 The design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.
 
@@ -2002,7 +2004,7 @@ flowchart TD
 
 **Sources:** [ravenclaude-core constitution — Copilot CLI bridge](../plugins/ravenclaude-core/CLAUDE.md) · [Copilot CLI customization surface (canonical, docs-verified)](../plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) · [generate-copilot-plugin.py](../scripts/generate-copilot-plugin.py)
 
-_Last verified: 2026-06-09_
+_Last verified: 2026-11-05_
 
 
 ---
@@ -2353,7 +2355,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-23_
+_Last verified: 2026-11-05_
 
 
 ---
@@ -2449,7 +2451,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-11-05_
 
 
 ---
@@ -2821,7 +2823,7 @@ predicate names anything the command has not done yet.
 
 **Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md)
 
-_Last verified: 2026-10-09_
+_Last verified: 2026-11-05_
 
 
 ---

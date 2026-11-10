@@ -1,6 +1,6 @@
 ---
 name: information-architecture
-description: Design site information architecture — sitemap, URL taxonomy, navigation patterns (primary / utility / footer / contextual), card-sort discipline, content model that the IA implies, and the URL-to-template mapping. Reach for this skill at the start of a new build or when redesigning navigation on an existing site. Used by `web-architect` (primary) + `ux-designer`.
+description: Design site information architecture — sitemap, URL taxonomy, navigation patterns (primary / utility / footer / contextual), card-sort discipline, content model that the IA implies, and the URL-to-template mapping. On a portal or signed-in UX review, place each major content block (Keep, Move, or Remove) before the pass is done. Used by `web-architect` (primary) + `ux-designer`.
 ---
 
 # Skill: information-architecture
@@ -16,6 +16,7 @@ IA is the load-bearing decision of the build. Get it wrong and every other disci
 - Adding a new top-level section (`/docs`, `/customers`, `/blog/changelog`)
 - Pre-SEO push — the IA is upstream of every keyword strategy
 - Multi-locale rollout — locale routing decisions are IA decisions
+- UX review of an existing portal or signed-in product page — before the pass is called done, place every major content block (§8)
 
 ## The IA artifact set
 
@@ -157,6 +158,28 @@ For each old URL:
 
 Audit with a crawler (Screaming Frog) after the redirect map is in place but **before** DNS cutover. Most re-platform incidents come from redirects added late.
 
+## 8. Content placement on a page that already exists
+
+Sitemap shape says where a *page* sits. This step says whether a *block* belongs on the page you are looking at. On a portal review, run PLACE in [`../../knowledge/portal-and-site-review-checklist-2026-11.md`](../../knowledge/portal-and-site-review-checklist-2026-11.md) before this skill's sitemap, card-sort, or redirect plan. Chrome, accessibility, and form review do not substitute for it.
+
+The blocks: forms, builders, editors, tables, share kits, analytics panels, settings. Shared chrome (rail, account menu, page title) is not a block.
+
+For each block, one verdict:
+
+| Verdict | Meaning |
+|---|---|
+| **Keep** | The block does this page's job, and this route is where that job is done. |
+| **Move** | The block is the real tool. Name the product area and the route it moves to. |
+| **Remove / redirect** | The block duplicates a tool that already has a route, or it is a leftover. Name the route that remains. |
+
+Traverse the content-placement tree in [`../../knowledge/web-design-decision-trees.md`](../../knowledge/web-design-decision-trees.md) before choosing. The citable rule is [`../../best-practices/content-belongs-on-the-page-that-owns-it.md`](../../best-practices/content-belongs-on-the-page-that-owns-it.md).
+
+**Anti-pattern — builder or editor on a page whose nav parent is a different product entity.** The page's URL and nav parent name one thing (the site). The block edits another thing (the card). Reported 2026-11-05 `[user-reported]`: the full card editor still lived on `/account/site` after the Site card already had `/account/cards/site`. A summary or a link to the card's route can stay. The editor cannot.
+
+A marketing or legal page with one job records `N/A — single-purpose page`. KKCR in [`../content-audit/SKILL.md`](../content-audit/SKILL.md) scores the URL; it does not place the block. A card-sort of 8 or more people is for a nav restructure. It is not a prerequisite for moving a tool that already has a home.
+
+On the Website product the ship gate for this section is `check-content-placement.mjs`, covering `account/**` and shell/nav files (Website #953). Do not give that gate another name.
+
 ## Hygiene checklist
 
 - [ ] Sitemap published as an artifact, reviewed by stakeholders, not just the design team
@@ -169,6 +192,8 @@ Audit with a crawler (Screaming Frog) after the redirect map is in place but **b
 - [ ] If re-architecting: redirect plan with every old URL accounted for
 - [ ] `sitemap.xml` generated from the IA, not maintained separately
 - [ ] Breadcrumbs match the IA exactly (no "phantom" parent pages)
+- [ ] On a portal or signed-in review: every major content block has Keep, Move (named route), or Remove / redirect (§8)
+- [ ] No builder or editor remains on a page whose nav parent is a different product entity
 
 ## Anti-patterns
 
@@ -178,15 +203,19 @@ Audit with a crawler (Screaming Frog) after the redirect map is in place but **b
 - **Org-chart sitemap** — IA that mirrors the company's department structure ("Marketing", "Sales Ops"). Users don't think in org-chart terms.
 - **Mystery-meat nav** — labels users have to hover to understand. "Discover", "Solutions" (without context), "Resources" (catch-all).
 - **Two competing taxonomies** — a sidebar that says one thing, breadcrumbs that say another, URL that says a third.
+- **Nav updated, page body not** — a signed-in editor still rendered on the old URL after the nav points at a dedicated route. That is page-content placement, not a sitemap problem. Run [`../../knowledge/content-placement-page-ia-2026-11.md`](../../knowledge/content-placement-page-ia-2026-11.md) on every signed-in portal UX pass before chrome polish.
 - **Sitemap.xml drift** — manually-maintained sitemap that lags the actual content. Generate from the CMS / build.
 - **Locale routing via cookie / IP only** — user lands at `/`, gets redirected based on IP. Breaks back-button, hides locale from URL, breaks SEO. Use prefix routing.
 - **"Coming soon" pages in the IA** — placeholder URLs that ship to production. Either build it or omit it.
 - **Hash-based primary nav** — `/#features`, `/#pricing`. Looked clever in 2014. Wrecks SEO, breaks history, breaks deep-linking.
+- **Editor stranded on the wrong entity** — a full builder or editor still lives on a page whose navigation parent is a different product. The 2026-11-05 miss `[user-reported]`: the card editor on `/account/site` after `/account/cards/site` existed. A chrome, accessibility, or form pass does not catch it.
 
 ## See also
 
 - Template: [`../../templates/site-architecture.md`](../../templates/site-architecture.md)
 - Skill: [`../seo-technical-audit/SKILL.md`](../seo-technical-audit/SKILL.md)
-- Skill: [`../content-audit/SKILL.md`](../content-audit/SKILL.md)
+- Skill: [`../content-audit/SKILL.md`](../content-audit/SKILL.md) — KKCR scores the page; §8 places the block
+- Signed-in block placement (Keep / Move / Remove), distinct from this skill's sitemap: [`../../knowledge/content-placement-page-ia-2026-11.md`](../../knowledge/content-placement-page-ia-2026-11.md)
+- Rule: [`../../best-practices/content-belongs-on-the-page-that-owns-it.md`](../../best-practices/content-belongs-on-the-page-that-owns-it.md)
 - Agent: [`../../agents/web-architect.md`](../../agents/web-architect.md)
 - Agent: [`../../agents/ux-designer.md`](../../agents/ux-designer.md)
