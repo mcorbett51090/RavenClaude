@@ -67,6 +67,42 @@ CONTENTION (two live writers, one tree) is **not** Chat context isolation. FOREI
 - Don't conflate this with the **sub-agent** case — a sub-agent's tool access and permissions are set by its `tools` / `disallowedTools` grant plus the session's permission mode (per [sub-agents.md](https://code.claude.com/docs/en/sub-agents)), and `isolation: "worktree"` on a sub-agent isolates its **working directory**, not its tools. Peer-process worktrees are for independent **instances**, not a lever for sub-agent permissions.
 - Don't leave worktrees lying around after their branch merges — `git worktree remove` (or the cleanup skill); a stale worktree is the peer-process analogue of an un-deleted merged branch.
 
+### Cleanup lifecycle rationale (added 2026-11-10)
+
+[`cleanup-worktrees`](../skills/cleanup-worktrees/SKILL.md)'s tool
+([`scripts/worktree-clean.sh`](../scripts/worktree-clean.sh)) discovers via
+`git worktree list --porcelain` rather than only globbing
+`.claude/worktrees/`, because the porcelain format is the one surface that
+tells you, per worktree, everything needed to decide safety without
+guessing: `[docs-verified 2026-11-10 — git-scm.com/docs/git-worktree §LIST
+OUTPUT FORMAT]` the first attribute of a record is always `worktree <path>`;
+`locked` (bare, or `locked <reason>` when one was given to `git worktree
+lock --reason`) and `prunable <reason>` (e.g. `"gitdir file points to a
+non-existent location"`) are each present **only when true**, label-only
+boolean style — exactly the shape that lets a parser tell "locked" apart
+from "merely absent" without a second probe. `git worktree prune` and the
+`gc.worktreePruneExpire` config `[docs-verified, same page §DESCRIPTION /
+§COMMANDS]` are documented as the two ways a dangling admin record (one
+whose working directory was removed outside `git worktree remove`) gets
+cleaned up — confirming `prunable` is a distinct, real git concept and not
+something this tool invented a label for. All three facts were also
+reproduced directly against a real git 2.47.3 binary in this change's own
+test fixtures before being relied on, not just read off the docs.
+
+The SessionEnd trigger ([`scripts/worktree-cleanup-report.sh`](../scripts/worktree-cleanup-report.sh))
+writes a report file rather than attempting `systemMessage`/
+`additionalContext`, because the Claude Code hooks reference says so
+directly `[docs-verified 2026-11-10 — code.claude.com/docs/en/hooks]`:
+`SessionEnd`'s decision-control entry is **None** — no context injection,
+no blocking — and its exit-code table marks blocking **No**. Its stated
+purpose is side effects like logging or cleanup, which is exactly what
+writing `.ravenclaude/runs/worktree-cleanup/report.md` is. (The same fetch
+confirmed, in passing, that `PreCompact` genuinely *can* block and its
+stdout is parsed as compaction-summary instructions — a capability this
+repo's own `hooks/precompact-digest.sh` deliberately never uses, per its own
+header; not relevant to worktree cleanup, but worth not conflating the two
+events' capabilities.)
+
 ## Edge cases / when the rule does NOT apply
 
 - **A single Claude Code instance** working one branch at a time needs no worktree — this is purely a _concurrent-writers_ rule. Sequential branch-switching in one session is fine on one tree.

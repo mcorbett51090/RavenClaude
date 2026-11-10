@@ -121,6 +121,11 @@
         "web-design 0.22.0 block-site hardening (2026-10-27)",
         33260,
         "web-design gained the /web-design:new-block-site command, the block-layout-system-2026 knowledge file, the templates/block-site starter kit and three scripts; the dashboard lists the new command and knowledge rows. Measured 33,216 island payload elements (+6 over the 33,210 row) on the branch rebased onto origin/main @ 559ab2796c1a; bytes 10,931,882 <= 11,010,000 and index.html 7,348 <= 7,350, unaffected. Appended with 44 elements of headroom; no other row edited."
+      ],
+      [
+        "worktree + branch cleanup lifecycle SessionEnd hook (core 0.361.0, PR #1422)",
+        33280,
+        "core 0.361.0's unified worktree + branch cleanup lifecycle added the worktree-cleanup-report.sh SessionEnd hook registration and its inception-coverage inventory concept, which the dashboard's Hooks and Learn panels list. Measured 33,272 island payload elements, over the prior 33,260 ceiling by 12 (largest panel learn-payload at 25,924). Same no-diagrams-for-inventory-entries shape as every prior wave; a pure content-size raise, not a DOM control. Re-measured on this branch head (9fbbca6a); appended, never edited."
       ]
     ],
     "index.html": [
@@ -450,5 +455,5 @@
       ]
     ]
   },
-  "measured_against": "559ab2796c1a90ba0883f3942f217c0179562025"
+  "measured_against": "10cf0ac482bbce7233c94649ad15d9780370f917"
 }
