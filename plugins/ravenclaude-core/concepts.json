@@ -2910,7 +2910,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-23",
+      "last_verified": "2026-11-10",
       "refresh_when": null,
       "sources": [
         {
@@ -2930,7 +2930,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:7d0ecb0ed6418fb8fa70ad011d0d8f84edabd1af1c12979dd16dc47596b73b7b",
+      "covers_digest": "sha256:84b4a39d18aeb9f9d4d8c54ae5518f6f3640810f3cf424bccae1a378d8c56229",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3004,7 +3004,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-11-05",
+      "last_verified": "2026-11-10",
       "refresh_when": null,
       "sources": [
         {
@@ -3024,7 +3024,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:6c4579f16ff362a2c631738ade7225f0644e2af478309c053b1768f308ffee15",
+      "covers_digest": "sha256:d1c085a56ec0849694f509257c0561b9626f4b3f4ea9f39a552ed3c415e180af",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3053,7 +3053,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-23",
+      "last_verified": "2026-11-10",
       "refresh_when": null,
       "sources": [
         {
@@ -3086,7 +3086,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:59b17999c8b3c197112278fba3c2ae26813406951312c9e1f0437bc59b11502b",
+      "covers_digest": "sha256:d869da83d551c4cddafd783cc5b02ff9572e204f5b9b9f68ae4a758e0ec2467c",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -5117,6 +5117,54 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "worktree-clean-all-dry-run-by-default",
+      "title": "A bulk cleanup that previews before it touches anything",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 947,
+      "summary": "Why a bulk worktree sweep is safe to run blind: --all alone never removes anything.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-11-10",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "worktree-clean.sh usage doc + P12/T2 of its own lifecycle test",
+          "url": "plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nA `--all` bulk-cleanup flag mutates immediately, the way most bulk-delete commands do.\n\n## The discriminator\n\ncontrol: a plain `--all` run left a genuinely clean, removable worktree on disk untouched, and the output was labeled DRY RUN\nMeasured 2026-11-10: `--all` alone only previews — framed as what `--execute` would do to each worktree — and never passes `--force` even once `--execute` is given. The SessionEnd report hook (`worktree-cleanup-report.sh`) runs the same `--status`/preview path on every session close, which is exactly what makes an always-on hook safe: there is no mutating code path for it to accidentally reach.\n\n## Why it matters\n\nFalsifier: a plain `--all` run (no `--execute`) deleting any worktree.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh` (P12a/P12b/T2 exercise exactly this contract, including a teeth check that neuters the `--execute` gate and confirms a plain `--all` then mutates).",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/worktree-clean.sh",
+        "plugins/ravenclaude-core/scripts/worktree-cleanup-report.sh"
+      ],
+      "covers_digest": "sha256:a9b0b1456e5c85b352d7eee67e51a896212511eb17547f7e20a111ffd1b4764c",
+      "nuance": "Unlike a typical bulk-cleanup command, `--all` alone never removes anything — it only PREVIEWS what `--execute` would do, worktree by worktree; the SessionEnd report hook reuses that same preview mode, so it can run on every session close without ever mutating a worktree.",
+      "nuance_evidence": {
+        "measured": "2026-11-10",
+        "control": "a plain --all run left a genuinely clean, removable worktree on disk untouched, and the output was labeled DRY RUN",
+        "falsifier": "a plain --all run (no --execute) deleting any worktree",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/worktree-clean.sh:27-38",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

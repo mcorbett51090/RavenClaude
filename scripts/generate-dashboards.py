@@ -1248,6 +1248,11 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "mark-web-domain-seen.sh": "internal consent-ordering bookkeeping for guard-web-access; not a distinct guardrail",
     "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",
     "stream-prompt-attribute.sh": "work-stream tracking (UserPromptSubmit); observability, not a guardrail",
+    "worktree-cleanup-report.sh": "SessionEnd dry-run worktree-cleanup report (never mutates): runs "
+    "the shipped worktree-clean.sh in `--status --no-network` mode and flushes a summary to "
+    ".ravenclaude/runs/worktree-cleanup/report.md when there's something to report. Observability "
+    "side-effect, same class as stream-session-close.sh / thing-denial-kb-sync.sh — not a guardrail, "
+    "so deliberately NOT a Pipeline stage card",
     "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
     "handoff-tax-meter.sh": "handoff-tax meter (PostToolUse Agent) — per-dispatch ledger of brief/report "
     "size + model tier under .ravenclaude/runs/<session>/dispatch-ledger.jsonl and an ADVISORY when a "

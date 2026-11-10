@@ -31,7 +31,7 @@
 set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SUT="$REPO_ROOT/scripts/worktree-clean.sh"
+SUT="$REPO_ROOT/plugins/ravenclaude-core/scripts/worktree-clean.sh"
 # The unmutated subject, kept so mutant_is_defective can byte-compare against it
 # even in teeth mode (where SUT is reassigned to the mutant).
 SUT_PRISTINE="$SUT"
@@ -108,7 +108,14 @@ fi
 # `printf '      git said: '` and the wrapper's own `env … git "$@"` line: a
 # grep satisfied by the thing being DESCRIBED rather than done, which is the
 # same class this gate exists to catch, in the check written to catch it.
-bare_git="$(grep -nE '(^|[;&|(]|\$\()[[:space:]]*git[[:space:]]' "$SUT" \
+# ⛔ Strip quoted-string CONTENT before matching, or a prose mention of "git"
+# inside a printf/echo message (e.g. "could not inspect this tree (git status
+# failed...)") satisfies the command-position regex's `(` branch — the exact
+# source-scan-matches-PROSE trap this file's own header already names. The
+# line is still reported with its ORIGINAL line number (sed rewrites content,
+# never deletes lines), so the fail message stays actionable.
+bare_git="$(sed -E "s/'[^']*'//g; s/\"[^\"]*\"//g" "$SUT" \
+             | grep -nE '(^|[;&|(]|\$\()[[:space:]]*git[[:space:]]' \
              | grep -v 'rcgit' \
              | grep -vE '^[0-9]+:[[:space:]]*#' || true)"
 if [ -z "$bare_git" ]; then
@@ -222,9 +229,30 @@ build_fixture() { # $1=dest root -> 0 on success
   return 0
 }
 
-status_of() { # $1=root $2=slug -> prints the classification column
+status_of() { # $1=root $2=slug -> prints the classification token
+  # --status's real shape (git-worktree-list-porcelain discovery) is a
+  # multi-line block per worktree:
+  #   <abs path>
+  #       branch: <name>  state: <TOKEN>
+  #       <detail>
+  # — not the old single-line "slug STATE" table. Match the path line ending
+  # in /.claude/worktrees/<slug> (the last path component), then pull the
+  # TOKEN off the very next "state: " line.
   ( cd "$1" && bash "$SUT" --status 2>/dev/null ) \
-    | awk -v s="$2" '$1 == s { print $2 }'
+    | awk -v s="$2" '
+        /^  \// {
+          n = split($0, parts, "/")
+          want = (parts[n] == s) ? 1 : 0
+          next
+        }
+        want && /state:/ {
+          line = $0
+          sub(/^.*state:[[:space:]]*/, "", line)
+          sub(/[[:space:]].*$/, "", line)
+          print line
+          want = 0
+        }
+      '
 }
 
 # ------------------------------------------------------------ positive half ---
@@ -258,25 +286,35 @@ else
   fail "dirty worktree read '$DIRTY_S' (expected DIRTY)"
 fi
 
-if [ "$BROKEN_S" = "UNKNOWN" ]; then
-  pass "an un-inspectable worktree reads UNKNOWN, not clean"
-else
-  fail "un-inspectable worktree read '$BROKEN_S' (expected UNKNOWN)"
-fi
+case "$BROKEN_S" in
+  UNKNOWN-*) pass "an un-inspectable worktree reads UNKNOWN-*, not clean" ;;
+  *) fail "un-inspectable worktree read '$BROKEN_S' (expected UNKNOWN-*)" ;;
+esac
 
-# THE UPWARD-WALK CLASS: git status exits 0 by resolving to an ANCESTOR, so
-# rc==0 is not evidence this directory was inspected.
+# THE UPWARD-WALK CLASS, reframed for porcelain-based discovery. The subject
+# now discovers worktrees via `git worktree list --porcelain` (not by scanning
+# .claude/worktrees/* directories), so a plain directory that was never
+# `git worktree add`-ed is simply never a candidate at all — it cannot be
+# misclassified as clean by an ancestor-resolving `git status`, because the
+# subject never runs `git status` against it in the first place.
 PLAIN_S="$(status_of "$T/live" g_plaindir)"
 NOGIT_S="$(status_of "$T/live" h_nogit)"
-if [ "$PLAIN_S" = "UNKNOWN" ]; then
-  pass "a plain directory reads UNKNOWN (git resolved to an ancestor, not this tree)"
+if [ -z "$PLAIN_S" ]; then
+  pass "a plain (never-registered) directory is absent from --status (git's own discovery excludes it, not this script's classifier)"
 else
-  fail "plain directory read '$PLAIN_S' — rc=0 from an ANCESTOR was trusted as an inspection"
+  fail "plain directory read '$PLAIN_S' — it should never have been discovered as a worktree at all"
 fi
-if [ "$NOGIT_S" = "UNKNOWN" ]; then
-  pass "a registered worktree with .git removed reads UNKNOWN"
+# h_nogit WAS a real `git worktree add`-ed worktree; removing its .git file
+# makes git's OWN porcelain report it `prunable` — a more precise, git-
+# authoritative answer than this script's own UNKNOWN-* heuristic, and the
+# subject surfaces it directly (see the CANONICAL state list: "...UNKNOWN-* |
+# STALE | OPEN-PR | LOCKED | PRUNABLE | MAIN | SELF"). The safety property that
+# matters — its content is never deleted — is asserted after --all runs below;
+# this assertion is only about the classification label itself.
+if [ "$NOGIT_S" = "PRUNABLE" ]; then
+  pass "a registered worktree with .git removed reads PRUNABLE (git's own authoritative answer)"
 else
-  fail "worktree with .git removed read '$NOGIT_S' (expected UNKNOWN)"
+  fail "worktree with .git removed read '$NOGIT_S' (expected PRUNABLE)"
 fi
 # (the upward-walk SURVIVAL assertion lives after --all runs — see below)
 
@@ -317,7 +355,7 @@ if build_fixture "$anc" >/dev/null 2>&1; then
   mkdir -p "$T/outside_anc"
   mv "$anc/.claude/worktrees" "$T/outside_anc/_real_wt"
   ln -s "$T/outside_anc/_real_wt" "$anc/.claude/worktrees"
-  ( cd "$anc" && bash "$SUT" --all >"$T/anc.out" 2>&1 ) || true
+  ( cd "$anc" && bash "$SUT" --all --execute >"$T/anc.out" 2>&1 ) || true
   # ⛔ Survival is the oracle, and it must name a file the fixture ACTUALLY
   # creates. An earlier version tested `cleanwt/f.txt`, which appears nowhere
   # else in this file — build_fixture never creates it — so that operand was
@@ -339,7 +377,7 @@ if build_fixture "$anc2" >/dev/null 2>&1; then
   mkdir -p "$T/outside_anc2"
   mv "$anc2/.claude" "$T/outside_anc2/_real_dotclaude"
   ln -s "$T/outside_anc2/_real_dotclaude" "$anc2/.claude"
-  ( cd "$anc2" && bash "$SUT" --all >"$T/anc2.out" 2>&1 ) || true
+  ( cd "$anc2" && bash "$SUT" --all --execute >"$T/anc2.out" 2>&1 ) || true
   if [ -f "$T/outside_anc2/_real_dotclaude/worktrees/cleanwt/seed.txt" ]; then
     pass "a symlinked .claude ROOT is refused too (containment anchored to the repo)"
   else
@@ -365,11 +403,10 @@ fi
 # copy of a commit.
 DET_S="$(status_of "$T/live" det_work)"
 SAFE_S="$(status_of "$T/live" det_safe)"
-if [ "$DET_S" = "DETACHED" ]; then
-  pass "a detached worktree whose commit no ref contains reads DETACHED"
-else
-  fail "detached-with-own-commit read '$DET_S' (expected DETACHED)"
-fi
+case "$DET_S" in
+  DETACHED-*) pass "a detached worktree whose commit no ref contains reads DETACHED-*" ;;
+  *) fail "detached-with-own-commit read '$DET_S' (expected DETACHED-*)" ;;
+esac
 # THE NO-FALSE-POSITIVE HALF. Without it, flagging every detached worktree
 # passes — and a guard that fires on the harmless case gets ignored on the
 # harmful one.
@@ -379,8 +416,29 @@ else
   fail "detached-but-reachable read '$SAFE_S' (expected clean) — the guard fires on the harmless case"
 fi
 
-# --- the deletion path -------------------------------------------------------
-( cd "$T/live" && bash "$SUT" --all >"$T/all.out" 2>&1 )
+# --- the dry-run-by-default contract -----------------------------------------
+# ⛔ `--all` WITHOUT `--execute` must be a pure preview — it must not touch
+# anything on disk, including the genuinely clean worktree it would otherwise
+# remove. Run it FIRST, against the untouched fixture, so a prior --execute
+# run never masks a script that silently executes with no --execute flag at
+# all (the opposite of the historical over-deletion defect this gate exists
+# for, but just as real a data-loss bug if it ever regressed).
+( cd "$T/live" && bash "$SUT" --all >"$T/dryrun.out" 2>&1 )
+if [ -d "$T/live/.claude/worktrees/cleanwt" ] \
+   && [ -f "$T/live/.claude/worktrees/dirtywt/pending.txt" ] \
+   && [ -f "$T/live/.claude/worktrees/brokenwt/precious.txt" ]; then
+  pass "--all WITHOUT --execute is a pure preview — nothing was removed"
+else
+  fail "--all deleted something despite --execute being absent (the dry-run default is not a real default)"
+fi
+if grep -qi 'DRY RUN' "$T/dryrun.out"; then
+  pass "--all's dry-run preview says so explicitly"
+else
+  fail "--all's dry-run preview no longer announces itself as a dry run"
+fi
+
+# --- the deletion path (now actually executing) ------------------------------
+( cd "$T/live" && bash "$SUT" --all --execute >"$T/all.out" 2>&1 )
 
 # POSITIVE CONTROL on deletion. Without this the three assertions below could
 # all pass against a script that deletes NOTHING — "it didn't delete the broken
@@ -472,7 +530,7 @@ fi
 
 # ⛔ Bound to the SLUG, not a bare grep for the word. `grep -q UNKNOWN` over
 # combined stdout+stderr passes if the string appears anywhere at all.
-if grep -q 'skipped brokenwt (UNKNOWN' "$T/all.out" 2>/dev/null; then
+if grep -qE 'skipped .*brokenwt \(UNKNOWN' "$T/all.out" 2>/dev/null; then
   pass "--all names brokenwt as UNKNOWN, so an operator can tell inspection failed"
 else
   fail "--all did not report brokenwt as UNKNOWN"
@@ -490,11 +548,17 @@ if grep -qE 'worktree-clean(\.sh)?[^|&;]*--force' "$T/all.out" 2>/dev/null; then
 else
   pass "--all's UNKNOWN advice prints no runnable --force command"
 fi
-# ...and it must still WARN about --force, or the prohibition was simply dropped.
-if grep -qi 'not use --force\|NOT reach for --force' "$T/all.out" 2>/dev/null; then
-  pass "--all's UNKNOWN advice explicitly warns against --force"
+# ...and the explicit "do NOT use --force" warning must still exist somewhere
+# reachable, or the prohibition was simply dropped. It no longer lives in the
+# BULK --all output (the bulk skip line is terse by design — "--execute NEVER
+# passes --force to the underlying removal", so there is nothing to warn
+# about there); it lives in the SINGLE-TARGET `<slug> --force` refusal path.
+# Probe that path directly rather than the bulk output.
+unknown_force_probe="$( cd "$T/live" && bash "$SUT" brokenwt --force 2>&1 )" || true
+if printf '%s' "$unknown_force_probe" | grep -qi 'not use --force\|NOT reach for --force'; then
+  pass "remove_one's UNKNOWN refusal explicitly warns against --force"
 else
-  fail "--all's UNKNOWN advice no longer warns against --force"
+  fail "remove_one's UNKNOWN refusal no longer warns against --force: $unknown_force_probe"
 fi
 
 # remove_one must refuse UNKNOWN even when --force is passed.
@@ -534,7 +598,7 @@ config_vector_case() { # $1=label $2=root $3... = env assignments for the run
   # Apply the caller's config-shaping step.
   cfg_setup "$root" || { fail "config-vector setup ($label) failed"; return 1; }
 
-  ( cd "$root" && env "$@" bash "$SUT" --all >"$root/all.out" 2>&1 )
+  ( cd "$root" && env "$@" bash "$SUT" --all --execute >"$root/all.out" 2>&1 )
 
   # POSITIVE CONTROL, and it is not optional here. "dirtywt survived" is
   # worthless if --all deleted nothing at all — and a script that errored out on
@@ -589,7 +653,7 @@ make_mutant "$SUT" "$MUT"
 
 if mutant_is_defective "$MUT"; then
   if build_fixture "$T/mutant"; then
-    MB="$( ( cd "$T/mutant" && bash "$MUT" --status 2>/dev/null ) | awk '$1=="brokenwt"{print $2}' )"
+    MB="$(SUT="$MUT" status_of "$T/mutant" brokenwt)"
     if [ "$MB" = "clean" ]; then
       pass "teeth: with UNKNOWN removed, --status misreads broken as clean"
     else
@@ -608,8 +672,8 @@ if mutant_is_defective "$MUT"; then
     # removal instead. If this line is still present in the mutant's output, the
     # deletion path was never mutated and the teeth are cosmetic — which is
     # exactly how the previous version of this gate was vacuous.
-    ( cd "$T/mutant" && bash "$MUT" --all >"$T/mutant-all.out" 2>&1 )
-    if grep -q 'skipped brokenwt (UNKNOWN' "$T/mutant-all.out" 2>/dev/null; then
+    ( cd "$T/mutant" && bash "$MUT" --all --execute >"$T/mutant-all.out" 2>&1 )
+    if grep -qE 'skipped .*brokenwt \(UNKNOWN' "$T/mutant-all.out" 2>/dev/null; then
       fail "teeth: the mutant STILL skips brokenwt as UNKNOWN — the deletion path was not mutated (vacuous gate)"
     else
       pass "teeth: with UNKNOWN removed, --all no longer skips brokenwt (deletion path IS covered)"
@@ -646,7 +710,7 @@ elif ! grep -q "printf 'UNKNOWN" "$CMUT"; then
   fail "teeth: config-pin stand-in lost the UNKNOWN fix too — no longer a narrow control"
 elif build_fixture "$T/cfgmut"; then
   git -C "$T/cfgmut" config status.showUntrackedFiles no
-  ( cd "$T/cfgmut" && bash "$CMUT" --all >/dev/null 2>&1 )
+  ( cd "$T/cfgmut" && bash "$CMUT" --all --execute >/dev/null 2>&1 )
   if [ -f "$T/cfgmut/.claude/worktrees/dirtywt/pending.txt" ]; then
     fail "teeth: uncommitted work survived even WITHOUT the config pins — the config assertions are vacuous"
   else
@@ -681,7 +745,7 @@ else
 fi
 if [ "${IMUT_OK:-0}" = "1" ]; then
   if build_fixture "$T/igmut"; then
-    ( cd "$T/igmut" && bash "$IMUT" --all >/dev/null 2>&1 )
+    ( cd "$T/igmut" && bash "$IMUT" --all --execute >/dev/null 2>&1 )
     if [ -f "$T/igmut/.claude/worktrees/ignoredwt/.env" ]; then
       fail "teeth: the ignored-only tree survived even WITHOUT the ignored probe — the IGNORED assertions are vacuous"
     else
@@ -707,7 +771,7 @@ awk '
 if awk '/^worktree_state\(\)/,/^\}/' "$DMUT" | grep -q 'symbolic-ref'; then
   fail "teeth: detached stand-in did not apply — cannot prove the DETACHED assertions have teeth"
 elif build_fixture "$T/detmut"; then
-  ( cd "$T/detmut" && bash "$DMUT" --all >/dev/null 2>&1 )
+  ( cd "$T/detmut" && bash "$DMUT" --all --execute >/dev/null 2>&1 )
   if [ -f "$T/detmut/.claude/worktrees/det_work/committed.txt" ]; then
     fail "teeth: the detached worktree survived even WITHOUT the reachability check — the DETACHED assertions are vacuous"
   else
