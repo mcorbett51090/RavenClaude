@@ -2381,7 +2381,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-23_
+_Last verified: 2026-11-10_
 
 
 ---
@@ -2451,7 +2451,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-11-05_
+_Last verified: 2026-11-10_
 
 
 ---
@@ -2477,7 +2477,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-23_
+_Last verified: 2026-11-10_
 
 
 ---
@@ -2751,7 +2751,7 @@ Probe: `scripts/check-artifact-budgets.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-11-10_
 
 
 ---
@@ -3877,6 +3877,32 @@ Measured 2026-10-18: a gap under 5 minutes already reads the 5-minute cache, and
 **Sources:** [2026-10-14 prompt-caching build plan — Phase 4, subagent TTL from data](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/BUILD-PLAN.md)
 
 _Last verified: 2026-10-18_
+
+
+---
+
+### A bulk cleanup that previews before it touches anything · _RavenClaude-built_
+
+> Why a bulk worktree sweep is safe to run blind: --all alone never removes anything.
+
+## What a reader would have assumed instead
+
+A `--all` bulk-cleanup flag mutates immediately, the way most bulk-delete commands do.
+
+## The discriminator
+
+control: a plain `--all` run left a genuinely clean, removable worktree on disk untouched, and the output was labeled DRY RUN
+Measured 2026-11-10: `--all` alone only previews — framed as what `--execute` would do to each worktree — and never passes `--force` even once `--execute` is given. The SessionEnd report hook (`worktree-cleanup-report.sh`) runs the same `--status`/preview path on every session close, which is exactly what makes an always-on hook safe: there is no mutating code path for it to accidentally reach.
+
+## Why it matters
+
+Falsifier: a plain `--all` run (no `--execute`) deleting any worktree.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh` (P12a/P12b/T2 exercise exactly this contract, including a teeth check that neuters the `--execute` gate and confirms a plain `--all` then mutates).
+
+**Sources:** [worktree-clean.sh usage doc + P12/T2 of its own lifecycle test](../plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh)
+
+_Last verified: 2026-11-10_
 
 
 ---

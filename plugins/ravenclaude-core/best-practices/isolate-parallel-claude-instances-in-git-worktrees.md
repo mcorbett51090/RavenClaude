@@ -70,7 +70,7 @@ CONTENTION (two live writers, one tree) is **not** Chat context isolation. FOREI
 ### Cleanup lifecycle rationale (added 2026-11-10)
 
 [`cleanup-worktrees`](../skills/cleanup-worktrees/SKILL.md)'s tool
-([`scripts/worktree-clean.sh`](../../scripts/worktree-clean.sh)) discovers via
+([`scripts/worktree-clean.sh`](../scripts/worktree-clean.sh)) discovers via
 `git worktree list --porcelain` rather than only globbing
 `.claude/worktrees/`, because the porcelain format is the one surface that
 tells you, per worktree, everything needed to decide safety without
@@ -89,7 +89,7 @@ something this tool invented a label for. All three facts were also
 reproduced directly against a real git 2.47.3 binary in this change's own
 test fixtures before being relied on, not just read off the docs.
 
-The SessionEnd trigger ([`scripts/worktree-cleanup-report.sh`](../../scripts/worktree-cleanup-report.sh))
+The SessionEnd trigger ([`scripts/worktree-cleanup-report.sh`](../scripts/worktree-cleanup-report.sh))
 writes a report file rather than attempting `systemMessage`/
 `additionalContext`, because the Claude Code hooks reference says so
 directly `[docs-verified 2026-11-10 — code.claude.com/docs/en/hooks]`:
