@@ -47,6 +47,28 @@ T="$(mktemp -d)" || { printf '  ✗ mktemp -d failed\n'; exit 1; }
 [ -n "$T" ] && [ -d "$T" ] || { printf '  ✗ mktemp -d produced no usable dir\n'; exit 1; }
 trap 'rm -rf "$T"' EXIT
 
+# ----------------------------------------------- fixture: deterministic gh ---
+# The subject's PR-UNKNOWN classification (AppSec F1, 2026-11-10) calls real
+# `gh pr list` for any worktree whose branch is named. Every fixture here is a
+# throwaway local repo with no GitHub remote, so a real `gh` on PATH (if any)
+# always fails that lookup and every named-branch worktree reads PR-UNKNOWN —
+# masking every "clean" assertion below behind gh/network availability rather
+# than the states this gate actually names. A stub, shadowing any real `gh`,
+# answers "0 open PRs" for every branch so "clean" stays reachable and this
+# gate keeps measuring DIRTY/IGNORED/UNKNOWN/DETACHED, not gh's mood.
+GH_STUB_BIN="$T/bin"
+mkdir -p "$GH_STUB_BIN" || { printf '  ✗ could not create gh-stub bin dir\n'; exit 1; }
+cat > "$GH_STUB_BIN/gh" <<'STUB'
+#!/usr/bin/env bash
+if [ "$1" = "pr" ] && [ "$2" = "list" ]; then
+  printf '0\n'
+  exit 0
+fi
+exit 1
+STUB
+chmod +x "$GH_STUB_BIN/gh"
+export PATH="$GH_STUB_BIN:$PATH"
+
 # Reintroduce the defect by rewriting worktree_state's BODY so it can never
 # return UNKNOWN — i.e. it collapses "I could not look" back into "clean",
 # which is exactly the pre-fix behaviour.
