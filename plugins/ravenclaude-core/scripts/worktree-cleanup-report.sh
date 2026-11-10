@@ -24,7 +24,11 @@
 # Opt-out: RC_WORKTREE_CLEANUP_REPORT=off.
 # Fail-safe: no git / no bash / no worktree-clean.sh / project dir missing /
 # any internal error -> silent no-op, always exits 0 (a SessionEnd hook
-# cannot block anyway, and this one must never try to).
+# cannot block anyway, and this one must never try to). This INCLUDES a
+# planted symlink anywhere on the write path (the report file itself, its
+# parent directories, or an ancestor under .ravenclaude) — the hook refuses
+# rather than following it, silently, same exit-0 contract either way (see
+# the symlink-safe write below, AppSec finding F2).
 
 set +e
 
@@ -66,20 +70,71 @@ n_entries="${n_entries:-0}"
 case "$n_entries" in ''|*[!0-9]*) exit 0 ;; esac
 [ "$n_entries" -gt 1 ] || exit 0
 
+# ⛔ SYMLINK-SAFE WRITE (AppSec finding F2, 2026-11-10). PROJECT_DIR is
+# CLAUDE_PROJECT_DIR — attacker-influenceable by anyone who can get a victim
+# to open a malicious repo (or one with a linked worktree) as a project. A
+# repo that commits `.ravenclaude/runs/worktree-cleanup/report.md` as a
+# symlink (or symlinks any ancestor directory under `.ravenclaude`) made the
+# ORIGINAL `> "$RUN_DIR/report.md"` single-redirection write FOLLOW the link
+# and overwrite whatever it pointed at — every session end, on every
+# consumer with >=1 linked worktree. Two layers close this, deliberately
+# mirroring worktree-clean.sh's own WT_ROOT containment style ("that check
+# alone is NOT enough" — a per-component check and a post-mkdir realpath
+# re-check catch different attack shapes):
+#   (1) refuse a symlink on ANY already-existing path component UNDER
+#       .ravenclaude — BEFORE `mkdir -p` ever runs. `mkdir -p` silently
+#       no-ops on a directory that already exists, INCLUDING a
+#       symlink-to-directory, so this must run first, not after.
+#   (2) after `mkdir -p`, re-resolve the real path of the resulting RUN_DIR
+#       and require it stay CONTAINED under PROJECT_DIR's own real path —
+#       closes the case where an ancestor already existed as a symlink and
+#       (1)'s per-component scan raced with something else creating it.
+# And the write itself never redirects straight to the final path either
+# way: it writes a mktemp'd sibling file INSIDE the now-verified RUN_DIR,
+# then `mv`s it into place. On the same filesystem `mv` is a rename(2),
+# which replaces a symlink's OWN directory entry rather than dereferencing
+# it to its target — so even a report.md planted as a symlink cannot be
+# written-through by the final step.
+PROJECT_REAL="$(cd "$PROJECT_DIR" 2>/dev/null && pwd -P)" || exit 0
+[ -n "$PROJECT_REAL" ] || exit 0
+
+_rcwcr_dir="$PROJECT_DIR"
+for _rcwcr_seg in .ravenclaude runs worktree-cleanup; do
+  _rcwcr_dir="$_rcwcr_dir/$_rcwcr_seg"
+  if [ -L "$_rcwcr_dir" ]; then
+    exit 0   # a path component is a symlink -- refuse, never follow it
+  fi
+done
+unset _rcwcr_dir _rcwcr_seg
+
 RUN_DIR="$PROJECT_DIR/.ravenclaude/runs/worktree-cleanup"
 mkdir -p "$RUN_DIR" 2>/dev/null || exit 0
+
+RUN_DIR_REAL="$(cd "$RUN_DIR" 2>/dev/null && pwd -P)" || exit 0
+case "$RUN_DIR_REAL/" in
+  "$PROJECT_REAL"/*) ;;
+  *) exit 0 ;;
+esac
+
+REPORT_FILE="$RUN_DIR/report.md"
+[ -L "$REPORT_FILE" ] && exit 0   # the final file itself must not already be a symlink
+
 TS="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown-ts)"
+TMP_REPORT="$(mktemp "$RUN_DIR/.report.XXXXXX" 2>/dev/null)" || exit 0
 {
   printf '# Worktree cleanup — dry-run report\n\n'
   printf 'Generated %s at session end. DRY RUN ONLY — nothing below was removed, pruned,\n' "$TS"
-  printf 'or deleted. PR status was not checked (--no-network): a STALE entry may just be\n'
-  printf 'one whose open-PR status this report could not verify.\n\n'
+  printf 'or deleted. PR status was not checked (--no-network): a PR-UNKNOWN entry is one\n'
+  printf 'whose open-PR status could not be verified (never treated as clean — refuses\n'
+  printf 'removal even with --force); a STALE entry may ALSO carry an unverified PR status\n'
+  printf 'when its commit is old enough that age alone already flags it.\n\n'
   printf 'To act on this:\n'
   printf '  `%s --all --execute`           bulk: removes every "clean" entry, then\n' "$SCRIPT"
   printf '                                       prunes and runs cleanup-branches.sh\n'
   printf '  `%s <slug>` / `--target <path>` one worktree (needs --force for a flagged class)\n' "$SCRIPT"
   printf 'See skills/cleanup-worktrees/SKILL.md.\n\n'
   printf '```\n%s\n```\n' "$OUT"
-} > "$RUN_DIR/report.md" 2>/dev/null || exit 0
+} > "$TMP_REPORT" 2>/dev/null || { rm -f "$TMP_REPORT" 2>/dev/null; exit 0; }
+mv -f "$TMP_REPORT" "$REPORT_FILE" 2>/dev/null || { rm -f "$TMP_REPORT" 2>/dev/null; exit 0; }
 
 exit 0

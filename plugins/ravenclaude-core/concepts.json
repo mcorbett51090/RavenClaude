@@ -3024,7 +3024,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:d1c085a56ec0849694f509257c0561b9626f4b3f4ea9f39a552ed3c415e180af",
+      "covers_digest": "sha256:7f27f6a10e54e8e6f1f3e64034c215735d39122a1340f258636bab1808dcd6ce",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -5151,7 +5151,7 @@
         "plugins/ravenclaude-core/scripts/worktree-clean.sh",
         "plugins/ravenclaude-core/scripts/worktree-cleanup-report.sh"
       ],
-      "covers_digest": "sha256:a9b0b1456e5c85b352d7eee67e51a896212511eb17547f7e20a111ffd1b4764c",
+      "covers_digest": "sha256:54c3e56ca08066bcdeabec0115a64e8ef1e9ae32626b08fd852650c4a5bd793d",
       "nuance": "Unlike a typical bulk-cleanup command, `--all` alone never removes anything — it only PREVIEWS what `--execute` would do, worktree by worktree; the SessionEnd report hook reuses that same preview mode, so it can run on every session close without ever mutating a worktree.",
       "nuance_evidence": {
         "measured": "2026-11-10",

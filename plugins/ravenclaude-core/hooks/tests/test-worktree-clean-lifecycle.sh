@@ -44,6 +44,20 @@
 #       NOTHING (no worktree removed, no branch deleted); RC_WORKTREE_CLEANUP_REPORT=off
 #       silences it
 #   P16 root shim resolves to the plugin script and behaves identically
+#   P17 AppSec F3: --all --execute SKIPS a 'clean' worktree another LIVE
+#       session has registered via worktree-guard.sh's own SessionStart
+#       registry (BUSY); a control proves the same shape with NO
+#       registration planted IS removed normally
+#   P18 AppSec F1: open-PR status UNKNOWN (--no-network, or gh absent from
+#       PATH) classifies PR-UNKNOWN, never clean -- refuses single-target
+#       removal EVEN WITH --force and is SKIPPED under --all --execute; a
+#       control proves a KNOWN-clean worktree (gh confirms 0 open PRs) is
+#       still removable normally
+#   P19 AppSec F2: the SessionEnd report hook refuses a symlink anywhere on
+#       its write path -- report.md itself, its parent worktree-cleanup/
+#       dir, or .ravenclaude itself -- and leaves a victim file/dir outside
+#       the repo untouched in every case; a control proves a legitimate
+#       (non-symlinked) tree still gets a real report written
 #
 #   T1  teeth: remove the DIRTY --force gate -> a dirty worktree is removed
 #       WITHOUT --force, proving P3's refusal was real
@@ -51,6 +65,14 @@
 #       --execute now mutates, proving P12's dry-run-by-default has teeth
 #   T3  teeth: remove the OPEN-PR refusal -> an open-PR worktree is removed,
 #       proving P8's "never, even with --force" was real
+#   T4  teeth (F3): remove the BUSY check in execute_all()'s 'clean' branch
+#       -> a planted-busy worktree IS removed, proving P17's skip was real
+#   T5  teeth (F1): remove the PR-UNKNOWN refusal in dispatch_removal() ->
+#       an unknown-PR-status worktree IS removed, proving P18 was real
+#   T6  teeth (F2): reproduce the ORIGINAL pre-fix write shape (bare
+#       mkdir -p + a single `>` redirection) against the same planted
+#       symlink as P19a -> the victim IS clobbered, proving the
+#       vulnerability class F2 closes was real
 #
 # Run directly: bash plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh
 # Run via gate:  bash scripts/audit-gates.sh --check 308
@@ -303,7 +325,12 @@ mkdir -p "$REPO2"
 git -C "$REPO2" worktree add -q -b exec-clean "$TMP/exec-clean" main >/dev/null 2>&1
 git -C "$REPO2" worktree add -q -b exec-dirty "$TMP/exec-dirty" main >/dev/null 2>&1
 echo dirty >> "$TMP/exec-dirty/f.txt"
-exec_out="$(cd "$REPO2" && env PATH="$TMP/bin:$PATH" bash "$WTC" --all --execute --no-network 2>&1)"
+# ⛔ NOT --no-network: a known PR status (via the stub `gh` on PATH, which
+# answers "0" for anything that isn't the open-PR branch) is what lets
+# exec-clean classify "clean" rather than PR-UNKNOWN (F1) — this test is
+# proving the unified remove->prune->cleanup-branches lifecycle, not F1's
+# refusal, so it must not collide with the unrelated PR-UNKNOWN class.
+exec_out="$(cd "$REPO2" && env PATH="$TMP/bin:$PATH" bash "$WTC" --all --execute 2>&1)"
 [ ! -d "$TMP/exec-clean" ] && pass "P13a --all --execute removed the clean worktree" || fail "P13a clean worktree survived --execute"
 [ -d "$TMP/exec-dirty" ] && pass "P13b --all --execute left the dirty worktree alone" || fail "P13b dirty worktree was removed by --execute"
 git -C "$REPO2" show-ref --verify --quiet refs/heads/exec-clean \
@@ -322,7 +349,10 @@ mkdir -p "$REPO3"
 (cd "$REPO3" && git init -q . && git config user.email t@t.local && git config user.name tester \
   && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
 git -C "$REPO3" worktree add -q -b installed-clean "$TMP/installed-clean" main >/dev/null 2>&1
-(cd "$REPO3" && env PATH="$TMP/bin:$PATH" bash "$INSTALLED/worktree-clean.sh" --target "$TMP/installed-clean" --no-network >/dev/null 2>&1)
+# ⛔ NOT --no-network: a known PR status (via the stub `gh` on PATH) is what
+# lets installed-clean classify "clean" rather than PR-UNKNOWN (F1) — this
+# test is proving the installed-layout path resolution, not F1's refusal.
+(cd "$REPO3" && env PATH="$TMP/bin:$PATH" bash "$INSTALLED/worktree-clean.sh" --target "$TMP/installed-clean" >/dev/null 2>&1)
 [ ! -d "$TMP/installed-clean" ] && pass "P14a installed-layout copy removes the worktree" || fail "P14a installed-layout copy failed to remove"
 git -C "$REPO3" show-ref --verify --quiet refs/heads/installed-clean \
   && fail "P14b installed-layout copy did not retire the branch (cleanup-branches.sh sibling resolution failed)" \
@@ -408,7 +438,12 @@ if ! cmp -s "$TMP/mut-all.sh" "$WTC"; then
   (cd "$REPO7" && git init -q . && git config user.email t@t.local && git config user.name tester \
     && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
   git -C "$REPO7" worktree add -q -b teeth-clean "$TMP/teeth-clean" main >/dev/null 2>&1
-  (cd "$REPO7" && env PATH="$TMP/bin:$PATH" bash "$TMP/mut-all.sh" --all --no-network >/dev/null 2>&1)
+  # ⛔ NOT --no-network here: a known PR status (via the stub `gh` on PATH,
+  # which answers "0" for anything that isn't the open-PR branch) is what
+  # lets "teeth-clean" classify "clean" rather than PR-UNKNOWN (F1) — this
+  # test is proving the --execute gate's teeth, not F1's, so it must not
+  # accidentally collide with the unrelated PR-UNKNOWN refusal.
+  (cd "$REPO7" && env PATH="$TMP/bin:$PATH" bash "$TMP/mut-all.sh" --all >/dev/null 2>&1)
   [ ! -d "$TMP/teeth-clean" ] && pass "T2 teeth: with the --execute gate neutered, \`--all\` (no --execute) mutates — proving P12's dry-run-by-default depends on that gate" || fail "T2 teeth: mutant still left --all as a dry run — P12 may be vacuous"
 else
   fail "T2 setup: could not locate the --execute gate to neuter"
@@ -435,6 +470,230 @@ if ! cmp -s "$TMP/mut-openpr.sh" "$WTC"; then
 else
   fail "T3 setup: could not locate the OPEN-PR block to neuter"
 fi
+
+# ── P17: --all --execute SKIPS a 'clean' worktree another LIVE session is
+#    using as its cwd (BUSY) — F3. Reuses the EXISTING worktree-guard.sh
+#    SessionStart registry (PATH_KEY=sha256(realpath) + pid/mtime liveness),
+#    never a second heuristic — this plants a record the same shape that
+#    registry already writes.
+REPO9="$TMP/repo9"
+mkdir -p "$REPO9"
+(cd "$REPO9" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO9" worktree add -q -b busy-clean "$TMP/busy-clean" main >/dev/null 2>&1
+BUSY_REAL="$(cd "$TMP/busy-clean" && pwd -P)"
+BUSY_KEY=""
+if command -v sha256sum >/dev/null 2>&1; then
+  BUSY_KEY="$(printf '%s' "$BUSY_REAL" | sha256sum | cut -d' ' -f1)"
+elif command -v shasum >/dev/null 2>&1; then
+  BUSY_KEY="$(printf '%s' "$BUSY_REAL" | shasum -a 256 | cut -d' ' -f1)"
+fi
+GUARD_HOME_TEST="$TMP/guard-home"
+mkdir -p "$GUARD_HOME_TEST/sessions/$BUSY_KEY"
+# pid=$$ (this test's own process) -- guaranteed alive for the test's duration.
+printf '{"session_id":"planted","pid":%s,"ppid":0,"host":"test","branch":"busy-clean","started_at":0}\n' "$$" \
+  > "$GUARD_HOME_TEST/sessions/$BUSY_KEY/planted.json"
+# ⛔ NOT --no-network: a known PR status (via the stub `gh` on PATH) is what
+# lets busy-clean classify "clean" rather than PR-UNKNOWN (F1) BEFORE the
+# BUSY check (F3) ever gets a say — otherwise this test would "pass" for
+# the wrong reason (skipped as PR-UNKNOWN, not as BUSY), which is exactly
+# what P17b's "names the BUSY skip" assertion below exists to catch.
+busy_out="$(cd "$REPO9" && env PATH="$TMP/bin:$PATH" RC_WORKTREE_GUARD_HOME="$GUARD_HOME_TEST" bash "$WTC" --all --execute 2>&1)"
+[ -d "$TMP/busy-clean" ] && pass "P17a --all --execute skipped a BUSY clean worktree (another live session registered)" || fail "P17a BUSY worktree was removed despite a live session registration"
+case "$busy_out" in *"BUSY"*) pass "P17b --all --execute output names the BUSY skip" ;; *) fail "P17b no BUSY mention in output ($busy_out)" ;; esac
+git -C "$REPO9" show-ref --verify --quiet refs/heads/busy-clean \
+  && pass "P17c busy-clean's branch survives (the worktree was never removed, so no retirement happened)" \
+  || fail "P17c busy-clean's branch is gone though the worktree should not have been touched"
+
+# control: the SAME shape, in a fresh repo, with NO registration planted --
+# proves the skip is keyed on the registry, not on the branch/worktree name
+# or some other coincidence.
+REPO9B="$TMP/repo9b"
+mkdir -p "$REPO9B"
+(cd "$REPO9B" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO9B" worktree add -q -b busy-control "$TMP/busy-control" main >/dev/null 2>&1
+(cd "$REPO9B" && env PATH="$TMP/bin:$PATH" RC_WORKTREE_GUARD_HOME="$TMP/guard-home-empty" bash "$WTC" --all --execute >/dev/null 2>&1)
+[ ! -d "$TMP/busy-control" ] && pass "P17d control: with NO registration planted, the same-shaped clean worktree IS removed" || fail "P17d control worktree survived though nothing was registered"
+
+# ── P18: open-PR status UNKNOWN fails CLOSED, never clean, including
+#    --force (F1).
+REPO10="$TMP/repo10"
+mkdir -p "$REPO10"
+(cd "$REPO10" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO10" worktree add -q -b pr-unknown-recent "$TMP/pr-unknown" main >/dev/null 2>&1
+out_prunk="$(cd "$REPO10" && bash "$WTC" --status --no-network 2>&1)"
+case "$out_prunk" in *"$TMP/pr-unknown"*) case "$out_prunk" in *"state: PR-UNKNOWN"*) pass "P18a --no-network + recent commit classifies PR-UNKNOWN, not clean" ;; *) fail "P18a did not classify PR-UNKNOWN under --no-network" ;; esac ;; *) fail "P18a pr-unknown worktree missing from --status output" ;; esac
+(cd "$REPO10" && bash "$WTC" --target "$TMP/pr-unknown" --no-network >/dev/null 2>&1) \
+  && fail "P18b PR-UNKNOWN removed WITHOUT --force" \
+  || pass "P18b PR-UNKNOWN refuses single-target removal without --force"
+(cd "$REPO10" && bash "$WTC" --target "$TMP/pr-unknown" --no-network --force >/dev/null 2>&1) \
+  && fail "P18c PR-UNKNOWN removed WITH --force (unknown PR status must never be a removal path, even forced)" \
+  || pass "P18c PR-UNKNOWN refuses single-target removal EVEN WITH --force"
+[ -d "$TMP/pr-unknown" ] && pass "P18d PR-UNKNOWN worktree directory still present after the forced attempt" || fail "P18d PR-UNKNOWN worktree vanished"
+
+# (b) gh ABSENT from PATH entirely -- same unknown-status fail-closed path,
+#     not just the --no-network flag.
+REPO10B="$TMP/repo10b"
+mkdir -p "$REPO10B"
+(cd "$REPO10B" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO10B" worktree add -q -b pr-unknown-nogh "$TMP/pr-unknown-nogh" main >/dev/null 2>&1
+MINPATH="$(dirname "$(command -v git)")"
+(cd "$REPO10B" && env PATH="$MINPATH" bash "$WTC" --target "$TMP/pr-unknown-nogh" --force >/dev/null 2>&1) \
+  && fail "P18e PR-UNKNOWN (gh absent from PATH) removed WITH --force" \
+  || pass "P18e PR-UNKNOWN (gh absent from PATH) refuses removal EVEN WITH --force"
+[ -d "$TMP/pr-unknown-nogh" ] && pass "P18f gh-absent worktree still present after the forced attempt" || fail "P18f gh-absent worktree vanished"
+
+# (c) --all --execute must SKIP a PR-UNKNOWN entry, never remove it in bulk.
+REPO10C="$TMP/repo10c"
+mkdir -p "$REPO10C"
+(cd "$REPO10C" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO10C" worktree add -q -b pr-unknown-bulk "$TMP/pr-unknown-bulk" main >/dev/null 2>&1
+(cd "$REPO10C" && bash "$WTC" --all --execute --no-network >/dev/null 2>&1)
+[ -d "$TMP/pr-unknown-bulk" ] && pass "P18g --all --execute skips a PR-UNKNOWN entry (never removed in bulk)" || fail "P18g PR-UNKNOWN entry was removed under --all --execute"
+
+# (d) control: a KNOWN-clean worktree (the stub gh reports 0 open PRs for
+#     anything that isn't the open-PR branch) is still removable normally --
+#     proves F1's fix narrows exactly the unknown case, nothing wider.
+REPO10D="$TMP/repo10d"
+mkdir -p "$REPO10D"
+(cd "$REPO10D" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO10D" worktree add -q -b pr-known-clean "$TMP/pr-known-clean" main >/dev/null 2>&1
+(cd "$REPO10D" && env PATH="$TMP/bin:$PATH" bash "$WTC" --target "$TMP/pr-known-clean" >/dev/null 2>&1)
+[ ! -d "$TMP/pr-known-clean" ] && pass "P18h control: a KNOWN-clean worktree (gh confirms 0 open PRs) is still removable without --force" || fail "P18h known-clean control worktree was NOT removed (regression)"
+
+# ── P19: the SessionEnd report hook refuses a symlinked report path or a
+#    symlinked ancestor under .ravenclaude, and leaves the outside victim
+#    untouched (F2).
+# (a) report.md itself is a symlink to a victim file OUTSIDE the repo.
+REPO12="$TMP/repo12"
+mkdir -p "$REPO12"
+(cd "$REPO12" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO12" worktree add -q -b report-wt "$TMP/report-wt" main >/dev/null 2>&1
+VICTIM="$TMP/victim-outside-repo.txt"
+printf 'untouched\n' > "$VICTIM"
+mkdir -p "$REPO12/.ravenclaude/runs/worktree-cleanup"
+ln -s "$VICTIM" "$REPO12/.ravenclaude/runs/worktree-cleanup/report.md"
+(cd "$REPO12" && env PATH="$TMP/bin:$PATH" CLAUDE_PLUGIN_ROOT="$REPO_ROOT/plugins/ravenclaude-core" bash "$REPORT_HOOK" >/dev/null 2>&1)
+[ "$(cat "$VICTIM")" = "untouched" ] && pass "P19a report.md-is-a-symlink: the victim file outside the repo is unchanged" || fail "P19a victim file was clobbered through a symlinked report.md"
+[ -L "$REPO12/.ravenclaude/runs/worktree-cleanup/report.md" ] && pass "P19b the planted symlink itself was not replaced (the hook refused rather than following it)" || fail "P19b the symlink at report.md is gone -- did the hook remove and replace it?"
+
+# (b) the worktree-cleanup DIRECTORY itself is a symlink to an outside dir.
+REPO13="$TMP/repo13"
+mkdir -p "$REPO13"
+(cd "$REPO13" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO13" worktree add -q -b report-wt2 "$TMP/report-wt2" main >/dev/null 2>&1
+VICTIM_DIR="$TMP/victim-dir-outside"
+mkdir -p "$VICTIM_DIR"
+mkdir -p "$REPO13/.ravenclaude/runs"
+ln -s "$VICTIM_DIR" "$REPO13/.ravenclaude/runs/worktree-cleanup"
+(cd "$REPO13" && env PATH="$TMP/bin:$PATH" CLAUDE_PLUGIN_ROOT="$REPO_ROOT/plugins/ravenclaude-core" bash "$REPORT_HOOK" >/dev/null 2>&1)
+[ ! -e "$VICTIM_DIR/report.md" ] && pass "P19c worktree-cleanup-dir-is-a-symlink: nothing was written into the outside victim directory" || fail "P19c a report was written into the victim directory through a symlinked parent"
+[ -L "$REPO13/.ravenclaude/runs/worktree-cleanup" ] && pass "P19d the planted directory symlink itself was not replaced" || fail "P19d the symlink at worktree-cleanup is gone"
+
+# (c) .ravenclaude ITSELF is a symlink to an outside dir (ancestor-level attack).
+REPO14="$TMP/repo14"
+mkdir -p "$REPO14"
+(cd "$REPO14" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO14" worktree add -q -b report-wt3 "$TMP/report-wt3" main >/dev/null 2>&1
+VICTIM_DIR2="$TMP/victim-dir-outside2"
+mkdir -p "$VICTIM_DIR2"
+ln -s "$VICTIM_DIR2" "$REPO14/.ravenclaude"
+(cd "$REPO14" && env PATH="$TMP/bin:$PATH" CLAUDE_PLUGIN_ROOT="$REPO_ROOT/plugins/ravenclaude-core" bash "$REPORT_HOOK" >/dev/null 2>&1)
+[ ! -e "$VICTIM_DIR2/runs" ] && pass "P19e .ravenclaude-itself-is-a-symlink: nothing was created inside the outside victim via the ancestor link" || fail "P19e content was written through a symlinked .ravenclaude ancestor"
+[ -L "$REPO14/.ravenclaude" ] && pass "P19f the planted .ravenclaude symlink itself was not replaced" || fail "P19f the symlink at .ravenclaude is gone"
+
+# (d) control: a legitimate (non-symlinked) report still writes normally,
+#     proving the refusals above aren't simply refusing everything.
+REPO15="$TMP/repo15"
+mkdir -p "$REPO15"
+(cd "$REPO15" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO15" worktree add -q -b report-wt4 "$TMP/report-wt4" main >/dev/null 2>&1
+(cd "$REPO15" && env PATH="$TMP/bin:$PATH" CLAUDE_PLUGIN_ROOT="$REPO_ROOT/plugins/ravenclaude-core" bash "$REPORT_HOOK" >/dev/null 2>&1)
+[ -f "$REPO15/.ravenclaude/runs/worktree-cleanup/report.md" ] && [ ! -L "$REPO15/.ravenclaude/runs/worktree-cleanup/report.md" ] \
+  && pass "P19g control: a legitimate (non-symlinked) tree still gets a real report file written" \
+  || fail "P19g legitimate report write regressed"
+
+# ── T4: teeth -- remove the BUSY check from execute_all()'s 'clean' branch;
+#    a planted-busy worktree is then removed, proving P17 was real (F3).
+REPO9C="$TMP/repo9c"
+mkdir -p "$REPO9C"
+(cd "$REPO9C" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO9C" worktree add -q -b busy-teeth "$TMP/busy-teeth" main >/dev/null 2>&1
+BUSY_TEETH_REAL="$(cd "$TMP/busy-teeth" && pwd -P)"
+BUSY_TEETH_KEY=""
+if command -v sha256sum >/dev/null 2>&1; then
+  BUSY_TEETH_KEY="$(printf '%s' "$BUSY_TEETH_REAL" | sha256sum | cut -d' ' -f1)"
+elif command -v shasum >/dev/null 2>&1; then
+  BUSY_TEETH_KEY="$(printf '%s' "$BUSY_TEETH_REAL" | shasum -a 256 | cut -d' ' -f1)"
+fi
+mkdir -p "$GUARD_HOME_TEST/sessions/$BUSY_TEETH_KEY"
+printf '{"session_id":"planted2","pid":%s,"ppid":0,"host":"test","branch":"busy-teeth","started_at":0}\n' "$$" \
+  > "$GUARD_HOME_TEST/sessions/$BUSY_TEETH_KEY/planted2.json"
+sed 's/if is_worktree_busy "\$path"; then/if false; then/' "$WTC" > "$TMP/mut-busy.sh"
+if ! cmp -s "$TMP/mut-busy.sh" "$WTC" && bash -n "$TMP/mut-busy.sh" 2>/dev/null; then
+  # ⛔ NOT --no-network: same reason as P17 above -- busy-teeth must
+  # classify "clean" (via the stub `gh` on PATH) so the BUSY check is the
+  # thing actually under test, not an incidental PR-UNKNOWN skip.
+  (cd "$REPO9C" && env PATH="$TMP/bin:$PATH" RC_WORKTREE_GUARD_HOME="$GUARD_HOME_TEST" bash "$TMP/mut-busy.sh" --all --execute >/dev/null 2>&1)
+  [ ! -d "$TMP/busy-teeth" ] && pass "T4 teeth: with the BUSY check neutered, a planted-busy worktree IS removed -- proving P17's skip depends on that check" || fail "T4 teeth: mutant still skipped it -- P17 may be vacuous"
+else
+  fail "T4 setup: could not produce a syntactically-valid mutant (BUSY check line not found as expected)"
+fi
+
+# ── T5: teeth -- remove the PR-UNKNOWN refusal in dispatch_removal(); an
+#    unknown-PR-status worktree is then removed, proving P18 was real (F1).
+REPO11="$TMP/repo11"
+mkdir -p "$REPO11"
+(cd "$REPO11" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO11" worktree add -q -b pr-unknown-teeth "$TMP/pr-unknown-teeth" main >/dev/null 2>&1
+awk '
+  /^    PR-UNKNOWN\)$/ { print; print "      : ;;"; getline; while ($0 !~ /;;$/) { getline }; next }
+  { print }
+' "$WTC" > "$TMP/mut-prunknown.sh"
+if ! cmp -s "$TMP/mut-prunknown.sh" "$WTC" && bash -n "$TMP/mut-prunknown.sh" 2>/dev/null; then
+  (cd "$REPO11" && bash "$TMP/mut-prunknown.sh" --target "$TMP/pr-unknown-teeth" --no-network --force >/dev/null 2>&1)
+  [ ! -d "$TMP/pr-unknown-teeth" ] && pass "T5 teeth: with the PR-UNKNOWN refusal neutered, it is removed -- proving P18 was real" || fail "T5 teeth: mutant did not remove -- P18's refusal may be vacuous"
+else
+  fail "T5 setup: could not locate the PR-UNKNOWN block to neuter"
+fi
+
+# ── T6: teeth -- reproduce the ORIGINAL (pre-fix) report-write shape
+#    verbatim (bare mkdir -p + a single `>` redirection, no symlink checks,
+#    no mktemp+mv) against the SAME planted-symlink fixture as P19a, and
+#    show it DOES clobber the victim -- proving the vulnerability class F2
+#    fixes is real, not hypothetical. This reproduces the reported shape
+#    directly (not a sed-mutant of the live hook) because the fix is two
+#    independent layers (the symlink checks, and mv's non-dereferencing
+#    rename) and either alone already defeats the report.md-is-a-symlink
+#    case -- a true single-point mutant of the live file would not
+#    demonstrate anything here. P19b/d/f already prove the live hook's
+#    actual refusal path has an effect (the symlink survives, unreplaced).
+REPO16="$TMP/repo16"
+mkdir -p "$REPO16"
+(cd "$REPO16" && git init -q . && git config user.email t@t.local && git config user.name tester \
+  && echo hi > f.txt && git add f.txt && git commit -q -m init && git branch -M main) >/dev/null 2>&1
+git -C "$REPO16" worktree add -q -b report-teeth "$TMP/report-teeth" main >/dev/null 2>&1
+VICTIM2="$TMP/victim-teeth.txt"
+printf 'untouched\n' > "$VICTIM2"
+mkdir -p "$REPO16/.ravenclaude/runs/worktree-cleanup"
+ln -s "$VICTIM2" "$REPO16/.ravenclaude/runs/worktree-cleanup/report.md"
+( cd "$REPO16" || exit 1
+  RUN_DIR_PRE="$REPO16/.ravenclaude/runs/worktree-cleanup"
+  mkdir -p "$RUN_DIR_PRE" 2>/dev/null
+  { printf 'CLOBBERED\n'; } > "$RUN_DIR_PRE/report.md" 2>/dev/null
+) >/dev/null 2>&1
+[ "$(cat "$VICTIM2")" = "CLOBBERED" ] && pass "T6 teeth: the pre-fix write shape (bare mkdir -p + single redirection) DOES follow the symlink and clobber the victim -- proving the vulnerability F2 closes was real" || fail "T6 setup: could not reproduce the pre-fix vulnerability shape to prove against"
 
 echo "worktree-clean-lifecycle: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

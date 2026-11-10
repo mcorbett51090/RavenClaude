@@ -18,22 +18,26 @@
 #       Read-only report. Discovers EVERY worktree via `git worktree list
 #       --porcelain` and classifies each one:
 #         clean | DIRTY | IGNORED | DETACHED-unreachable | UNKNOWN-* |
-#         STALE | OPEN-PR | LOCKED | PRUNABLE | MAIN | SELF
+#         STALE | PR-UNKNOWN | OPEN-PR | LOCKED | PRUNABLE | MAIN | SELF
 #       Never mutates anything. --no-network skips the per-branch
 #       `gh pr list` call — a worktree whose PR status could not be checked
-#       is reported honestly ("PR status not checked"), never silently
-#       treated as "no open PR" (see the STALE fold-in note below).
+#       is reported honestly ("PR status not checked") and classified
+#       PR-UNKNOWN, never silently treated as "no open PR" (see the
+#       PR-UNKNOWN classification below).
 #
-#   worktree-clean.sh --all [--execute] [--no-network] [--force-stale]
+#   worktree-clean.sh --all [--execute] [--no-network]
 #       Without --execute: the SAME dry-run report as --status, framed as
 #       what `--all --execute` would do to each entry. This is the default —
 #       dry run is the default for the whole bulk path.
 #       With --execute: performs the unified lifecycle (remove -> prune ->
 #       branch cleanup via cleanup-branches.sh) for every worktree
 #       classified "clean" — never for DIRTY / IGNORED /
-#       DETACHED-unreachable / UNKNOWN-* / STALE / OPEN-PR / LOCKED / the
-#       main worktree / the worktree this process is running in. Also runs
-#       `git worktree prune` for any entry git itself reports PRUNABLE.
+#       DETACHED-unreachable / UNKNOWN-* / STALE / PR-UNKNOWN / OPEN-PR /
+#       LOCKED / the main worktree / the worktree this process is running
+#       in. Also runs `git worktree prune` for any entry git itself reports
+#       PRUNABLE. A "clean" entry is ADDITIONALLY skipped, bulk-only, when
+#       another live session is using it as its cwd (BUSY — see
+#       is_worktree_busy() below); single-target removal is unaffected.
 #       --execute NEVER passes --force to the underlying removal, by design
 #       (the brief: "do not remove without confirmation" for anything
 #       outside plain "clean" — a bulk sweep is exactly the automated path
@@ -45,7 +49,8 @@
 #       WT_ROOT containment as the original script (unchanged). Performs the
 #       unified lifecycle live (remove -> prune -> branch cleanup). --force
 #       is honored only for DIRTY / IGNORED / DETACHED-unreachable / STALE;
-#       UNKNOWN-* / OPEN-PR / LOCKED / MAIN / SELF refuse even with --force.
+#       UNKNOWN-* / PR-UNKNOWN / OPEN-PR / LOCKED / MAIN / SELF refuse even
+#       with --force.
 #
 #   worktree-clean.sh --target <path> [--force]
 #       Same removal semantics as <slug>, but addresses any worktree
@@ -97,18 +102,27 @@
 #                 same contract as IGNORED/DETACHED-unreachable.
 #                 ⛔ An UNVERIFIABLE open-PR status (--no-network / gh
 #                 absent) is deliberately NOT, by itself, grounds for
-#                 STALE — only commit age decides that. A recent commit
-#                 whose PR status could not be checked classifies "clean"
-#                 (no negative evidence found; cleanup-branches.sh's own
-#                 "fails safe, not closed" precedent for an unverifiable PR
-#                 when another signal already clears the branch — here the
-#                 other signal is age); an OLD commit with the same
-#                 unverifiable status is STALE, because age alone already
-#                 flags it. Folding the PR-unknown NOTE into whichever
-#                 token age decided (rather than inventing a sixth
-#                 top-level class) keeps the force/bulk-skip contract keyed
-#                 on ONE axis, with the uncertainty carried in the detail
-#                 text either way.
+#                 STALE — only commit age decides that. An OLD commit with
+#                 unverifiable PR status is STALE (age alone already flags
+#                 it, same as a known-clear PR); a RECENT commit with
+#                 unverifiable PR status is its own class, PR-UNKNOWN (see
+#                 below) — it is NOT folded into "clean" the way an earlier
+#                 revision of this file did (AppSec finding F1, 2026-11-10):
+#                 that let --no-network / a missing-or-unauthenticated `gh`
+#                 remove a worktree whose branch might have an open PR,
+#                 without ever checking.
+#   PR-UNKNOWN  — a branch whose open-PR status could not be verified
+#                 (--no-network, `gh` absent, `gh` unauthenticated, or `gh`
+#                 itself failing) AND whose commit is recent enough that age
+#                 alone would not already flag it STALE. Refuses removal
+#                 UNCONDITIONALLY — EVEN WITH --force, same contract as
+#                 OPEN-PR/UNKNOWN/LOCKED — because "we could not check" is
+#                 not "we checked and it's clear"; unknown PR status is
+#                 never, by itself, a removal path, in any mode, bulk or
+#                 single-target. Skipped under --all --execute, same as
+#                 OPEN-PR. Retry without --no-network, or once `gh` is
+#                 available/authenticated, to let it resolve to `clean` or
+#                 `OPEN-PR` for real.
 #   LOCKED      — `git worktree lock` or the admin `locked` file. Refuses
 #                 unconditionally — no --force escape (unlock first:
 #                 `git worktree unlock <path>`).
@@ -120,6 +134,21 @@
 #   MAIN / SELF — the primary checkout, and the worktree this process is
 #                 currently running in, respectively. Never touched, no
 #                 force escape, ever.
+#   BUSY        — (bulk-only, --all --execute) a "clean" worktree that
+#                 another LIVE session is using as its cwd, per the
+#                 existing worktree-guard.sh SessionStart registry
+#                 (reused, not reinvented — same PATH_KEY=sha256(realpath)
+#                 keying plus kill-0(pid)-and-mtime liveness contract that
+#                 file already uses, so a worktree registered by a live
+#                 session there is honored here with no second heuristic).
+#                 Skipped under --all --execute so a bulk sweep can't pull
+#                 a worktree out from under another live session. NOT a
+#                 top-level classification token — it never shows up in
+#                 --status/classify_all's RESULT_TOKEN; it is checked only
+#                 at the moment execute_all() is about to remove a "clean"
+#                 entry. Single-target removal is unaffected: addressing a
+#                 worktree by <slug>/--target is already the explicit,
+#                 individually-named human action the brief carves out.
 #
 # Never uses --force on the underlying git call for a class this file
 # doesn't explicitly decide to; never invents a second `git branch -D`
@@ -680,19 +709,23 @@ classify_all() {
               pr="$(branch_open_pr_count "$branch")"
               age="$(branch_last_commit_age_days "$path")"
             fi
-            # ⛔ "PR status unknown" is NOT, by itself, grounds for STALE.
-            # --no-network means the operator explicitly said "don't check" —
-            # treating that as automatically stale would make --no-network
-            # useless for legitimate offline cleanup (cleanup-branches.sh's own
-            # documented precedent: an unverifiable PR fails SAFE, not CLOSED,
-            # when another signal already clears the branch). Here the "another
-            # signal" is commit AGE: a recent commit with unconfirmed PR status
-            # is "clean" (we have no negative evidence); an OLD commit with
-            # unconfirmed PR status is "STALE" (age alone already flags it) —
-            # the PR-unknown note just rides along in the detail text either way.
-            # An UNDETERMINABLE age (git log itself failed) is treated as STALE,
-            # not clean — the one case this errs cautious, because "clean" here
-            # would mean asserting freshness we could not actually measure.
+            # ⛔ "PR status unknown" is NOT, by itself, grounds for STALE —
+            # but it is ALSO never, by itself, grounds for "clean" (AppSec
+            # finding F1, 2026-11-10: a prior revision of this file DID treat
+            # a recent commit with unconfirmed PR status as "clean", which let
+            # --no-network / a missing-or-unauthenticated `gh` remove a
+            # worktree whose branch might have an open PR, without ever
+            # checking — in single-target mode EVEN WITH --force, and in bulk
+            # under --all --execute). An UNVERIFIABLE PR status is now its
+            # own class, PR-UNKNOWN, reached only when age does not already
+            # decide the outcome: an OLD commit with unconfirmed PR status is
+            # still "STALE" (age alone already flags it — --no-network stays
+            # useful for legitimate offline cleanup of genuinely old work);
+            # a RECENT commit with unconfirmed PR status is "PR-UNKNOWN", not
+            # "clean" — unknown is never treated as clear. An UNDETERMINABLE
+            # age (git log itself failed) is treated as STALE, not clean — the
+            # one case this errs cautious, because "clean" here would mean
+            # asserting freshness we could not actually measure.
             if [ -n "$branch" ] && [ "$pr" != "unknown" ] && [ "$pr" -gt 0 ] 2>/dev/null; then
               token="OPEN-PR"
               detail="branch '$branch' has $pr open PR(s)"
@@ -706,12 +739,13 @@ classify_all() {
               else
                 detail="last commit ${age}d ago (threshold ${STALE_DAYS}d), no open PR"
               fi
+            elif [ -n "$branch" ] && [ "$pr" = "unknown" ]; then
+              token="PR-UNKNOWN"
+              detail="last commit ${age}d ago; PR status could not be verified (--no-network, gh absent, or gh unauthenticated) — refuses removal, even with --force, until status is known"
             else
               token="clean"
               if [ -z "$branch" ]; then
                 detail="detached at a reachable ref — loses nothing"
-              elif [ "$pr" = "unknown" ]; then
-                detail="last commit ${age}d ago; PR status not checked (--no-network or gh unavailable)"
               else
                 detail="no open PR, last commit ${age}d ago"
               fi
@@ -824,6 +858,11 @@ dispatch_removal() { # $1=idx $2=force("" or "--force") $3=dry_run(0/1)
       printf '       removing the worktree while its branch is under active review is not\n' >&2
       printf '       a considered-risk case the way a dirty/ignored/detached tree is.\n' >&2
       return 1 ;;
+    PR-UNKNOWN)
+      printf 'error: %s — %s. Refusing to remove, even with --force:\n' "$(printf '%s' "$path" | sanitize)" "$detail" >&2
+      printf '       PR status could not be verified, so it is never treated as clear —\n' >&2
+      printf '       retry without --no-network, or once \`gh\` is available/authenticated.\n' >&2
+      return 1 ;;
     DIRTY)
       if [ "$force" != "--force" ]; then
         printf 'error: %s has uncommitted changes; pass --force to remove anyway\n' "$(printf '%s' "$path" | sanitize)" >&2
@@ -861,6 +900,56 @@ dispatch_removal() { # $1=idx $2=force("" or "--force") $3=dry_run(0/1)
   remove_and_cleanup "$path" "$branch" "$dry_run" "$force"
 }
 
+# Best-effort check: is another LIVE session already using worktree $1 as its
+# cwd? Reuses the EXISTING worktree-guard.sh SessionStart registry rather than
+# inventing a second liveness mechanism — same PATH_KEY=sha256(realpath(dir))
+# keying, same kill-0(pid)-AND-mtime-within-TTL liveness contract that file
+# already uses for its own CONTENTION/LEASE checks. A session that has been
+# working inside $1 as its cwd will have already registered a live record
+# there via that hook's own `register` subcommand; this just reads it.
+#
+# FAILS OPEN (prints nothing, returns 1 = "not busy") whenever it cannot tell:
+# no hashing tool, no registry directory, no jq AND the no-jq fallback grep
+# also finds nothing parseable. This is deliberate — the brief warns against
+# "a fragile heuristic that false-positives the bulk skip on every idle
+# worktree"; failing open means an inability to check never turns into an
+# over-eager skip of a genuinely idle, removable worktree. It can only ever
+# make --all --execute LESS aggressive, never more.
+is_worktree_busy() { # $1=path -> 0=busy (another live session registered), 1=not busy/unknown
+  local path="$1" real key home sess_dir f pid m now ttl
+  real="$(cd "$path" 2>/dev/null && pwd -P)" || return 1
+  [ -n "$real" ] || return 1
+  if command -v sha256sum >/dev/null 2>&1; then
+    key="$(printf '%s' "$real" | sha256sum 2>/dev/null | cut -d' ' -f1)"
+  elif command -v shasum >/dev/null 2>&1; then
+    key="$(printf '%s' "$real" | shasum -a 256 2>/dev/null | cut -d' ' -f1)"
+  else
+    return 1
+  fi
+  [ -n "$key" ] || return 1
+  home="${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard}"
+  sess_dir="$home/sessions/$key"
+  [ -d "$sess_dir" ] || return 1
+  ttl="${RC_WORKTREE_GUARD_STALE_TTL:-900}"
+  case "$ttl" in ''|*[!0-9]*) ttl=900 ;; esac
+  now="$(date +%s 2>/dev/null || printf '0')"
+  for f in "$sess_dir"/*.json; do
+    [ -f "$f" ] || continue
+    if command -v jq >/dev/null 2>&1; then
+      pid="$(jq -r '.pid // empty' "$f" 2>/dev/null)"
+    else
+      pid="$(grep -o '"pid"[[:space:]]*:[[:space:]]*[0-9]*' "$f" 2>/dev/null | head -1 | grep -o '[0-9]*$')"
+    fi
+    case "$pid" in ''|*[!0-9]*) continue ;; esac
+    kill -0 "$pid" 2>/dev/null || continue
+    m="$(stat -c %Y "$f" 2>/dev/null)" || m="$(stat -f %m "$f" 2>/dev/null)"
+    case "$m" in ''|*[!0-9]*) continue ;; esac
+    [ $(( now - m )) -le "$ttl" ] || continue
+    return 0
+  done
+  return 1
+}
+
 # The bulk path: applied ONLY to entries classify_all() marked "clean" — a
 # bulk sweep NEVER forces a flagged class past a human, by design (see the
 # header comment on why --all defaults to dry-run and --execute never forces).
@@ -874,11 +963,15 @@ execute_all() {
       PRUNABLE)
         printf '  pruning (gone from disk): %s (%s)\n' "$(printf '%s' "$path" | sanitize)" "${RESULT_DETAIL[$idx]}"
         ;;
-      DIRTY|IGNORED|DETACHED-unreachable|UNKNOWN-*|STALE|OPEN-PR|LOCKED)
+      DIRTY|IGNORED|DETACHED-unreachable|UNKNOWN-*|STALE|PR-UNKNOWN|OPEN-PR|LOCKED)
         printf '  skipped %s (%s): %s\n' "$(printf '%s' "$path" | sanitize)" "$token" "${RESULT_DETAIL[$idx]}"
         ;;
       clean)
-        remove_and_cleanup "$path" "${PW_BRANCH[$idx]}" 0 "" || true
+        if is_worktree_busy "$path"; then
+          printf '  skipped %s (BUSY): another live session appears to be using this worktree (worktree-guard registry)\n' "$(printf '%s' "$path" | sanitize)"
+        else
+          remove_and_cleanup "$path" "${PW_BRANCH[$idx]}" 0 "" || true
+        fi
         ;;
       *)
         printf '  skipped %s (unrecognized "%s")\n' "$(printf '%s' "$path" | sanitize)" "$token" >&2
@@ -915,6 +1008,16 @@ cmd_all() { # $1=execute(0/1)
     print_report
     echo
     echo "Only 'clean' entries above would be removed; every other state is skipped, as shown."
+    local idx2=0 n2=${#PW_PATH[@]} busy_noted=0
+    while [ "$idx2" -lt "$n2" ]; do
+      if [ "${RESULT_TOKEN[$idx2]}" = "clean" ] && is_worktree_busy "${PW_PATH[$idx2]}"; then
+        if [ "$busy_noted" -eq 0 ]; then
+          echo "Note: at least one 'clean' entry above is currently in use by another live session and would be skipped (BUSY), not removed, under --execute too."
+          busy_noted=1
+        fi
+      fi
+      idx2=$((idx2 + 1))
+    done
   fi
 }
 

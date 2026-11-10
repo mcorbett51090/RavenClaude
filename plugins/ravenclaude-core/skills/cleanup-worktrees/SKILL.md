@@ -58,9 +58,10 @@ or the Team Lead discovers there is cleanup to do; nothing auto-executes.
 ## Classification
 
 - **clean** — safe to remove with no flag. Requires a *positive* signal: no
-  uncommitted/untracked/ignored content, no open PR on its branch (or, absent
-  network/`gh`, no evidence either way **and** a recent commit — see Stale),
-  and not detached-unreachable/locked/prunable.
+  uncommitted/untracked/ignored content, a **confirmed** absence of an open
+  PR on its branch (not merely an unchecked one — see PR-UNKNOWN below), and
+  not detached-unreachable/locked/prunable. Under `--all --execute` a
+  `clean` entry is additionally skipped if it's BUSY (below).
 - **DIRTY** — uncommitted changes. Refuses; `--force` removes anyway.
 - **UNKNOWN** — the tree could not be inspected (`git status` failed, or
   succeeded against an ancestor, or is unreadable). ⛔ This is **not** a third
@@ -112,21 +113,32 @@ or the Team Lead discovers there is cleanup to do; nothing auto-executes.
   determined at all. **Flag only** — never auto-removed under
   `--all --execute`; a single-target removal needs `--force`, same contract
   as IGNORED/DETACHED-unreachable. ⛔ An *unverifiable* open-PR status
-  (`--no-network`, or `gh` simply absent) is deliberately **not, by itself**,
-  grounds for STALE — only commit age decides that. A recent commit whose PR
-  status could not be checked still classifies `clean` (no negative evidence
-  found — the same "fails safe, not closed" precedent `cleanup-branches.sh`
-  already applies to an unverifiable PR once another signal clears the
-  branch; here the other signal is age); an *old* commit with the same
-  unverifiable status is STALE, because age alone already flags it.
-- **OPEN-PR** — the worktree's branch has an open PR (checked via `gh`, unless
-  `--no-network`). Refuses, **even with `--force`** — unlike IGNORED/STALE,
-  this isn't a "we can see the risk and accept it" case; the branch's review
-  thread is still live. (The worktree directory itself isn't what closes a
-  PR — its *branch* is, and `cleanup-branches.sh`'s own open-PR veto is the
-  thing that actually protects that, downstream, in the unified lifecycle
-  below — this class exists so the worktree isn't pulled out from under an
-  in-review branch either.)
+  (`--no-network`, or `gh` simply absent/unauthenticated) is deliberately
+  **not, by itself**, grounds for STALE — only commit age decides that. An
+  *old* commit with unverifiable PR status is still STALE (age alone already
+  flags it); a *recent* commit with unverifiable PR status is its own class,
+  **PR-UNKNOWN** (below) — it is **not** treated as `clean` (AppSec finding
+  F1, 2026-11-10: an earlier revision of this tool *did* classify that case
+  `clean`, which let `--no-network` or a missing/unauthenticated `gh` remove
+  a worktree whose branch might have an open PR, without ever checking —
+  including under `--force`, and including in bulk under `--all --execute`).
+- **PR-UNKNOWN** — a branch whose open-PR status could not be verified
+  (`--no-network`, `gh` absent, `gh` unauthenticated, or `gh` itself failing)
+  and whose commit is recent enough that age alone would not already flag it
+  STALE. Refuses removal **unconditionally — even with `--force`**, same
+  contract as OPEN-PR/UNKNOWN/LOCKED: "we could not check" is never treated
+  as "we checked and it's clear." Skipped under `--all --execute`, same as
+  OPEN-PR. Retry without `--no-network`, or once `gh` is
+  available/authenticated, to let it resolve to `clean` or `OPEN-PR` for
+  real.
+- **OPEN-PR** — the worktree's branch has a *confirmed* open PR (checked via
+  `gh`, with network access). Refuses, **even with `--force`** — unlike
+  IGNORED/STALE, this isn't a "we can see the risk and accept it" case; the
+  branch's review thread is still live. (The worktree directory itself isn't
+  what closes a PR — its *branch* is, and `cleanup-branches.sh`'s own
+  open-PR veto is the thing that actually protects that, downstream, in the
+  unified lifecycle below — this class exists so the worktree isn't pulled
+  out from under an in-review branch either.)
 - **LOCKED** — `git worktree lock` (or the admin `locked` file). Refuses
   unconditionally, no `--force` escape. Unlock first: `git worktree unlock
   <path>`.
@@ -135,6 +147,18 @@ or the Team Lead discovers there is cleanup to do; nothing auto-executes.
   remove` — handled as its own case, not folded into UNKNOWN.
 - **MAIN / SELF** — the primary checkout, and the worktree the process is
   currently running in. Never touched, no force escape, ever.
+- **BUSY** — (`--all --execute` only, AppSec finding F3, 2026-11-10) a
+  `clean` worktree that another **live** session is using as its cwd, per
+  [`worktree-guard.sh`](../../hooks/worktree-guard.sh)'s existing
+  SessionStart registry — reused, not reinvented: the same
+  `sha256(realpath(dir))` keying and `kill -0(pid)`-and-mtime-within-TTL
+  liveness contract that file already uses for its own CONTENTION/LEASE
+  checks. Skipped under `--all --execute` so a bulk sweep can't pull a
+  worktree out from under another live session. Not a `--status` token —
+  it's checked only at the moment a bulk removal is about to happen. A
+  single `<slug>`/`--target` removal is unaffected: addressing a worktree by
+  name is already the explicit, individually-named human action the force
+  contract above governs.
 
 ## The unified lifecycle
 

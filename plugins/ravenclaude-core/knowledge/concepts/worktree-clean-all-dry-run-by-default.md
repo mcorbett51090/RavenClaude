@@ -10,7 +10,7 @@ last_verified: 2026-11-10
 covers:
   - plugins/ravenclaude-core/scripts/worktree-clean.sh
   - plugins/ravenclaude-core/scripts/worktree-cleanup-report.sh
-covers_digest: "sha256:a9b0b1456e5c85b352d7eee67e51a896212511eb17547f7e20a111ffd1b4764c"
+covers_digest: "sha256:54c3e56ca08066bcdeabec0115a64e8ef1e9ae32626b08fd852650c4a5bd793d"
 nuance: "Unlike a typical bulk-cleanup command, `--all` alone never removes anything — it only PREVIEWS what `--execute` would do, worktree by worktree; the SessionEnd report hook reuses that same preview mode, so it can run on every session close without ever mutating a worktree."
 nuance_evidence:
   measured: 2026-11-10

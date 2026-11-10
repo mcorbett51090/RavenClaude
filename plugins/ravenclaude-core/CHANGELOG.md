@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.361.1 — 2026-11-10
+
+### Fixed
+- **AppSec hardening for the worktree + branch cleanup lifecycle shipped in 0.361.0 (SHIP-with-conditions verdict, 3 findings, all closed).**
+  - **F2 (Medium, pre-merge condition) — the SessionEnd report write followed symlinks.** `worktree-cleanup-report.sh` wrote `> "$RUN_DIR/report.md"` with no symlink check anywhere on the path; a repo that committed `.ravenclaude/runs/worktree-cleanup/report.md` (or a parent directory, or `.ravenclaude` itself) as a symlink got the target clobbered automatically at every session end. Now refuses a symlink on any existing path component under `.ravenclaude`, re-verifies containment after `mkdir -p`, and writes a `mktemp`'d sibling file that's `mv`'d into place (a same-filesystem `mv` is a `rename(2)`, which replaces a symlink's own directory entry rather than dereferencing it — so even a `report.md` planted as a symlink can't be written through). Fail-safe exit-0 contract for SessionEnd is unchanged.
+  - **F1 (Low) — unknown open-PR status failed open.** `branch_open_pr_count` returning `unknown` (`--no-network`, `gh` absent, or `gh` unauthenticated/failing) let a recent-commit worktree classify as `clean`, so a single `--target`/`<slug>` removal — including with `--force` — and bulk `--all --execute` could both remove a worktree whose branch might have an open PR, without ever checking. A new `PR-UNKNOWN` classification now covers exactly this case: refuses removal unconditionally, even with `--force`, and is skipped under `--all --execute` — unknown PR status is never, by itself, a removal path. An old commit with unverifiable PR status still classifies `STALE` (age alone already flags it); only the recent-commit case moves.
+  - **F3 (Low) — bulk cleanup had no live-session awareness.** `--all --execute` could remove a `clean` worktree another live session was using as its cwd. Reuses the existing `worktree-guard.sh` SessionStart registry (same `sha256(realpath(dir))` keying and `kill -0(pid)`-and-mtime-within-TTL liveness contract that file already uses) rather than inventing a second heuristic — a `clean` worktree registered by a live session there is now skipped (BUSY) under `--all --execute`, with a matching note in the dry-run preview. Single-target removal is unaffected (an explicit, individually-named human action).
+  - **Independent reviewer nit** — dropped the never-implemented `--force-stale` flag from `worktree-clean.sh`'s usage header.
+  - Gate 308 (`hooks/tests/test-worktree-clean-lifecycle.sh`) grew from 50 to 72 assertions: the BUSY skip + a no-registration control, the full PR-UNKNOWN fail-closed matrix (`--no-network`, `gh` absent, single-target with/without `--force`, bulk), the three symlink-refusal shapes (report.md itself / its parent dir / `.ravenclaude` itself) plus a legitimate-write control, and three new teeth tests proving each fix has real effect.
+
 ## 0.361.0 — 2026-11-10
 
 ### Added
