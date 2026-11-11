@@ -27,16 +27,42 @@ ROOT="$T/worktree"
 mkdir -p "$ROOT"
 
 # Literal "<<" is never written as source text in this added section (Door 5).
-_HD="$(python3 -c 'import sys; sys.stdout.write(chr(60)*2)')"
+# Built with printf octal so the two-character sequence is not in this file's
+# source. Fail loud if the opener cannot be produced: an empty _HD would
+# silently drop the opener from every later payload and the helper would
+# return 0 (allow) instead of 3, which can surface as a fixture-level exit 1.
+# (The #1424 macOS shard 1 log at d94f38d0 reported this fixture exit 1 in
+# 1.4s with output discarded, so the failing case was not named.)
+_HD="$(printf '\074\074')" || {
+  echo "FAIL HARNESS: printf could not build the heredoc opener" >&2
+  exit 1
+}
+if [ "${#_HD}" -ne 2 ]; then
+  echo "FAIL HARNESS: heredoc opener was not two characters (got ${#_HD})" >&2
+  exit 1
+fi
 
 PASS=0
 FAIL=0
 
 # $1=name $2=expected-exit $3=command (fed on stdin); argv is ROOT ROOT.
+# Locals are initialized before use: bash 3.2 `local got out` leaves them unset,
+# and with `set -u` a later expansion can abort the fixture with exit 1 and no
+# per-case FAIL line. That matches the #1424 macOS shard 1 log at d94f38d0
+# (Gate 309 interpreter fixture returned exit 1 in 1.4s; output was discarded).
+# The same run() + set -uo pipefail passed on that image for the 13 older cases
+# at f665d863, so the abort was in the #1424-added delimiter/invocation cases
+# or in bash 3.2's handling of their locals. Initialize; record rc via `|| got=$?`
+# so a non-zero helper exit cannot trip set -e if it is later added; print a
+# FAIL line instead of dying silently.
 run() {
-  local name="$1" want="$2" body="$3" got out
-  out="$(printf '%s' "$body" | python3 "$PY" "$ROOT" "$ROOT" 2>&1)"
-  got=$?
+  local name want body got out
+  name="$1"
+  want="$2"
+  body="$3"
+  got=0
+  out=""
+  out="$(printf '%s' "$body" | python3 "$PY" "$ROOT" "$ROOT" 2>&1)" || got=$?
   if [ "$got" = "$want" ]; then
     PASS=$((PASS + 1)); printf '  \033[32m✓\033[0m %s (rc=%s)\n' "$name" "$got"
   else
