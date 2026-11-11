@@ -2174,20 +2174,56 @@ PY
       # ⛔ `< /dev/null` is load-bearing (see Gate 140): these fixtures drive
       # worktree-guard.sh, which reads stdin. An inherited-but-never-closed
       # pipe is the documented hang. Keep stdout/stderr so a per-case timeout
-      # in fail-closed can name the hung case. Outer _rc_timeout is a backstop
-      # if the hang is before the first case (parser/setup).
-      # shellcheck source=/dev/null
-      . plugins/ravenclaude-core/hooks/_portable.sh
-      _wg309_timeout=60
+      # in fail-closed can name the hung case. Outer parent-kills-child
+      # watchdog is a backstop if the hang is before the first case
+      # (parser/setup) or in a harness step that is not itself wrapped.
+      # Parent-kills-child watchdog. Do not use _portable.sh _rc_timeout here:
+      # on stock macOS that is `perl -e 'alarm shift; exec @ARGV'`, and after
+      # exec of bash the pending SIGALRM does not bound the child (637b7e29:
+      # 15s and 60s perl-alarm ceilings never fired; shard 1 ran to the
+      # 30-minute job cap). Keep _portable.sh pinned; this is harness-only.
+      _wg309_watchdog() {
+        local _secs="$1"
+        shift
+        if command -v timeout >/dev/null 2>&1; then
+          timeout "${_secs}s" "$@"
+          return $?
+        fi
+        if command -v gtimeout >/dev/null 2>&1; then
+          gtimeout "${_secs}s" "$@"
+          return $?
+        fi
+        perl -e '
+          my $s = shift @ARGV;
+          my $pid = fork();
+          if (!defined $pid) { exit 127; }
+          if ($pid == 0) { setpgrp(0, 0); exec @ARGV or exit 127; }
+          $SIG{ALRM} = sub {
+            kill "TERM", -$pid;
+            select(undef, undef, undef, 0.5);
+            kill "KILL", -$pid;
+            waitpid $pid, 0;
+            exit 124;
+          };
+          alarm $s;
+          waitpid $pid, 0;
+          my $c = $?;
+          alarm 0;
+          if (($c & 127) == 15 || ($c & 127) == 9) { exit 124; }
+          if ($c & 127) { exit 128 + ($c & 127); }
+          exit $c >> 8;
+        ' "$_secs" "$@"
+      }
+      _wg309_timeout=90
       rc=0
-      _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh < /dev/null || rc=$?
-      case "$rc" in 124|142) echo "  timeout: interpreter fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
-      _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh < /dev/null || rc=$?
-      case "$rc" in 124|142) echo "  timeout: fail-closed fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
-      _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh < /dev/null || rc=$?
-      case "$rc" in 124|142) echo "  timeout: redos fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
-      _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh < /dev/null || rc=$?
-      case "$rc" in 124|142) echo "  timeout: delimiter fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
+      _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: interpreter fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
+      _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: fail-closed fixture exceeded ${_wg309_timeout}s (last HARNESS/HOOK line names the layer)" >&2; rc=1 ;; esac
+      _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: redos fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
+      _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: delimiter fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
       exit $rc
       ;;
     *)
@@ -7327,22 +7363,58 @@ echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK
 # is the documented hang that previously stalled macOS shard 1 until the
 # 30-minute job cap, with output discarded so the hung case was invisible.
 # Keep stdout/stderr so the fixture's BEGIN/TIMEOUT lines reach the log,
-# including any interpreter-fixture failure. Outer _rc_timeout is a backstop
-# if the hang is before the first case.
-# shellcheck source=/dev/null
-. plugins/ravenclaude-core/hooks/_portable.sh
-_wg309_timeout=60
-rc=0; _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh < /dev/null || rc=$?
-case "$rc" in 124|142) echo "  timeout: interpreter fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
+# including any interpreter-fixture failure. Outer parent-kills-child
+# watchdog is a backstop if the hang is before the first case or in a
+# harness step that is not itself wrapped.
+# Parent-kills-child watchdog. Do not use _portable.sh _rc_timeout here:
+# on stock macOS that is `perl -e 'alarm shift; exec @ARGV'`, and after
+# exec of bash the pending SIGALRM does not bound the child (637b7e29:
+# 15s and 60s perl-alarm ceilings never fired; shard 1 ran to the
+# 30-minute job cap). Keep _portable.sh pinned; this is harness-only.
+_wg309_watchdog() {
+  local _secs="$1"
+  shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "${_secs}s" "$@"
+    return $?
+  fi
+  if command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "${_secs}s" "$@"
+    return $?
+  fi
+  perl -e '
+    my $s = shift @ARGV;
+    my $pid = fork();
+    if (!defined $pid) { exit 127; }
+    if ($pid == 0) { setpgrp(0, 0); exec @ARGV or exit 127; }
+    $SIG{ALRM} = sub {
+      kill "TERM", -$pid;
+      select(undef, undef, undef, 0.5);
+      kill "KILL", -$pid;
+      waitpid $pid, 0;
+      exit 124;
+    };
+    alarm $s;
+    waitpid $pid, 0;
+    my $c = $?;
+    alarm 0;
+    if (($c & 127) == 15 || ($c & 127) == 9) { exit 124; }
+    if ($c & 127) { exit 128 + ($c & 127); }
+    exit $c >> 8;
+  ' "$_secs" "$@"
+}
+_wg309_timeout=90
+rc=0; _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: interpreter fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
 gate "worktree-guard-bash.py: interpreter heredocs (python/node/perl/ruby/php/deno/bun) are scanned, not blanked (+ teeth)" must_pass "$rc"
-rc=0; _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh < /dev/null || rc=$?
-case "$rc" in 124|142) echo "  timeout: fail-closed fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
+rc=0; _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: fail-closed fixture exceeded ${_wg309_timeout}s (last HARNESS/HOOK line names the layer)" >&2; rc=1 ;; esac
 gate "worktree-guard fail-closed suite (incl. the AppSec F1 repros at hook level, exit 2) — now actually registered" must_pass "$rc"
-rc=0; _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh < /dev/null || rc=$?
-case "$rc" in 124|142) echo "  timeout: redos fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
+rc=0; _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: redos fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
 gate "worktree-guard-bash.py: heredoc ReDoS fail-closed (input cap, linear scanner, alarm exit 4, hook timeout) — AppSec N1" must_pass "$rc"
-rc=0; _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh < /dev/null || rc=$?
-case "$rc" in 124|142) echo "  timeout: delimiter fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
+rc=0; _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: delimiter fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
 gate "worktree-guard-bash.py: full-word heredoc delimiters (EOF-X/'EOF'X/END-MSG/…) — AppSec R1" must_pass "$rc"
 
 
