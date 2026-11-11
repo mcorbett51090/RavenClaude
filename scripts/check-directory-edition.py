@@ -26,7 +26,12 @@ MUST-FAIL HALVES (a check that cannot fail proves nothing)
       posture test removed, and behind a gate with the TRUST test removed, is not - so each property comes
       from the gate and the harness can see it go
   M3  a hook that runs `python3 -c` from the project directory is classified unsafe (a planted module in the
-      project root is imported); the same hook with `-I` is safe
+      project root is imported); the same hook with `-I` is safe. Each cwd-importing spelling (a path to
+      the interpreter, -c glued to its code, an option argument, a pipe, a bare interpreter, a
+      backslash-newline, and a shell prefix (`then`/`do`/`{`/`exec`/`sudo`, `if`/`while`/`until`/`!`
+      as the condition command, a prefix flag with a separate value (`sudo -u someuser`/`nice -n 5`/
+      `env -u VAR`), or a wrapper that runs the interpreter (`xargs`/`timeout`))
+      is a build refusal. `command -v`, `which`, and `type` look a name up and are allowed
   M4  the same workflow with its pluginRoot validation neutered starts without a root, so check 5 can fail
   M5  a hook that runs git in the payload's cwd executes a vendored repository's core.fsmonitor and is
       classified unsafe (H7); the same hook at the project root with core.fsmonitor=false is safe
@@ -335,6 +340,85 @@ def must_fail_python_cwd(dist: Path) -> None:
             bool(good.get("hostile_safe")),
             "; ".join(good.get("hostile_reasons", [])),
         )
+        # Build refusal (the detector), not the runtime import. The runtime pair above stays.
+        # Separate-token wrapper flags and xargs/timeout are the spellings a one-token flag
+        # skip misses. which/type are lookups, same as command -v.
+        manifest = build.load_manifest(build.DEFAULT_MANIFEST)
+        planted = plug / "hooks" / "zz-py-form.sh"
+        forms = (
+            ("/usr/bin/python3 -c", "/usr/bin/python3 -c 'import shlex'"),
+            ("./python3 -c", "./python3 -c 'import shlex'"),
+            ("/usr/bin/env python3 -c", "/usr/bin/env python3 -c 'import shlex'"),
+            ("env python3 -c", "env python3 -c 'import shlex'"),
+            ("python -c", "python -c 'import shlex'"),
+            ("python3 -c glued", "python3 -c'import shlex'"),
+            ("python3 -c double-quoted", 'python3 -c"import shlex"'),
+            ("python3 -Bc", "python3 -Bc 'import shlex'"),
+            ("python3 -uc", "python3 -uc 'import shlex'"),
+            ("python3 -W ignore -c", "python3 -W ignore -c 'import shlex'"),
+            ("python3 -X dev -c", "python3 -X dev -c 'import shlex'"),
+            ("python3 -O -m", "python3 -O -m json.tool"),
+            ("cmd | python3", "cmd | python3"),
+            ("bare python3", "python3"),
+            ("python3 -", "python3 -"),
+            ("python3 <<EOF", "python3 <<EOF"),
+            ("backslash-newline", "python3 \\\n -c 'import shlex'"),
+            ("if-then python3 -c", "if x; then python3 -c 'y'; fi"),
+            ("{ python3 -c }", "{ python3 -c 'y'; }"),
+            ("exec python3 -c", "exec python3 -c 'y'"),
+            ("while-do python3 -c", "while true; do python3 -c 'y'; done"),
+            ("sudo python3 -c", "sudo python3 -c 'y'"),
+            ("if-cond python3 -c", "if python3 -c 'y'; then :; fi"),
+            ("while-cond python3 -c", "while python3 -c 'y'; do :; done"),
+            ("until-cond python3 -c", "until python3 -c 'y'; do :; done"),
+            ("bang python3 -c", "! python3 -c 'y'"),
+            ("sudo -E python3 -c", "sudo -E python3 -c 'y'"),
+            ("env -i python3 -c", "env -i python3 -c 'y'"),
+            ("nice -n5 python3 -c", "nice -n5 python3 -c 'y'"),
+            ("time -p python3 -c", "time -p python3 -c 'y'"),
+            ("sudo -u someuser python3 -c", "sudo -u someuser python3 -c 'y'"),
+            ("nice -n 5 python3 -c", "nice -n 5 python3 -c 'y'"),
+            ("env -u VAR python3 -c", "env -u VAR python3 -c 'y'"),
+            ("xargs python3 -c", "xargs python3 -c 'y'"),
+            ("timeout 5 python3 -c", "timeout 5 python3 -c 'y'"),
+        )
+        iso_forms = (
+            ("if-then python3 -I -c", "if x; then python3 -I -c 'y'; fi"),
+            ("{ python3 -I -c }", "{ python3 -I -c 'y'; }"),
+            ("exec python3 -I -c", "exec python3 -I -c 'y'"),
+            ("while-do python3 -I -c", "while true; do python3 -I -c 'y'; done"),
+            ("sudo python3 -I -c", "sudo python3 -I -c 'y'"),
+            ("if-cond python3 -I -c", "if python3 -I -c 'y'; then :; fi"),
+            ("while-cond python3 -I -c", "while python3 -I -c 'y'; do :; done"),
+            ("until-cond python3 -I -c", "until python3 -I -c 'y'; do :; done"),
+            ("bang python3 -I -c", "! python3 -I -c 'y'"),
+            ("sudo -E python3 -I -c", "sudo -E python3 -I -c 'y'"),
+            ("env -i python3 -I -c", "env -i python3 -I -c 'y'"),
+            ("nice -n5 python3 -I -c", "nice -n5 python3 -I -c 'y'"),
+            ("time -p python3 -I -c", "time -p python3 -I -c 'y'"),
+            ("sudo -u someuser python3 -I -c", "sudo -u someuser python3 -I -c 'y'"),
+            ("nice -n 5 python3 -I -c", "nice -n 5 python3 -I -c 'y'"),
+            ("env -u VAR python3 -I -c", "env -u VAR python3 -I -c 'y'"),
+            ("xargs python3 -I -c", "xargs python3 -I -c 'y'"),
+            ("timeout 5 python3 -I -c", "timeout 5 python3 -I -c 'y'"),
+            ("command -v python3", "command -v python3"),
+            ("which python3", "which python3"),
+            ("type python3", "type python3"),
+        )
+        try:
+            for label, body in forms:
+                planted.write_text("#!/usr/bin/env bash\n" + body + "\n")
+                findings = build.hygiene_findings(plug, manifest)
+                hit = [item for item in findings if "zz-py-form.sh" in item and "without -I" in item]
+                check(f"M3 build refuses {label}", bool(hit), "; ".join(hit)[:180])
+            for label, body in iso_forms:
+                planted.write_text("#!/usr/bin/env bash\n" + body + "\n")
+                findings = build.hygiene_findings(plug, manifest)
+                hit = [item for item in findings if "zz-py-form.sh" in item and "without -I" in item]
+                check(f"M3 build allows {label}", not hit, "; ".join(hit)[:180])
+        finally:
+            if planted.exists():
+                planted.unlink()
 
 
 def _unprivileged_prefix(scratch: Path) -> list[str] | None:
@@ -484,6 +568,10 @@ def trust_helper_checks(dist: Path) -> None:
         mid.unlink()
         mid.symlink_to(other / ".ravenclaude" / "comfort-posture.yaml")
         check("trust: a symlinked posture file is never active", state() == "untrusted")
+        check(
+            "trust: detail names a symlinked posture file as refused-symlink",
+            state(detail=True) == "refused-symlink",
+        )
         mid.unlink()
         mid.write_text("schema_version: 5\n")
         (proj / ".ravenclaude" / "runs").symlink_to(root)
@@ -512,6 +600,32 @@ def trust_helper_checks(dist: Path) -> None:
             state() == "untrusted",
         )
         (proj / ".ravenclaude" / "runs" / "thing" / "runaway").unlink()
+        # depth 4: the counter file runaway-brake.sh opens. find's start path is depth 0, so
+        # runs/thing/runaway/<session_id> is depth 4 — a -maxdepth 3 walk does not see this link.
+        (proj / ".ravenclaude" / "runs" / "thing" / "runaway").mkdir()
+        counter = proj / ".ravenclaude" / "runs" / "thing" / "runaway" / "sess"
+        counter.symlink_to(root / "outside-counter")
+        check(
+            "trust: a file symlink at .ravenclaude/runs/thing/runaway/<session_id> (depth 4) is never active",
+            state() == "untrusted" and not ran(),
+        )
+        check(
+            "trust: detail names the depth-4 counter-file link as refused-symlink",
+            state(detail=True) == "refused-symlink",
+        )
+        text = gate.read_text()
+        shallow = dist.parent / "gate-maxdepth-3.sh"
+        find_cmd = 'links="$(find "$proj/.ravenclaude" -type l -print 2>&1)"; found=$?'
+        shallow_cmd = 'links="$(find "$proj/.ravenclaude" -maxdepth 3 -type l -print 2>&1)"; found=$?'
+        shallow.write_text(text.replace(find_cmd, shallow_cmd, 1))
+        check(
+            "trust: M6 a gate that stops at depth 3 says ACTIVE for that counter-file link "
+            "(the unbounded walk has teeth)",
+            find_cmd in text and state(gate_file=shallow) == "active",
+        )
+        shallow.unlink()
+        counter.unlink()
+        (proj / ".ravenclaude" / "runs" / "thing" / "runaway").rmdir()
         (proj / ".ravenclaude" / "runs" / "thing").rmdir()
         (proj / ".ravenclaude" / "runs").rmdir()
         check("trust: ... and active again once the links are gone", state() == "active")
@@ -526,6 +640,10 @@ def trust_helper_checks(dist: Path) -> None:
         check(
             "trust: a path with a newline is refused even when the trust file seems to list it",
             state(nl_dir) == "untrusted" and not ran(nl_dir),
+        )
+        check(
+            "trust: detail names a newline path as refused-other",
+            state(nl_dir, detail=True) == "refused-other",
         )
         text = gate.read_text()
         nl_gate = dist.parent / "gate-no-newline-check.sh"
@@ -601,6 +719,13 @@ def trust_helper_checks(dist: Path) -> None:
                 "trust: an untrusted project with a 4 GiB layout file is refused at once (no hashing before the trust lookup)",
                 untrusted == "untrusted" and time.monotonic() - t0 < 5,
                 f"state={untrusted!r} in {time.monotonic() - t0:.1f}s",
+            )
+            t0 = time.monotonic()
+            sized = state(big, detail=True)
+            check(
+                "trust: detail names an oversize layout file as refused-size, without hashing it",
+                sized == "refused-size" and time.monotonic() - t0 < 5,
+                f"state={sized!r} in {time.monotonic() - t0:.1f}s",
             )
             t0 = time.monotonic()
             r = run(gate, "--line", project=big)
