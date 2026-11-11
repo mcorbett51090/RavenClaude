@@ -232,15 +232,26 @@ _progress "HARNESS start copy-helpers-for-lease-mutation"
 mkdir -p "$T/mf"; for f in worktree-guard-bash.py _portable.sh _emit-event.sh; do [ -f "$(dirname "$H")/$f" ] && cp "$(dirname "$H")/$f" "$T/mf/"; done
 _progress "HARNESS done copy-helpers-for-lease-mutation"
 _progress "HARNESS start mutate-lease-section"
-# Portable mutation: GNU-vs-BSD sed divergence on this anchor (worktree-guard.sh
-# does not use GNU-only sed syntax here, but it was flagged unverified by AppSec
-# review and there is no Darwin box to settle it) is sidestepped entirely with a
-# plain bash glob-pattern substring replace, which behaves identically on GNU
-# and BSD userlands because it never shells out to sed/perl at all.
+# Inject `; false` after the first `_wg_lease_holder` assignment so the
+# hook's ERR trap denies. Do not use `${var/pattern/repl}`: on bash 3.2
+# that hangs on this 61KiB hook file (macOS shard 1 at 12c886ca and
+# 38524900: last line "HARNESS start mutate-lease-section", then the
+# 90s watchdog). Reproduced with bash 3.2.57: `cat` finishes in ms,
+# `${_wg_src/$_wg_anchor/$_wg_mutated}` never returns; even the shorter
+# pattern `_wg_holder` hangs; a short haystack is fine. bash 5 does the
+# same replace in 6ms. Use a literal first-occurrence replace instead.
+# python3 is already required by age_lease in this fixture; argv carries
+# the delimiter so quotes and $() stay literal.
 _wg_anchor='      _wg_holder="$(_wg_lease_holder)"'
 _wg_mutated="${_wg_anchor}; false"
-_wg_src="$(cat "$H")"
-_wg_mut_src="${_wg_src/$_wg_anchor/$_wg_mutated}"
+_wg_src="$(python3 -c 'import sys; sys.stdout.write(sys.stdin.read())' < "$H")"
+_wg_mut_src="$(python3 -c '
+import sys
+src = sys.stdin.read()
+anchor, repl = sys.argv[1], sys.argv[2]
+i = src.find(anchor)
+sys.stdout.write(src if i < 0 else src[:i] + repl + src[i + len(anchor):])
+' "$_wg_anchor" "$_wg_mutated" < "$H")"
 _progress "HARNESS done mutate-lease-section"
 if [ "$_wg_mut_src" != "$_wg_src" ]; then
   printf '%s\n' "$_wg_mut_src" > "$T/mf/worktree-guard.sh"
