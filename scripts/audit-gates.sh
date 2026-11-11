@@ -2171,11 +2171,23 @@ PY
       ;;
     309)
       echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK 18f5c03f F1 + N1 ReDoS fail-closed; per-gate run) ──"
+      # ⛔ `< /dev/null` is load-bearing (see Gate 140): these fixtures drive
+      # worktree-guard.sh, which reads stdin. An inherited-but-never-closed
+      # pipe is the documented hang. Keep stdout/stderr so a per-case timeout
+      # in fail-closed can name the hung case. Outer _rc_timeout is a backstop
+      # if the hang is before the first case (parser/setup).
+      # shellcheck source=/dev/null
+      . plugins/ravenclaude-core/hooks/_portable.sh
+      _wg309_timeout=60
       rc=0
-      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh || rc=$?
-      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh || rc=$?
-      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh || rc=$?
-      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh || rc=$?
+      _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: interpreter fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
+      _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: fail-closed fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
+      _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: redos fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
+      _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: delimiter fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
       exit $rc
       ;;
     *)
@@ -7310,13 +7322,27 @@ echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK
 # follow-up: full-word delimiters (EOF-X, E.O.F, EOF.1, END-MSG, 'EOF'X,
 # "A"B, 'E O F') plus a following write are denied at helper and hook
 # level, with a teeth mutant of the 0.361.3 scanner. GREP THE SUITE OUTPUT FOR "Gate 309".
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh >/dev/null 2>&1 || rc=$?
+# ⛔ `< /dev/null` is load-bearing (see Gate 140): fail-closed drives
+# worktree-guard.sh, which reads stdin. An inherited-but-never-closed pipe
+# is the documented hang that previously stalled macOS shard 1 until the
+# 30-minute job cap, with output discarded so the hung case was invisible.
+# Keep stdout/stderr so the fixture's BEGIN/TIMEOUT lines reach the log,
+# including any interpreter-fixture failure. Outer _rc_timeout is a backstop
+# if the hang is before the first case.
+# shellcheck source=/dev/null
+. plugins/ravenclaude-core/hooks/_portable.sh
+_wg309_timeout=60
+rc=0; _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: interpreter fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
 gate "worktree-guard-bash.py: interpreter heredocs (python/node/perl/ruby/php/deno/bun) are scanned, not blanked (+ teeth)" must_pass "$rc"
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh >/dev/null 2>&1 || rc=$?
+rc=0; _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: fail-closed fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
 gate "worktree-guard fail-closed suite (incl. the AppSec F1 repros at hook level, exit 2) — now actually registered" must_pass "$rc"
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh >/dev/null 2>&1 || rc=$?
+rc=0; _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: redos fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
 gate "worktree-guard-bash.py: heredoc ReDoS fail-closed (input cap, linear scanner, alarm exit 4, hook timeout) — AppSec N1" must_pass "$rc"
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh >/dev/null 2>&1 || rc=$?
+rc=0; _rc_timeout "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: delimiter fixture exceeded ${_wg309_timeout}s" >&2; rc=1 ;; esac
 gate "worktree-guard-bash.py: full-word heredoc delimiters (EOF-X/'EOF'X/END-MSG/…) — AppSec R1" must_pass "$rc"
 
 
