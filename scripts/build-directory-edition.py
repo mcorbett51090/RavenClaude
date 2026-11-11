@@ -1177,6 +1177,37 @@ def _logical_lines(text: str) -> list[str]:
     return joined.splitlines()
 
 
+def _skip_dollar_brace(s: str, i: int, limit: int) -> int | None:
+    """If `s[i:]` starts with `${`, return the index after the matching `}`."""
+    if not s.startswith("${", i) or i + 2 > limit:
+        return None
+    depth = 1
+    k = i + 2
+    while k < limit and depth:
+        ch = s[k]
+        if ch in "'\"":
+            q = ch
+            k += 1
+            while k < limit and s[k] != q and s[k] != "\n":
+                if s[k] == "\\" and k + 1 < limit:
+                    k += 2
+                    continue
+                k += 1
+            if k < limit and s[k] == q:
+                k += 1
+            continue
+        if s.startswith("${", k):
+            depth += 1
+            k += 2
+            continue
+        if ch == "}":
+            depth -= 1
+            k += 1
+            continue
+        k += 1
+    return k
+
+
 def _read_word(s: str, i: int) -> tuple[str, int]:
     n = len(s)
     if i >= n:
@@ -1204,6 +1235,10 @@ def _read_word(s: str, i: int) -> tuple[str, int]:
         return s[i:j], j
     j = i
     while j < n and s[j] not in " \t\n|&;)#<>":
+        close = _skip_dollar_brace(s, j, n)
+        if close is not None:
+            j = close
+            continue
         if s.startswith("$'", j) or s.startswith('$"', j):
             _, j = _read_word(s, j)
             continue
@@ -1434,6 +1469,10 @@ def _cmd_base(word: str) -> str:
 def _is_interpreter_word(word: str) -> bool:
     core = _unquote_word(word)
     if _PY_TOKEN.fullmatch(core) or _PY_PATH_CMD.fullmatch(core):
+        return True
+    # Any `${...}` with an operator/modifier is an interpreter word. The L8
+    # allowlist applies only to bare `$VAR` / `${VAR}`.
+    if _dollar_has_operator(word):
         return True
     if _dollar_default_is_interpreter(word):
         return True
@@ -1699,6 +1738,10 @@ def _command_ranges(line: str) -> list[tuple[int, int]]:
             if ch in "'\"":
                 quote = ch
                 i += 1
+                continue
+            close = _skip_dollar_brace(line, i, end)
+            if close is not None:
+                i = close
                 continue
             if ch == "#":
                 if line[seg:i].strip():
@@ -2226,6 +2269,10 @@ _PY_COMPILER_VARS = frozenset({
 _PY_DOLLAR_NAME = re.compile(
     r"^(?:\$([A-Za-z_][A-Za-z0-9_]*)|\$\{([A-Za-z_][A-Za-z0-9_]*)(?::?[-+=][^}]*)?\})$"
 )
+# Bare `$VAR` or `${VAR}` only — no operator, modifier, substring, or indirection.
+_PY_DOLLAR_BARE = re.compile(
+    r"^(?:\$([A-Za-z_][A-Za-z0-9_]*)|\$\{([A-Za-z_][A-Za-z0-9_]*)\})$"
+)
 # ${VAR:-default} / ${VAR:=default} / ${VAR-default} / ${VAR=default} (not :+ or :?).
 _PY_DOLLAR_DEFAULT = re.compile(
     r"^\$\{([A-Za-z_][A-Za-z0-9_]*)(:?)([-=])(.*)\}$"
@@ -2240,6 +2287,20 @@ def _dollar_var_name(word: str) -> str | None:
     if not m:
         return None
     return m.group(1) or m.group(2)
+
+
+def _dollar_is_bare(word: str) -> bool:
+    """True only for `$VAR` or `${VAR}` with no operator or modifier."""
+    return bool(_PY_DOLLAR_BARE.fullmatch(_unquote_word(word)))
+
+
+def _dollar_has_operator(word: str) -> bool:
+    """True for `${...}` that is not a bare `${NAME}` (any operator/modifier)."""
+    core = _unquote_word(word)
+    if not (core.startswith("${") and core.endswith("}") and len(core) >= 3):
+        return False
+    inner = core[2:-1]
+    return not bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", inner))
 
 
 def _dollar_assign_default(word: str) -> str | None:
@@ -2272,11 +2333,15 @@ def _dollar_default_is_interpreter(word: str) -> bool:
 
 
 def _is_compiler_var(word: str) -> bool:
+    if not _dollar_is_bare(word):
+        return False
     name = _dollar_var_name(word)
     return bool(name) and name.upper() in _PY_COMPILER_VARS
 
 
 def _is_shell_var(word: str) -> bool:
+    if not _dollar_is_bare(word):
+        return False
     name = _dollar_var_name(word)
     return name is not None and name.upper() == "SHELL"
 
@@ -2330,7 +2395,9 @@ def _c_or_m_operand(tail: str) -> tuple[str, str] | None:
             return None
         if word.startswith("--"):
             continue
-        if word == "-c" or (word.startswith("-c") and not word[2:3].isalpha()):
+        # Glued `-c<text>` (including `-cimport\ os`) is an operand, even when
+        # text starts with a letter. Fail closed unless it is a C/C++ source.
+        if word.startswith("-c"):
             operand = word[2:]
             if not operand:
                 i = _skip_ws(tail, i)
@@ -2383,8 +2450,16 @@ def _token_is_sensitive(line: str, tok_start: int, tok_end: int) -> bool:
     word = line[tok_start:tok_end]
     name = _dollar_var_name(word)
     assigned = name.upper() in _assigned_interp_vars(line, tok_start) if name else False
-    # `${CC:-python3}` / a same-line `CC=python3` prefix: this word is an interpreter.
-    if _dollar_default_is_interpreter(word) or assigned:
+    # Same-line `CC=python3` prefix treats the bare word as an interpreter.
+    if assigned:
+        before = line[tok_start - 1] if tok_start else ""
+        return bool(_invocation_sensitive(tail, before))
+    # Operator forms are not L8-allowlisted. Fail closed on `-c`/`-m` like
+    # an unknown `$VAR` (this wins over a C/C++ operand allowance). Without
+    # `-c`/`-m` they are not a bare python invocation (`${CLAUDE_PLUGIN_ROOT:-}`).
+    if _dollar_has_operator(word):
+        if not _tail_has_c_or_m(tail):
+            return False
         before = line[tok_start - 1] if tok_start else ""
         return bool(_invocation_sensitive(tail, before))
     # Compiler `$CC -c`: fail closed unless the operand is a C/C++ source file.
@@ -3597,7 +3672,7 @@ def self_test() -> int:
             "for x in a; do echo python3 -I -c y; done | bash": False,
             "$CC -c foo.c": False,
             "${CC} -c foo.c": False,
-            "${CC:-gcc} -c foo.c": False,
+            "${CC:-gcc} -c foo.c": True,
             "$CXX -c foo.cpp": False,
             "$INSTALL -c": False,
             "$VISUAL -c": False,
@@ -3631,7 +3706,24 @@ def self_test() -> int:
             "echo python3 -I -c y | mksh": False,
             "xargs -I{} bash -c {}": True,
             "xargs -I{} bash -c 'python3 -I -c y'": False,
+            "${CC:+python3} -c foo.c": True,
+            "${!var} -c y": True,
+            "$CC -cimport\\ os": True,
+            "${SHELL:+python3} -I -c y": False,
         }
+        # L8 allowlist is bare `$VAR` / `${VAR}` only. Every operator/modifier
+        # on SHELL, CC, VISUAL, EDITOR, and INSTALL fails closed.
+        _l8_op_vars = ("SHELL", "CC", "VISUAL", "EDITOR", "INSTALL")
+        _l8_ops = (
+            "-", ":-", "=", ":=", "+", ":+", "?", ":?", "#", "##",
+            "%", "%%", "/", "//", "^", ",", ":0",
+        )
+        for _var in _l8_op_vars:
+            for _op in _l8_ops:
+                table[f"${{{_var}{_op}python3}} -c y"] = True
+                table[f"${{{_var}{_op}python3}} -c 'import os'"] = True
+            table[f"${{!{_var}}} -c y"] = True
+            table[f"${{!{_var}}} -c 'import os'"] = True
         wrong = [k for k, v in table.items() if python_cwd_sensitive(k) != v]
         check("python isolation: truth table " + (f"[wrong: {wrong}]" if wrong else ""), not wrong)
         check(

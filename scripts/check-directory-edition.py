@@ -456,7 +456,41 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("$CC -c foo.py", "$CC -c foo.py"),
             ("$CC -c import", "$CC -c 'import os'"),
             ("$CC -m json.tool", "$CC -m json.tool"),
+            ("${CC:+python3} -c foo.c", "${CC:+python3} -c foo.c"),
+            ("${!var} -c y", "${!var} -c y"),
+            ("$CC -cimport os glued", "$CC -cimport\\ os"),
         )
+        _m3_op_vars = ("SHELL", "CC", "VISUAL", "EDITOR", "INSTALL")
+        _m3_ops = (
+            "-", ":-", "=", ":=", "+", ":+", "?", ":?", "#", "##",
+            "%", "%%", "/", "//", "^", ",", ":0",
+        )
+        _m3_extra = []
+        _m3_seen = {
+            "${CC:-python3} -c y",
+            "${CXX:-python3} -c y",
+            "${CC:=python3} -c y",
+            "${SHELL:-python3} -c y",
+        }
+        for _var in _m3_op_vars:
+            for _op in _m3_ops:
+                body_y = f"${{{_var}{_op}python3}} -c y"
+                body_imp = f"${{{_var}{_op}python3}} -c 'import os'"
+                if body_y not in _m3_seen:
+                    _m3_extra.append((f"${{{_var}{_op}python3}} -c y", body_y))
+                    _m3_seen.add(body_y)
+                if body_imp not in _m3_seen:
+                    _m3_extra.append((f"${{{_var}{_op}python3}} import", body_imp))
+                    _m3_seen.add(body_imp)
+            body_ind = f"${{!{_var}}} -c y"
+            body_ind_imp = f"${{!{_var}}} -c 'import os'"
+            if body_ind not in _m3_seen:
+                _m3_extra.append((f"${{!{_var}}} -c y", body_ind))
+                _m3_seen.add(body_ind)
+            if body_ind_imp not in _m3_seen:
+                _m3_extra.append((f"${{!{_var}}} import", body_ind_imp))
+                _m3_seen.add(body_ind_imp)
+        forms = forms + tuple(_m3_extra)
         iso_forms = (
             ("if-then python3 -I -c", "if x; then python3 -I -c 'y'; fi"),
             ("{ python3 -I -c }", "{ python3 -I -c 'y'; }"),
@@ -532,6 +566,7 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("${CC:-python3} -I -c", "${CC:-python3} -I -c y"),
             ("CC=python3; $CC -I -c", "CC=python3; $CC -I -c 'import os'"),
             ("$CC -c foo.cpp", "$CC -c foo.cpp"),
+            ("${SHELL:+python3} -I -c", "${SHELL:+python3} -I -c y"),
         )
         try:
             for label, body in forms:
