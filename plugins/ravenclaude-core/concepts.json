@@ -2881,7 +2881,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard-bash.py",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:886f2463b084694e52759d33364946c85d1c98a5db9b51257fb65d15149c6f90",
+      "covers_digest": "sha256:e5bf50ea8c2d27fb6dcca260cb970dc9bfa26790959e2b962159b8eb2b15911a",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2910,7 +2910,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-11-10",
+      "last_verified": "2026-11-11",
       "refresh_when": null,
       "sources": [
         {
@@ -2930,7 +2930,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:84b4a39d18aeb9f9d4d8c54ae5518f6f3640810f3cf424bccae1a378d8c56229",
+      "covers_digest": "sha256:a5655645665ab773dd0dd84d29dbd2d1c01fb10db9c71671b95da46fb65f303e",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3024,7 +3024,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:e949e40b60b34f08337b3ff80052beeb92161e4336302b48d579e33dfc9af47d",
+      "covers_digest": "sha256:837411194f2fd4aa94858e04d033b232f87e6a8dbb83cd729d452e47faf19b04",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3086,7 +3086,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:94f1ae82359dccf0baca3c4077dceb49d1fefb566991f63e6a10c62d980a2bc6",
+      "covers_digest": "sha256:4a2630e919ce610a7dd85b1eca5893e3c6524328eba5b32ff10678b563e4f8f3",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",

@@ -2,6 +2,13 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.361.3 — 2026-11-11
+
+### Fixed
+- **AppSec N1 (Medium) — worktree-guard heredoc parse could fail open under ReDoS-shaped input** (SHIPCHECK on RavenClaude#1423, present since #1416 / also in installed 0.361.1; not introduced by 0.361.2). The heredoc regex ``<<-?\s*['"]?(\w+)['"]?.*?\n\1\b`` (re.S) was roughly cubic on unterminated markers (16 KiB of `cat <<A` padding took ~56 s at the #1423 head; ~36 KiB would extrapolate past Claude Code's 600 s PreToolUse default). The worktree-guard `check` entry had no `timeout`, and a timed-out PreToolUse hook does not block unless `onFailure: "block"` (requires Claude Code 2.1.295; this box is on 2.1.261). Fixed, all fail-closed: (a) a hard input cap (`len(cmd) > 64 KiB` or more than 256 `<<` markers) exits 3 with reason "too large to parse"; (b) a line-based linear heredoc scanner replaces the regex and keeps the 0.361.2 F1 coverage (interpreter-fed bodies are still scanned, data heredocs are still blanked); (c) `signal.alarm(5)` exits 4, which `worktree-guard.sh` already maps to a hook deny via `_wg_fail_closed` (SIGALRM is required — this helper is Unix-only; inability to arm the timer also exits 4, never open); (d) `"timeout": 15` on the hooks.json worktree-guard `check` PreToolUse entry. `onFailure: "block"` is intentionally not added yet (AppSec item (e), only once the box is on Claude Code 2.1.295+). Gate 309 now also runs `hooks/tests/test-worktree-guard-heredoc-redos.sh` (1 MiB unterminated padding finishes in tens of milliseconds and denies; cap, alarm, hook-mapping, and allow-control cases). N2 (pipelines into an interpreter) and N3 (perl/ruby write-API gaps) remain tracked known Lows, out of scope here.
+
+**AppSec review required before the next pin.** This change edits two of the five pinned hook files (`worktree-guard-bash.py`, `hooks.json`) and voids the 0.361.2 pin for this head. Do not compute or apply a live pin from this PR.
+
 ## 0.361.2 — 2026-11-11
 
 ### Fixed

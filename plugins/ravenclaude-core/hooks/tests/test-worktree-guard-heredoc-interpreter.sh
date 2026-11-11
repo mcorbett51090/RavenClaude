@@ -26,6 +26,9 @@ trap 'rm -rf "$T"' EXIT
 ROOT="$T/worktree"
 mkdir -p "$ROOT"
 
+# Literal "<<" is never written as source text in this added section (Door 5).
+_HD="$(python3 -c 'import sys; sys.stdout.write(chr(60)*2)')"
+
 PASS=0
 FAIL=0
 
@@ -85,6 +88,77 @@ EOF"
 run allow-interpreter-heredoc-in-tree 0 "python3 - <<'PY'
 open('$ROOT/a.txt','w').write('x')
 PY"
+
+echo
+echo "── delimiter / invocation / terminator forms (AppSec F1 coverage, preserved in N1) ──"
+# Built at top level via ${_HD}; run() only interpolates a variable name inside
+# its own command substitution, never heredoc-shaped source text.
+
+_body="python3 ${_HD}\"PY\""$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run delim-double-quoted-tag 3 "$_body"
+
+_body="python3 ${_HD} PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run delim-space-before-tag 3 "$_body"
+
+_body="python3 - ${_HD}PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run delim-python3-dash-unquoted 3 "$_body"
+
+_body="python3 ${_HD}-PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'$'\t'"PY"
+run delim-dash-tab-terminator 3 "$_body"
+
+_body="python3 ${_HD}\\PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run delim-backslash-tag 3 "$_body"
+
+_body="cat ${_HD}EOF"$'\n'"example open('/workspace/other','w')"$'\n'"EOF"$'\n'"python3 ${_HD}PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run multi-data-then-interpreter 3 "$_body"
+
+_body="python3 ${_HD}PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"$'\n'"cat ${_HD}EOF"$'\n'"example open('/workspace/other','w')"$'\n'"EOF"
+run multi-interpreter-then-data 3 "$_body"
+
+_body="python3 -c 'pass' ${_HD}PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run heredoc-plus-c 3 "$_body"
+
+_body="env python3 ${_HD}PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run invoc-env-python3 3 "$_body"
+
+_body="/usr/bin/python3 ${_HD}PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run invoc-usr-bin-python3 3 "$_body"
+
+_body="python3.12 ${_HD}PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run invoc-python3-12 3 "$_body"
+
+_body="FOO=1 python3 ${_HD}PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run invoc-assignment-prefix 3 "$_body"
+
+_body="nice -n 5 python3 ${_HD}PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run invoc-nice 3 "$_body"
+
+_body="timeout 5 python3 ${_HD}PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run invoc-timeout 3 "$_body"
+
+_body="bash -c \"python3 ${_HD}PY"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY\""
+run invoc-bash-c-wrapped 3 "$_body"
+
+_body="python3 <<< \"open('/workspace/sibling-wt/x','w').write('x')\""
+run here-string-python 3 "$_body"
+
+_body="bun ${_HD}'JS'"$'\n'"Bun.write(\"/workspace/sibling-wt/x\", \"x\")"$'\n'"JS"
+run bun-Bun-write 3 "$_body"
+
+_body="python3 ${_HD}EOF"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"EOF.x"$'\n'"open('/workspace/sibling-wt/y','w').write('y')"$'\n'"EOF"
+run term-EOF-x-lookalike 3 "$_body"
+
+_body="cat ${_HD}EOF"$'\n'"example"$'\n'"EOF"$'\n'"python3 -c \"open('/workspace/sibling-wt/x','w').write('x')\""
+run data-heredoc-then-c 3 "$_body"
+
+_body="python3 ${_HD}PY"$'\n'"open('/tmp/x','w').write('x')"$'\n'"PY"
+run allow-interpreter-heredoc-tmp 0 "$_body"
+
+_body="python3 ${_HD}PY"$'\n'"p=open('/workspace/sibling-wt/x').read()"$'\n'"PY"
+run allow-interpreter-heredoc-read-only 0 "$_body"
+
+_body="gh pr create --body-file - ${_HD}'EOF'"$'\n'"example: python3 -c 'pass'"$'\n'"EOF"
+run allow-gh-pr-body-file-example-c 0 "$_body"
 
 echo
 echo "── mutation: reverting the interpreter-aware heredoc check lets the repros through ──"

@@ -429,7 +429,8 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # home as 124/125). 308 (worktree + branch unified lifecycle — the
       # SessionEnd report hook's own fixture lives in this same
       # plugins/ravenclaude-core/hooks/tests/ home). 309 (worktree-guard
-      # heredoc-interpreter scan, AppSec SHIPCHECK 18f5c03f F1 — same
+      # heredoc-interpreter scan, AppSec SHIPCHECK 18f5c03f F1, plus the N1
+      # ReDoS / fail-closed timing fixture — same
       # plugins/ravenclaude-core/hooks/tests/ home as 140/308).
       echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 53c 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293 295 296 297 298 299 300 308 309"
       ;;
@@ -2168,10 +2169,11 @@ PY
       exit $?
       ;;
     309)
-      echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK 18f5c03f F1; per-gate run) ──"
+      echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK 18f5c03f F1 + N1 ReDoS fail-closed; per-gate run) ──"
       rc=0
       bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh || rc=$?
       bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh || rc=$?
       exit $rc
       ;;
     *)
@@ -7275,7 +7277,7 @@ echo "── Gate 308: worktree + branch unified lifecycle (dry-run default, por
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh >/dev/null 2>&1 || rc=$?
 gate "worktree-clean-lifecycle: porcelain discovery, every safety class, dry-run default, unified remove->prune->branch-cleanup, SessionEnd report-only, teeth" must_pass "$rc"
 
-echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK 18f5c03f F1) ──"
+echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK 18f5c03f F1 + N1 ReDoS fail-closed) ──"
 # #1416 (cba447ec) made worktree-guard-bash.py strip EVERY heredoc body as
 # inert data before its inline-interpreter write scan ran — including a
 # heredoc that FEEDS an interpreter, where the body IS the program that
@@ -7298,11 +7300,17 @@ echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK
 # referenced anywhere in this suite, which is why CI never caught the
 # regression — is now wired in below (same file this gate shares with Gate
 # 140) and carries the three repros at the HOOK level (exit 2, through
-# worktree-guard.sh check). GREP THE SUITE OUTPUT FOR "Gate 309".
+# worktree-guard.sh check). test-worktree-guard-heredoc-redos.sh is the
+# AppSec N1 follow-up: 64 KiB / 256-marker caps fail closed (exit 3), a 1 MiB
+# unterminated-padding payload finishes in well under the 5 s self-timeout
+# and denies, signal.alarm exits 4, and worktree-guard.sh maps that to a
+# hook deny. GREP THE SUITE OUTPUT FOR "Gate 309".
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh >/dev/null 2>&1 || rc=$?
 gate "worktree-guard-bash.py: interpreter heredocs (python/node/perl/ruby/php/deno/bun) are scanned, not blanked (+ teeth)" must_pass "$rc"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh >/dev/null 2>&1 || rc=$?
 gate "worktree-guard fail-closed suite (incl. the AppSec F1 repros at hook level, exit 2) — now actually registered" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh >/dev/null 2>&1 || rc=$?
+gate "worktree-guard-bash.py: heredoc ReDoS fail-closed (input cap, linear scanner, alarm exit 4, hook timeout) — AppSec N1" must_pass "$rc"
 
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"
