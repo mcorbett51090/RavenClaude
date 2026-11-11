@@ -1467,17 +1467,15 @@ def _cmd_base(word: str) -> str:
 
 
 def _is_interpreter_word(word: str) -> bool:
-    core = _unquote_word(word)
+    core = _normalize_dollar_word(word)
     if _PY_TOKEN.fullmatch(core) or _PY_PATH_CMD.fullmatch(core):
         return True
-    # Any `${...}` with an operator/modifier is an interpreter word. The L8
-    # allowlist applies only to bare `$VAR` / `${VAR}`.
-    if _dollar_has_operator(word):
+    # Operator forms and adjacent `$VAR` glue are not allowlisted; they are
+    # routed as dollar words and fail closed on `-c`/`-m`.
+    if _dollar_has_operator(core) or _dollar_is_glued(word):
         return True
-    if _dollar_default_is_interpreter(word):
+    if _dollar_default_is_interpreter(core):
         return True
-    if _is_compiler_var(word) or _is_shell_var(word):
-        return False
     return bool(_PY_INDIRECT_VAR.fullmatch(core))
 
 
@@ -2260,12 +2258,6 @@ def _pipeline_reaches_shell(line: str, depth: int) -> bool:
 _PY_NAMED_VAR = re.compile(
     r"^(?:\$(?:PYTHON|python)3?|\$\{(?:PYTHON|python)3?(?::?[-+=][^}]*)?\})$"
 )
-_PY_COMPILER_VARS = frozenset({
-    "CC", "CXX", "CPP", "AS", "LD", "AR", "RANLIB", "FC", "F77", "F90",
-    "NVCC", "GCC", "GXX", "CLANG", "CLANGXX", "INSTALL", "VISUAL", "EDITOR",
-    "OBJCOPY", "OBJDUMP", "STRIP", "WINDRES", "PKG_CONFIG", "CMAKE", "MAKE",
-    "NM", "SIZE", "STRINGS",
-})
 _PY_DOLLAR_NAME = re.compile(
     r"^(?:\$([A-Za-z_][A-Za-z0-9_]*)|\$\{([A-Za-z_][A-Za-z0-9_]*)(?::?[-+=][^}]*)?\})$"
 )
@@ -2277,13 +2269,9 @@ _PY_DOLLAR_BARE = re.compile(
 _PY_DOLLAR_DEFAULT = re.compile(
     r"^\$\{([A-Za-z_][A-Za-z0-9_]*)(:?)([-=])(.*)\}$"
 )
-_C_CXX_SOURCE = re.compile(
-    r"(?i)\.(?:c|cc|cpp|cxx|c\+\+|h|hh|hpp|hxx|h\+\+)$"
-)
-
 
 def _dollar_var_name(word: str) -> str | None:
-    m = _PY_DOLLAR_NAME.fullmatch(_unquote_word(word))
+    m = _PY_DOLLAR_NAME.fullmatch(_normalize_dollar_word(word))
     if not m:
         return None
     return m.group(1) or m.group(2)
@@ -2296,11 +2284,41 @@ def _dollar_is_bare(word: str) -> bool:
 
 def _dollar_has_operator(word: str) -> bool:
     """True for `${...}` that is not a bare `${NAME}` (any operator/modifier)."""
-    core = _unquote_word(word)
+    core = _normalize_dollar_word(word)
     if not (core.startswith("${") and core.endswith("}") and len(core) >= 3):
         return False
     inner = core[2:-1]
     return not bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", inner))
+
+
+def _strip_empty_quotes(word: str) -> str:
+    """Remove adjacent empty `""` / `''` so `$CC""` matches `$CC`."""
+    prev = None
+    while word != prev:
+        prev = word
+        word = word.replace('""', "").replace("''", "")
+    return word
+
+
+def _normalize_dollar_word(word: str) -> str:
+    return _strip_empty_quotes(_unquote_word(word))
+
+
+_PY_DOLLAR_LEAD = re.compile(
+    r"^\$(?:\{[A-Za-z_][A-Za-z0-9_]*(?:[^}]*)?\}|[A-Za-z_][A-Za-z0-9_]*)"
+)
+
+
+def _dollar_is_glued(word: str) -> bool:
+    """True for adjacent glue on a `$VAR` word (`$CC$X`, `${CC}python3`)."""
+    core = _normalize_dollar_word(word)
+    if not core.startswith("$"):
+        return False
+    if _PY_DOLLAR_BARE.fullmatch(core) or _PY_INDIRECT_VAR.fullmatch(core):
+        return False
+    if _dollar_has_operator(core):
+        return False
+    return bool(_PY_DOLLAR_LEAD.match(core))
 
 
 def _dollar_assign_default(word: str) -> str | None:
@@ -2332,14 +2350,8 @@ def _dollar_default_is_interpreter(word: str) -> bool:
     return bool(default) and _value_looks_like_interpreter(default)
 
 
-def _is_compiler_var(word: str) -> bool:
-    if not _dollar_is_bare(word):
-        return False
-    name = _dollar_var_name(word)
-    return bool(name) and name.upper() in _PY_COMPILER_VARS
-
-
 def _is_shell_var(word: str) -> bool:
+    """Bare `$SHELL` / `${SHELL}` — used only to rescan a `-c` body / stdin sink."""
     if not _dollar_is_bare(word):
         return False
     name = _dollar_var_name(word)
@@ -2382,47 +2394,14 @@ def _assigned_interp_vars(line: str, before: int) -> set[str]:
     return names
 
 
-def _c_or_m_operand(tail: str) -> tuple[str, str] | None:
-    """Return `('c', operand)` or `('m', operand)` for a standalone `-c`/`-m`."""
-    i = 0
-    n = len(tail)
-    while i < n:
-        i = _skip_ws(tail, i)
-        if i >= n or tail[i] in "|&;\n#)<>":
-            return None
-        word, i = _read_word(tail, i)
-        if not word or word in ("-", "--"):
-            return None
-        if word.startswith("--"):
-            continue
-        # Glued `-c<text>` (including `-cimport\ os`) is an operand, even when
-        # text starts with a letter. Fail closed unless it is a C/C++ source.
-        if word.startswith("-c"):
-            operand = word[2:]
-            if not operand:
-                i = _skip_ws(tail, i)
-                operand, _j = _read_word(tail, i) if i < n and tail[i] not in "|&;\n#)<>" else ("", i)
-            return "c", operand
-        if word == "-m":
-            i = _skip_ws(tail, i)
-            operand, _j = _read_word(tail, i) if i < n and tail[i] not in "|&;\n#)<>" else ("", i)
-            return "m", operand
-    return None
-
-
-def _operand_is_c_cxx_source(operand: str) -> bool:
-    core = _unquote_word(operand).rsplit("/", 1)[-1]
-    return bool(core and _C_CXX_SOURCE.search(core))
-
-
 def _is_generic_dollar_var(word: str) -> bool:
-    """`$PY` / `${VAR:-…}` but not PYTHON/python, `$SHELL`, or compiler-style vars."""
-    core = _unquote_word(word)
-    if not _PY_INDIRECT_VAR.fullmatch(core):
+    """`$PY` / `${VAR:-…}` / glued `$CC$X`, but not a named PYTHON/python var."""
+    core = _normalize_dollar_word(word)
+    if _PY_NAMED_VAR.fullmatch(core):
         return False
-    if _PY_NAMED_VAR.fullmatch(core) or _is_compiler_var(word) or _is_shell_var(word):
-        return False
-    return True
+    if _PY_INDIRECT_VAR.fullmatch(core) or _dollar_has_operator(core) or _dollar_is_glued(word):
+        return True
+    return False
 
 
 def _tail_has_c_or_m(tail: str) -> bool:
@@ -2454,26 +2433,14 @@ def _token_is_sensitive(line: str, tok_start: int, tok_end: int) -> bool:
     if assigned:
         before = line[tok_start - 1] if tok_start else ""
         return bool(_invocation_sensitive(tail, before))
-    # Operator forms are not L8-allowlisted. Fail closed on `-c`/`-m` like
-    # an unknown `$VAR` (this wins over a C/C++ operand allowance). Without
-    # `-c`/`-m` they are not a bare python invocation (`${CLAUDE_PLUGIN_ROOT:-}`).
-    if _dollar_has_operator(word):
+    # Operator forms, glued `$VAR` words, and any `$VAR -c`/`-m` fail closed.
+    # Without `-c`/`-m` they are not a bare python invocation
+    # (`${CLAUDE_PLUGIN_ROOT:-}`). There is no compiler/editor allowlist.
+    if _dollar_has_operator(word) or _dollar_is_glued(word):
         if not _tail_has_c_or_m(tail):
             return False
         before = line[tok_start - 1] if tok_start else ""
         return bool(_invocation_sensitive(tail, before))
-    # Compiler `$CC -c`: fail closed unless the operand is a C/C++ source file.
-    # Bare `$INSTALL -c` / `$VISUAL -c` stay allowed (not compiler -c).
-    if _is_compiler_var(word) and name and name.upper() not in {"INSTALL", "VISUAL", "EDITOR"}:
-        kind_op = _c_or_m_operand(tail)
-        if kind_op is not None:
-            kind, operand = kind_op
-            if kind == "m" or (kind == "c" and not _operand_is_c_cxx_source(operand)):
-                before = line[tok_start - 1] if tok_start else ""
-                return bool(_invocation_sensitive(tail, before))
-        return False
-    if _is_shell_var(word) or _is_compiler_var(word):
-        return False
     # Any `$VAR -c` in interpreter position, but not a bare `$tmp` / `$file` path.
     if _is_generic_dollar_var(word) and not _tail_has_c_or_m(tail):
         return False
@@ -2585,9 +2552,6 @@ def _later_interpreter_sensitive(
         if _is_interpreter_word(word) or _PY_PATH_CMD.fullmatch(_unquote_word(word)):
             if _token_is_sensitive(line, i, j):
                 return True
-        if _is_compiler_var(word) or _is_shell_var(word):
-            if _token_is_sensitive(line, i, j):
-                return True
         if _cmd_base(word) in _PY_SHELL_STDIN or _is_shell_var(word):
             if _shell_c_placeholder_or_body_sensitive(line, j, end, depth):
                 return True
@@ -2665,10 +2629,6 @@ def _range_sensitive(line: str, start: int, end: int, depth: int = 0) -> bool:
         return False
     if _is_interpreter_word(word):
         return _token_is_sensitive(line, i, j)
-    if _is_compiler_var(word) or _is_shell_var(word):
-        if _token_is_sensitive(line, i, j):
-            return True
-        return _later_interpreter_sensitive(line, j, end, depth)
     base = _cmd_base(word)
     if base in ("which", "type"):
         return False
@@ -3670,15 +3630,15 @@ def self_test() -> int:
             "while true; do echo python3 -I -c y; done | bash": False,
             "for x in a; do echo python3 -c y; done | bash": True,
             "for x in a; do echo python3 -I -c y; done | bash": False,
-            "$CC -c foo.c": False,
-            "${CC} -c foo.c": False,
+            "$CC -c foo.c": True,
+            "${CC} -c foo.c": True,
             "${CC:-gcc} -c foo.c": True,
-            "$CXX -c foo.cpp": False,
-            "$INSTALL -c": False,
-            "$VISUAL -c": False,
-            "$SHELL -c 'echo hi'": False,
+            "$CXX -c foo.cpp": True,
+            "$INSTALL -c": True,
+            "$VISUAL -c": True,
+            "$SHELL -c 'echo hi'": True,
             "$SHELL -c 'python3 -c y'": True,
-            "$SHELL -c 'python3 -I -c y'": False,
+            "$SHELL -c 'python3 -I -c y'": True,
             "${CC:-python3} -c y": True,
             "${CXX:-python3} -c y": True,
             "${CC:=python3} -c y": True,
@@ -3692,7 +3652,7 @@ def self_test() -> int:
             "$CC -c foo.py": True,
             "$CC -c 'import os'": True,
             "$CC -m json.tool": True,
-            "$CC -c foo.cpp": False,
+            "$CC -c foo.cpp": True,
             "perl -E 'system(\"python3 -c y\")'": True,
             "perl -E 'system(\"python3 -I -c y\")'": False,
             "ipython -c y": True,
@@ -3710,6 +3670,18 @@ def self_test() -> int:
             "${!var} -c y": True,
             "$CC -cimport\\ os": True,
             "${SHELL:+python3} -I -c y": False,
+            "$CC -mpip": True,
+            "$CC -mjson.tool": True,
+            "$CC -mthis": True,
+            "$CXX -mpip": True,
+            "$INSTALL -mpip": True,
+            "$VISUAL -mpip": True,
+            "$CC -m pip": True,
+            '$CC"" -c y': True,
+            "$CC'' -c 'import os'": True,
+            "$CC$X -c 'import os'": True,
+            "${CC}python3 -c y": True,
+            '$CC"" -I -c y': False,
         }
         # L8 allowlist is bare `$VAR` / `${VAR}` only. Every operator/modifier
         # on SHELL, CC, VISUAL, EDITOR, and INSTALL fails closed.

@@ -459,6 +459,24 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("${CC:+python3} -c foo.c", "${CC:+python3} -c foo.c"),
             ("${!var} -c y", "${!var} -c y"),
             ("$CC -cimport os glued", "$CC -cimport\\ os"),
+            ("$CC -c foo.c", "$CC -c foo.c"),
+            ("${CC} -c foo.c", "${CC} -c foo.c"),
+            ("$CXX -c foo.cpp", "$CXX -c foo.cpp"),
+            ("$CC -c foo.cpp", "$CC -c foo.cpp"),
+            ("$INSTALL -c", "$INSTALL -c"),
+            ("$VISUAL -c", "$VISUAL -c"),
+            ("$SHELL -c echo hi", "$SHELL -c 'echo hi'"),
+            ("$SHELL -c python3 -I", "$SHELL -c 'python3 -I -c y'"),
+            ("$CC -mpip", "$CC -mpip"),
+            ("$CC -mjson.tool", "$CC -mjson.tool"),
+            ("$CC -mthis", "$CC -mthis"),
+            ("$CXX -mpip", "$CXX -mpip"),
+            ("$INSTALL -mpip", "$INSTALL -mpip"),
+            ("$VISUAL -mpip", "$VISUAL -mpip"),
+            ('$CC empty-dquote -c', '$CC"" -c y'),
+            ("$CC empty-squote -c", "$CC'' -c 'import os'"),
+            ("$CC$X -c", "$CC$X -c 'import os'"),
+            ("${CC}python3 -c", "${CC}python3 -c y"),
         )
         _m3_op_vars = ("SHELL", "CC", "VISUAL", "EDITOR", "INSTALL")
         _m3_ops = (
@@ -554,10 +572,6 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("if then-body pipe bash -I", "if true; then echo python3 -I -c y; fi | bash"),
             ("while do-body pipe bash -I", "while true; do echo python3 -I -c y; done | bash"),
             ("for do-body pipe bash -I", "for x in a; do echo python3 -I -c y; done | bash"),
-            ("$CC -c foo.c", "$CC -c foo.c"),
-            ("$CXX -c foo.cpp", "$CXX -c foo.cpp"),
-            ("$SHELL -c echo hi", "$SHELL -c 'echo hi'"),
-            ("$SHELL -c python3 -I", "$SHELL -c 'python3 -I -c y'"),
             ("perl -E system -I", "perl -E 'system(\"python3 -I -c y\")'"),
             ("ipython -I -c", "ipython -I -c y"),
             ("tee process subst bash -I", "echo python3 -I -c y | tee >(bash)"),
@@ -565,8 +579,8 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("xargs bash -c isolated", "xargs -I{} bash -c 'python3 -I -c y'"),
             ("${CC:-python3} -I -c", "${CC:-python3} -I -c y"),
             ("CC=python3; $CC -I -c", "CC=python3; $CC -I -c 'import os'"),
-            ("$CC -c foo.cpp", "$CC -c foo.cpp"),
             ("${SHELL:+python3} -I -c", "${SHELL:+python3} -I -c y"),
+            ('$CC empty-dquote -I -c', '$CC"" -I -c y'),
         )
         try:
             for label, body in forms:
