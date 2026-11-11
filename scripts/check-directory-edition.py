@@ -381,6 +381,15 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("env -u VAR python3 -c", "env -u VAR python3 -c 'y'"),
             ("xargs python3 -c", "xargs python3 -c 'y'"),
             ("timeout 5 python3 -c", "timeout 5 python3 -c 'y'"),
+            ("bash -c python3 -c", "bash -c 'python3 -c y'"),
+            ("sh -c python3 -c", "sh -c 'python3 -c y'"),
+            ("nohup python3 -c", "nohup python3 -c 'y'"),
+            ("eval python3 -c", "eval python3 -c 'y'"),
+            ("doas python3 -c", "doas python3 -c 'y'"),
+            ("sudo bash -c python3 -c", "sudo bash -c 'python3 -c y'"),
+            ("quoted python3 -c", '"python3" -c \'y\''),
+            ("$PYTHON -c", "$PYTHON -c 'y'"),
+            ("$(which python3) -c", "$(which python3) -c 'y'"),
         )
         iso_forms = (
             ("if-then python3 -I -c", "if x; then python3 -I -c 'y'; fi"),
@@ -404,6 +413,15 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("command -v python3", "command -v python3"),
             ("which python3", "which python3"),
             ("type python3", "type python3"),
+            ("bash -c python3 -I -c", "bash -c 'python3 -I -c y'"),
+            ("sh -c python3 -I -c", "sh -c 'python3 -I -c y'"),
+            ("nohup python3 -I -c", "nohup python3 -I -c 'y'"),
+            ("eval python3 -I -c", "eval python3 -I -c 'y'"),
+            ("doas python3 -I -c", "doas python3 -I -c 'y'"),
+            ("sudo bash -c python3 -I -c", "sudo bash -c 'python3 -I -c y'"),
+            ("quoted python3 -I -c", '"python3" -I -c \'y\''),
+            ("$PYTHON -I -c", "$PYTHON -I -c 'y'"),
+            ("$(which python3) -I -c", "$(which python3) -I -c 'y'"),
         )
         try:
             for label, body in forms:
@@ -615,8 +633,10 @@ def trust_helper_checks(dist: Path) -> None:
         )
         text = gate.read_text()
         shallow = dist.parent / "gate-maxdepth-3.sh"
-        find_cmd = 'links="$(find "$proj/.ravenclaude" -type l -print 2>&1)"; found=$?'
-        shallow_cmd = 'links="$(find "$proj/.ravenclaude" -maxdepth 3 -type l -print 2>&1)"; found=$?'
+        find_cmd = 'find "$proj/.ravenclaude" -print 2>&1; printf \'RCSTATUS:%s\\n\' "$?"'
+        shallow_cmd = (
+            'find "$proj/.ravenclaude" -maxdepth 3 -print 2>&1; printf \'RCSTATUS:%s\\n\' "$?"'
+        )
         shallow.write_text(text.replace(find_cmd, shallow_cmd, 1))
         check(
             "trust: M6 a gate that stops at depth 3 says ACTIVE for that counter-file link "
@@ -629,6 +649,41 @@ def trust_helper_checks(dist: Path) -> None:
         (proj / ".ravenclaude" / "runs" / "thing").rmdir()
         (proj / ".ravenclaude" / "runs").rmdir()
         check("trust: ... and active again once the links are gone", state() == "active")
+
+        # Fail-closed file-count cap (not a depth cap). Overflow is why=cap -> refused-other.
+        cap_proj = root / "cap-tree"
+        (cap_proj / ".ravenclaude" / "bulk").mkdir(parents=True)
+        (cap_proj / ".ravenclaude" / "comfort-posture.yaml").write_text("schema_version: 5\n")
+        before_cap = tf.read_text() if tf.exists() else ""
+        added = run(helper, "add", str(cap_proj), project=cap_proj)
+        # Trust first: add uses the gate's --line, which walks the tree, so a
+        # already-capped tree would never be recorded and the uncapped mutant
+        # would stay untrusted. Extra files are not part of the digest.
+        check(
+            "trust: add records a project before the file-count cap is filled",
+            added.returncode == 0 and state(cap_proj) == "active",
+            added.stderr.strip()[:90],
+        )
+        bulk = cap_proj / ".ravenclaude" / "bulk"
+        for i in range(4100):
+            (bulk / f"f{i}").write_text("x")
+        check(
+            "trust: a .ravenclaude tree over the 4096-entry cap is refused "
+            "(fail-closed file-count cap, not a depth cap)",
+            state(cap_proj) != "active" and state(cap_proj, detail=True) == "refused-other",
+            f"state={state(cap_proj)!r} detail={state(cap_proj, detail=True)!r}",
+        )
+        cap_needle = '[ "$n" -gt 4096 ] && { why=cap; return 1; }'
+        uncapped = dist.parent / "gate-no-file-cap.sh"
+        uncapped.write_text(text.replace(cap_needle, "", 1))
+        check(
+            "trust: a gate without the file-count cap says ACTIVE for that tree (the cap has teeth)",
+            cap_needle in text and state(cap_proj, gate_file=uncapped) == "active",
+            f"mutant said {state(cap_proj, gate_file=uncapped)!r}",
+        )
+        uncapped.unlink()
+        tf.write_text(before_cap)
+        shutil.rmtree(cap_proj)
 
         # a newline in the project path would let one trust-file entry stand for two patterns
         nl_dir = root / "proj\nx"
@@ -690,8 +745,13 @@ def trust_helper_checks(dist: Path) -> None:
             )
             text = gate.read_text()
             blind = dist.parent / "gate-ignores-find-errors.sh"
-            old_find = '-print 2>&1)"; found=$?'
-            blind.write_text(text.replace(old_find, '-print 2>/dev/null)"; found=0'))
+            old_find = 'find "$proj/.ravenclaude" -print 2>&1; printf \'RCSTATUS:%s\\n\' "$?"'
+            blind.write_text(
+                text.replace(
+                    old_find,
+                    'find "$proj/.ravenclaude" -print 2>/dev/null; printf \'RCSTATUS:0\\n\'',
+                )
+            )
             check(
                 "trust: M9 a gate that ignores find's errors says ACTIVE for it (the fail-closed check has teeth)",
                 old_find in text and hid_state(blind) == "active",

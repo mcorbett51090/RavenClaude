@@ -119,11 +119,8 @@ POSTURE_GATE_SH = """#!/usr/bin/env bash
 # The wrapped hook runs ONLY when all of these are true:
 #   1. the project has .ravenclaude/comfort-posture.yaml (a regular file), AND
 #   2. nothing under .ravenclaude/ is a symbolic link, at any depth, and every directory there can be
-#      read: a repository can ship a link, and the hooks write there, so a link could send a write outside
-#      the project. runaway-brake.sh writes .ravenclaude/runs/thing/runaway/<session_id> and a .lock beside
-#      it. find counts .ravenclaude as depth 0, so that file is depth 4 and a bound of 3 never sees it.
-#      find reports every link and does not stop at a depth bound. A directory the check cannot list
-#      could be hiding one, and find's own errors refuse too (fail closed). AND
+#      read. runaway-brake.sh writes .ravenclaude/runs/thing/runaway/<session_id> (depth 4). find has
+#      no depth bound; it fail-closes on a 4096-entry cap and on its own errors. AND
 #   3. YOU trusted the project AS IT NOW IS: ~/.ravenclaude/edition-trusted-projects holds the line
 #      "<real project path><TAB><sha256>" and the digest still matches the three files the hooks read from the
 #      project (the posture, .repo-layout.json, .ravenclaude/task-scope.json; each at most 1 MiB). Change one
@@ -156,7 +153,12 @@ rc_line() {
       why=untrusted; return 1
     fi
   fi
-  links="$(find "$proj/.ravenclaude" -type l -print 2>&1)"; found=$?
+  n=0; links=; found=1
+  while IFS= read -r p || [ -n "$p" ]; do
+    case "$p" in "RCSTATUS:"*) found=${p#RCSTATUS:}; continue ;; esac
+    n=$((n+1)); [ "$n" -gt 4096 ] && { why=cap; return 1; }
+    [ -L "$p" ] && links=y
+  done < <(find "$proj/.ravenclaude" -print 2>&1; printf 'RCSTATUS:%s\\n' "$?")
   if [ -L "$proj/.ravenclaude" ] || [ "$found" -ne 0 ] || [ -n "$links" ]; then
     why=symlink; return 1
   fi
@@ -1108,6 +1110,14 @@ _PY_SYNTAX = frozenset({"then", "do", "else", "elif", "if", "while", "until", "{
 _PY_WRAPPER = frozenset(
     {"exec", "time", "nice", "sudo", "command", "env", "xargs", "timeout"}
 )
+
+# Data commands whose remaining words are payloads to print or inspect, not
+# executables. "echo python3" stays False; eval/nohup/doas are not in this set.
+_PY_SAFE_DATA = frozenset({
+    "echo", "printf", "cat", "ls", "pwd", "true", "false", ":",
+    "dirname", "basename", "wc", "head", "tail", "tr", "cut",
+    "sort", "uniq", "tee", "grep", "sed", "awk",
+})
 # `command -v`/`-V` (and clusters like -pv) looks up a name; it does not run it.
 # An optional path (`/usr/bin/command`) is the same builtin.
 _COMMAND_LOOKUP = re.compile(
@@ -1296,14 +1306,37 @@ def _invocation_sensitive(tail: str, before: str) -> bool | None:
     return not isolated
 
 
-def _cmd_base(word: str) -> str:
-    if len(word) >= 2 and word[0] == word[-1] and word[0] in "\"'":
+def _unquote_word(word: str) -> str:
+    while len(word) >= 2 and word[0] == word[-1] and word[0] in "\"'":
         word = word[1:-1]
-    return word.rsplit("/", 1)[-1]
+    return word
+
+
+def _cmd_base(word: str) -> str:
+    return _unquote_word(word).rsplit("/", 1)[-1]
+
+
+# $PYTHON / ${PYTHON3} and close siblings; not $PYTHONPATH / $PYTHONHOME.
+_PY_INDIRECT_VAR = re.compile(r"^\$\{?(?:PYTHON|python)3?\}?$")
+
+# Lookups that resolve an interpreter name, e.g. $(which python3).
+_PY_LOCATOR = re.compile(
+    r"^(?:command\s+-[\w-]*v[\w-]*|which|type(?:\s+-\w+)*)\s+\S+",
+)
 
 
 def _is_interpreter_word(word: str) -> bool:
-    return bool(_PY_TOKEN.fullmatch(word) or _PY_PATH_CMD.fullmatch(word))
+    core = _unquote_word(word)
+    if _PY_TOKEN.fullmatch(core) or _PY_PATH_CMD.fullmatch(core):
+        return True
+    return bool(_PY_INDIRECT_VAR.fullmatch(core))
+
+
+def _sub_looks_like_python(inner: str) -> bool:
+    s = inner.strip()
+    if not _PY_LOCATOR.match(s):
+        return False
+    return bool(re.search(r"\bpython3?(?:\.\d+)?\b", s, re.I))
 
 
 def _matching_paren(line: str, open_at: int, limit: int) -> int:
@@ -1391,39 +1424,74 @@ def _token_is_sensitive(line: str, tok_start: int, tok_end: int) -> bool:
 
 
 def _later_interpreter_sensitive(line: str, start: int, end: int) -> bool:
-    """An interpreter token after a wrapper. Flags and their values are skipped by
-    scanning for the token, not by naming each flag. Quoted text is not a command."""
+    """Return True if a later simple-command word is a cwd-sensitive interpreter.
+
+    Named wrappers (sudo, env, ...) and unknown first words both reach here so
+    a prefix the scanner does not recognize cannot hide the payload. Quoted
+    -c/-lc bodies (bash -c 'python3 -c ...') are unquoted and rescanned.
+    Command substitutions and $PYTHON / ${PYTHON3} are treated as command words.
+    Known-safe data commands (echo, printf) never call this helper.
+    """
     i = start
     while i < end:
+        while i < end and line[i] in " \t":
+            i += 1
+        if i >= end:
+            return False
         ch = line[i]
-        if ch == "'":
-            i += 1
-            while i < end and line[i] != "'":
-                i += 1
-            i = min(i + 1, end)
-            continue
-        if ch == '"':
-            i += 1
-            while i < end and line[i] != '"':
-                if line[i] == "\\" and i + 1 < end:
-                    i += 2
-                    continue
-                i += 1
-            i = min(i + 1, end)
-            continue
         if ch == "#":
             return False
-        matched = False
-        for rx in (_PY_PATH_TOKEN, _PY_TOKEN):
-            m = rx.match(line, i)
-            if m and m.start() == i and m.end() <= end:
-                if _token_is_sensitive(line, m.start(), m.end()):
+        if ch in "|&;\n)<>":
+            return False
+        if ch in "'\"":
+            quote = ch
+            j = i + 1
+            chunk = []
+            while j < end:
+                if quote == '"' and line[j] == "\\":
+                    if j + 1 < end:
+                        chunk.append(line[j + 1])
+                    j += 2
+                    continue
+                if line[j] == quote:
+                    break
+                chunk.append(line[j])
+                j += 1
+            inner = "".join(chunk)
+            tok_end = j + 1 if j < end else end
+            stripped = inner.strip()
+            if _is_interpreter_word(stripped) or _PY_PATH_CMD.fullmatch(
+                _unquote_word(stripped)
+            ):
+                if _token_is_sensitive(line, i, tok_end):
                     return True
-                i = m.end()
-                matched = True
-                break
-        if not matched:
-            i += 1
+            elif stripped and python_cwd_sensitive(inner):
+                return True
+            i = tok_end
+            continue
+        if line.startswith("$(", i) or ch == "`":
+            if line.startswith("$(", i):
+                close = _matching_paren(line, i + 1, end)
+                inner = line[i + 2 : close]
+                j = close + 1 if close < end else end
+            else:
+                close = _matching_backtick(line, i + 1, end)
+                inner = line[i + 1 : close]
+                j = close + 1 if close < end else end
+            if python_cwd_sensitive(inner):
+                return True
+            if _sub_looks_like_python(inner):
+                if _token_is_sensitive(line, i, j):
+                    return True
+            i = j
+            continue
+        word, j = _read_word(line, i)
+        if not word or j > end:
+            return False
+        if _is_interpreter_word(word) or _PY_PATH_CMD.fullmatch(_unquote_word(word)):
+            if _token_is_sensitive(line, i, j):
+                return True
+        i = j
     return False
 
 
@@ -1436,6 +1504,23 @@ def _range_sensitive(line: str, start: int, end: int) -> bool:
             i += 1
         if i >= end or line[i] in "|&;\n#)<>":
             return False
+        # Command substitutions can contain spaces; do not split on the inner
+        # words of $(which python3) or `which python3`.
+        if line.startswith("$(", i) or (i < end and line[i] == "`"):
+            if line.startswith("$(", i):
+                close = _matching_paren(line, i + 1, end)
+                inner = line[i + 2 : close]
+                j = close + 1 if close < end else end
+            else:
+                close = _matching_backtick(line, i + 1, end)
+                inner = line[i + 1 : close]
+                j = close + 1 if close < end else end
+            if python_cwd_sensitive(inner):
+                return True
+            if _sub_looks_like_python(inner):
+                return _token_is_sensitive(line, i, j)
+            # Unknown substitution used as the command word: scan the rest.
+            return _later_interpreter_sensitive(line, j, end)
         word, j = _read_word(line, i)
         if not word or j > end:
             return False
@@ -1455,8 +1540,11 @@ def _range_sensitive(line: str, start: int, end: int) -> bool:
         return False
     if base == "command" and _COMMAND_LOOKUP.search(line[i:end]):
         return False
-    if base not in _PY_WRAPPER:
+    if base in _PY_SAFE_DATA:
         return False
+    # Named wrappers and unknown first words: scan the rest of the simple
+    # command, including quoted shell bodies. Fail closed on wrappers the
+    # scanner does not recognize (nohup, eval, doas, timeout, bash -c, ...).
     return _later_interpreter_sensitive(line, j, end)
 
 
@@ -1465,11 +1553,15 @@ def python_cwd_sensitive(line: str) -> bool:
     isolate it. `python3 -c` (with or without a space, including `-Bc`/`-uc`), `python3 -m`, `python3 -`,
     `python3 <<`, a pipe into a bare interpreter, and a bare `python3` all do. A path
     (`/usr/bin/python3`, `./python3`, `/usr/bin/env python3`) is the same command. The scan finds that
-    interpreter token inside each simple command. Syntax words (`then`/`do`/`else`/`elif`/`if`/`while`/
-    `until`/`{`/`!`) and a wrapper (`exec`/`time`/`nice`/`sudo`/`command`/`env`/`xargs`/`timeout`) may
-    precede it; a wrapper's flags, including a separate value (`sudo -u someuser`, `nice -n 5`,
-    `env -u VAR`), are not the command. `which`, `type`, and `command -v`/`-V` look a name up and are
-    not invocations. Options may precede `-c`/`-m`/`-`, including ones that take an argument
+    interpreter token inside each simple command, including quoted names (`"python3"`), `$PYTHON`/
+    `${PYTHON3}`, and `$(which python3)`. Syntax words (`then`/`do`/`else`/`elif`/`if`/`while`/
+    `until`/`{`/`!`) and a wrapper (`exec`/`time`/`nice`/`sudo`/`command`/`env`/`xargs`/`timeout`)
+    may precede it; a wrapper's flags, including a separate value (`sudo -u someuser`, `nice -n 5`,
+    `env -u VAR`), are not the command. An unknown first word is treated as a wrapper and the rest
+    of the simple command is scanned, including a quoted `bash -c`/`sh -c` body (`bash -c 'python3
+    -c ...'`, `sudo bash -c '...'`, `nohup`, `eval`, `doas`). Known-safe data commands (`echo`,
+    `printf`) are not wrappers, so `echo python3` stays False. `which`, `type`, and `command -v`/`-V`
+    look a name up and are not invocations. Options may precede `-c`/`-m`/`-`, including ones that take an argument
     (`-W ignore`, `-X dev`). A backslash-newline between the interpreter and its flags still counts.
     `python3 script.py` puts the SCRIPT's directory
     on sys.path instead, so it is allowed. `-I` (isolated mode, Python 3.4+, also inside a cluster such
@@ -2292,6 +2384,36 @@ def self_test() -> int:
             "timeout 5 python3 -I -c 'y'": False,
             "which python3": False,
             "type python3": False,
+            "bash -c 'python3 -c y'": True,
+            "sh -c 'python3 -c y'": True,
+            "nohup python3 -c 'y'": True,
+            "eval python3 -c 'y'": True,
+            "doas python3 -c 'y'": True,
+            "sudo bash -c 'python3 -c y'": True,
+            "bash -lc 'python3 -c y'": True,
+            "dash -c 'python3 -c y'": True,
+            "zsh -c 'python3 -c y'": True,
+            "timeout 5 bash -c 'python3 -c y'": True,
+            "nohup bash -c 'python3 -c y'": True,
+            "bash -c 'python3 -I -c y'": False,
+            "sh -c 'python3 -I -c y'": False,
+            "nohup python3 -I -c 'y'": False,
+            "eval python3 -I -c 'y'": False,
+            "doas python3 -I -c 'y'": False,
+            "sudo bash -c 'python3 -I -c y'": False,
+            '"python3" -c \'y\'': True,
+            "'/usr/bin/python3' -c 'y'": True,
+            "$PYTHON -c 'y'": True,
+            "${PYTHON3} -c 'y'": True,
+            "$(which python3) -c 'y'": True,
+            "`which python3` -c 'y'": True,
+            "$(command -v python3) -c 'y'": True,
+            '"python3" -I -c \'y\'': False,
+            "$PYTHON -I -c 'y'": False,
+            "${PYTHON3} -I -c 'y'": False,
+            "$(which python3) -I -c 'y'": False,
+            "printf python3": False,
+            "bash -c 'echo python3'": False,
         }
         wrong = [k for k, v in table.items() if python_cwd_sensitive(k) != v]
         check("python isolation: truth table " + (f"[wrong: {wrong}]" if wrong else ""), not wrong)
