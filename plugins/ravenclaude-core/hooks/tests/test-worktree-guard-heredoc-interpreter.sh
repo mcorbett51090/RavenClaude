@@ -26,13 +26,23 @@ trap 'rm -rf "$T"' EXIT
 ROOT="$T/worktree"
 mkdir -p "$ROOT"
 
+# The #1424 macOS shard 1 log at d94f38d0 reported this fixture exit 1 in 1.4s
+# with output discarded. The same fixture at b32bc0eb (output now visible)
+# finished in well under 2s as RESULT pass=34 fail=1, then Gate 309
+# "must_pass expected zero, got exit=1". The failing case is
+# allow-interpreter-heredoc-tmp: want=0 got=3, "inline-interpreter -> /tmp/x".
+# The helper allowlists a literal "/tmp" but realpath()s write targets; on
+# Darwin /tmp is /private/tmp, so a /tmp write false-denies. The same
+# /private/tmp miss produced good-bash-tmp want=0 got=2 in fail-closed on
+# that image. RC_WG_EXTRA_WRITE_ROOTS is already realpath'd by the helper;
+# adding /tmp is a test-portability fix, not a hook change.
+export RC_WG_EXTRA_WRITE_ROOTS="${RC_WG_EXTRA_WRITE_ROOTS:+$RC_WG_EXTRA_WRITE_ROOTS:}/tmp"
+
 # Literal "<<" is never written as source text in this added section (Door 5).
 # Built with printf octal so the two-character sequence is not in this file's
 # source. Fail loud if the opener cannot be produced: an empty _HD would
 # silently drop the opener from every later payload and the helper would
-# return 0 (allow) instead of 3, which can surface as a fixture-level exit 1.
-# (The #1424 macOS shard 1 log at d94f38d0 reported this fixture exit 1 in
-# 1.4s with output discarded, so the failing case was not named.)
+# return 0 (allow) instead of 3.
 _HD="$(printf '\074\074')" || {
   echo "FAIL HARNESS: printf could not build the heredoc opener" >&2
   exit 1
@@ -47,14 +57,10 @@ FAIL=0
 
 # $1=name $2=expected-exit $3=command (fed on stdin); argv is ROOT ROOT.
 # Locals are initialized before use: bash 3.2 `local got out` leaves them unset,
-# and with `set -u` a later expansion can abort the fixture with exit 1 and no
-# per-case FAIL line. That matches the #1424 macOS shard 1 log at d94f38d0
-# (Gate 309 interpreter fixture returned exit 1 in 1.4s; output was discarded).
-# The same run() + set -uo pipefail passed on that image for the 13 older cases
-# at f665d863, so the abort was in the #1424-added delimiter/invocation cases
-# or in bash 3.2's handling of their locals. Initialize; record rc via `|| got=$?`
-# so a non-zero helper exit cannot trip set -e if it is later added; print a
-# FAIL line instead of dying silently.
+# and with `set -u` a later expansion could abort with exit 1 and no per-case
+# FAIL line. The d94f38d0 macOS exit 1 was not that (see allow-interpreter-
+# heredoc-tmp / /private/tmp above); keep the init and `|| got=$?` anyway so a
+# helper deny prints a FAIL line instead of dying silently if set -e is added.
 run() {
   local name want body got out
   name="$1"
