@@ -115,12 +115,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        # Job-level `if:` cannot read `matrix` (GH: "Unrecognized named-value").
+        # Drop macos-latest from the matrix when the variable is off so the
+        # ubuntu leg still always runs and a macOS runner is never scheduled.
+        os: ${{ fromJSON(vars.ALLOW_MACOS_RUNNERS == 'true' && '["macos-latest","ubuntu-latest"]' || '["ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
-    # Ubuntu leg always runs. The macOS leg is opt-in via ALLOW_MACOS_RUNNERS.
-    # Do not gate the whole job with only that variable — that would skip the
-    # ubuntu half and weaken the fail-closed audit.
-    if: matrix.os != 'macos-latest' || vars.ALLOW_MACOS_RUNNERS == 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
