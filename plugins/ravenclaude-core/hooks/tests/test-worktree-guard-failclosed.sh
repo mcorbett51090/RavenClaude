@@ -1,15 +1,61 @@
 #!/usr/bin/env bash
 # Self-tests for worktree-guard fail-closed + Bash coverage (AppSec 2026-10-23).
+#
+# macOS CI (PR #1423 / #1424 shard 1, 2026-11-11): this fixture stalled inside
+# Gate 309 until the 30-minute job cap, with all output discarded, so the hung
+# case was invisible. Each hook invocation is now bounded by _portable.sh's
+# _rc_timeout (GNU timeout, gtimeout, or stock-macOS perl alarm — there is no
+# GNU timeout on stock macOS). BEGIN/PASS/FAIL/TIMEOUT is printed; a timeout
+# names the case and aborts. Audit-gates must launch this script with
+# < /dev/null (same load-bearing redirect as Gate 140) and must not discard
+# its output.
 H="$(cd "$(dirname "$0")/.." && pwd)/worktree-guard.sh"
+# shellcheck source=/dev/null
+. "$(dirname "$H")/_portable.sh"
+command -v _rc_timeout >/dev/null 2>&1 || { echo "FAIL _portable.sh _rc_timeout missing"; exit 1; }
+CASE_TIMEOUT=15
+
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+pass=0; fail=0
+
+_abort_timeout() {
+  fail=$((fail+1))
+  printf 'TIMEOUT %s after %ss (hook did not return; rc=%s)\n' "$1" "$CASE_TIMEOUT" "$2"
+  echo "RESULT pass=$pass fail=$fail (aborted on TIMEOUT)"
+  exit 1
+}
+
+# Run worktree-guard.sh check with $2 as stdin payload. Stdin is a file, not a
+# pipe held open by the harness. Return the hook's rc, or 124/142 on ceiling.
+_run_hook() {
+  printf '%s' "$2" > "$T/payload"
+  _rc_timeout "$CASE_TIMEOUT" bash -c 'cd "$1" && exec bash "$2" check' _ "$T/wt" "$1" \
+    < "$T/payload" >"$T/out" 2>"$T/err"
+}
+
+_preview_err() {
+  cut -c1-300 "$T/err" 2>/dev/null | tr '\n' ' '
+}
+
+run() { # name expect_rc payload
+  local name="$1" want="$2" got
+  printf 'BEGIN %s\n' "$name"
+  _run_hook "$H" "$3"
+  got=$?
+  case "$got" in 124|142) _abort_timeout "$name" "$got" ;; esac
+  if [ "$got" = "$want" ]; then
+    pass=$((pass+1)); echo "PASS $name (rc=$got)"
+  else
+    fail=$((fail+1)); echo "FAIL $name want=$want got=$got: $(_preview_err)"
+  fi
+}
+
+echo "── test-worktree-guard-failclosed.sh (per-case timeout ${CASE_TIMEOUT}s) ──"
+echo "BEGIN setup"
 git init -q "$T/wt" && echo ".ravenclaude/" > "$T/wt/.gitignore" && git -C "$T/wt" add .gitignore && git -C "$T/wt" -c user.name=t -c user.email=t@t commit -q -m init
 git -C "$T/wt" checkout -q -b feat
 export RC_WORKTREE_GUARD_HOME="$T/gh" RC_WG_ERROR_LOG="$T/errors.log" RC_WG_STALE_LOG="$T/stale.log" CLAUDE_PROJECT_DIR="$T/wt"
-pass=0; fail=0
-run() { # name expect_rc payload
-  local got; printf '%s' "$3" | (cd "$T/wt" && bash "$H" check) >"$T/out" 2>"$T/err"; got=$?
-  if [ "$got" = "$2" ]; then pass=$((pass+1)); echo "PASS $1 (rc=$got)"; else fail=$((fail+1)); echo "FAIL $1 want=$2 got=$got: $(head -c300 "$T/err")"; fi
-}
+echo "PASS setup"
 j() { jq -cn --arg t "$1" --arg c "$2" --arg w "$T/wt" '{tool_name:$t,session_id:"s1",cwd:$w,tool_input:(if $t=="Bash" then {command:$c} else {file_path:$c,content:"x"} end)}'; }
 run good-write-in-tree       0 "$(j Write "$T/wt/a.txt")"
 run good-bash-in-tree        0 "$(j Bash 'echo hi > a.txt && cp a.txt b.txt && sed -i s/a/b/ b.txt')"
@@ -65,13 +111,22 @@ _cmd_appsec_f1_node_writeFileSync="node ${_HD}JS"$'\n'"require('fs').writeFileSy
 run appsec-f1-node-writeFileSync  2 "$(j Bash "$_cmd_appsec_f1_node_writeFileSync")"
 run crash-malformed-json     2 '{"tool_name":"Bash","tool_input":{'
 # crash: helper unavailable -> must deny, not allow
-cp "$H" "$T/wg.sh"; printf '%s' "$(j Bash 'echo hi > a.txt')" | (cd "$T/wt" && bash "$T/wg.sh" check) >/dev/null 2>"$T/err"; rc=$?
-fail=$((fail-0)); if [ $rc = 2 ] && grep -q fail-closed "$T/err"; then pass=$((pass+1)); echo "PASS crash-helper-missing-deny (rc=2)"; else fail=$((fail+1)); echo "FAIL crash-helper-missing-deny rc=$rc"; fi
+cp "$H" "$T/wg.sh"
+echo "BEGIN crash-helper-missing-deny"
+_run_hook "$T/wg.sh" "$(j Bash 'echo hi > a.txt')"
+rc=$?
+case "$rc" in 124|142) _abort_timeout "crash-helper-missing-deny" "$rc" ;; esac
+if [ $rc = 2 ] && grep -q fail-closed "$T/err"; then pass=$((pass+1)); echo "PASS crash-helper-missing-deny (rc=2)"; else fail=$((fail+1)); echo "FAIL crash-helper-missing-deny rc=$rc: $(_preview_err)"; fi
 [ -s "$T/errors.log" ] && { pass=$((pass+1)); echo "PASS errors.log written"; } || { fail=$((fail+1)); echo "FAIL errors.log empty"; }
 # ── (A) stale lease: never git add/commit; record + deny ──
 js() { jq -cn --arg s "$1" --arg w "$T/wt" '{tool_name:"Write",session_id:$s,cwd:$w,tool_input:{file_path:($w+"/a.txt"),content:"x"}}'; }
 age_lease() { find "$T/gh/leases" -name lease.json -exec python3 -c "import os,sys,time; t=time.time()-10800; [os.utime(p,(t,t)) for p in sys.argv[1:]]" {} +; }
-rm -rf "$T/gh/leases"; printf '%s' "$(js holder0)" | (cd "$T/wt" && bash "$H" check) >/dev/null 2>&1   # holder0 claims lease
+echo "BEGIN holder0-claim-lease"
+rm -rf "$T/gh/leases"
+_run_hook "$H" "$(js holder0)"
+rc=$?
+case "$rc" in 124|142) _abort_timeout "holder0-claim-lease" "$rc" ;; esac
+echo "PASS holder0-claim-lease (rc=$rc)"
 echo dirty > "$T/wt/dirty.txt"; age_lease
 head0=$(git -C "$T/wt" rev-parse HEAD)
 run stale-dirty-denied 2 "$(js claimant1)"
@@ -82,10 +137,16 @@ rm -f "$T/wt/dirty.txt"; age_lease
 run stale-clean-takeover 0 "$(js claimant1)"
 [ "$(git -C "$T/wt" rev-parse HEAD)" = "$head0" ] && { pass=$((pass+1)); echo "PASS clean-takeover-no-commit"; } || { fail=$((fail+1)); echo "FAIL clean-takeover committed"; }
 # ── F-7: git status FAILS on a stale lease -> deny, never "clean" ──
-rm -rf "$T/gh/leases"; printf '%s' "$(js holder2)" | (cd "$T/wt" && bash "$H" check) >/dev/null 2>&1; age_lease
+echo "BEGIN holder2-claim-lease"
+rm -rf "$T/gh/leases"
+_run_hook "$H" "$(js holder2)"
+rc=$?
+case "$rc" in 124|142) _abort_timeout "holder2-claim-lease" "$rc" ;; esac
+echo "PASS holder2-claim-lease (rc=$rc)"
+age_lease
 cp "$T/wt/.git/index" "$T/index.bak"; printf 'garbage' > "$T/wt/.git/index"
 run stale-git-status-error-denied 2 "$(js claimant3)"
-grep -q "git status' failed" "$T/err" && { pass=$((pass+1)); echo "PASS F-7 deny names git status failure"; } || { fail=$((fail+1)); echo "FAIL F-7 message: $(head -c200 "$T/err")"; }
+grep -q "git status' failed" "$T/err" && { pass=$((pass+1)); echo "PASS F-7 deny names git status failure"; } || { fail=$((fail+1)); echo "FAIL F-7 message: $(_preview_err)"; }
 grep -q 'stale-lease-git-status-failed' "$T/stale.log" && { pass=$((pass+1)); echo "PASS F-7 logged"; } || { fail=$((fail+1)); echo "FAIL F-7 log"; }
 cp "$T/index.bak" "$T/wt/.git/index"
 # ── internal error inside the lease section -> ERR trap denies ──
@@ -101,7 +162,10 @@ _wg_src="$(cat "$H")"
 _wg_mut_src="${_wg_src/$_wg_anchor/$_wg_mutated}"
 if [ "$_wg_mut_src" != "$_wg_src" ]; then
   printf '%s\n' "$_wg_mut_src" > "$T/mf/worktree-guard.sh"
-  printf '%s' "$(js s9)" | (cd "$T/wt" && bash "$T/mf/worktree-guard.sh" check) >/dev/null 2>"$T/err"; rc=$?
-  if [ $rc = 2 ] && grep -q 'internal error in the lease section' "$T/err"; then pass=$((pass+1)); echo "PASS lease-internal-error-denied"; else fail=$((fail+1)); echo "FAIL lease-internal-error rc=$rc $(head -c200 "$T/err")"; fi
+  echo "BEGIN lease-internal-error-denied"
+  _run_hook "$T/mf/worktree-guard.sh" "$(js s9)"
+  rc=$?
+  case "$rc" in 124|142) _abort_timeout "lease-internal-error-denied" "$rc" ;; esac
+  if [ $rc = 2 ] && grep -q 'internal error in the lease section' "$T/err"; then pass=$((pass+1)); echo "PASS lease-internal-error-denied"; else fail=$((fail+1)); echo "FAIL lease-internal-error rc=$rc $(_preview_err)"; fi
 else fail=$((fail+1)); echo "FAIL could not inject lease-section error (anchor line moved)"; fi
 echo "RESULT pass=$pass fail=$fail"; [ $fail = 0 ]
