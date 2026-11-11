@@ -67,12 +67,48 @@ for s in segs:
         # inline (-c/-e) or heredoc/stdin programs: look for absolute/home path literals used in writes
         if any(t in ("-c", "-e", "-E", "--eval", "-") for t in toks) or "<<" in s or "<<HEREDOC" in s:
             pass
-# Heredoc bodies are data, not writes. The interpreter scan used to read
-# example paths inside the body and deny the command.
-_scan = re.sub(r"<<-?\s*['\"]?(\w+)['\"]?.*?\n\1\b", " <<HEREDOC\n", cmd, flags=re.S)
-for _m in re.finditer(r"(?:python[0-9.]*|node|perl|ruby)\b[^\n]*?(?:\s-[ceE]\s|\s-\s|<<)", _scan):
+# Heredoc bodies are data UNLESS the heredoc feeds an interpreter — then the
+# body IS the program that runs, and blanking it (as the straight-command
+# WRITERS loop above correctly does for a plain data heredoc) would let the
+# body's own writes slip past every pattern below. #1416 (cba447ec) started
+# stripping every heredoc body unconditionally before this scan ever ran;
+# AppSec SHIPCHECK 18f5c03f (F1) reproduced the resulting bypass:
+# `python3 - <<'PY'` / `open(...,'w')`, `python3 <<PY` / `shutil.rmtree(...)`,
+# `node <<JS` / `fs.writeFileSync(...)` all returned exit 0 (allow). Scoped to
+# the DIRECT form (`<interpreter> [flags] <<TAG`) to match the WRITERS-loop
+# command-word check two blocks above, which is the same shape — a heredoc
+# piped INTO an interpreter (`cat <<EOF | python3`) is not detected here
+# either, same best-effort limit this file's own docstring already states. A
+# plain data heredoc (`cat <<EOF`, `git commit -F - <<EOF`) is still blanked,
+# so an example path inside its body does not false-deny. Interpreter set
+# matches the WRITERS-loop check: python/python3, node, nodejs, perl, ruby,
+# php, deno, bun.
+_INTERP_NAME_RE = re.compile(r"^(?:python[0-9.]*|node|nodejs|perl|ruby|php|deno|bun)$")
+
+
+def _heredoc_feeds_interpreter(prefix):
+    # The simple command immediately before `<<` (e.g. `python3 - <<'PY'`).
+    seg = re.split(r"[\n;&|(]", prefix)[-1]
+    for tok in seg.split():
+        tok = tok.strip("'\"").lstrip("\\")
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", tok):
+            continue  # a leading VAR=val assignment is not the command word
+        if _INTERP_NAME_RE.match(os.path.basename(tok)):
+            return True
+    return False
+
+
+def _strip_or_keep_heredoc(m):
+    prefix = cmd[: m.start()]
+    if _heredoc_feeds_interpreter(prefix):
+        return m.group(0)  # interpreter heredoc: body IS the program — scan it, don't blank
+    return " <<HEREDOC\n"
+
+
+_scan = re.sub(r"<<-?\s*['\"]?(\w+)['\"]?.*?\n\1\b", _strip_or_keep_heredoc, cmd, flags=re.S)
+for _m in re.finditer(r"(?:python[0-9.]*|node|nodejs|perl|ruby|php|deno|bun)\b[^\n]*?(?:\s-[ceE]\s|\s-\s|<<)", _scan):
     # best-effort: any quoted absolute/~ path literal in the whole command that looks write-ish
-    if re.search(r"open\([^)]*['\"][wax]b?\+?['\"]|write_text|write_bytes|writeFile|appendFile|createWriteStream|shutil\.|os\.(rename|replace|remove|unlink|makedirs|mkdir)|rmtree|unlinkSync|rmSync|open\s*\(?\s*\w+\s*,\s*['\"]\+?>|print\s*\{", _scan):
+    if re.search(r"open\([^)]*['\"][wax]b?\+?['\"]|write_text|write_bytes|writeFile|writeTextFile|file_put_contents|appendFile|createWriteStream|shutil\.|os\.(rename|replace|remove|unlink|makedirs|mkdir)|rmtree|unlinkSync|rmSync|Bun\.write|open\s*\(?\s*\w+\s*,\s*['\"]\+?>|print\s*\{", _scan):
         for p in re.findall(r"['\"]((?:/|~/)[^'\"\s]*)['\"]", _scan):
             if not p.startswith(("/usr/", "/bin/", "/lib", "/etc/", "/opt/", "/proc/", "/sys/")): flag("inline-interpreter", p)
     break

@@ -8,3 +8,21 @@
 # Docs: https://docs.github.com/en/repositories/managing-your-repositories-permissions-and-settings/customizing-your-repository/about-code-owners
 
 * @mcorbett51090
+
+# Explicit coverage for the pinned worktree-guard hook files (AppSec SHIPCHECK
+# 18f5c03f, F2: #1416 changed two of these — worktree-guard.sh and
+# worktree-guard-bash.py — and merged with only bot COMMENTED reviews, no
+# AppSec SHIPCHECK, which is how the F1 heredoc regression shipped unreviewed).
+# These five files are exactly the box-run-wgpin.py manifest set
+# (hooks/worktree-guard.sh, hooks/worktree-guard-bash.py, hooks/_portable.sh,
+# hooks/_emit-event.sh, hooks/hooks.json). Same owner as the `*` default above
+# (solo-maintainer repo) — this entry exists so a change to these specific
+# files is never a silent path-owner gap, not to add a second human. Making
+# these reviews REQUIRED (require_code_owner_review / a required status
+# check) is a separate owner/Sage ruleset call, not made here — see the file
+# header above for why require_code_owner_review stays false while this repo
+# is solo-owned.
+plugins/ravenclaude-core/hooks/worktree-guard* @mcorbett51090
+plugins/ravenclaude-core/hooks/_portable.sh @mcorbett51090
+plugins/ravenclaude-core/hooks/_emit-event.sh @mcorbett51090
+plugins/ravenclaude-core/hooks/hooks.json @mcorbett51090

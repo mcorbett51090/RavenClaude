@@ -31,6 +31,23 @@ EOF")"
 run bad-python-heredoc       2 "$(j Bash "python3 - <<'PY'
 open('/workspace/other/f','w').write('x')
 PY")"
+# ── AppSec SHIPCHECK 18f5c03f (F1): #1416/cba447ec blanked EVERY heredoc body
+# — including one feeding an interpreter — before the inline-interpreter write
+# scan ran, so these three returned rc=0 (allow) instead of rc=2 (deny). The
+# exact repros AppSec reproduced against the 0.361.1 helper. Hook-level (exit
+# 2, through worktree-guard.sh check); the helper itself (exit 3) is covered
+# directly by test-worktree-guard-heredoc-interpreter.sh, including php/deno/
+# bun and a teeth mutant.
+run appsec-f1-python-open-write   2 "$(j Bash "python3 - <<'PY'
+open('/workspace/sibling-wt/x','w').write('x')
+PY")"
+run appsec-f1-python-rmtree       2 "$(j Bash "python3 <<PY
+import shutil
+shutil.rmtree(\"/workspace/sibling-wt\")
+PY")"
+run appsec-f1-node-writeFileSync  2 "$(j Bash "node <<JS
+require('fs').writeFileSync(\"/workspace/sibling-wt/x\", \"x\")
+JS")"
 run crash-malformed-json     2 '{"tool_name":"Bash","tool_input":{'
 # crash: helper unavailable -> must deny, not allow
 cp "$H" "$T/wg.sh"; printf '%s' "$(j Bash 'echo hi > a.txt')" | (cd "$T/wt" && bash "$T/wg.sh" check) >/dev/null 2>"$T/err"; rc=$?

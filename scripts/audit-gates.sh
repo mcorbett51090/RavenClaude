@@ -428,8 +428,10 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # (managed-solution-import — same plugins/power-platform/hooks/tests/
       # home as 124/125). 308 (worktree + branch unified lifecycle — the
       # SessionEnd report hook's own fixture lives in this same
-      # plugins/ravenclaude-core/hooks/tests/ home).
-      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 53c 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293 295 296 297 298 299 300 308"
+      # plugins/ravenclaude-core/hooks/tests/ home). 309 (worktree-guard
+      # heredoc-interpreter scan, AppSec SHIPCHECK 18f5c03f F1 — same
+      # plugins/ravenclaude-core/hooks/tests/ home as 140/308).
+      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 53c 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293 295 296 297 298 299 300 308 309"
       ;;
     portal)
       # Gap: 27 (consumer-dashboard repo-scoped guard — serve-dashboards.py,
@@ -2165,9 +2167,16 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh
       exit $?
       ;;
+    309)
+      echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK 18f5c03f F1; per-gate run) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7265,6 +7274,35 @@ echo "── Gate 308: worktree + branch unified lifecycle (dry-run default, por
 # GREP THE SUITE OUTPUT FOR "Gate 308".
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh >/dev/null 2>&1 || rc=$?
 gate "worktree-clean-lifecycle: porcelain discovery, every safety class, dry-run default, unified remove->prune->branch-cleanup, SessionEnd report-only, teeth" must_pass "$rc"
+
+echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK 18f5c03f F1) ──"
+# #1416 (cba447ec) made worktree-guard-bash.py strip EVERY heredoc body as
+# inert data before its inline-interpreter write scan ran — including a
+# heredoc that FEEDS an interpreter, where the body IS the program that
+# executes. AppSec SHIPCHECK 18f5c03f (F1) reproduced the resulting bypass on
+# the 0.361.1 helper: `python3 - <<'PY'` / `open(...,'w')`,
+# `python3 <<PY` / `shutil.rmtree(...)`, and `node <<JS` / `writeFileSync(...)`
+# all returned exit 0 (allow) instead of exit 3 (deny). The fix strips a
+# heredoc body only when it feeds a NON-interpreter command (matching the
+# WRITERS-loop command-word check's own interpreter set: python/python3,
+# node, nodejs, perl, ruby, php, deno, bun) — a plain data heredoc (`cat
+# <<EOF`, `git commit -F - <<EOF`) is still blanked, so an example path inside
+# its body does not false-deny.
+#
+# Two fixtures, bidirectionally: test-worktree-guard-heredoc-interpreter.sh
+# drives the HELPER directly (exit 3) — the three exact repros, the php/deno/
+# bun extension of the interpreter set, the pre-existing -c/-e/redirect
+# mechanisms (no regression), the data-heredoc allow cases, and a teeth
+# mutant that reverts the interpreter check and proves the repros then slip
+# through (exit 0). test-worktree-guard-failclosed.sh — previously NOT
+# referenced anywhere in this suite, which is why CI never caught the
+# regression — is now wired in below (same file this gate shares with Gate
+# 140) and carries the three repros at the HOOK level (exit 2, through
+# worktree-guard.sh check). GREP THE SUITE OUTPUT FOR "Gate 309".
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh >/dev/null 2>&1 || rc=$?
+gate "worktree-guard-bash.py: interpreter heredocs (python/node/perl/ruby/php/deno/bun) are scanned, not blanked (+ teeth)" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh >/dev/null 2>&1 || rc=$?
+gate "worktree-guard fail-closed suite (incl. the AppSec F1 repros at hook level, exit 2) — now actually registered" must_pass "$rc"
 
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"

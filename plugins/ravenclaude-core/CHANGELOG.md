@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.361.2 — 2026-11-11
+
+### Fixed
+- **AppSec SHIPCHECK 18f5c03f (worktree-guard 0.361.1 pin review) — F1 and F2, both closed.**
+  - **F1 (Medium) — `worktree-guard-bash.py` stopped checking an interpreter program fed by heredoc.** `#1416` (`cba447ec`) started stripping every heredoc body as inert data before the inline-interpreter write scan ran, including a heredoc that FEEDS an interpreter — where the body IS the program that executes. AppSec reproduced the resulting bypass on the 0.361.1 helper: `python3 - <<'PY'` / `open('/workspace/sibling-wt/x','w')…`, `python3 <<PY` / `shutil.rmtree("/workspace/sibling-wt")`, and `node <<JS` / `fs.writeFileSync("/workspace/sibling-wt/x")` all returned exit 0 (allow) instead of exit 3 (deny). Fixed: a heredoc body is stripped only when it feeds a non-interpreter command — the interpreter scan now covers the same set the command-word check two blocks above already lists (python/python3, node, nodejs, perl, ruby, php, deno, bun; the scan regex itself was missing `php`/`deno`/`bun`). A plain data heredoc (`cat <<EOF`, `git commit -F - <<EOF`) is still blanked, so an example path inside its body does not false-deny; `-c`/`-e` one-liners and `cat <<EOF > /out-of-tree` redirects were already denied and remain so.
+  - **F2 (Low) — explicit CODEOWNERS coverage for the pinned worktree-guard hook files.** `#1416` changed two pinned guard-manifest members (`worktree-guard.sh`, `worktree-guard-bash.py`) and merged with only bot COMMENTED reviews — no AppSec SHIPCHECK — which is how the F1 regression shipped unreviewed. `CODEOWNERS` now explicitly lists `plugins/ravenclaude-core/hooks/worktree-guard*`, `_portable.sh`, `_emit-event.sh`, and `hooks.json` (the exact `box-run-wgpin.py` manifest set) under the existing solo-maintainer owner, so a future change to these files is never a silent path-owner gap. `require_code_owner_review` is unchanged (an owner/Sage ruleset call, not made here).
+  - **Gate 309** (`hooks/tests/test-worktree-guard-heredoc-interpreter.sh`, new) drives the helper directly against the three exact AppSec repros plus the php/deno/bun extension, with a teeth mutant that reverts the interpreter check and proves the repros then slip through. `hooks/tests/test-worktree-guard-failclosed.sh` — which already carried a `bad-python-heredoc` case but was never referenced anywhere in `scripts/audit-gates.sh`, which is why CI never caught the regression — is now registered (same gate) and gained the three AppSec repros at the hook level (exit 2).
+
+**AppSec review required before the next pin.** This fix has not yet had a fresh AppSec SHIPCHECK; `/workspace/state/box-run/worktree-guard.sha256` is untouched by this change, and a new manifest pin for whichever version ships this fix must come from AppSec, not from this PR.
+
 ## 0.361.1 — 2026-11-10
 
 ### Fixed
