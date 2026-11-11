@@ -9,6 +9,8 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 - **AppSec R2 on #1432 at fb68daf6 (verdict 5e7bd245).** The cwd-import scanner no longer fails open on an unknown first word or a quoted `bash -c`/`sh -c` body: `nohup`, `eval`, `doas`, `bash -c 'python3 -c …'`, and `sudo bash -c '…'` are refused without `-I`. Quoted interpreter words (`"python3" -c`), `$PYTHON`/`${PYTHON3}`, and `$(which python3)` are treated as interpreters. The posture-gate symlink walk keeps no depth cap and now fail-closes on a 4096-entry file-count cap (`why=cap` maps to `refused-other`).
 
+- **AppSec M4 follow-up on #1432 (verdict c0f3d45e) and the Independent Reviewer's one-line case residual.** The cwd-import scanner now flags a safe-data command piped into `bash`/`sh`/`eval` (`echo … | bash`), removes `awk`/`sed` from the data allowlist (`awk 'BEGIN{system(...)}'`, `sed 'e …'`), unquotes ANSI-C `$''` and rescans `<<<` bodies, and catches `sh -c "$(printf …)"`, `perl -e`/`ruby -e` `system(...)`, `source <(…)`, `p\ython3`, `${PYTHON:-python3}`, and a one-line `case …) python3 -c`. A recursion-depth cap fail-closes instead of raising `RecursionError`.
+
 ## 0.361.4 — 2026-11-11
 
 ### Fixed
