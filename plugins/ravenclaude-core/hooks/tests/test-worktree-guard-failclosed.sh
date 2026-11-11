@@ -5,23 +5,36 @@
 # Gate 309 until the 30-minute job cap, with all output discarded, so the hung
 # case was invisible. Each hook invocation is now bounded by _portable.sh's
 # _rc_timeout (GNU timeout, gtimeout, or stock-macOS perl alarm — there is no
-# GNU timeout on stock macOS). BEGIN/PASS/FAIL/TIMEOUT is printed; a timeout
-# names the case and aborts. Audit-gates must launch this script with
-# < /dev/null (same load-bearing redirect as Gate 140) and must not discard
-# its output.
+# GNU timeout on stock macOS). Progress lines are labeled HARNESS or HOOK so a
+# timeout names both the case and the layer. A timeout is always a FAIL (never
+# a skip or a pass) and aborts the fixture. Audit-gates must launch this
+# script with < /dev/null (same load-bearing redirect as Gate 140) and must
+# not discard its output.
 H="$(cd "$(dirname "$0")/.." && pwd)/worktree-guard.sh"
 # shellcheck source=/dev/null
 . "$(dirname "$H")/_portable.sh"
-command -v _rc_timeout >/dev/null 2>&1 || { echo "FAIL _portable.sh _rc_timeout missing"; exit 1; }
+command -v _rc_timeout >/dev/null 2>&1 || { echo "FAIL HARNESS: _portable.sh _rc_timeout missing"; exit 1; }
 CASE_TIMEOUT=15
+if command -v timeout >/dev/null 2>&1; then
+  TIMEOUT_BACKEND=gnu-timeout
+elif command -v gtimeout >/dev/null 2>&1; then
+  TIMEOUT_BACKEND=gtimeout
+elif command -v perl >/dev/null 2>&1; then
+  TIMEOUT_BACKEND=perl-alarm
+else
+  echo "FAIL HARNESS: no timeout, gtimeout, or perl; cases cannot be bounded"
+  exit 1
+fi
 
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 pass=0; fail=0
 
+# A timeout is a FAIL, never a skip or a pass. $1=name $2=rc $3=layer (HARNESS|HOOK)
 _abort_timeout() {
   fail=$((fail+1))
-  printf 'TIMEOUT %s after %ss (hook did not return; rc=%s)\n' "$1" "$CASE_TIMEOUT" "$2"
-  echo "RESULT pass=$pass fail=$fail (aborted on TIMEOUT)"
+  printf 'FAIL %s: TIMEOUT after %ss in the %s path (did not return; backend=%s rc=%s)\n' \
+    "$1" "$CASE_TIMEOUT" "$3" "$TIMEOUT_BACKEND" "$2"
+  echo "RESULT pass=$pass fail=$fail (aborted on TIMEOUT FAIL)"
   exit 1
 }
 
@@ -39,10 +52,12 @@ _preview_err() {
 
 run() { # name expect_rc payload
   local name="$1" want="$2" got
-  printf 'BEGIN %s\n' "$name"
+  printf 'HARNESS begin %s\n' "$name"
+  printf 'HOOK start %s\n' "$name"
   _run_hook "$H" "$3"
   got=$?
-  case "$got" in 124|142) _abort_timeout "$name" "$got" ;; esac
+  case "$got" in 124|142) _abort_timeout "$name" "$got" "HOOK (worktree-guard.sh check)" ;; esac
+  printf 'HOOK done %s rc=%s\n' "$name" "$got"
   if [ "$got" = "$want" ]; then
     pass=$((pass+1)); echo "PASS $name (rc=$got)"
   else
@@ -50,12 +65,12 @@ run() { # name expect_rc payload
   fi
 }
 
-echo "── test-worktree-guard-failclosed.sh (per-case timeout ${CASE_TIMEOUT}s) ──"
-echo "BEGIN setup"
+echo "── test-worktree-guard-failclosed.sh (per-case timeout ${CASE_TIMEOUT}s backend=${TIMEOUT_BACKEND}) ──"
+echo "HARNESS start setup"
 git init -q "$T/wt" && echo ".ravenclaude/" > "$T/wt/.gitignore" && git -C "$T/wt" add .gitignore && git -C "$T/wt" -c user.name=t -c user.email=t@t commit -q -m init
 git -C "$T/wt" checkout -q -b feat
 export RC_WORKTREE_GUARD_HOME="$T/gh" RC_WG_ERROR_LOG="$T/errors.log" RC_WG_STALE_LOG="$T/stale.log" CLAUDE_PROJECT_DIR="$T/wt"
-echo "PASS setup"
+echo "HARNESS done setup"
 j() { jq -cn --arg t "$1" --arg c "$2" --arg w "$T/wt" '{tool_name:$t,session_id:"s1",cwd:$w,tool_input:(if $t=="Bash" then {command:$c} else {file_path:$c,content:"x"} end)}'; }
 run good-write-in-tree       0 "$(j Write "$T/wt/a.txt")"
 run good-bash-in-tree        0 "$(j Bash 'echo hi > a.txt && cp a.txt b.txt && sed -i s/a/b/ b.txt')"
@@ -112,20 +127,24 @@ run appsec-f1-node-writeFileSync  2 "$(j Bash "$_cmd_appsec_f1_node_writeFileSyn
 run crash-malformed-json     2 '{"tool_name":"Bash","tool_input":{'
 # crash: helper unavailable -> must deny, not allow
 cp "$H" "$T/wg.sh"
-echo "BEGIN crash-helper-missing-deny"
+echo "HARNESS begin crash-helper-missing-deny"
+echo "HOOK start crash-helper-missing-deny"
 _run_hook "$T/wg.sh" "$(j Bash 'echo hi > a.txt')"
 rc=$?
-case "$rc" in 124|142) _abort_timeout "crash-helper-missing-deny" "$rc" ;; esac
+case "$rc" in 124|142) _abort_timeout "crash-helper-missing-deny" "$rc" "HOOK (worktree-guard.sh check, helper missing)" ;; esac
+echo "HOOK done crash-helper-missing-deny rc=$rc"
 if [ $rc = 2 ] && grep -q fail-closed "$T/err"; then pass=$((pass+1)); echo "PASS crash-helper-missing-deny (rc=2)"; else fail=$((fail+1)); echo "FAIL crash-helper-missing-deny rc=$rc: $(_preview_err)"; fi
 [ -s "$T/errors.log" ] && { pass=$((pass+1)); echo "PASS errors.log written"; } || { fail=$((fail+1)); echo "FAIL errors.log empty"; }
 # ── (A) stale lease: never git add/commit; record + deny ──
 js() { jq -cn --arg s "$1" --arg w "$T/wt" '{tool_name:"Write",session_id:$s,cwd:$w,tool_input:{file_path:($w+"/a.txt"),content:"x"}}'; }
 age_lease() { find "$T/gh/leases" -name lease.json -exec python3 -c "import os,sys,time; t=time.time()-10800; [os.utime(p,(t,t)) for p in sys.argv[1:]]" {} +; }
-echo "BEGIN holder0-claim-lease"
+echo "HARNESS begin holder0-claim-lease"
 rm -rf "$T/gh/leases"
+echo "HOOK start holder0-claim-lease"
 _run_hook "$H" "$(js holder0)"
 rc=$?
-case "$rc" in 124|142) _abort_timeout "holder0-claim-lease" "$rc" ;; esac
+case "$rc" in 124|142) _abort_timeout "holder0-claim-lease" "$rc" "HOOK (worktree-guard.sh check)" ;; esac
+echo "HOOK done holder0-claim-lease rc=$rc"
 echo "PASS holder0-claim-lease (rc=$rc)"
 echo dirty > "$T/wt/dirty.txt"; age_lease
 head0=$(git -C "$T/wt" rev-parse HEAD)
@@ -137,11 +156,13 @@ rm -f "$T/wt/dirty.txt"; age_lease
 run stale-clean-takeover 0 "$(js claimant1)"
 [ "$(git -C "$T/wt" rev-parse HEAD)" = "$head0" ] && { pass=$((pass+1)); echo "PASS clean-takeover-no-commit"; } || { fail=$((fail+1)); echo "FAIL clean-takeover committed"; }
 # ── F-7: git status FAILS on a stale lease -> deny, never "clean" ──
-echo "BEGIN holder2-claim-lease"
+echo "HARNESS begin holder2-claim-lease"
 rm -rf "$T/gh/leases"
+echo "HOOK start holder2-claim-lease"
 _run_hook "$H" "$(js holder2)"
 rc=$?
-case "$rc" in 124|142) _abort_timeout "holder2-claim-lease" "$rc" ;; esac
+case "$rc" in 124|142) _abort_timeout "holder2-claim-lease" "$rc" "HOOK (worktree-guard.sh check)" ;; esac
+echo "HOOK done holder2-claim-lease rc=$rc"
 echo "PASS holder2-claim-lease (rc=$rc)"
 age_lease
 cp "$T/wt/.git/index" "$T/index.bak"; printf 'garbage' > "$T/wt/.git/index"
@@ -162,10 +183,12 @@ _wg_src="$(cat "$H")"
 _wg_mut_src="${_wg_src/$_wg_anchor/$_wg_mutated}"
 if [ "$_wg_mut_src" != "$_wg_src" ]; then
   printf '%s\n' "$_wg_mut_src" > "$T/mf/worktree-guard.sh"
-  echo "BEGIN lease-internal-error-denied"
+  echo "HARNESS begin lease-internal-error-denied"
+  echo "HOOK start lease-internal-error-denied"
   _run_hook "$T/mf/worktree-guard.sh" "$(js s9)"
   rc=$?
-  case "$rc" in 124|142) _abort_timeout "lease-internal-error-denied" "$rc" ;; esac
+  case "$rc" in 124|142) _abort_timeout "lease-internal-error-denied" "$rc" "HOOK (mutated worktree-guard.sh check)" ;; esac
+  echo "HOOK done lease-internal-error-denied rc=$rc"
   if [ $rc = 2 ] && grep -q 'internal error in the lease section' "$T/err"; then pass=$((pass+1)); echo "PASS lease-internal-error-denied"; else fail=$((fail+1)); echo "FAIL lease-internal-error rc=$rc $(_preview_err)"; fi
 else fail=$((fail+1)); echo "FAIL could not inject lease-section error (anchor line moved)"; fi
 echo "RESULT pass=$pass fail=$fail"; [ $fail = 0 ]
