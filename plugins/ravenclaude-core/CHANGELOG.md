@@ -2,6 +2,13 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.361.5 — 2026-11-11
+
+### Fixed
+- **Directory edition cwd-import scan and trust-refusal follow-up (draft #1409, ported onto 0.361.4).** The build-time python cwd-import scan now flags invocations after shell syntax (`if`/`while`/`until`/`!`/`then`/`do`), wrappers (`sudo`/`nice`/`env`/`exec`/`time`/`command`/`xargs`/`timeout`), and wrapper flags that take a separate value (`sudo -u`, `nice -n`, `env -u`). The same forms with `-I` stay allowed. The embedded posture gate no longer stops symlink detection at depth 3 (the runaway counter is depth 4); `find` errors fail closed. `--status detail` names `refused-symlink`, `refused-size` and `refused-other` instead of lumping those as `untrusted` (which told the person to trust a project the trust helper would refuse). `dashboard-prompt.sh` speaks matching copy. Gate 300 gained E5–E7 and a third teeth mutant; Gate 301's M3 plants the expanded spellings. Edition docs now say 8 shipped hooks, matching the manifest. This supersedes the still-needed scope of draft RavenClaude#1409; it does not include that draft's stale catalog stamps.
+
+- **AppSec R2 on #1432 at fb68daf6 (verdict 5e7bd245).** The cwd-import scanner no longer fails open on an unknown first word or a quoted `bash -c`/`sh -c` body: `nohup`, `eval`, `doas`, `bash -c 'python3 -c …'`, and `sudo bash -c '…'` are refused without `-I`. Quoted interpreter words (`"python3" -c`), `$PYTHON`/`${PYTHON3}`, and `$(which python3)` are treated as interpreters. The posture-gate symlink walk keeps no depth cap and now fail-closes on a 4096-entry file-count cap (`why=cap` maps to `refused-other`).
+
 ## 0.361.4 — 2026-11-11
 
 ### Fixed
