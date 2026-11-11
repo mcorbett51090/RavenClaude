@@ -2812,7 +2812,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-11-05",
+      "last_verified": "2026-11-11",
       "refresh_when": null,
       "sources": [
         {
@@ -2881,7 +2881,7 @@
         "plugins/ravenclaude-core/hooks/worktree-guard-bash.py",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:b14745cbebb4a2bdbc990a469ee7c77e90ea59240e459eb20dcdd8ee5a9adbf4",
+      "covers_digest": "sha256:886f2463b084694e52759d33364946c85d1c98a5db9b51257fb65d15149c6f90",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3004,7 +3004,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-11-10",
+      "last_verified": "2026-11-11",
       "refresh_when": null,
       "sources": [
         {
@@ -3024,7 +3024,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:7f27f6a10e54e8e6f1f3e64034c215735d39122a1340f258636bab1808dcd6ce",
+      "covers_digest": "sha256:e949e40b60b34f08337b3ff80052beeb92161e4336302b48d579e33dfc9af47d",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3053,7 +3053,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-11-10",
+      "last_verified": "2026-11-11",
       "refresh_when": null,
       "sources": [
         {
@@ -3086,7 +3086,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:188d09648a93d2e190105291dc1e92473f5cb8aab6396fa0c3ddca0dd73d5206",
+      "covers_digest": "sha256:94f1ae82359dccf0baca3c4077dceb49d1fefb566991f63e6a10c62d980a2bc6",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",

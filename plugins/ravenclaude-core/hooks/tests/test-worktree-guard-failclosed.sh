@@ -25,12 +25,29 @@ run bad-sed-i-outside        2 "$(j Bash 'sed -i s/a/b/ /workspace/other/f')"
 run bad-python-c-outside     2 "$(j Bash "python3 -c \"open('/workspace/other/f','w').write('x')\"")"
 run bad-node-e-outside       2 "$(j Bash "node -e \"require('fs').writeFileSync('/workspace/other/f','x')\"")"
 run bad-perl-e-outside       2 "$(j Bash "perl -e 'open(F, \">/workspace/other/f\"); print F 1'")"
-run bad-heredoc-outside      2 "$(j Bash "cat > /workspace/other/f <<'EOF'
-hello
-EOF")"
-run bad-python-heredoc       2 "$(j Bash "python3 - <<'PY'
-open('/workspace/other/f','w').write('x')
-PY")"
+# macOS bash 3.2 portability (AppSec SHIPCHECK 18f5c03f F2 follow-up, 2026-11-11):
+# the payloads below used to spell `<<'TAG'`/`<<TAG` literally inside a `$( )`
+# that also wraps a `j Bash "..."` call. Even though the tag is quoted and the
+# whole thing sits inside an already-open double quote (so by plain POSIX
+# grammar it is inert text, not a real heredoc redirection), bash 3.2's `$( )`
+# scanner is documented (scripts/check-macos-portability.sh "door 5", PR #828)
+# to re-lex quotes inside a here-doc-SHAPED span nested in `$( )` regardless of
+# surrounding quoting, and swallow the rest of the file. There is no Darwin box
+# here to prove it either way, so this sidesteps the question entirely: each
+# payload is built as a plain variable via concatenation (no `$( )` at all),
+# and the literal two-character sequence "<<" is kept out of the SOURCE TEXT by
+# routing it through ${_HD} — expanded only at runtime, long after bash's
+# parser has already decided where the statement ends. The run/j calls that
+# follow then interpolate a variable NAME, never heredoc-shaped text, inside
+# their own `$( )`. Same payloads as before, same expected exit (2).
+_HD='<<'
+
+_cmd_bad_heredoc_outside="cat > /workspace/other/f ${_HD}'EOF'"$'\n'"hello"$'\n'"EOF"
+run bad-heredoc-outside      2 "$(j Bash "$_cmd_bad_heredoc_outside")"
+
+_cmd_bad_python_heredoc="python3 - ${_HD}'PY'"$'\n'"open('/workspace/other/f','w').write('x')"$'\n'"PY"
+run bad-python-heredoc       2 "$(j Bash "$_cmd_bad_python_heredoc")"
+
 # ── AppSec SHIPCHECK 18f5c03f (F1): #1416/cba447ec blanked EVERY heredoc body
 # — including one feeding an interpreter — before the inline-interpreter write
 # scan ran, so these three returned rc=0 (allow) instead of rc=2 (deny). The
@@ -38,16 +55,14 @@ PY")"
 # 2, through worktree-guard.sh check); the helper itself (exit 3) is covered
 # directly by test-worktree-guard-heredoc-interpreter.sh, including php/deno/
 # bun and a teeth mutant.
-run appsec-f1-python-open-write   2 "$(j Bash "python3 - <<'PY'
-open('/workspace/sibling-wt/x','w').write('x')
-PY")"
-run appsec-f1-python-rmtree       2 "$(j Bash "python3 <<PY
-import shutil
-shutil.rmtree(\"/workspace/sibling-wt\")
-PY")"
-run appsec-f1-node-writeFileSync  2 "$(j Bash "node <<JS
-require('fs').writeFileSync(\"/workspace/sibling-wt/x\", \"x\")
-JS")"
+_cmd_appsec_f1_python_open_write="python3 - ${_HD}'PY'"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run appsec-f1-python-open-write   2 "$(j Bash "$_cmd_appsec_f1_python_open_write")"
+
+_cmd_appsec_f1_python_rmtree="python3 ${_HD}PY"$'\n'"import shutil"$'\n''shutil.rmtree("/workspace/sibling-wt")'$'\n'"PY"
+run appsec-f1-python-rmtree       2 "$(j Bash "$_cmd_appsec_f1_python_rmtree")"
+
+_cmd_appsec_f1_node_writeFileSync="node ${_HD}JS"$'\n'"require('fs').writeFileSync(\"/workspace/sibling-wt/x\", \"x\")"$'\n'"JS"
+run appsec-f1-node-writeFileSync  2 "$(j Bash "$_cmd_appsec_f1_node_writeFileSync")"
 run crash-malformed-json     2 '{"tool_name":"Bash","tool_input":{'
 # crash: helper unavailable -> must deny, not allow
 cp "$H" "$T/wg.sh"; printf '%s' "$(j Bash 'echo hi > a.txt')" | (cd "$T/wt" && bash "$T/wg.sh" check) >/dev/null 2>"$T/err"; rc=$?
@@ -75,8 +90,17 @@ grep -q 'stale-lease-git-status-failed' "$T/stale.log" && { pass=$((pass+1)); ec
 cp "$T/index.bak" "$T/wt/.git/index"
 # ── internal error inside the lease section -> ERR trap denies ──
 mkdir -p "$T/mf"; for f in worktree-guard-bash.py _portable.sh _emit-event.sh; do [ -f "$(dirname "$H")/$f" ] && cp "$(dirname "$H")/$f" "$T/mf/"; done
-sed 's/^      _wg_holder="\$(_wg_lease_holder)"$/      _wg_holder="$(_wg_lease_holder)"; false/' "$H" > "$T/mf/worktree-guard.sh"
-if grep -q '_wg_lease_holder)"; false' "$T/mf/worktree-guard.sh"; then
+# Portable mutation: GNU-vs-BSD sed divergence on this anchor (worktree-guard.sh
+# does not use GNU-only sed syntax here, but it was flagged unverified by AppSec
+# review and there is no Darwin box to settle it) is sidestepped entirely with a
+# plain bash glob-pattern substring replace, which behaves identically on GNU
+# and BSD userlands because it never shells out to sed/perl at all.
+_wg_anchor='      _wg_holder="$(_wg_lease_holder)"'
+_wg_mutated="${_wg_anchor}; false"
+_wg_src="$(cat "$H")"
+_wg_mut_src="${_wg_src/$_wg_anchor/$_wg_mutated}"
+if [ "$_wg_mut_src" != "$_wg_src" ]; then
+  printf '%s\n' "$_wg_mut_src" > "$T/mf/worktree-guard.sh"
   printf '%s' "$(js s9)" | (cd "$T/wt" && bash "$T/mf/worktree-guard.sh" check) >/dev/null 2>"$T/err"; rc=$?
   if [ $rc = 2 ] && grep -q 'internal error in the lease section' "$T/err"; then pass=$((pass+1)); echo "PASS lease-internal-error-denied"; else fail=$((fail+1)); echo "FAIL lease-internal-error rc=$rc $(head -c200 "$T/err")"; fi
 else fail=$((fail+1)); echo "FAIL could not inject lease-section error (anchor line moved)"; fi
