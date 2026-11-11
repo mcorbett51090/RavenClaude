@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.361.4 — 2026-11-11
+
+### Fixed
+- **AppSec R1 (High) — worktree-guard heredoc delimiter-word mismatch plus drop-on-unterminated, a regression against 0.361.1 and 0.361.2** (SHIPCHECK on RavenClaude#1424, NO-SHIP at 991a54a6). The 0.361.3 linear scanner took only a leading `\w+` run as the delimiter (`EOF-X` was parsed as `EOF`, `'EOF'X` as `EOF`) and, when it could not find a terminator, dropped the rest of the command from both scans. Out-of-tree `rm`/`cp`/`mv`/`sed -i`/`tee`/interpreter writes after an ordinary data heredoc whose delimiter is a valid bash word with punctuation or concatenated quotes (`EOF-X`, `E.O.F`, `EOF.1`, `END-MSG`, `'EOF'X`, `"A"B`, `'E O F'`) were then allowed (helper exit 0, hook exit 0). Fixed: the delimiter is the full bash word (quotes and backslashes stripped and joined: `'EOF'X` → `EOFX`, `'E O F'` → `E O F`); if a terminator is not found, the rest of the command is kept in both scans so it fails closed; a following command after a terminated data heredoc is kept as its own segment. Gate 309 now also runs `hooks/tests/test-worktree-guard-heredoc-delimiter.sh` (49 helper + 49 hook cases plus a teeth mutant of the 0.361.3 scanner). N1 caps, the timing test, and the earlier false-positive controls are unchanged.
+- **AppSec R2 (Low) — `"timeout": 15` on the worktree-guard check entry failed open sooner.** On Claude Code 2.1.261 a timed-out PreToolUse hook is an allow (`onFailure: "block"` needs 2.1.295+). The helper's 5 s `signal.alarm` still fails closed first, but any other stall in the hook (git, lease, jq) past 15 s would have failed open 585 s earlier than the previous 600 s default. The check timeout is now 60 s: well above a legitimate `check` (tens of milliseconds here; AppSec measured 70–90 ms) and well above the 5 s helper alarm, without tightening the host-timeout fail-open window as far as 15 s did. A whole-hook watchdog in `worktree-guard.sh` would also deny first, but would edit a third pinned file; raising the existing timeout is the simpler correct option. `onFailure: "block"` is still not added.
+
+**AppSec review required before the next pin.** This change edits two of the five pinned hook files (`worktree-guard-bash.py`, `hooks.json`) and voids any 0.361.3 pin for this head. Do not compute or apply a live pin from this PR.
+
 ## 0.361.3 — 2026-11-11
 
 ### Fixed

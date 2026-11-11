@@ -430,7 +430,8 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # SessionEnd report hook's own fixture lives in this same
       # plugins/ravenclaude-core/hooks/tests/ home). 309 (worktree-guard
       # heredoc-interpreter scan, AppSec SHIPCHECK 18f5c03f F1, plus the N1
-      # ReDoS / fail-closed timing fixture — same
+      # ReDoS / fail-closed timing fixture and the R1 full-word
+      # delimiter fixture — same
       # plugins/ravenclaude-core/hooks/tests/ home as 140/308).
       echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 53c 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293 295 296 297 298 299 300 308 309"
       ;;
@@ -2174,6 +2175,7 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh || rc=$?
       bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh || rc=$?
       bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh || rc=$?
       exit $rc
       ;;
     *)
@@ -7304,13 +7306,18 @@ echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK
 # AppSec N1 follow-up: 64 KiB / 256-marker caps fail closed (exit 3), a 1 MiB
 # unterminated-padding payload finishes in well under the 5 s self-timeout
 # and denies, signal.alarm exits 4, and worktree-guard.sh maps that to a
-# hook deny. GREP THE SUITE OUTPUT FOR "Gate 309".
+# hook deny. test-worktree-guard-heredoc-delimiter.sh is the AppSec R1
+# follow-up: full-word delimiters (EOF-X, E.O.F, EOF.1, END-MSG, 'EOF'X,
+# "A"B, 'E O F') plus a following write are denied at helper and hook
+# level, with a teeth mutant of the 0.361.3 scanner. GREP THE SUITE OUTPUT FOR "Gate 309".
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh >/dev/null 2>&1 || rc=$?
 gate "worktree-guard-bash.py: interpreter heredocs (python/node/perl/ruby/php/deno/bun) are scanned, not blanked (+ teeth)" must_pass "$rc"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh >/dev/null 2>&1 || rc=$?
 gate "worktree-guard fail-closed suite (incl. the AppSec F1 repros at hook level, exit 2) — now actually registered" must_pass "$rc"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh >/dev/null 2>&1 || rc=$?
 gate "worktree-guard-bash.py: heredoc ReDoS fail-closed (input cap, linear scanner, alarm exit 4, hook timeout) — AppSec N1" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh >/dev/null 2>&1 || rc=$?
+gate "worktree-guard-bash.py: full-word heredoc delimiters (EOF-X/'EOF'X/END-MSG/…) — AppSec R1" must_pass "$rc"
 
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"

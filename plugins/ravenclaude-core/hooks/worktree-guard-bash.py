@@ -67,9 +67,14 @@ def _parse_heredoc_opener(text, idx):
     """If text[idx:] is a heredoc opener (not a here-string), return
     (tag, strip_tabs, end_index); otherwise None.
 
-    Recognizes <<TAG, <<'TAG', <<"TAG", << TAG, <<\\TAG, <<-TAG / <<-'TAG'
-    (and the tab-stripping <<- form). Tags are \\w+ , matching the regex
-    this scanner replaces. <<< is a here-string and is not a heredoc.
+    The delimiter is the full bash word, not a leading \\w+ run (AppSec R1
+    on RavenClaude#1424). Unquoted whitespace or a metacharacter ends the
+    word. Quotes and backslashes are stripped and adjacent segments are
+    concatenated: <<'EOF'X -> EOFX, <<"A"B -> AB, <<'E O F' -> 'E O F'
+    (spaces preserved, quotes removed so the terminator line is "E O F"),
+    <<\\PY -> PY, <<EOF-X / <<E.O.F / <<END-MSG keep the punctuation.
+    <<< is a here-string and is not a heredoc. <<- strips leading tabs
+    on the terminator line.
     """
     if not text.startswith("<<", idx):
         return None
@@ -82,33 +87,75 @@ def _parse_heredoc_opener(text, idx):
         j += 1
     while j < len(text) and text[j] in " \t":
         j += 1
-    quote = None
-    if j < len(text) and text[j] in ("'", '"', "\\"):
-        quote = text[j]
-        j += 1
-    tag_start = j
-    while j < len(text) and (text[j].isalnum() or text[j] == "_"):
-        j += 1
-    if j == tag_start:
+    word, j = _parse_shell_word(text, j)
+    if not word:
         return None
-    tag = text[tag_start:j]
-    if quote in ("'", '"') and j < len(text) and text[j] == quote:
-        j += 1
-    return tag, strip_tabs, j
+    return word, strip_tabs, j
+
+
+# Unquoted, these end a bash word (IFS whitespace + metacharacters).
+_WORD_END = frozenset(" \t\n|&;()<>")
+
+
+def _parse_shell_word(text, j):
+    """Read one bash word starting at j. Returns (dequoted_word, end_index).
+
+    Empty word means there was no word. End index is the first unquoted
+    word-ending character (or len(text)); it is not consumed.
+    """
+    n = len(text)
+    if j >= n or text[j] in _WORD_END:
+        return "", j
+    parts = []
+    while j < n and text[j] not in _WORD_END:
+        c = text[j]
+        if c == "'":
+            j += 1
+            start = j
+            while j < n and text[j] != "'":
+                j += 1
+            parts.append(text[start:j])
+            if j < n and text[j] == "'":
+                j += 1
+            continue
+        if c == '"':
+            j += 1
+            buf = []
+            while j < n and text[j] != '"':
+                if text[j] == "\\" and j + 1 < n and text[j + 1] in "$`\"\\\n":
+                    buf.append(text[j + 1])
+                    j += 2
+                    continue
+                buf.append(text[j])
+                j += 1
+            parts.append("".join(buf))
+            if j < n and text[j] == '"':
+                j += 1
+            continue
+        if c == "\\":
+            j += 1
+            if j >= n:
+                break
+            if text[j] == "\n":
+                j += 1  # line continuation, not part of the delimiter
+                continue
+            parts.append(text[j])
+            j += 1
+            continue
+        start = j
+        while j < n and text[j] not in _WORD_END and text[j] not in "'\"\\":
+            j += 1
+        parts.append(text[start:j])
+    return "".join(parts), j
 
 
 def _is_terminator(line, tag, strip_tabs):
+    # Bash requires the delimiter alone on the line (leading tabs stripped
+    # only for <<-). Exact match — not a leading-\\w+ / word-boundary guess.
     if line.endswith("\r"):
         line = line[:-1]
     check = line.lstrip("\t") if strip_tabs else line
-    if check == tag:
-        return True
-    # Original regex ended with \\1\\b — tag plus a word boundary.
-    if check.startswith(tag) and len(check) > len(tag):
-        nxt = check[len(tag)]
-        if not (nxt.isalnum() or nxt == "_"):
-            return True
-    return False
+    return check == tag
 
 
 _INTERP_NAME_RE = re.compile(r"^(?:python[0-9.]*|node|nodejs|perl|ruby|php|deno|bun)$")
@@ -129,10 +176,12 @@ def _heredoc_feeds_interpreter(prefix):
 def _strip_data_heredocs(text, keep_interpreter, blank):
     """Line-based linear replacement for the old ``.*?\\n\\1\\b`` regex.
 
-    Walks the string once. Data heredocs (and unterminated data heredocs)
-    are replaced with `blank`. Interpreter-fed heredocs are kept whole
-    when keep_interpreter is True so the body (the program) is scanned.
-    A missing terminator stops the search for that opener — no backtracking.
+    Walks the string once. Terminated data heredocs are replaced with
+    `blank`. Interpreter-fed heredocs are kept whole when keep_interpreter
+    is True so the body (the program) is scanned. If a terminator is not
+    found, or the opener cannot be parsed, the rest of the command is
+    kept in the output (AppSec R1): never drop unscanned text. Linear —
+    a missing terminator does not backtrack.
     """
     n = len(text)
     out = []
@@ -176,8 +225,10 @@ def _strip_data_heredocs(text, keep_interpreter, blank):
                 out.append(text[pos:])
                 break
         else:
-            out.append(text[pos:idx] + blank)
             if nl < 0:
+                # Unterminated (no body line): keep the rest, including any
+                # later commands on this or following lines.
+                out.append(text[pos:])
                 break
             k = nl + 1
             found = False
@@ -190,6 +241,7 @@ def _strip_data_heredocs(text, keep_interpreter, blank):
                     line = text[k:line_end]
                     next_k = line_end + 1
                 if _is_terminator(line, tag, strip_tabs):
+                    out.append(text[pos:idx] + blank)
                     pos = next_k
                     found = True
                     break
@@ -197,6 +249,8 @@ def _strip_data_heredocs(text, keep_interpreter, blank):
                     break
                 k = next_k
             if not found:
+                # Unterminated: keep opener, body, and everything after.
+                out.append(text[pos:])
                 break
     return "".join(out)
 
@@ -245,7 +299,7 @@ def main():
             flag("redirect", m.group(1))
         # 2. heredoc bodies are data; analyse their command line only (already above).
         # Linear scanner (AppSec N1) — same blanking as the old regex, no backtracking.
-        segs = re.split(r"\|\||&&|;|\||\n", _strip_data_heredocs(cmd, keep_interpreter=False, blank="<<HEREDOC"))
+        segs = re.split(r"\|\||&&|;|\||\n", _strip_data_heredocs(cmd, keep_interpreter=False, blank="<<HEREDOC\n"))
         WRITERS = {"cp": "last", "mv": "last", "install": "last", "ln": "last", "rsync": "last",
                    "rm": "all", "rmdir": "all", "mkdir": "all", "touch": "all", "truncate": "all",
                    "chmod": "allbut1", "chown": "allbut1", "tee": "all", "dd": "of"}

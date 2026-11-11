@@ -227,7 +227,7 @@ else
     "$hook_rc" "$(head -c300 "$T/hook-err")"
 fi
 
-# hooks.json: the check PreToolUse entry carries timeout 15; register is unchanged.
+# hooks.json: the check PreToolUse entry carries timeout 60; register is unchanged.
 python3 - "$HOOKS_DIR/hooks.json" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
@@ -247,12 +247,12 @@ def walk(obj):
         for v in obj:
             walk(v)
 walk(d)
-sys.exit(0 if check == 15 and register == 10 else 1)
+sys.exit(0 if check == 60 and register == 10 else 1)
 PY
 if [ $? -eq 0 ]; then
-  PASS=$((PASS + 1)); printf '  \033[32m✓\033[0m hooks.json check timeout=15 (register still 10)\n'
+  PASS=$((PASS + 1)); printf '  \033[32m✓\033[0m hooks.json check timeout=60 (register still 10)\n'
 else
-  FAIL=$((FAIL + 1)); printf '  \033[31m✗\033[0m hooks.json check timeout is not 15 or register changed\n'
+  FAIL=$((FAIL + 1)); printf '  \033[31m✗\033[0m hooks.json check timeout is not 60 or register changed\n'
 fi
 
 echo
