@@ -446,6 +446,16 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("mksh pipe", "echo python3 -c y | mksh"),
             ("ash pipe", "echo python3 -c y | ash"),
             ("xargs bash -c placeholder", "xargs -I{} bash -c {}"),
+            ("${CC:-python3} -c", "${CC:-python3} -c y"),
+            ("${CXX:-python3} -c", "${CXX:-python3} -c y"),
+            ("${CC:=python3} -c", "${CC:=python3} -c y"),
+            ("${SHELL:-python3} -c", "${SHELL:-python3} -c y"),
+            ("CC=python3; $CC -c", "CC=python3; $CC -c 'import os'"),
+            ("prefix CC=python3 $CC -c", "CC=python3 $CC -c 'import os'"),
+            ("env CC=python3 $CC -c", "env CC=python3 $CC -c 'import os'"),
+            ("$CC -c foo.py", "$CC -c foo.py"),
+            ("$CC -c import", "$CC -c 'import os'"),
+            ("$CC -m json.tool", "$CC -m json.tool"),
         )
         iso_forms = (
             ("if-then python3 -I -c", "if x; then python3 -I -c 'y'; fi"),
@@ -519,6 +529,9 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("tee process subst bash -I", "echo python3 -I -c y | tee >(bash)"),
             ("mksh pipe -I", "echo python3 -I -c y | mksh"),
             ("xargs bash -c isolated", "xargs -I{} bash -c 'python3 -I -c y'"),
+            ("${CC:-python3} -I -c", "${CC:-python3} -I -c y"),
+            ("CC=python3; $CC -I -c", "CC=python3; $CC -I -c 'import os'"),
+            ("$CC -c foo.cpp", "$CC -c foo.cpp"),
         )
         try:
             for label, body in forms:

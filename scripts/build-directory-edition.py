@@ -1435,6 +1435,8 @@ def _is_interpreter_word(word: str) -> bool:
     core = _unquote_word(word)
     if _PY_TOKEN.fullmatch(core) or _PY_PATH_CMD.fullmatch(core):
         return True
+    if _dollar_default_is_interpreter(word):
+        return True
     if _is_compiler_var(word) or _is_shell_var(word):
         return False
     return bool(_PY_INDIRECT_VAR.fullmatch(core))
@@ -2224,6 +2226,13 @@ _PY_COMPILER_VARS = frozenset({
 _PY_DOLLAR_NAME = re.compile(
     r"^(?:\$([A-Za-z_][A-Za-z0-9_]*)|\$\{([A-Za-z_][A-Za-z0-9_]*)(?::?[-+=][^}]*)?\})$"
 )
+# ${VAR:-default} / ${VAR:=default} / ${VAR-default} / ${VAR=default} (not :+ or :?).
+_PY_DOLLAR_DEFAULT = re.compile(
+    r"^\$\{([A-Za-z_][A-Za-z0-9_]*)(:?)([-=])(.*)\}$"
+)
+_C_CXX_SOURCE = re.compile(
+    r"(?i)\.(?:c|cc|cpp|cxx|c\+\+|h|hh|hpp|hxx|h\+\+)$"
+)
 
 
 def _dollar_var_name(word: str) -> str | None:
@@ -2231,6 +2240,35 @@ def _dollar_var_name(word: str) -> str | None:
     if not m:
         return None
     return m.group(1) or m.group(2)
+
+
+def _dollar_assign_default(word: str) -> str | None:
+    """The `:-` / `:=` / `-` / `=` default text, or None."""
+    m = _PY_DOLLAR_DEFAULT.fullmatch(_unquote_word(word))
+    if not m:
+        return None
+    return m.group(4)
+
+
+def _value_looks_like_interpreter(value: str) -> bool:
+    core = _unquote_word(value.strip())
+    if not core:
+        return False
+    if _PY_TOKEN.fullmatch(core) or _PY_PATH_CMD.fullmatch(core):
+        return True
+    if _PY_TOKEN.fullmatch(_cmd_base(core)):
+        return True
+    if _PY_NAMED_VAR.fullmatch(core):
+        return True
+    default = _dollar_assign_default(core)
+    if default and default != value:
+        return _value_looks_like_interpreter(default)
+    return False
+
+
+def _dollar_default_is_interpreter(word: str) -> bool:
+    default = _dollar_assign_default(word)
+    return bool(default) and _value_looks_like_interpreter(default)
 
 
 def _is_compiler_var(word: str) -> bool:
@@ -2241,6 +2279,73 @@ def _is_compiler_var(word: str) -> bool:
 def _is_shell_var(word: str) -> bool:
     name = _dollar_var_name(word)
     return name is not None and name.upper() == "SHELL"
+
+
+def _assigned_interp_vars(line: str, before: int) -> set[str]:
+    """Allowlisted names assigned an interpreter value earlier on this line."""
+    names: set[str] = set()
+    i = 0
+    n = min(before, len(line))
+    while i < n:
+        while i < n and line[i] in " \t":
+            i += 1
+        if i >= n:
+            break
+        if line[i] == "#":
+            break
+        if line.startswith(";;&", i):
+            i += 3
+            continue
+        if line.startswith(";;", i) or line.startswith(";&", i) or line.startswith("||", i) or line.startswith("&&", i):
+            i += 2
+            continue
+        if line[i] in ";&|":
+            i += 1
+            continue
+        word, j = _read_word(line, i)
+        if not word:
+            i += 1
+            continue
+        if _PY_ASSIGN_WORD.match(word):
+            name, _, val = word.partition("=")
+            if _value_looks_like_interpreter(val):
+                names.add(name.upper())
+            i = j
+            continue
+        # `env CC=python3` / `export CC=python3`: keep walking for assignments.
+        i = j
+    return names
+
+
+def _c_or_m_operand(tail: str) -> tuple[str, str] | None:
+    """Return `('c', operand)` or `('m', operand)` for a standalone `-c`/`-m`."""
+    i = 0
+    n = len(tail)
+    while i < n:
+        i = _skip_ws(tail, i)
+        if i >= n or tail[i] in "|&;\n#)<>":
+            return None
+        word, i = _read_word(tail, i)
+        if not word or word in ("-", "--"):
+            return None
+        if word.startswith("--"):
+            continue
+        if word == "-c" or (word.startswith("-c") and not word[2:3].isalpha()):
+            operand = word[2:]
+            if not operand:
+                i = _skip_ws(tail, i)
+                operand, _j = _read_word(tail, i) if i < n and tail[i] not in "|&;\n#)<>" else ("", i)
+            return "c", operand
+        if word == "-m":
+            i = _skip_ws(tail, i)
+            operand, _j = _read_word(tail, i) if i < n and tail[i] not in "|&;\n#)<>" else ("", i)
+            return "m", operand
+    return None
+
+
+def _operand_is_c_cxx_source(operand: str) -> bool:
+    core = _unquote_word(operand).rsplit("/", 1)[-1]
+    return bool(core and _C_CXX_SOURCE.search(core))
 
 
 def _is_generic_dollar_var(word: str) -> bool:
@@ -2276,6 +2381,24 @@ def _token_is_sensitive(line: str, tok_start: int, tok_end: int) -> bool:
     if re.match(r"[ \t]*\)", tail) and _in_case_pattern(line, tok_start):
         return False
     word = line[tok_start:tok_end]
+    name = _dollar_var_name(word)
+    assigned = name.upper() in _assigned_interp_vars(line, tok_start) if name else False
+    # `${CC:-python3}` / a same-line `CC=python3` prefix: this word is an interpreter.
+    if _dollar_default_is_interpreter(word) or assigned:
+        before = line[tok_start - 1] if tok_start else ""
+        return bool(_invocation_sensitive(tail, before))
+    # Compiler `$CC -c`: fail closed unless the operand is a C/C++ source file.
+    # Bare `$INSTALL -c` / `$VISUAL -c` stay allowed (not compiler -c).
+    if _is_compiler_var(word) and name and name.upper() not in {"INSTALL", "VISUAL", "EDITOR"}:
+        kind_op = _c_or_m_operand(tail)
+        if kind_op is not None:
+            kind, operand = kind_op
+            if kind == "m" or (kind == "c" and not _operand_is_c_cxx_source(operand)):
+                before = line[tok_start - 1] if tok_start else ""
+                return bool(_invocation_sensitive(tail, before))
+        return False
+    if _is_shell_var(word) or _is_compiler_var(word):
+        return False
     # Any `$VAR -c` in interpreter position, but not a bare `$tmp` / `$file` path.
     if _is_generic_dollar_var(word) and not _tail_has_c_or_m(tail):
         return False
@@ -2387,6 +2510,9 @@ def _later_interpreter_sensitive(
         if _is_interpreter_word(word) or _PY_PATH_CMD.fullmatch(_unquote_word(word)):
             if _token_is_sensitive(line, i, j):
                 return True
+        if _is_compiler_var(word) or _is_shell_var(word):
+            if _token_is_sensitive(line, i, j):
+                return True
         if _cmd_base(word) in _PY_SHELL_STDIN or _is_shell_var(word):
             if _shell_c_placeholder_or_body_sensitive(line, j, end, depth):
                 return True
@@ -2464,6 +2590,10 @@ def _range_sensitive(line: str, start: int, end: int, depth: int = 0) -> bool:
         return False
     if _is_interpreter_word(word):
         return _token_is_sensitive(line, i, j)
+    if _is_compiler_var(word) or _is_shell_var(word):
+        if _token_is_sensitive(line, i, j):
+            return True
+        return _later_interpreter_sensitive(line, j, end, depth)
     base = _cmd_base(word)
     if base in ("which", "type"):
         return False
@@ -3474,7 +3604,20 @@ def self_test() -> int:
             "$SHELL -c 'echo hi'": False,
             "$SHELL -c 'python3 -c y'": True,
             "$SHELL -c 'python3 -I -c y'": False,
-            "$PY -c y": True,
+            "${CC:-python3} -c y": True,
+            "${CXX:-python3} -c y": True,
+            "${CC:=python3} -c y": True,
+            "${SHELL:-python3} -c y": True,
+            "${CC:-python3} -c 'import os'": True,
+            "${CC:-python3} -I -c y": False,
+            "CC=python3; $CC -c 'import os'": True,
+            "CC=python3 $CC -c 'import os'": True,
+            "env CC=python3 $CC -c 'import os'": True,
+            "CC=python3; $CC -I -c 'import os'": False,
+            "$CC -c foo.py": True,
+            "$CC -c 'import os'": True,
+            "$CC -m json.tool": True,
+            "$CC -c foo.cpp": False,
             "perl -E 'system(\"python3 -c y\")'": True,
             "perl -E 'system(\"python3 -I -c y\")'": False,
             "ipython -c y": True,
