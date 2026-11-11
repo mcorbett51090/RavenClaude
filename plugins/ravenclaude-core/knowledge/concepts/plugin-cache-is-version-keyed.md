@@ -6,12 +6,12 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 903
 summary: "Why a merged fix does not reach an installed session until the version field moves."
-last_verified: 2026-11-10
+last_verified: 2026-11-11
 covers:
   - plugins/ravenclaude-core/.claude-plugin/plugin.json
   - scripts/sync-plugin-versions.py
   - scripts/generate-copilot-plugin.py
-covers_digest: "sha256:7f27f6a10e54e8e6f1f3e64034c215735d39122a1340f258636bab1808dcd6ce"
+covers_digest: "sha256:21e89637b76a0b6b6cbc738d5627496c2991861fa50014cd605d72b5c9d6d68b"
 nuance: "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code."
 nuance_evidence:
   measured: 2026-08-19
