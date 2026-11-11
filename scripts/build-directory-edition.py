@@ -46,6 +46,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -1101,7 +1102,7 @@ def structure_findings(root: Path, manifest: dict) -> list[str]:
 # argument as the command; its flags are not parsed, so a value that is its own
 # token (`sudo -u someuser`, `nice -n 5`, `env -u VAR`, `timeout 5`) still
 # reaches the interpreter. `which`/`type` and `command -v`/`-V` are lookups.
-_PY_NAME = r"(?:python|pypy)3?(?:\.\d+)?"
+_PY_NAME = r"(?:micropython|ipython|jython|python|pypy)3?(?:\.\d+)?"
 _PY_TOKEN = re.compile(r"(?<![\w./$-])" + _PY_NAME + r"(?![\w.-])")
 _PY_PATH = r"(?:(?:\.\./)+(?:[\w.@+-]+/)*|\./(?:[\w.@+-]+/)*|/(?:[\w.@+-]+/)*)"
 _PY_PATH_TOKEN = re.compile(r"(?<![\w./$-])" + _PY_PATH + _PY_NAME + r"(?![\w.-])")
@@ -1331,7 +1332,7 @@ def _invocation_sensitive(tail: str, before: str) -> bool | None:
 
 _SCAN_DEPTH_CAP = 32
 
-_PY_SHELL_STDIN = frozenset({"bash", "sh", "dash", "zsh", "ksh", "eval"})
+_PY_SHELL_STDIN = frozenset({"bash", "sh", "dash", "zsh", "ksh", "mksh", "ash", "eval"})
 _PY_SCRIPT_LANG = frozenset({"perl", "ruby"})
 _PY_C_CLUSTER = re.compile(r"^-[A-Za-z]*c$")
 
@@ -1434,6 +1435,8 @@ def _is_interpreter_word(word: str) -> bool:
     core = _unquote_word(word)
     if _PY_TOKEN.fullmatch(core) or _PY_PATH_CMD.fullmatch(core):
         return True
+    if _is_compiler_var(word) or _is_shell_var(word):
+        return False
     return bool(_PY_INDIRECT_VAR.fullmatch(core))
 
 
@@ -1695,6 +1698,10 @@ def _command_ranges(line: str) -> list[tuple[int, int]]:
                 quote = ch
                 i += 1
                 continue
+            if ch == "#":
+                if line[seg:i].strip():
+                    ranges.append((seg, i))
+                return ranges
             if ch in "|&;()":
                 if line[seg:i].strip():
                     ranges.append((seg, i))
@@ -1731,7 +1738,9 @@ def _skip_shell_atom(s: str, i: int, limit: int) -> int:
         close = _matching_backtick(s, i + 1, limit)
         return close + 1 if close < limit else limit
     _word, j = _read_word(s, i)
-    return j if j <= limit else limit
+    if j <= i:
+        return min(i + 1, limit)
+    return min(j, limit)
 
 
 def _in_case_pattern(line: str, tok_start: int) -> bool:
@@ -1750,10 +1759,12 @@ def _in_case_pattern(line: str, tok_start: int) -> bool:
         if ch in " \t\n":
             i += 1
             continue
-        if line.startswith(";;", i):
+        if ch == "#":
+            break
+        if line.startswith(";;&", i) or line.startswith(";;", i) or line.startswith(";&", i):
             if stack and stack[-1] in ("case_pat", "case_body"):
                 stack[-1] = "case_pat"
-            i += 2
+            i += 3 if line.startswith(";;&", i) else 2
             continue
         if _is_kw(line, i, "esac"):
             if stack:
@@ -1781,6 +1792,12 @@ def _in_case_pattern(line: str, tok_start: int) -> bool:
                 i += 1
                 continue
             if ch in "(|":
+                i += 1
+                continue
+            # A lone `;` or `&` is not a pattern joiner (`;;` / `;&` already
+            # handled). `echo case x in; ( python3 )` is a real subshell.
+            if ch in ";&":
+                stack.pop()
                 i += 1
                 continue
             i = _skip_shell_atom(line, i, n)
@@ -2062,7 +2079,15 @@ def _piped_producer_sensitive(stage: str, depth: int) -> bool:
         if i >= end:
             continue
         word, j = _read_word(s, i)
-        if _cmd_base(word) in _PY_SAFE_DATA:
+        while word and (word in _PY_SYNTAX or word in {"fi", "done", "esac"}):
+            i = j
+            while i < end and s[i] in " \t":
+                i += 1
+            if i >= end:
+                word, j = "", i
+                break
+            word, j = _read_word(s, i)
+        if word and _cmd_base(word) in _PY_SAFE_DATA:
             if _args_payload_sensitive(s, j, end, depth):
                 return True
         for body in _env_s_bodies(s[start:end]):
@@ -2129,13 +2154,47 @@ def _text_is_isolated_python(text: str, depth: int) -> bool:
     return False
 
 
+def _is_process_subst_shell_stage(stage: str) -> bool:
+    """True when the stage writes to `>(bash)` / `>(sh)` (or mksh/ash, etc.)."""
+    s = stage
+    i = 0
+    n = len(s)
+    quote = ""
+    while i < n:
+        ch = s[i]
+        if not quote and (s.startswith("$'", i) or s.startswith('$"', i)):
+            quote = s[i + 1]
+            i += 2
+            continue
+        if quote:
+            if ch == "\\" and quote != "'" and i + 1 < n:
+                i += 2
+                continue
+            if ch == quote:
+                quote = ""
+            i += 1
+            continue
+        if ch in "'\"":
+            quote = ch
+            i += 1
+            continue
+        if s.startswith(">(", i):
+            close = _matching_paren(s, i + 1, n)
+            if _is_stdin_shell_stage(s[i + 2 : close]):
+                return True
+            i = close + 1 if close < n else n
+            continue
+        i += 1
+    return False
+
+
 def _pipeline_reaches_shell(line: str, depth: int) -> bool:
     """True when a producer (possibly grouped or filtered) is piped into bash/sh/eval."""
     stages = _split_pipeline_stages(line)
     if len(stages) < 2:
         return False
     for idx, st in enumerate(stages):
-        if not _is_stdin_shell_stage(st):
+        if not (_is_stdin_shell_stage(st) or _is_process_subst_shell_stage(st)):
             continue
         prev = stages[:idx]
         if any(_piped_producer_sensitive(p, depth) for p in prev if not _is_decode_stage(p)):
@@ -2156,12 +2215,42 @@ def _pipeline_reaches_shell(line: str, depth: int) -> bool:
 _PY_NAMED_VAR = re.compile(
     r"^(?:\$(?:PYTHON|python)3?|\$\{(?:PYTHON|python)3?(?::?[-+=][^}]*)?\})$"
 )
+_PY_COMPILER_VARS = frozenset({
+    "CC", "CXX", "CPP", "AS", "LD", "AR", "RANLIB", "FC", "F77", "F90",
+    "NVCC", "GCC", "GXX", "CLANG", "CLANGXX", "INSTALL", "VISUAL", "EDITOR",
+    "OBJCOPY", "OBJDUMP", "STRIP", "WINDRES", "PKG_CONFIG", "CMAKE", "MAKE",
+    "NM", "SIZE", "STRINGS",
+})
+_PY_DOLLAR_NAME = re.compile(
+    r"^(?:\$([A-Za-z_][A-Za-z0-9_]*)|\$\{([A-Za-z_][A-Za-z0-9_]*)(?::?[-+=][^}]*)?\})$"
+)
+
+
+def _dollar_var_name(word: str) -> str | None:
+    m = _PY_DOLLAR_NAME.fullmatch(_unquote_word(word))
+    if not m:
+        return None
+    return m.group(1) or m.group(2)
+
+
+def _is_compiler_var(word: str) -> bool:
+    name = _dollar_var_name(word)
+    return bool(name) and name.upper() in _PY_COMPILER_VARS
+
+
+def _is_shell_var(word: str) -> bool:
+    name = _dollar_var_name(word)
+    return name is not None and name.upper() == "SHELL"
 
 
 def _is_generic_dollar_var(word: str) -> bool:
-    """`$PY` / `${VAR:-…}` but not the PYTHON/python names already treated as interpreters."""
+    """`$PY` / `${VAR:-…}` but not PYTHON/python, `$SHELL`, or compiler-style vars."""
     core = _unquote_word(word)
-    return bool(_PY_INDIRECT_VAR.fullmatch(core)) and not _PY_NAMED_VAR.fullmatch(core)
+    if not _PY_INDIRECT_VAR.fullmatch(core):
+        return False
+    if _PY_NAMED_VAR.fullmatch(core) or _is_compiler_var(word) or _is_shell_var(word):
+        return False
+    return True
 
 
 def _tail_has_c_or_m(tail: str) -> bool:
@@ -2298,7 +2387,40 @@ def _later_interpreter_sensitive(
         if _is_interpreter_word(word) or _PY_PATH_CMD.fullmatch(_unquote_word(word)):
             if _token_is_sensitive(line, i, j):
                 return True
+        if _cmd_base(word) in _PY_SHELL_STDIN or _is_shell_var(word):
+            if _shell_c_placeholder_or_body_sensitive(line, j, end, depth):
+                return True
         i = j
+    return False
+
+
+def _shell_c_placeholder_or_body_sensitive(
+    line: str, start: int, end: int, depth: int
+) -> bool:
+    """Fail-closed on `bash -c {}` (xargs placeholder) and rescan a `-c` body."""
+    k = start
+    while k < end:
+        while k < end and line[k] in " \t":
+            k += 1
+        if k >= end or line[k] in "|&;\n#)<>":
+            return False
+        flag, k2 = _read_word(line, k)
+        raw = _unquote_word(flag)
+        if raw in ("-c", "-lc") or (_PY_C_CLUSTER.match(raw) and "c" in raw[1:]):
+            while k2 < end and line[k2] in " \t":
+                k2 += 1
+            body, _k3 = _read_word(line, k2)
+            inner = _unquote_word(body)
+            if not inner:
+                return False
+            # xargs -I{} bash -c {} : the script comes from stdin. Fail closed.
+            if inner == "{}" or re.fullmatch(r"\{[A-Za-z0-9_]*\}", inner):
+                return True
+            return _rescan(inner, depth) or _safe_data_payload_sensitive(inner, depth)
+        if flag.startswith("-") and flag not in ("-", "--"):
+            k = k2
+            continue
+        return False
     return False
 
 
@@ -2362,8 +2484,8 @@ def _range_sensitive(line: str, start: int, end: int, depth: int = 0) -> bool:
             if k >= end:
                 break
             flag, k2 = _read_word(line, k)
-            # `-e 'body'`, glued `-e'body'`, and clusters (`-ne`, `-pe`, `-we'body'`).
-            glued = re.match(r"^-[A-Za-z]*e(.*)$", flag) if not flag.startswith("--") else None
+            # `-e`/`-E` 'body', glued `-e'system(…)'` / `-E'…'`, and clusters (`-ne`, `-pe`).
+            glued = re.match(r"^-[A-Za-z]*[eE](.*)$", flag) if not flag.startswith("--") else None
             if glued:
                 rest = glued.group(1)
                 if rest:
@@ -3334,12 +3456,72 @@ def self_test() -> int:
             "( echo python3 -I -c y ) | bash": False,
             "echo python3 -I -c y | tee | bash": False,
             "if echo python3 -I -c y; then true; fi | bash": False,
+            "echo case x in; ( python3 )": True,
+            "echo case x in; ( python3 -I )": False,
+            "echo ok # case x in ( python3 )": False,
+            "if true; then echo python3 -c y; fi | bash": True,
+            "if true; then echo python3 -I -c y; fi | bash": False,
+            "while true; do echo python3 -c y; done | bash": True,
+            "while true; do echo python3 -I -c y; done | bash": False,
+            "for x in a; do echo python3 -c y; done | bash": True,
+            "for x in a; do echo python3 -I -c y; done | bash": False,
+            "$CC -c foo.c": False,
+            "${CC} -c foo.c": False,
+            "${CC:-gcc} -c foo.c": False,
+            "$CXX -c foo.cpp": False,
+            "$INSTALL -c": False,
+            "$VISUAL -c": False,
+            "$SHELL -c 'echo hi'": False,
+            "$SHELL -c 'python3 -c y'": True,
+            "$SHELL -c 'python3 -I -c y'": False,
+            "$PY -c y": True,
+            "perl -E 'system(\"python3 -c y\")'": True,
+            "perl -E 'system(\"python3 -I -c y\")'": False,
+            "ipython -c y": True,
+            "micropython -c y": True,
+            "jython -c y": True,
+            "ipython -I -c y": False,
+            "echo python3 -c y | tee >(bash)": True,
+            "echo python3 -I -c y | tee >(bash)": False,
+            "echo python3 -c y | mksh": True,
+            "echo python3 -c y | ash": True,
+            "echo python3 -I -c y | mksh": False,
+            "xargs -I{} bash -c {}": True,
+            "xargs -I{} bash -c 'python3 -I -c y'": False,
         }
         wrong = [k for k, v in table.items() if python_cwd_sensitive(k) != v]
         check("python isolation: truth table " + (f"[wrong: {wrong}]" if wrong else ""), not wrong)
         check(
             "python isolation: recursion-depth cap fail-closes instead of raising",
             python_cwd_sensitive("echo python3", _SCAN_DEPTH_CAP) is True,
+        )
+
+        def _scan_finishes(form: str, expect: bool, seconds: float = 0.4) -> bool:
+            box: dict = {}
+
+            def run() -> None:
+                try:
+                    box["v"] = python_cwd_sensitive(form)
+                except Exception as exc:  # pragma: no cover - surfaced via box
+                    box["e"] = exc
+
+            worker = threading.Thread(target=run, daemon=True)
+            worker.start()
+            worker.join(seconds)
+            return (not worker.is_alive()) and "e" not in box and box.get("v") is expect
+
+        check(
+            "python isolation: case_pat ; does not hang and flags the subshell",
+            _scan_finishes("echo case x in; ( python3 )", True),
+        )
+        check(
+            "python isolation: comment with case … in does not hang",
+            _scan_finishes("echo ok # case x in ( python3 )", False),
+        )
+        check(
+            "python isolation: case_pat & and | do not hang",
+            _scan_finishes("echo case x in& ( python3 )", True)
+            and _scan_finishes("case $x in foo|bar) python3 -c y;; esac", True),
         )
         good_cmds = [
             '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"',
