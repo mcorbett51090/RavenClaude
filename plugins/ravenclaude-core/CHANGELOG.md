@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.363.0 — 2026-11-12
+
+### Added
+- **Phase 2 Catalog mode diet.** Shipped `dashboard.html` stays lean
+  (`include_catalog=False`, Gate 132 Δ0). When a marketplace catalog payload is
+  present (`window.__RC_DATA__` or `GET /catalog-data.json`), Catalog gains a
+  JS-injected **Browse plugins** panel (`#/catalog` / `#/discover`). Index
+  generator emits `catalog-data.json`; dashboard CLI gains `--include-catalog`
+  for explicit embed builds (not the consumer ship). Decision Phase 2 /
+  `docs/plans/2026-11-12-phase2-catalog-hybrid.md`.
+
 ## 0.362.0 — 2026-11-12
 
 ### Changed

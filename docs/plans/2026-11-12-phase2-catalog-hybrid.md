@@ -1,7 +1,7 @@
 # Phase 2 plan — hybrid Catalog on the shipped dashboard (mode diet)
 
 **Date:** 2026-11-12  
-**Status:** ready to implement  
+**Status:** done  
 **Decision:** [`docs/decisions/2026-11-12-one-product-portal-dashboard.md`](../decisions/2026-11-12-one-product-portal-dashboard.md) Phase 2  
 **Predecessor:** Phase 1 chrome already on `main` (teal accent; standalone `ds-label` = Catalog; Gate 200/51 maps accept `catalog`)
 
