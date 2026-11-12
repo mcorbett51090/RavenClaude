@@ -10269,7 +10269,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:f39ea38ddf8b23fd26c8e6cdca4b9d0485d8595eec995be3ad22ffbdc1a4afbd",
+      "covers_digest": "sha256:b1bbcd5a8eb3e075e6355489cb4fdb0c342c4d47fc9fdc4ec8403fad72f5399c",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -10792,7 +10792,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:2c6a91e3edd03faec1ea0f2bfbefa9d331339aa8f7f13c4105d48103fa56bdfb",
+      "covers_digest": "sha256:c5e61bf2a927c1b81f8ed252d73939e9ccdc7bb3f17e8e75c670863a734d3168",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -17087,7 +17087,7 @@ function wireHostScopeFilter(root) {
           ".rc-cat-chip{border:1px solid var(--border);background:var(--surface);color:var(--muted);" +
           "border-radius:999px;padding:.25rem .7rem;font-size:.78rem;cursor:pointer}" +
           ".rc-cat-chip.is-on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}" +
-          ".rc-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}" +
+          ".rc-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px, 100%),1fr));gap:12px}" +
           ".rc-cat-card{border:1px solid var(--border);border-radius:12px;padding:14px 14px 12px;background:var(--surface)}" +
           ".rc-cat-card .nm{font-weight:650}" +
           ".rc-cat-card .ver{font-size:.75rem;color:var(--faint);margin-left:.4rem}" +
@@ -17150,7 +17150,7 @@ function wireHostScopeFilter(root) {
           '<div class="rc-cat-tags">' + kws + reqs + "</div>" +
           '<div class="rc-cat-foot">' +
           '<button type="button" class="btn primary rc-cat-copy" data-copy="' + esc(install) + '">Copy install</button>' +
-          '<a class="btn" href="#/plugin-vars/' + esc(p.name) + '">Configure</a>' +
+          '<button type="button" class="btn rc-cat-cfg" data-plugin="' + esc(p.name) + '">Configure</button>' +
           "</div></article>";
       }
 
@@ -17186,6 +17186,12 @@ function wireHostScopeFilter(root) {
         }
       });
       mount.addEventListener("click", e => {
+        const cfg = e.target.closest(".rc-cat-cfg");
+        if (cfg) {
+          const name = cfg.getAttribute("data-plugin") || "";
+          if (name) location.hash = "/plugin-vars/" + name;
+          return;
+        }
         const btn = e.target.closest(".rc-cat-copy");
         if (!btn) return;
         const t = btn.getAttribute("data-copy") || "";
@@ -17221,7 +17227,7 @@ function wireHostScopeFilter(root) {
         return r.json();
       }).then(data => {
         if (!hasPayload(data)) return;
-        window.__RC_DATA__ = data;
+        window["__RC_DATA__"] = data;
         enableIfReady();
       }).catch(() => { tryNext(); });
     }

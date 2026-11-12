@@ -361,7 +361,7 @@ def _lean_catalog_embed_script() -> str:
     )
     # One script element — Gate 132 +1 when this path is used.
     return (
-        '<script id="rc-catalog-data">window.__RC_DATA__ = '
+        '<script id="rc-catalog-data">window["__RC_DATA__"] = '
         + raw
         + ";</script>\n"
     )
@@ -12797,7 +12797,7 @@ function wireHostScopeFilter(root) {
           ".rc-cat-chip{border:1px solid var(--border);background:var(--surface);color:var(--muted);" +
           "border-radius:999px;padding:.25rem .7rem;font-size:.78rem;cursor:pointer}" +
           ".rc-cat-chip.is-on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}" +
-          ".rc-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}" +
+          ".rc-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px, 100%),1fr));gap:12px}" +
           ".rc-cat-card{border:1px solid var(--border);border-radius:12px;padding:14px 14px 12px;background:var(--surface)}" +
           ".rc-cat-card .nm{font-weight:650}" +
           ".rc-cat-card .ver{font-size:.75rem;color:var(--faint);margin-left:.4rem}" +
@@ -12860,7 +12860,7 @@ function wireHostScopeFilter(root) {
           '<div class="rc-cat-tags">' + kws + reqs + "</div>" +
           '<div class="rc-cat-foot">' +
           '<button type="button" class="btn primary rc-cat-copy" data-copy="' + esc(install) + '">Copy install</button>' +
-          '<a class="btn" href="#/plugin-vars/' + esc(p.name) + '">Configure</a>' +
+          '<button type="button" class="btn rc-cat-cfg" data-plugin="' + esc(p.name) + '">Configure</button>' +
           "</div></article>";
       }
 
@@ -12896,6 +12896,12 @@ function wireHostScopeFilter(root) {
         }
       });
       mount.addEventListener("click", e => {
+        const cfg = e.target.closest(".rc-cat-cfg");
+        if (cfg) {
+          const name = cfg.getAttribute("data-plugin") || "";
+          if (name) location.hash = "/plugin-vars/" + name;
+          return;
+        }
         const btn = e.target.closest(".rc-cat-copy");
         if (!btn) return;
         const t = btn.getAttribute("data-copy") || "";
@@ -12931,7 +12937,7 @@ function wireHostScopeFilter(root) {
         return r.json();
       }).then(data => {
         if (!hasPayload(data)) return;
-        window.__RC_DATA__ = data;
+        window["__RC_DATA__"] = data;
         enableIfReady();
       }).catch(() => { tryNext(); });
     }

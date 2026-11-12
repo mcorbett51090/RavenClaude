@@ -60,6 +60,12 @@ plugins/*/dashboard.html
 # Same rationale as the other generated artifacts.
 index.html
 
+# Lean catalog sidecar for dashboard hybrid Catalog mode (Phase 2). Emitted by
+# scripts/generate-index-dashboard.py as compact JSON; prettier would only churn
+# separators/wrapping against the generator's --check freshness. Same rationale
+# as the generated dashboard/index HTML exclusions above.
+catalog-data.json
+
 # Generated artifact — the "Problems & Resolutions" view produced by
 # scripts/generate-feedback-report.py from the scenario corpus
 # (plugins/*/scenarios/*.md). Byte-deterministic, guarded by its own --check
