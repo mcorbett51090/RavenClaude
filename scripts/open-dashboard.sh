@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# open-dashboard.sh — one command to open the marketplace's own comfort-posture
-# dashboard (the unified index.html portal, served with live /__* endpoints).
+# open-dashboard.sh — one command to open RavenClaude for this marketplace
+# checkout (hybrid index.html shell + live /__* endpoints). Same product as
+# `rc dashboard` / /dashboard; this path is the maintainer hybrid entry.
 #
 #   (default)   probe for a dashboard already serving THIS checkout and REUSE it;
 #               otherwise start one on port 8000 (background, survives this script)

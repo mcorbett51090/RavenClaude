@@ -22,7 +22,7 @@ named in the first cell with its disposition in the second.
 | `#/team` | **Catalog** — the specialist roster (`viewTeam`) now lives in the marketplace. |
 | `#/about` · `#/bifrost` · `#/install` · `#/commands` | **Help** — folded into this drawer as the About, Claude Code (Bifröst), Copilot CLI, and Commands sections. |
 | `#/concepts` | **Control** — a named removal. The Concepts route was aliased to the Learn *tab*, but P6 stripped the portal's `learn-payload`, so `loadLearn()` early-returned and `panel-learn` rendered a blank host. The concept explainers live on the standalone dashboard (`rc dashboard` → `/dashboard`). |
-| `#/learn` | **Not removed — it renders `viewResources()` on the portal** (Templates, decision trees & knowledge). It is homed under **Catalog** via `SHELL_ROUTE_HOME`, matching the standalone's "Learn & Help" grouping. The 58 *concept* explainers are standalone-only; the route itself is live portal content, not a retired one. |
+| `#/learn` | **Not removed — it renders `viewResources()` on the portal** (Templates, decision trees & knowledge). It is homed under **Catalog** via `SHELL_ROUTE_HOME`, matching the standalone's **Catalog** grouping (renamed from "Learn & Help" in the 2026-11-12 one-product cut). The 58 *concept* explainers are standalone-only for now (mode diet); the route itself is live portal content, not a retired one. |
 | `#/trees` | **Not removed — the portal ships the full 3.79 MB `trees-payload`** and `DASH_OWNER` homes it under Catalog. Byte-identical to the standalone. |
 
 ## Notes

@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.362.0 — 2026-11-12
+
+### Changed
+- **One product — portal + dashboard.** Product identity, teal accent, and Catalog IA
+  aligned across `index.html` and `dashboard.html` (decision
+  `docs/decisions/2026-11-12-one-product-portal-dashboard.md`). Local `rc dashboard` /
+  `/dashboard` is the Save home; Pages/static is the hybrid browse mode of the same
+  product. Standalone sidebar group **Learn & Help → Catalog**; brand tag matches the
+  shell ("Engineering Team Platform"). `--rc-accent` is teal estate-wide; commerce
+  green retained as `--rc-commerce` only. Save remains local-only. Artifact collapse
+  (single generator / kill dual HTML) is Phase 3 — not this release.
+
 ## 0.361.5 — 2026-11-11
 
 ### Fixed

@@ -40,20 +40,10 @@ TEMPLATE = r"""<!doctype html>
       /*__SHARED_TOKENS__*/
 
       /* ── Local aliases — map the existing index.html variables onto the
-         shared tokens so the cascade lights this surface as cool near-black +
-         the commerce GREEN, the same signature accent dashboard.html and the
-         RavenPower site both carry.
-
-         2026-07-28 — the teal secondary is RETIRED. index.html had been the one
-         RavenClaude surface off-brand from the commerce site: it aliased its
-         accent to --rc-teal (#3aa391) while dashboard.html and the site both use
-         #56D08A. The `--teal*` variable NAMES are kept (they are referenced from
-         ~20 rules below) but now resolve to green, so this is a repoint, not a
-         rename — no usage site changes and no chance of a missed one.
-
-         Teal here was purely decorative — links, active nav, brand mark, hero
-         hairline, chips, buttons. It carried NO semantic distinction that
-         collapsing to green would erase; that was checked before the swap. */
+         shared tokens. 2026-11-12: portal + dashboard are one product with a
+         teal --rc-accent (see docs/decisions/2026-11-12-one-product-portal-dashboard.md).
+         The `--teal*` variable NAMES stay (referenced from ~20 rules below)
+         and resolve to --rc-accent. */
       :root {
         --bg: var(--rc-bg);
         --bg-2: var(--rc-surface-2);
@@ -65,20 +55,14 @@ TEMPLATE = r"""<!doctype html>
         --text: var(--rc-text);
         --muted: var(--rc-muted);
         --faint: var(--rc-faint);
-        --teal: var(--rc-accent); /* commerce --accent  #56D08A */
+        --teal: var(--rc-accent); /* product teal */
         /* --teal-2 is TEXT on this surface (links, nav-active, brand, eyebrows,
            chips, stat values), so it must clear AA in BOTH themes — it maps to
-           --rc-accent, NOT --rc-accent-2. --rc-accent-2 is documented in
-           shared-tokens.css as "AA-large / UI" and measures only 4.04:1 on the
-           light canvas, which would have quietly regressed every inline link.
-           --rc-accent gives 10.29:1 dark / 4.98:1 light — and 4.98 is also an
-           improvement on the teal it replaces (4.45:1, itself marginally under AA).
-           This also mirrors the ORIGINAL mapping, where --teal and --teal-2 were
-           both var(--rc-teal) — identical by design, not an oversight. */
+           --rc-accent, NOT --rc-accent-2. */
         --teal-2: var(--rc-accent);
         --teal-dim: var(--rc-accent-soft);
-        --teal-soft: var(--rc-accent-soft); /* commerce --accent-soft */
-        --teal-glow: var(--rc-accent-glow); /* commerce --accent-glow */
+        --teal-soft: var(--rc-accent-soft);
+        --teal-glow: var(--rc-accent-glow);
         --ok: var(--rc-ok);
         --warn: var(--rc-warn);
         --danger: var(--rc-danger);
@@ -154,7 +138,7 @@ TEMPLATE = r"""<!doctype html>
       .brand .mark { flex: 0 0 auto; width: 36px; height: 36px; display: grid; place-items: center; color: var(--rc-text); }
       .brand .mark svg { width: 32px; height: 32px; }
       /* WebP raven mark (P0 asset) — green halo mirrors the commerce nav treatment. */
-      .brand .mark img { width: 34px; height: auto; display: block; object-fit: contain; filter: drop-shadow(0 0 8px var(--rc-accent-glow, rgba(86, 208, 138, 0.35))); }
+      .brand .mark img { width: 34px; height: auto; display: block; object-fit: contain; filter: drop-shadow(0 0 8px var(--rc-accent-glow, rgba(58, 163, 145, 0.35))); }
       .brand .name { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; }
       .brand .name b { color: var(--teal-2); }
       .brand .tag { display: block; font-size: 0.66rem; color: var(--faint); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -266,7 +250,7 @@ TEMPLATE = r"""<!doctype html>
         padding: clamp(20px, 3vw, 44px); margin-bottom: 28px;
         border: 1px solid var(--border); box-shadow: var(--rc-shadow-sm);
         background:
-          radial-gradient(120% 140% at 88% 8%, var(--rc-accent-soft, rgba(86, 208, 138, 0.14)), transparent 55%),
+          radial-gradient(120% 140% at 88% 8%, var(--rc-accent-soft, rgba(58, 163, 145, 0.14)), transparent 55%),
           linear-gradient(180deg, var(--surface-2), var(--surface)); }
       /* Signature thin teal hairline across the hero top edge (minimal accent). */
       .hero::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
@@ -276,7 +260,7 @@ TEMPLATE = r"""<!doctype html>
       .eyebrow { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 16px;
         text-transform: uppercase; letter-spacing: 0.18em; font-size: 12px; font-weight: 500; color: var(--muted); }
       .eyebrow__dot { width: 6px; height: 6px; border-radius: 50%;
-        background: var(--rc-accent, #56d08a); box-shadow: 0 0 12px var(--rc-accent-glow, rgba(86, 208, 138, 0.35)); }
+        background: var(--rc-accent, #3aa391); box-shadow: 0 0 12px var(--rc-accent-glow, rgba(58, 163, 145, 0.35)); }
       .hero h1 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.025em; line-height: 1.05;
         font-size: clamp(26px, 3.4vw, 42px); margin: 0 0 14px; text-wrap: balance; }
       .hero h1 .accent { color: var(--teal-2); }
@@ -284,7 +268,7 @@ TEMPLATE = r"""<!doctype html>
       .hero .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
       .hero__raven { justify-self: end; align-self: center;
         width: 100%; max-width: clamp(180px, 26vw, 340px); height: auto; opacity: 0.92;
-        filter: drop-shadow(0 8px 30px var(--rc-accent-glow, rgba(86, 208, 138, 0.28)));
+        filter: drop-shadow(0 8px 30px var(--rc-accent-glow, rgba(58, 163, 145, 0.28)));
         -webkit-mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
         mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
         user-select: none; -webkit-user-drag: none; }
@@ -540,7 +524,7 @@ TEMPLATE = r"""<!doctype html>
       }
       .scenario-card:hover { transform: translateY(-2px); box-shadow: var(--rc-shadow-md, var(--shadow)); border-color: var(--border-strong); }
       .scenario-card.active { box-shadow: var(--rc-shadow-md, var(--shadow)); }
-      .scenario-card[data-profile="strict"].active { border-color: var(--rc-gold, #56d08a); }
+      .scenario-card[data-profile="strict"].active { border-color: var(--rc-gold, #3aa391); }
       /* Was var(--rc-teal, …) — the last direct teal reference on this surface,
          which would have left one lone teal-bordered card on an all-green page. */
       .scenario-card[data-profile="balanced"].active { border-color: var(--teal); }
@@ -563,7 +547,7 @@ TEMPLATE = r"""<!doctype html>
       .pcat-row-head .pc-info { flex: 1; min-width: 0; }
       .pcat-row-head .pc-info .t { font-weight: 600; font-size: 0.92rem; }
       .pcat-row-head .pc-info .d { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
-      .pcat-row-head .pc-drift { width: 8px; height: 8px; border-radius: 50%; background: var(--rc-gold, #56d08a); }
+      .pcat-row-head .pc-drift { width: 8px; height: 8px; border-radius: 50%; background: var(--rc-gold, #3aa391); }
       .pcat-why-btn { background: transparent; border: none; color: var(--faint); font-size: 0.78rem; cursor: pointer; padding: 6px 0 0 0; align-self: flex-start; }
       .pcat-why-btn:hover { color: var(--text); }
       .pcat-why { display: none; margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; font-size: 0.82rem; color: var(--muted); line-height: 1.55; }

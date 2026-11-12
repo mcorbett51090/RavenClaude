@@ -4597,7 +4597,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   display: inline-flex;
   align-items: center;
   /* Green halo around the raven mark — commerce .nav__mark language. */
-  filter: drop-shadow(0 0 8px rgba(86, 208, 138, 0.14));
+  filter: drop-shadow(0 0 8px rgba(58, 163, 145, 0.14));
 }
 .brand-mark img {
   width: 30px;
@@ -4697,7 +4697,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
    hides the folded copy's whole nav in the portal.) */
 
 /* ── Standalone left sidebar — the 4-destination IA (Control · Activity ·
-   Guardrails · Learn & Help) ──────────────────────────────────────────────
+   Guardrails · Catalog) ───────────────────────────────────────────────────
    Matches the portal shell's .sidebar look (dark gradient, brand at top,
    uppercase group labels, sub-items with a left accent bar when active).
    The sidebar is position:fixed and the content margin lives on ONE named
@@ -6659,7 +6659,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   border: 1px solid var(--border);
   border-radius: var(--rc-radius-lg, 12px);
   background:
-    radial-gradient(120% 140% at 88% 8%, var(--rc-accent-soft, rgba(86, 208, 138, 0.14)), transparent 55%),
+    radial-gradient(120% 140% at 88% 8%, var(--rc-accent-soft, rgba(58, 163, 145, 0.14)), transparent 55%),
     linear-gradient(180deg, var(--panel-2, #10131a), var(--panel, #0a0c10));
   overflow: hidden;
 }
@@ -6671,8 +6671,8 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .eyebrow__dot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: var(--rc-accent, #56d08a);
-  box-shadow: 0 0 12px var(--rc-accent-glow, rgba(86, 208, 138, 0.35));
+  background: var(--rc-accent, #3aa391);
+  box-shadow: 0 0 12px var(--rc-accent-glow, rgba(58, 163, 145, 0.35));
 }
 .ov-hero__title {
   font-family: var(--rc-font-display, "Space Grotesk", sans-serif);
@@ -6680,7 +6680,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   font-size: clamp(26px, 3.2vw, 40px); margin: 0 0 14px; color: var(--text);
   text-wrap: balance;
 }
-.ov-hero__accent { color: var(--rc-accent, #56d08a); }
+.ov-hero__accent { color: var(--rc-accent, #3aa391); }
 .ov-hero__sub {
   margin: 0; color: var(--muted, #9aa3b2); line-height: 1.6; max-width: 56ch;
   font-size: clamp(15px, 1.4vw, 16.5px);
@@ -6691,7 +6691,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   justify-self: end; align-self: center;
   width: 100%; max-width: clamp(180px, 26vw, 340px); height: auto;
   opacity: 0.92;
-  filter: drop-shadow(0 8px 30px var(--rc-accent-glow, rgba(86, 208, 138, 0.28)));
+  filter: drop-shadow(0 8px 30px var(--rc-accent-glow, rgba(58, 163, 145, 0.28)));
   -webkit-mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
   mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
   user-select: none;
@@ -6758,8 +6758,8 @@ footer.page-footer a:hover { text-decoration: underline; }
   width: 18px;
   height: 2px;
   border-radius: 2px;
-  background: var(--rc-accent, #56d08a);
-  box-shadow: 0 0 10px var(--rc-accent-glow, rgba(86, 208, 138, 0.35));
+  background: var(--rc-accent, #3aa391);
+  box-shadow: 0 0 10px var(--rc-accent-glow, rgba(58, 163, 145, 0.35));
   flex: none;
 }
 .ov-cards {
@@ -17140,7 +17140,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <span class="ds-mark" aria-hidden="true">{raven_mark}</span>
     <span class="ds-word">
       <span class="ds-name">Raven<b>Claude</b></span>
-      <span class="ds-tag">Dashboard</span>
+      <span class="ds-tag">Engineering Team Platform</span>
     </span>
   </div>
   <nav class="ds-nav" aria-label="Dashboard sections">
@@ -17168,7 +17168,7 @@ _PAGE_TEMPLATE = """<!doctype html>
       <a class="ds-sub" href="#/nidhoggr" data-tab="nidhoggr">Debt</a>
     </div>
     <div class="ds-group">
-      <div class="ds-label">Learn &amp; Help</div>
+      <div class="ds-label">Catalog</div>
       <a class="ds-sub" href="#/learn" data-tab="learn">Learn</a>
       <a class="ds-sub" href="#/trees" data-tab="trees">Guidance</a>
       <a class="ds-sub" href="#/help" data-tab="help">Help</a>

@@ -88,7 +88,9 @@ GROUP_TO_DESTINATION = {
     "control": "control",
     "activity": "activity",
     "guardrails": "guardrails",
+    # Pre-2026-11-12 label kept so older fixtures / mid-regen trees still parse.
     "learn & help": "catalog",
+    "catalog": "catalog",
 }
 
 

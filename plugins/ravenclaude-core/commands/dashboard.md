@@ -1,19 +1,20 @@
 ---
-description: Launch the fully-functioning comfort-posture dashboard (Save & apply works) in your browser.
+description: Launch RavenClaude (Control-first; Save & apply works) in your browser.
 allowed-tools: Bash, Read
 ---
 
 # /dashboard
 
-Open the **fully-functioning** comfort-posture dashboard — the point-and-click editor
-for your permission rules and command-review toggles, where the **Save & apply** button
-actually writes `.ravenclaude/comfort-posture.yaml` and re-runs the translator for you (no
-Copy/Download step).
+Open **RavenClaude** — the one product for comfort posture, activity, guardrails, and
+catalog. Local serve is the home: Control-first landing, and the **Save & apply** button
+writes `.ravenclaude/comfort-posture.yaml` and re-runs the translator (no Copy/Download
+step). The GitHub Pages shell is the same product in static/hybrid browse mode — Save
+stays local-only.
 
-> **Disambiguation:** an unqualified "open the dashboard" resolves to **this** RavenClaude
-> comfort-posture dashboard (the `rc dashboard` front door). Don't surface a chooser unless the
-> user *named* a different dashboard (e.g. a Power Platform admin / maker portal) — guessing wrong
-> there cost a needless menu prompt in a prior session.
+> **Disambiguation:** an unqualified "open the dashboard" / "open RavenClaude" resolves to
+> **this** surface (the `rc dashboard` front door). Don't surface a chooser unless the
+> user *named* a different product (e.g. a Power Platform admin / maker portal) — guessing
+> wrong there cost a needless menu prompt in a prior session.
 
 This launches a small **local** server (`serve-dashboards.py`) bundled inside the plugin.
 It serves the version-matched `dashboard.html` and exposes only `/__save`, `/__read`
