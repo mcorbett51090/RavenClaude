@@ -37,6 +37,7 @@ Owner direction (2026-11-12): collapse to **one product**, local dashboard as ho
 
 - Mode flag / payload diet: include marketplace Catalog when building the marketplace hybrid; omit or lazy-load for lean consumer installs.
 - Gate 132 budget raise only with an owned reason when Catalog shell DOM lands on standalone.
+- **Phase 2 landed (implementation):** shipped `dashboard.html` stays `include_catalog=False` (Gate 132 Δ0). Runtime hybrid enables Browse via `catalog-data.json` / `__RC_DATA__`. CLI `--include-catalog` embeds lean payload for explicit hybrid builds only. Plan: `docs/plans/2026-11-12-phase2-catalog-hybrid.md`.
 
 ### Phase 3 — single artifact
 

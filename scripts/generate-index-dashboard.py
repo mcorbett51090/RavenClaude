@@ -63,6 +63,7 @@ PLUGINS_DIR = REPO_ROOT / "plugins"
 MARKETPLACE = REPO_ROOT / ".claude-plugin" / "marketplace.json"
 SCHEMA_PATH = PLUGINS_DIR / "ravenclaude-core" / "dashboard-schema.json"
 DEFAULT_OUT = REPO_ROOT / "index.html"
+DEFAULT_CATALOG_JSON = REPO_ROOT / "catalog-data.json"
 
 # ----------------------------------------------------------------------------
 # Marketplace category taxonomy (the Marketplace section's left sub-nav).
@@ -1127,6 +1128,44 @@ def _strip_portal_only_payloads(body: str) -> str:
     return body
 
 
+
+def _lean_catalog_sidecar(data: dict) -> dict:
+    """Browse-ready catalog JSON for dashboard hybrid mode (Phase 2).
+
+    Lean on purpose: no detail-island fields (scenarios/quickstart/indexes). The
+    portal keeps the rich island in index.html; the shipped dashboard fetches
+    this sidecar only when present (marketplace serve / Pages next to index).
+    """
+    plugins = []
+    for p in data.get("plugins", []):
+        short = p.get("short") or (p.get("description") or "")[:280]
+        plugins.append({
+            "name": p.get("name"),
+            "label": p.get("label"),
+            "short": short,
+            "version": p.get("version"),
+            "category": p.get("category"),
+            "counts": p.get("counts") or {},
+            "keywords": (p.get("keywords") or [])[:8],
+            "requires": p.get("requires") or [],
+        })
+    return {
+        "generated": data.get("generated"),
+        "marketplace_version": data.get("marketplace_version"),
+        "categories": data.get("categories") or [],
+        "featured": data.get("featured") or [],
+        "use_cases": data.get("use_cases") or [],
+        "plugins": plugins,
+        "stats": data.get("stats") or {},
+    }
+
+
+def write_catalog_sidecar(data: dict, path: Path) -> None:
+    lean = _lean_catalog_sidecar(data)
+    raw = json.dumps(lean, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    path.write_bytes(raw)
+
+
 def render_html(data: dict) -> str:
     template = _TEMPLATE
     shared_tokens = _load_shared_tokens_root()
@@ -1211,11 +1250,23 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Generate the RavenClaude landing dashboard.")
     ap.add_argument("-o", "--output", type=Path, default=DEFAULT_OUT,
                     help="Output HTML path (default: ./index.html)")
+    ap.add_argument("--catalog-json", type=Path, default=DEFAULT_CATALOG_JSON,
+                    help="Lean catalog sidecar for dashboard hybrid mode "
+                         "(default: ./catalog-data.json).")
+    ap.add_argument("--emit-catalog-json", action="store_true",
+                    help="Write only the lean catalog sidecar (no index.html) "
+                         "and exit.")
     ap.add_argument("--check", action="store_true",
                     help="Exit non-zero if the output is missing or stale.")
     args = ap.parse_args(argv)
 
     data = scan_repo()
+    if args.emit_catalog_json:
+        write_catalog_sidecar(data, args.catalog_json)
+        kb = args.catalog_json.stat().st_size / 1024
+        print(f"[ok] wrote {args.catalog_json} ({kb:.0f} KB) — "
+              f"{data['stats']['plugins']} plugins (lean sidecar)")
+        return 0
     html = render_html(data)
 
     if args.check:
@@ -1244,7 +1295,24 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[stale] {args.output} is out of date — re-run the generator",
                   file=sys.stderr)
             return 1
+        # Sidecar freshness (Phase 2 hybrid): compare lean JSON minus generated ts.
+        expected_side = json.dumps(
+            _lean_catalog_sidecar(data), ensure_ascii=False, separators=(",", ":")
+        )
+        if not args.catalog_json.exists():
+            print(f"[stale] {args.catalog_json} does not exist", file=sys.stderr)
+            return 1
+        current_side = args.catalog_json.read_text(encoding="utf-8")
+        def _strip_side(s: str) -> str:
+            s = re.sub(r'"generated":"[^"]*"', '"generated":""', s)
+            s = re.sub(r'"generated_date":"[^"]*"', '"generated_date":""', s)
+            return s
+        if _strip_side(current_side) != _strip_side(expected_side):
+            print(f"[stale] {args.catalog_json} is out of date — re-run the generator",
+                  file=sys.stderr)
+            return 1
         print(f"[ok] {args.output} is up to date")
+        print(f"[ok] {args.catalog_json} is up to date")
         return 0
 
     # write_bytes, not write_text: write_text's default newline=None translates \n ->
@@ -1255,6 +1323,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[ok] wrote {args.output} ({kb:.0f} KB) — "
           f"{data['stats']['plugins']} plugins, "
           f"{data['stats']['specialists']} specialists")
+    # Phase 2: lean catalog sidecar for dashboard hybrid fetch (Gate 132 Δ0).
+    write_catalog_sidecar(data, args.catalog_json)
+    ckb = args.catalog_json.stat().st_size / 1024
+    print(f"[ok] wrote {args.catalog_json} ({ckb:.0f} KB) — lean catalog sidecar")
     return 0
 
 

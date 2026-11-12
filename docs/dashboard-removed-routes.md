@@ -31,6 +31,7 @@ named in the first cell with its disposition in the second.
   `#/learn`, `#/plugin-vars` on the standalone; `#/settings`, `#/plugin-vars`, `#/control`,
   `#/activity`, `#/guardrails`, `#/catalog` on the portal) is intact. If a future phase
   retires a floor route, it must add a row here in the same commit (Gate 51 subset backstop).
+- **Phase 2 Catalog hybrid (2026-11-12):** on the standalone `dashboard.html`, `#/catalog` / `#/discover` resolve to a JS-injected **Browse plugins** panel **only when** a marketplace catalog payload is present (`window.__RC_DATA__` or successful `GET /catalog-data.json`). Lean consumer installs keep Catalog as Learn · Guidance · Help · Plugins and treat those hashes as Control fallback. Portal `index.html` Catalog browse is unchanged.
 - **Web access** keeps its honest empty/download state; `.ravenclaude/web-access.yaml` is
   **not** created (it remains the only authoring UI for a file the agent is forbidden to
   create).
