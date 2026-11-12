@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Generate the redesigned RavenClaude landing dashboard (index.html).
+"""Generate the RavenClaude static/hybrid shell (index.html).
 
-This is the NEW top-level experience: a single self-contained page with a
-collapsible sidebar, a top bar (logo / search / quick actions), and five
-client-side-routed sections — Home, Discover, Configure, Observe, Learn. It is generated from the live repo so it never drifts from the
-catalog:
+One product with the shipped dashboard.html (see
+docs/decisions/2026-11-12-one-product-portal-dashboard.md): Control-first IA
+(Control · Activity · Guardrails · Catalog), teal accent, Catalog present for
+browse. Local `rc dashboard` remains the Save home; this artifact is the Pages
+/ marketplace-hybrid build of the same product. Generated from the live repo
+so it never drifts from the catalog:
 
   - .claude-plugin/marketplace.json          → plugin catalog + versions
   - plugins/*/.claude-plugin/plugin.json      → per-plugin metadata
