@@ -733,6 +733,9 @@ def _callgraph_haystack(root: Path) -> dict[str, str]:
         (
             ".github/workflows/*.yml",
             f"{PLUGIN}/hooks/*.sh",
+            # Gate fixture drivers under hooks/tests/ also invoke scripts by name
+            # (e.g. unpack-vfl-fixtures.py from test-gate100-visual-feedback-loop.sh).
+            f"{PLUGIN}/hooks/tests/*.sh",
             f"{PLUGIN}/skills/*/SKILL.md",
             f"{PLUGIN}/commands/*.md",
             "scripts/*",
