@@ -1,8 +1,8 @@
 {
   "_readme": "Committed model-tier baseline. frontier_agents/total_agents (the frontier share: opus|fable|inherit) may never RISE and cheap_agents (haiku) may never FALL; re-stamp with --allow-loosen \"<reason>\" to widen on the record. See plugins/ravenclaude-core/knowledge/model-tier-delegation.md.",
-  "total_agents": 623,
-  "frontier_agents": 434,
-  "mid_agents": 188,
-  "cheap_agents": 1,
-  "measured_against": "b9d66a367b4ff64bf96575d1bca114507f1df167"
+  "total_agents": 624,
+  "frontier_agents": 433,
+  "mid_agents": 189,
+  "cheap_agents": 2,
+  "measured_against": "e352b94d0a92e891efdb4c20b8015df882352a0e"
 }

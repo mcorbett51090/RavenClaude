@@ -26,6 +26,7 @@ RavenClaude installs into either host. The 10-minute path is the same shape — 
 |---|---|---|
 | **Claude Code** (`claude`) | Path A — `/plugin marketplace add` + `/plugin install` | Yes — `/dashboard`, `/init-agent-ready`, `/wrap`, etc. |
 | **GitHub Copilot CLI** (`copilot`) | Path B — `bash ~/RavenClaude/scripts/ravenclaude setup` | No — use the shell equivalents shown inline below |
+| **Codex, Cursor, Gemini, Aider** | Same script as Path B with `--host codex`, `cursor`, `gemini`, or `aider` | No — shell equivalents |
 
 The rest of the guide flags any step where the two paths diverge.
 
@@ -38,16 +39,14 @@ The rest of the guide flags any step where the two paths diverge.
 ```shell
 /plugin marketplace add mcorbett51090/RavenClaude
 /plugin install ravenclaude-core@ravenclaude
-/reload-plugins
 ```
 
-That's three commands. After `/reload-plugins`, the `ravenclaude-core` agents, skills, hooks, and slash commands are loaded. **`/reload-plugins` is the non-obvious step** — without it, the install hasn't taken effect.
+That's two commands. Since Claude Code v2.1.221 the install often loads without `/reload-plugins`. Run `/reload-plugins` only if the agents do not appear.
 
 If you also want Power Platform specialists:
 
 ```shell
 /plugin install power-platform@ravenclaude
-/reload-plugins
 ```
 
 **Path B — Copilot CLI.** From any project:
@@ -240,7 +239,7 @@ That folder **is** the audit trail. If you ever want to know "why did the agent 
 
 **What you do.**
 
-1. `/plugin install power-platform@ravenclaude` + `/reload-plugins`.
+1. `/plugin install power-platform@ravenclaude`. Reload only if the specialists do not appear.
 2. `/dashboard` — the **Set up** tab.
 3. Confirm the **balanced** posture is selected. The default already covers most of what you want:
    - Reads + local edits + shell exec: `allow`.
@@ -302,7 +301,7 @@ The pattern is documented end-to-end in [`docs/best-practices/self-referential-i
 
 | Symptom | Most likely cause | First thing to try |
 |---|---|---|
-| Slash commands missing after install | You skipped `/reload-plugins` | Run it. |
+| Slash commands missing after install | The install did not load | Run `/reload-plugins` (often unnecessary after Claude Code v2.1.221; still the fallback). |
 | `/dashboard` opens but **Save & apply** does nothing | The dashboard server isn't running — you're on the published HTML preview, not the local server | `bash scripts/open-dashboard.sh` from your project root |
 | Hook is silently inert | The plugin cache is out of date | `/plugin marketplace update ravenclaude` + `/reload-plugins` |
 | You see an "I can't" or "tool not found" response | Often a deferred MCP tool whose schema hasn't loaded | Ask Claude to retry — it's expected to use ToolSearch first |

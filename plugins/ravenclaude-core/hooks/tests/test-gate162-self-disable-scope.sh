@@ -164,6 +164,37 @@ out="$(printf '{"tool_name":"Bash","tool_input":{"command":"echo x >> %s/thing-o
   || bad "shell-shape self-disable regressed — that path must be unchanged"
 
 # ════════════════════════════════════════════════════════════════════════════
+# HALF 4 — the (2a) verb boundary (tribunal-10, 2026-10-19 review). A flag
+# cluster must not read as the verb (`grep -ln` is not `ln`, `docker run --rm` is
+# not `rm`), and a mid-chain absolute-path verb, a quoted separator and a
+# substituted separator must STILL deny — the two bypasses a separator-bounded or
+# `/`-excluding boundary would have opened.
+# ════════════════════════════════════════════════════════════════════════════
+mk_bash() {
+  python3 -c '
+import json, sys
+print(json.dumps({"tool_name": "Bash", "tool_input": {"command": sys.argv[1]}}))
+' "$1"
+}
+bash_denied() { denied "$(decide "$(mk_bash "$1")")"; }
+
+[ "$(bash_denied "grep -ln 'x' $HOOKD/a.sh $HOOKD/b.sh; grep -n y $HOOKD/c.sh | head -20")" = "no" ] \
+  && ok "PERMITS a chained grep whose -ln flag cluster names substrate files" \
+  || bad "grep -ln over substrate files still denied (the \`ln\` in the flag cluster)"
+[ "$(bash_denied "docker run --rm -v \"\$PWD/$HOOKD:/h\" alpine ls /h")" = "no" ] \
+  && ok "PERMITS docker run --rm with a substrate path mounted" \
+  || bad "docker run --rm over a substrate mount still denied (the \`rm\` in --rm)"
+[ "$(bash_denied "ls && /bin/rm -rf $HOOKD")" = "yes" ] \
+  && ok "DENIES a mid-chain /bin/-prefixed delete of a substrate dir" \
+  || bad "a mid-chain absolute-path delete was NOT denied (\`/\` must stay allowed on the left)"
+[ "$(bash_denied "rm -f \";\" $HOOKD/a.sh")" = "yes" ] \
+  && ok "DENIES a delete whose separator is quoted" \
+  || bad "a quoted separator hid a substrate delete (the window must not be separator-bounded)"
+[ "$(bash_denied "rm \$(printf ';') $HOOKD/a.sh")" = "yes" ] \
+  && ok "DENIES a delete whose separator comes from a substitution" \
+  || bad "a substituted separator hid a substrate delete"
+
+# ════════════════════════════════════════════════════════════════════════════
 # TEETH — prove HALF 1 rests on the target-path screen, not on the regex.
 # ════════════════════════════════════════════════════════════════════════════
 MUT="$TMP/engine-mutant.py"

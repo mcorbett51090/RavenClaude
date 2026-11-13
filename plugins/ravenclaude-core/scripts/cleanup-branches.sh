@@ -160,6 +160,17 @@ for b in "${branches[@]}"; do
     verdict_unsafe+=("$b"$'\t'"no such local branch")
     continue
   fi
+  # A branch checked out in ANOTHER worktree is in use. `git update-ref -d`
+  # (the delete below) does not refuse that the way `git branch -d` does, and
+  # the worktree is left on an unborn HEAD whose next commit is a parentless
+  # root. Prunable (missing-dir) worktrees still list the branch and count as
+  # in use, matching git. Exact-line awk match: no regex escaping of $b.
+  _wt="$(git worktree list --porcelain 2>/dev/null \
+    | awk -v ref="refs/heads/$b" '/^worktree /{p=substr($0,10)} $0=="branch " ref {print p; exit}')"
+  if [ -n "$_wt" ]; then
+    verdict_unsafe+=("$b"$'\t'"checked out in worktree $_wt")
+    continue
+  fi
 
   reason=""
   veto_reason=""

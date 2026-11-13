@@ -20,7 +20,11 @@
 # Static check: $CLAUDE_PROJECT_DIR/.claude/settings.json and settings.local.json.
 # A key in .env matching PATH BASH_ENV ENV SHELLOPTS BASHOPTS IFS LD_* DYLD_*
 # PYTHONPATH PYTHONSTARTUP NODE_OPTIONS PERL5OPT RUBYOPT GIT_SSH_COMMAND GIT_CONFIG_*
-# THING_SEAT_* RAVENCLAUDE_* is a finding. A file that exists but is empty,
+# THING_SEAT_* RAVENCLAUDE_* BASH_FUNC_* is a finding. BASH_FUNC_<name>%% is how
+# bash exports a FUNCTION: every bash hook imports it at startup, and a function
+# shadows the binary of the same name (`BASH_FUNC_jq%%` answers for jq). This
+# keys on the planted variable, never on functions merely being present, so a
+# shell's own exported helpers (Lmod's `module`, a distro `which`) are not flagged. A file that exists but is empty,
 # unreadable or not valid JSON (or whose .env is not an object) is a finding too
 # (fail closed). User-scope ~/.claude/settings.json is NOT read (a repo can't write it).
 #
@@ -41,7 +45,7 @@ mode="${1:-pretool}"
 payload=""
 [ -t 0 ] || payload="$(cat 2>/dev/null || true)"
 
-_KEYS_RE='^(PATH|BASH_ENV|ENV|SHELLOPTS|BASHOPTS|IFS|PYTHONPATH|PYTHONSTARTUP|NODE_OPTIONS|PERL5OPT|RUBYOPT|GIT_SSH_COMMAND)$|^(LD_|DYLD_|GIT_CONFIG_|THING_SEAT_|RAVENCLAUDE_)'
+_KEYS_RE='^(PATH|BASH_ENV|ENV|SHELLOPTS|BASHOPTS|IFS|PYTHONPATH|PYTHONSTARTUP|NODE_OPTIONS|PERL5OPT|RUBYOPT|GIT_SSH_COMMAND)$|^(LD_|DYLD_|GIT_CONFIG_|THING_SEAT_|RAVENCLAUDE_|BASH_FUNC_)'
 
 _PY_KEYS='import json, re, sys
 d = json.load(open(sys.argv[1], encoding="utf-8"))

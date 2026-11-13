@@ -1,0 +1,390 @@
+/* =============================================================================
+   blocks.css: each exemplar block's own CSS, and the site chrome (header, menu,
+   footer). Load third, after tokens.css and layout.css.
+
+   Every rule here is in @layer blocks and keys on the block's id
+   ([data-block="…"]), the same id as its contract in catalog.json. A block reads
+   tokens, lays itself out with the primitives, and changes with its CONTAINER
+   (@container), never with the viewport. It never sets grid placement, section
+   padding or a colour value: layout.css's contract layer owns those, and wins.
+
+   scripts/block_site_render.py writes the markup these rules expect; port both
+   together when you move a block into your framework.
+   ============================================================================= */
+
+@layer reset, tokens, primitives, blocks, contract;
+
+@layer blocks {
+  /* ─── shared ────────────────────────────────────────────────────────────── */
+  .eyebrow {
+    font-size: var(--step-n1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .lede {
+    font-size: var(--step-1);
+  }
+  .muted {
+    color: var(--ink-muted);
+  }
+  /* A list used for layout (cards, rows, events): no markers, so no indent.
+     role="list" keeps it a list for VoiceOver, which drops list semantics
+     from a list with list-style: none. */
+  :is(ul, ol)[role="list"] {
+    list-style: none;
+    padding: 0;
+  }
+
+  /* ─── site header: brand, nav, one action; the nav becomes a menu where its
+     links stop fitting (the renderer writes that width for each site) ──────── */
+  .site-header {
+    position: relative;
+  }
+  /* The header is chrome, not a section: its block has no rhythm space
+     (data-space="none"), and the bar carries a small padding of its own. */
+  .site-header__bar {
+    padding-block: var(--space-xs);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs) var(--space-m);
+  }
+  /* The brand shares its row with the menu however long the name is: it
+     starts from zero and grows to its own width, no wider (so the link is only
+     as wide as the name), and a long name wraps inside it. */
+  .site-header .brand {
+    display: inline-flex;
+    align-items: center;
+    flex: 1 1 0;
+    max-inline-size: max-content;
+    min-block-size: var(--target-min);
+    margin-inline-end: auto;
+    color: inherit;
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .site-nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs) var(--space-2xs);
+  }
+  /* Links, not the action button that the open menu also holds: `color:
+     inherit` here would beat .button's label colour (this layer is later), and
+     the menu's "Call us" read ink on the accent at 2.91:1. */
+  .site-nav a:not(.button) {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--target-min);
+    padding-inline: var(--space-2xs);
+    color: inherit;
+    text-underline-offset: 0.2em;
+  }
+  .site-nav a[aria-current="page"] {
+    font-weight: 700;
+    text-decoration-thickness: 2px;
+  }
+  .site-menu > summary {
+    list-style: none;
+    cursor: pointer;
+  }
+  .site-menu > summary::-webkit-details-marker {
+    display: none;
+  }
+  /* The open menu drops below the header, on the same content line: the
+     header's own --_gutter, or the margin a centred content line leaves, which
+     is where layout.css's grid puts content-start (100% is the header's width). */
+  .site-menu > nav {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 100%;
+    z-index: 5;
+    padding-block: var(--space-s);
+    padding-inline: max(var(--_gutter, var(--gutter)), (100% - var(--content-max)) / 2);
+    background: var(--canvas);
+    border-block-end: var(--rule-width) solid var(--rule);
+  }
+  .site-menu > nav ul {
+    flex-direction: column;
+  }
+  /* In the open menu the links sit on the content line, like the action below
+     them; their own padding would set them 8px in. */
+  .site-menu > nav a:not(.button) {
+    padding-inline: 0;
+  }
+  /* The header's action moves into the open menu where the menu shows, so a
+     narrow header is one row: brand and Menu. */
+  .site-menu .button:not(summary) {
+    margin-block-start: var(--space-xs);
+  }
+
+  /* ─── site footer ───────────────────────────────────────────────────────── */
+  .site-footer__name {
+    font-weight: 700;
+  }
+  .site-footer address {
+    font-style: normal;
+  }
+  .site-footer a {
+    color: inherit;
+  }
+  .site-footer .site-nav a {
+    padding-inline: 0;
+  }
+  .site-footer__note {
+    font-weight: 600;
+  }
+  /* Up to eight links: a column, which has no in-between state where a row of
+     them breaks onto a second line (the probe's nav-wrap check). */
+  .site-footer .site-nav ul {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ─── hero-full ─────────────────────────────────────────────────────────── */
+  [data-block="hero-full"] {
+    min-block-size: min(80vh, 44rem);
+    min-block-size: min(80svh, 44rem); /* vh first, svh second */
+    align-content: end;
+  }
+  [data-block="hero-full"] h1 {
+    max-inline-size: 18ch;
+  }
+  [data-block="hero-full"] .lede {
+    max-inline-size: 52ch;
+  }
+
+  /* ─── page-header ───────────────────────────────────────────────────────── */
+  [data-block="page-header"] h1 {
+    max-inline-size: 22ch;
+  }
+
+  /* ─── features-grid ─────────────────────────────────────────────────────── */
+  .card {
+    padding: var(--space-m);
+    background: var(--surface);
+    border: var(--rule-width) solid var(--rule);
+    border-radius: var(--radius-m);
+  }
+  .card h3 {
+    font-size: var(--step-1);
+  }
+  .card__icon {
+    inline-size: 1.75rem;
+    block-size: 1.75rem;
+    color: var(--accent);
+  }
+
+  /* ─── stats-band: all in a row or all stacked, never two-and-one ─────────── */
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3xs);
+  }
+  .stat dd {
+    margin: 0;
+  }
+  /* A figure is never split ("$125,0" / "00"): it stays whole, and the
+     renderer sets the band's --switch-at from the longest value, so the row
+     stacks before a figure would have to break (or overflow, which the probe's
+     text-overflow check reports). */
+  .stat__value {
+    order: -1;
+    font-family: var(--font-display);
+    font-size: var(--step-4);
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .stat__source {
+    font-size: var(--step-n1);
+  }
+
+  /* ─── testimonial ───────────────────────────────────────────────────────── */
+  [data-block="testimonial"] blockquote {
+    font-size: var(--step-2);
+    line-height: 1.3;
+  }
+
+  /* ─── faq-list ──────────────────────────────────────────────────────────── */
+  .faq {
+    max-inline-size: var(--measure);
+  }
+  .faq details {
+    border-block-end: var(--rule-width) solid var(--rule);
+    padding-block: var(--space-2xs);
+  }
+  /* list-item keeps the native disclosure marker, which turns when open and
+     mirrors in rtl (display: flex would remove it); padding makes the 44px. */
+  .faq summary {
+    display: list-item;
+    padding-block: max(0px, (var(--target-min) - 1lh) / 2);
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .faq details > p {
+    padding-block-end: var(--space-xs);
+  }
+
+  /* ─── price-list: a name and its price on one line, the price never broken;
+     rows two up where the slot is wide ───────────────────────────────────── */
+  .price-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+    gap: var(--space-m) var(--space-xl);
+  }
+  .price-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--space-s);
+    row-gap: var(--space-3xs);
+    align-content: start;
+    align-items: baseline;
+  }
+  .price-item > :not(.price-item__name, .price-item__price) {
+    grid-column: 1 / -1;
+  }
+  .price-item__name {
+    font-size: var(--step-0);
+  }
+  .price-item__price {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-align: end;
+  }
+  .price-item__detail {
+    font-size: var(--step-n1);
+  }
+  .price-list__as-of {
+    font-size: var(--step-n1);
+  }
+
+  /* ─── gallery-grid: one column of an auto-fit grid per photo; its contract's
+     minCol is the grid's --min-col (written by the renderer), so sizes follows
+     the column count ───────────────────────────────────────────────────────── */
+  /* At most --cols columns (the renderer picks 3 or 4 from the photo count,
+     so six photos are 3+3, not 4+2), each at least --gallery-min wide. */
+  .gallery {
+    --min-col: max(
+      var(--gallery-min, 16rem),
+      (100% - (var(--cols, 4) - 1) * var(--grid-gap, var(--space-m))) / var(--cols, 4)
+    );
+  }
+  .gallery__item {
+    gap: var(--space-2xs);
+  }
+  .gallery__item figcaption {
+    font-size: var(--step-n1);
+  }
+
+  /* ─── events-list: one date column for every event (subgrid), so every title
+     starts on the same line; under 30rem the date goes above its title ────── */
+  .events {
+    display: grid;
+    grid-template-columns: fit-content(40%) minmax(0, 1fr);
+    gap: var(--space-m) var(--space-l);
+  }
+  .event {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    align-items: baseline;
+  }
+  .event__when {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .event__what {
+    --stack-gap: var(--space-3xs);
+  }
+  .event h3 {
+    font-size: var(--step-1);
+  }
+  .event__price {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  @container (max-width: 30rem) {
+    .events {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .event {
+      row-gap: var(--space-3xs);
+    }
+  }
+
+  /* ─── hours-location: one label column for the weekly rows AND the special
+     days (both lists are subgrids of one table), so every time lines up
+     whatever the longest label ─────────────────────────────────────────────── */
+  .hours-table {
+    display: grid;
+    grid-template-columns: fit-content(50%) minmax(0, 1fr);
+    gap: var(--space-2xs) var(--space-m);
+    /* A grid stretched by a taller sibling shares the extra height between its
+       auto rows; start keeps the rows together. */
+    align-content: start;
+  }
+  .hours-table > * {
+    grid-column: 1 / -1;
+  }
+  .hours,
+  .hours > div {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+  }
+  .hours {
+    row-gap: var(--space-2xs);
+  }
+  .hours-table > h3 {
+    margin-block-start: var(--space-xs);
+  }
+  /* A time range never breaks ("8:00 PM – 6:00 AM" is one unit), so where a
+     day's name and a whole range cannot sit side by side, the times go under
+     the name. */
+  @container (max-width: 26rem) {
+    .hours-table {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .hours > div > dt {
+      font-weight: 600;
+    }
+  }
+  .hours dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  [data-block="hours-location"] address {
+    font-style: normal;
+  }
+  [data-block="hours-location"] h3 {
+    font-size: var(--step-0);
+  }
+
+  /* ─── contact-form ──────────────────────────────────────────────────────── */
+  .field {
+    display: grid;
+    gap: var(--space-3xs);
+  }
+  .field :is(input, textarea, select) {
+    inline-size: 100%;
+    padding-inline: var(--space-xs);
+    border: var(--rule-width) solid var(--field-border);
+    border-radius: var(--radius-s);
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .field textarea {
+    padding-block: var(--space-xs);
+    min-block-size: 8rem;
+  }
+
+  /* ─── cta-banner ────────────────────────────────────────────────────────── */
+  [data-block="cta-banner"] .cluster {
+    justify-content: space-between;
+  }
+}

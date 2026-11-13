@@ -6,19 +6,19 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 913
 summary: "Every registered hook fires on a turn or tool boundary. A stall is the absence of one, so no in-session hook can observe it — including the guard built for it."
-last_verified: 2026-09-10
+last_verified: 2026-10-19
 covers:
   - plugins/ravenclaude-core/scripts/stall_watch.py
   - plugins/ravenclaude-core/scripts/stall_reach.py
   - plugins/ravenclaude-core/scripts/install_stall_watch.py
-covers_digest: "sha256:2ee1f44b111b6d2cd45518a64a291fdfa346ad88c8bd4fb9143153bd28233a12"
+covers_digest: "sha256:877b63f308e43d551372795f3c47e9c0b5c225054994aaa835589650a84ba662"
 nuance: "The observable must be the last *assistant* record, not the last record of any type: a human typing into a suspected stall, and a product-generated `system/away_summary`, both reset a last-any clock without any progress having occurred."
 nuance_evidence:
   measured: 2026-08-25
   control: "the same enumeration returned 39 hooks across 6 event types, so an empty in-turn set is the event map and not a failed read; and on the recorded stall the last-assistant and last-any clocks disagreed by 44.3 min while the exited-session fixtures showed a 0.0 min delta"
   falsifier: "a registered hook event that fires without a turn or tool boundary, or a stalled session whose last-any clock tracks its last-assistant clock"
   probe: plugins/ravenclaude-core/hooks/tests/test-stall-watch.py
-nuance_source: "plugins/ravenclaude-core/scripts/stall_watch.py:96-118"
+nuance_source: "plugins/ravenclaude-core/scripts/stall_watch.py:115-137"
 verify:
   tier: "effect"
   strength: "executed"

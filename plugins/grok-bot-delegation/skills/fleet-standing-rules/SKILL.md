@@ -6,7 +6,7 @@ description: "Always-on standing rules for every bot in Matthew's fleet. Each pr
 Precedence: a profile's own "LOCAL RULE DELTAS" add to these rules and never relax them. If anything conflicts, the stricter rule wins, and Matthew decides via CoS.
 
 ## Core list (named in every profile's core line)
-1. **Never BMA identity** (never mcorbett@bma.bm, in any brief, login or account).
+1. **Never employer identity** (never Matthew's employer work email, in any brief, login or account).
 2. **Source Control Sage (f3c066b2) is the sole mutating SCM executor.** Other bots and CLI runs make local worktree edits and commits only.
 3. **Widgets put the recommended option first**, styled primary, with an explicit recommendation and never bare menus.
 4. **Blocker-first + parallel work:** take the earliest unblocked item, fill free box-run capacity, and never idle with an unblocked queue.
@@ -28,7 +28,7 @@ HARD direct handoffs (Oct 12): outside model work→Prompt Engineer→run Claude
 HARD SCM carve-out: Claude Code/Grok Build runs a bot launches may edit files + make LOCAL commits in a worktree only; never push, open/edit/merge/close PRs, rebase/force-push shared branches, or touch GitHub/Origin (every brief says so). All mutating git/GitHub/Origin (push once per PR, PR create/edit, merge, branch delete, mirror sync) → hand DIRECTLY to Sage, not via CoS; approval cards still run in CoS chat.
 
 ### HARD DH guards
-HARD DH guards: Claude/Grok runs never deploy/prod D1-KV/migrate (→Platform+gate), never print/log/commit secrets (RavenPower vault only), never send messages (draft card), never run/re-run Actions or shard; Cursor builds only below 80% monthly use (check first; last 20% Bugbot/routines/PR review); runs via box-run caps (see below); Grok review = diff since last reviewed commit (~20 chunks, 8 parallel); merge-main/update-branch commits need no AppSec/Grok re-review; pass→write /workspace/state/ready/<repo>-<pr>.json (worktree, sha, verdicts) + SendToAgent Sage; Sage owns ALL SCM (branches, merge-main, conflicts via owner, push ≤30 min, PRs, merge order ≤30 min of green); owners code only, fix same turn, never remotes/PRs; Grok diff-only ∥ AppSec (security/logic only); Platform deploys merged main via prod gate; Matthew decisions never defaulted; owner sends CoS final DONE/FAILED; never bypass Auto-review (gates→CoS); archive hygiene; never BMA; widgets recommended-first.
+HARD DH guards: Claude/Grok runs never deploy/prod D1-KV/migrate (→Platform+gate), never print/log/commit secrets (RavenPower vault only), never send messages (draft card), never run/re-run Actions or shard; Cursor builds only below 80% monthly use (check first; last 20% Bugbot/routines/PR review); runs via box-run caps (see below); Grok review = diff since last reviewed commit (~20 chunks, 8 parallel); merge-main/update-branch commits need no AppSec/Grok re-review; pass→write /workspace/state/ready/<repo>-<pr>.json (worktree, sha, verdicts) + SendToAgent Sage; Sage owns ALL SCM (branches, merge-main, conflicts via owner, push ≤30 min, PRs, merge order ≤30 min of green); owners code only, fix same turn, never remotes/PRs; Grok diff-only ∥ AppSec (security/logic only); Platform deploys merged main via prod gate; Matthew decisions never defaulted; owner sends CoS final DONE/FAILED; never bypass Auto-review (gates→CoS); archive hygiene; never employer identity; widgets recommended-first.
 
 ### HARD admin
 HARD admin (Oct 12 3:40): system/account admin (plans, settings, dashboards) is done by the system OWNER in its own browser/desktop (Platform: Cloudflare/Vercel/Resend/infra; Auth: logins/tokens/access; Finance: spend/billing; else domain owner); spend/plan changes need Matthew approval card via CoS, then owner executes; never route admin execution via CoS; RavenPower vault only; DONE/FAILED→CoS.
@@ -47,6 +47,18 @@ HARD blocker-first+parallel (Oct 13 6:22): check P&D critical path first, take e
 
 ### Owner auto-scale (CoS/Deputy variant)
 Owner auto-scale (Oct 12 6:04): post-launch owners may upgrade own system ≤+$50/mo then report to CoS (CoS tells Matthew); >$50/mo or pre-launch → Matthew card via CoS.
+
+## Source control — Website and Master Overseer (2026-11-05)
+
+The procedure is `ravenclaude-core` `knowledge/source-control-operating-practices.md`. These lines are what Website ops and Master Overseer (CoS) follow. They add to the verbatim blocks above. They do not relax them.
+
+1. **Behind-first merge order is standing GO.** Sage already owns merge order. When several pull requests are green, merge up-to-date tips first, then tips that are only behind and merge cleanly (update the branch, wait for checks on the new SHA), and leave a dirty tip until those have landed.
+2. **Dirty means conflict, uncommitted files, or a tip that is not the reviewed SHA.** Do not merge it. Remount: a fresh worktree from current `origin/main`, replay only that pull request's commits, and stop for the code owner on a hunk. Sage commits the resolution the owner chose. Sage does not invent it.
+3. **An update-branch commit with an unchanged diff needs no AppSec or Grok re-review.** A hunk edit does. That split is already in the HARD DH guards. Keep it.
+4. **Read required checks on the exact head SHA.** Neutral or skipped is not a pass for a review bot, and not a pass for `check-content-placement.mjs`. That script name stays (Website #953). It covers `account/**` and shell/nav. A placement failure blocks ship. Do not add a `paths:` filter to its workflow.
+5. **Secrets.** The RavenPower 1Password vault is the source. Auth or Platform writes the runtime copy in the same change and confirms the name is present. Do not print the value. If the runtime write fails, finish it or put the vault entry back before calling the change done. Preview secrets and production secrets are different names. Coding bots still never print or set secrets.
+6. **Preview, then production.** A UI review cites the pipeline's preview URL. Platform deploys production only from merged `main`, behind the prod gate. No bot deploy. No go-live. This section does not authorize either.
+7. **Do not copy RavenClaude's admin ruleset bypass onto Website.** Do not bypass a ruleset. Do not turn RavenClaude auto-merge back on. CoS hands Sage the order. CoS does not merge.
 
 ## Domain ownership + seams (Matthew-approved items 10/11, 2026-10-13 7:59 ET)
 - finops-cloud-cost → Platform 2bf206d0 · pricing stays with Finance & GTM 9dae5ae9

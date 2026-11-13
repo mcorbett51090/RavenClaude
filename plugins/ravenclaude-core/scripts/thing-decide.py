@@ -45,6 +45,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import math
 import os
 import re
 import subprocess
@@ -82,7 +83,11 @@ _TRUTHY = {True, "on", "true", "yes", "1"}
 _HIGH_BLAST_RE = re.compile(
     r"force[-\s]?push|force-with-lease|reset\s+--hard|\brm\s+-rf\b|delete|"
     r"\bdrop\b|\btruncate\b|\bwipe\b|\brevoke\b|\bpurge\b|prod(uction)?|"
-    r"publish|secret|credential|merge\s+to\s+main|push\s+to\s+main",
+    r"publish|secret|credential|merge\s+to\s+main|push\s+to\s+main|"
+    # CLI spellings of the same stakes (tribunal-18). Additive: it can only add a
+    # defer. MUST stay in sync with the grep in hooks/route-decision-review.sh §3.
+    r"push\s+(?:\S+\s+)*(?:--force|-f)\b|clean\s+-\S*f|branch\s+-D|chmod\s+-R|"
+    r"\bdestroy\b|--no-verify",
     re.IGNORECASE,
 )
 
@@ -655,19 +660,52 @@ def _parse_seat(raw: str) -> dict:
     text = re.sub(r"^```json", "", text.strip())
     text = re.sub(r"^```", "", text).strip()
     text = re.sub(r"```$", "", text).strip()
-    m = re.search(r"\{.*\}", text, re.DOTALL)
-    if not m:
+    # Every valid top-level JSON object, string-aware (tribunal-17). The previous
+    # greedy first-brace-to-last-brace regex could not tell a seat verdict from a
+    # verdict-shaped object the seat merely QUOTED. Same rule as thing-seat.sh:
+    # when the verdict-bearing objects disagree, the most restrictive answer wins,
+    # and for a yes/no decision that is `defer` (the human decides).
+    dec = json.JSONDecoder()
+    voted: list[dict] = []
+    i = 0
+    while True:
+        j = text.find("{", i)
+        if j == -1:
+            break
+        try:
+            obj, end = dec.raw_decode(text, j)
+        except ValueError:
+            i = j + 1
+            continue
+        i = end
+        if isinstance(obj, dict) and "verdict" in obj:
+            voted.append(obj)
+    if not voted:
         return dict(_ABSTAIN)
-    try:
-        v = json.loads(m.group(0))
-    except Exception:
-        return dict(_ABSTAIN)
+    verdicts = {o.get("verdict") for o in voted}
+    if len(verdicts) > 1:
+        v = {
+            "verdict": "defer",
+            "concerns_cited": [],
+            "reasoning": "seat output carried conflicting verdict objects; deferring",
+            "confidence": 0.0,
+            "injection_detected": any(o.get("injection_detected") is True for o in voted),
+        }
+    else:
+        v = voted[-1]
     if v.get("verdict") not in {"yes", "no", "defer"}:
         return dict(_ABSTAIN)
     v.setdefault("concerns_cited", [])
     v.setdefault("reasoning", "")
-    v.setdefault("confidence", 0.0)
     v.setdefault("injection_detected", False)
+    # tribunal-19: json.loads accepts NaN / Infinity, and `nan < threshold` is
+    # False, so a NaN confidence used to escape the low-confidence escalation.
+    # A non-numeric or non-finite confidence is 0.0; the rest is clamped to [0, 1].
+    try:
+        conf = float(v.get("confidence", 0.0))
+    except (TypeError, ValueError):
+        conf = 0.0
+    v["confidence"] = min(1.0, max(0.0, conf)) if math.isfinite(conf) else 0.0
     v["status"] = "voted"
     return v
 
@@ -842,7 +880,9 @@ def _tally(
         if r.get("injection_detected"):
             injection = True
         try:
-            if float(r.get("confidence", 0)) < threshold:
+            # `not (c >= t)`, not `c < t`: a NaN compares False both ways, and only
+            # this form counts it as low-confidence (tribunal-19).
+            if not (float(r.get("confidence", 0)) >= threshold):
                 low_conf = True
         except (TypeError, ValueError):
             low_conf = True

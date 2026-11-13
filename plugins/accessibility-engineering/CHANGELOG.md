@@ -2,6 +2,18 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.5] — 2026-11-05
+
+### Added
+
+- **Settings and choice controls contract.** `knowledge/settings-controls-markup-and-keyboard-2026-11.md`: per-control markup, keys, name and state for switch, segmented control / radio tiles, slider, tooltip, toggletip, sheet, usage meter and save status; WCAG 2.5.7 (AA), 1.4.13 (AA) and 2.5.8 as they land on these controls; an audit-result table; a keyboard-then-screen-reader test script. Rows are tagged `[docs-verified 2026-11-05]` (APG, WCAG 2.2 Understanding, MDN, GOV.UK, Inclusive Components), `[inference]` or `[unverified]`. Native checkbox `switch` is experimental; the Understanding page for 2.5.7 is silent on native ranges; APG's tooltip page is work in progress. Separate from the 2026-11-04 capture and re-grades nothing in it. Also covers the Connect apps flow: connector row and decorative brand icon, accounts sheet with Authorize per account and Add account, four base-scope radios (Minimal / Read only / Full / Requested), removable pills, Advanced disclosure, static Required tiles, Additional Access groups, and the one-sheet step contract, plus a markup sketch. Wired through `CLAUDE.md` §3c and `design-accessible-pattern` Step 7. No assistive-technology session produced it.
+
+## [0.1.4] — 2026-11-04
+
+### Added
+
+- **Portal chrome and coding-agent accessibility standing bar.** `knowledge/portal-and-agent-accessibility-2026-11.md` records the 2026-11-04 capture as rules agents follow. Solid: persistent labeled left rail, current location (without an "exactly one `aria-current`" requirement), disclosure buttons with `aria-expanded` and `aria-controls` rather than `role="menu"`, quieter local nav. Provisional: WCAG 2.3.3 is AAA, and the coding-agent practice list (semantic names, stable hooks, URL state, confirm-before-destructive, page content untrusted). Unverified and not implemented from this note: WebMCP / `navigator.modelContext`, hosted MCP on Cloudflare, `llms.txt` as a gate, Cursor `.mdc` claims, Storybook MCP coverage of Astro. Evidence grades and the discarded claims live in `ux-research`'s `ui-pattern-standing-bar-2026-11.md`. `design-accessible-pattern`, `test-assistive-tech`, and `run-wcag-audit` now point at the file. The 109-claim extract is not in this repo and is not reconstructed.
+
 ## [0.1.3] — 2026-08-14
 
 ### Changed

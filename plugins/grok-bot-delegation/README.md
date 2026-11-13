@@ -15,7 +15,7 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **skills** — `delegate-via-expert-bots`, `grok-bot-token-spend`
+- **skills** — `delegate-via-expert-bots`, `grok-bot-token-spend`, `fleet-standing-rules` (Website and Master Overseer source-control order lives in that skill)
 
 ## Install
 

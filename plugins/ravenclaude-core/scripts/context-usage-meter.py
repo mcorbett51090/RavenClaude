@@ -27,7 +27,8 @@ reconstruction under `~/.claude/projects/` is a fallback only.
 Window size, ranked:
   1. same-session `signals.json.contextWindowTokens` if present (Grok only)
   2. owner knob (`--window` or posture `context_handoff.context_window_tokens`)
-  3. Grok config `context_window = N` if found
+  3. Grok config `context_window = N` if found — Grok readings ONLY; it describes
+     Grok's model and is never applied to a Claude Code session
   4. CORRECTED 2026-09-08 — model-aware resolution (Claude Code path only): the
      session's actual running model id (read off the last assistant turn's
      `message.model` field in the same transcript) is looked up in
@@ -169,12 +170,16 @@ def _clean_path(value) -> str | None:
 
 
 def _claude_encode_cwd(cwd: str) -> str:
-    """Claude Code's own `~/.claude/projects/<encoded>/` convention: the
-    resolved absolute path with every `/` replaced by `-` (leading slash
-    included, so `/Users/x/y` -> `-Users-x-y`). Verified 2026-08-26 against a
-    live project directory name. Mirrors the algorithm the Mimir skill
-    documents; not imported from there (each hook script here is standalone)."""
-    return str(Path(cwd).resolve()).replace("/", "-")
+    """Claude Code's own `~/.claude/projects/<encoded>/` convention: the path
+    with every `/` AND every `.` replaced by `-` (leading slash included, so
+    `/Users/x/y` -> `-Users-x-y`, `/r/.claude/worktrees/x` -> `-r--claude-worktrees-x`).
+    Same algorithm as serve-dashboards.py `_mimir_encode_key`; not imported from
+    there (each hook script here is standalone).
+
+    ⛔ The path is used VERBATIM, never resolve()d: Claude Code encodes the cwd it
+    was given, so resolving a symlink (or leaving '.' alone) produced a key that
+    matched no project directory for dotted paths and worktrees."""
+    return str(cwd).replace("/", "-").replace(".", "-")
 
 
 def claude_transcript_path(payload: dict) -> Path | None:
@@ -220,7 +225,10 @@ def last_total_tokens_claude(path: Path) -> int | None:
     except OSError:
         return None
     text = raw.decode("utf-8", errors="replace")
-    for line in reversed(text.splitlines()):
+    # split("\n"), not splitlines(): JSONL records end at "\n" only, and
+    # splitlines() also breaks on U+2028/U+2029/U+0085 that Claude Code writes raw
+    # inside string values, tearing the last record and reading the turn before it.
+    for line in reversed(text.split("\n")):
         if '"usage"' not in line or '"assistant"' not in line:
             continue
         try:
@@ -267,7 +275,7 @@ def last_assistant_model_claude(path: Path) -> str | None:
     except OSError:
         return None
     text = raw.decode("utf-8", errors="replace")
-    for line in reversed(text.splitlines()):
+    for line in reversed(text.split("\n")):  # "\n" only — see last_total_tokens_claude
         if '"model"' not in line or '"assistant"' not in line:
             continue
         try:
@@ -501,7 +509,10 @@ def measure(
 
     if window is None:
         window = owner_window
-    if window is None:
+    if window is None and source != "claude-code":
+        # ⛔ A Grok config's context_window describes GROK's model. Consulted for a
+        # Claude Code session it measured a 1M-token model against a 256K window
+        # (58.6 % instead of 15 %), so nudges fired early.
         window = window_from_grok_config()
     window_source = "explicit" if window is not None else None
     if window is None and source == "claude-code":

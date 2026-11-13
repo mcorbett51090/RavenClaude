@@ -1,6 +1,8 @@
 # Accessibility Engineering Decision Trees
 
 > Mermaid decision trees for the three most common triage paths. Traverse top-to-bottom and pick the smaller-blast-radius leaf — don't keyword-match the symptom to a method. Each tree encodes the team's house opinions (CLAUDE.md §3).
+>
+> Portal chrome, disclosure buttons, and coding-agent legibility are a separate bar: [`portal-and-agent-accessibility-2026-11.md`](portal-and-agent-accessibility-2026-11.md) (CLAUDE.md §3b). Use Tree 4 below to decide whether that file applies. It is not a fourth conformance method.
 
 ## Tree 1 — Where do we start on WCAG conformance?
 
@@ -54,6 +56,22 @@ flowchart TD
     C1 --> E
     D1 --> E
     D3 --> E
+```
+
+## Tree 4 — Is this portal chrome or agent legibility?
+
+```mermaid
+flowchart TD
+    A[UI question] --> B{App or portal<br/>navigation?}
+    B -- "Yes" --> B1[Apply the solid rail,<br/>label, current-location,<br/>and disclosure rules, §3b]
+    B -- "No" --> C{Coding or browser<br/>agent must use the page?}
+    C -- "Yes" --> C1[Provisional practice list<br/>only. Tooling table stays<br/>unimplemented, §3b]
+    C -- "No" --> D{Motion from<br/>interaction?}
+    D -- "Yes, target is AA" --> D1[Do not fail AA on 2.3.3.<br/>Still gate prefers-reduced-motion]
+    D -- "No" --> D2[Trees 1–3]
+    B1 --> E[Knowledge file is the<br/>citable text]
+    C1 --> E
+    D1 --> E
 ```
 
 ## How to read these

@@ -1227,9 +1227,11 @@ _Last verified: 2026-06-08_
 
 The **definition-of-done gate** closes the gap that command review can't see: it gates work **correctness**, not command safety. The Thing tribunal asks "is this command dangerous?"; this gate asks "is the work actually finished, or does it just *look* finished?" It is a `Stop` hook — it fires when the agent tries to end its turn — and if a `definition_of_done.cmd` is configured in `.ravenclaude/comfort-posture.yaml`, it runs that command (your tests, build, lint) and **blocks the stop until the command exits zero**. That turns "looks done" into "is done" without the human having to be the verification loop.
 
-The gate is **scoped and self-limiting** so it never becomes an obstacle. It only fires when *source files actually changed* this session (it inspects `git status --porcelain` for code extensions), so a docs-only or read-only session ends cleanly. When the command fails, the gate feeds the tail of the failing output back to the agent so it can fix the problem and try again. To guarantee it can't deadlock, it blocks at most **`max_blocks`** (default 8) consecutive times, then **force-allows** the stop with a warning — Claude Code force-overrides Stop after 8 anyway, but Copilot CLI gives no such guarantee, so the cap is built in. With no `definition_of_done.cmd` set, the gate is inert and the advisory `remind-tests.sh` nudge handles the reminder instead.
+The gate is **scoped and self-limiting** so it never becomes an obstacle. It only fires when *source files actually changed* this session (it inspects `git status --porcelain` for code extensions), so a docs-only or read-only session ends cleanly. When the command fails, the gate feeds the tail of the failing output back to the agent so it can fix the problem and try again. To guarantee it can't deadlock, it blocks at most **`max_blocks`** (default 8) consecutive times, then releases the stop with `VERDICT: STOP` (end the turn; do not ask). Claude Code force-overrides Stop after 8 anyway, but Copilot CLI gives no such guarantee, so the cap is ours. On Copilot that release is a user warning, not a new prompt. The first-run trust refusal counts toward that same cap. With no `definition_of_done.cmd` set, the gate is inert and the advisory `remind-tests.sh` nudge handles the reminder instead.
 
-One safety detail: the configured command is shell-executed, and it comes from a YAML field a malicious pull request could edit. So before the *first* run per session for a given command value, the gate refuses to execute and surfaces the literal command plus a one-line `touch` step to authorize it (or set `definition_of_done.trusted: true` to skip the prompt permanently). Rotating the command or starting a new session re-triggers the check. Like the other guardrails it is **opt-in and deterministic** — the verdict is just a command's exit code, no model in the loop — so it ports unchanged to Copilot through the adapter's `stop` mode.
+Copilot turns a Stop block reason into the next user prompt, so the first line is a verdict. No block means **DONE**: end the turn and do not ask. `VERDICT: NOT DONE` means do the single `[FAIL]` line, then stop again. `VERDICT: STOP` means `max_blocks` is reached: end the turn and say the gate did not pass.
+
+One safety detail: the configured command is shell-executed, and it comes from a YAML field a malicious pull request could edit. So before the first run per session for a given command value, the gate refuses to execute and names the literal command. **A person** creates `~/.ravenclaude/dod-confirm/<repo-hash>/<session>/confirmed-<hash>` **outside the worktree** (and outside the agent session). The agent must not create it — Write and Bash attempts that name the confirm token are denied, and an in-tree `.ravenclaude/runs/dod-gate/.../confirmed-*` is no longer accepted. Set `definition_of_done.trusted: true` in a later commit than the `cmd` line to skip the prompt. Rotating the command or starting a new session re-triggers the check. The diagram node "ask to authorize" means that person, not the agent. Like the other guardrails it is **opt-in and deterministic** — the verdict is a command's exit code, no model in the loop — so it ports through the adapter's `stop` mode. The trust refusal is stdout JSON (`decision: block`) at exit 0, because Copilot drops stderr when a hook exits 2.
 
 ```mermaid
 flowchart TD
@@ -1250,7 +1252,7 @@ flowchart TD
 
 **Sources:** [dod-gate.sh hook](../plugins/ravenclaude-core/hooks/dod-gate.sh) · [ravenclaude-core constitution — Auto-mode guardrails](../plugins/ravenclaude-core/CLAUDE.md)
 
-_Last verified: 2026-06-08_
+_Last verified: 2026-11-13_
 
 
 ---
@@ -1952,9 +1954,9 @@ _Last verified: 2026-05-26_
 
 > RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install.
 
-Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (mapping its `toolName`/`toolArgs` ⇄ Claude's `tool_name`/`tool_input`, the lowercase tool-name *values* ⇄ Claude's PascalCase, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing.
+Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (camelCase `toolName`/`toolArgs` as a JSON string, or PascalCase `tool_input` as an object, ⇄ Claude's `tool_name`/`tool_input`; lowercase tool-name *values* ⇄ Claude's PascalCase; a PreToolUse deny is top-level `permissionDecision` with no `hookSpecificOutput` wrapper, which Copilot ignores; Gate 20 requires the top-level key; Stop still emits both shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing. On VS Code Copilot Chat, leave `chat.useClaudeHooks` off while `.github/hooks/ravenclaude.json` is present so the Claude settings hooks do not run a second copy.
 
-> **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37]`. "Unmodified scripts run under Copilot" is true of the *translation*, not of the *coverage*: the Copilot hooks file is hand-maintained, and **12+ shipped hooks are not in it**, so they never fire on that host at all (MH-12, open). Read this card as "the bridge does not require forking the hooks", **not** as "every guardrail you see under Claude Code is also protecting you under Copilot". The authoritative per-component answer is [`../host-support.json`](../plugins/ravenclaude-core/knowledge/host-support.json), and it is the one to trust if this card and it ever disagree.
+> **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37; coverage corrected 2026-11-05]`. "Unmodified scripts run under Copilot" is true of the *translation*, not of the *coverage*. **MH-12 is closed** (0.219.0): `scripts/generate-copilot-hooks.py` projects the Copilot hooks file from the canonical manifest, and Gate 158 fails the build if a hook is neither wired nor explicitly skipped. Skips are written into the generated file with reasons. Read this card as "the bridge does not require forking the hooks", **not** as "every guardrail you see under Claude Code is also protecting you under Copilot". The authoritative per-component answer is [`../host-support.json`](../plugins/ravenclaude-core/knowledge/host-support.json), and it is the one to trust if this card and it ever disagree.
 
 The design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.
 
@@ -2002,7 +2004,7 @@ flowchart TD
 
 **Sources:** [ravenclaude-core constitution — Copilot CLI bridge](../plugins/ravenclaude-core/CLAUDE.md) · [Copilot CLI customization surface (canonical, docs-verified)](../plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) · [generate-copilot-plugin.py](../scripts/generate-copilot-plugin.py)
 
-_Last verified: 2026-06-09_
+_Last verified: 2026-11-05_
 
 
 ---
@@ -2353,7 +2355,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-11-13_
 
 
 ---
@@ -2379,7 +2381,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-11-11_
 
 
 ---
@@ -2423,7 +2425,7 @@ visible in the matrix.
 
 **Sources:** [verified live against the installed grok and copilot CLIs, this session](https://github.com/mcorbett51090/RavenClaude/pull/1030)
 
-_Last verified: 2026-10-09_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2449,7 +2451,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-11-13_
 
 
 ---
@@ -2475,7 +2477,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-11-11_
 
 
 ---
@@ -2569,7 +2571,7 @@ Probe: `unprobed: the payload shape is host-supplied and cannot be synthesised f
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-09_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2723,7 +2725,7 @@ Spectate is observe-only honesty infrastructure. Collapsing unknown into unavail
 
 **Sources:** [Harness Spectate BUILD-PLAN](../docs/plans/2026-10-09-harness-spectate/BUILD-PLAN.md)
 
-_Last verified: 2026-10-12_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2749,7 +2751,7 @@ Probe: `scripts/check-artifact-budgets.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-11-12_
 
 
 ---
@@ -2821,7 +2823,7 @@ predicate names anything the command has not done yet.
 
 **Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md)
 
-_Last verified: 2026-10-09_
+_Last verified: 2026-11-05_
 
 
 ---
@@ -2868,7 +2870,7 @@ the thing being investigated.
 
 **Sources:** [measured in the FORGE stall-watchdog run](https://github.com/mcorbett51090/RavenClaude/tree/forge/stall-watchdog)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2931,7 +2933,7 @@ Probe: `plugins/ravenclaude-core/hooks/sanitize-mcp-output.py` (`--self-test`)
 
 **Sources:** [Q1/L4 of the analog-repos-gap-fill leftovers, unparked on owner request](https://github.com/mcorbett51090/RavenClaude/pull/928)
 
-_Last verified: 2026-10-13_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -2985,7 +2987,7 @@ Anthropic ships an equivalent of `compactModel`. Do not claim that native path i
 
 **Sources:** [P2 of the precompact-critical-context FORGE plan, hardened per the P4 security review](../plugins/ravenclaude-core/hooks/precompact-digest.sh)
 
-_Last verified: 2026-09-16_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3126,7 +3128,7 @@ both 0 and 1, with a permanent regression assertion so this cannot silently regr
 
 **Sources:** [repo-review build + live proof-run, 2026-09-02 -- cross-model dispatch against the fixture repo caught the defect in findings_merge.py itself](../plugins/ravenclaude-core/skills/repo-review/SKILL.md)
 
-_Last verified: 2026-09-10_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3255,13 +3257,22 @@ a bug in the installer is a lesser concern than a bug in the guard itself.
 
 control: install into a scratch zsh `$HOME` -> exactly one marker block, `bash -n`/`zsh -n` clean;
 re-run install -> block replaced in place (not duplicated), non-marker regions byte-identical;
-`--uninstall` -> rc file byte-identical to pre-install state; the guard helper deleted after install
+`--uninstall` with no later edit -> rc file byte-identical to pre-install state (after a later edit:
+only the block removed, the edit kept); the guard helper deleted after install
 -> `claude --version` still works end-to-end through the real sourced shell.
 
 Measured 2026-09-08: the installer is exactly as fail-open as the helper it installs. Every write is
 preceded by a timestamped backup and followed by a syntax validation of the resulting file before the
 edit is committed — a syntax failure restores the backup and the installer exits non-zero naming the
 file and reason, rather than leaving a broken rc file behind.
+
+**Corrected 2026-10-19 (repo review corescripts-5, orch-2).** Two gaps in that claim. First,
+`--uninstall` copied the pre-install snapshot back unconditionally, so any rc edit made after install
+was silently lost. The snapshot is now restored only when the file is exactly what install produced
+(`_unchanged_since_install`); otherwise the current file is backed up and only the marker block is
+removed. Second, an unknown argument, including `--help`, fell through to the default action, install,
+and edited the rc file. `--help` now prints usage and exits 0; an unknown argument exits 2. Both are
+in `install_launch_guard.py --self-test` (cases 13 and 14).
 
 ## Why it matters
 
@@ -3273,7 +3284,7 @@ Probe: `plugins/ravenclaude-core/scripts/install_launch_guard.py`
 
 **Sources:** [measured during the claude-launch-safeguard FORGE build (anthropics/claude-code#92932)](https://github.com/anthropics/claude-code/issues/92932)
 
-_Last verified: 2026-09-09_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3615,7 +3626,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-thing-hardening-edit.sh`.
 
 **Sources:** [knowledge/thing-harden-transforms.yaml (PE DIGEST ship Thing hardening EDIT 0.323.5, 2026-09-15)](https://github.com/mcorbett51090/RavenClaude/blob/feat/thing-hardening-edit/plugins/ravenclaude-core/knowledge/thing-harden-transforms.yaml)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3729,12 +3740,15 @@ The direction of an estimation error decides which failure you get. Here the che
 that is too generous, so the warning fires early — is the one the design accepts. The expensive error
 — Routines starved because interactive work was allowed to use their share — needs spend to be
 *over*-counted, which is why sessions are deduped by id and pre-window cost is never charged to the week.
+Since 2026-10-19 (repo review 1c-4) the window is also closed at the reading's capture time:
+counting spend after the moment the percentage was read added dollars it never saw and deflated `k`,
+the unsafe direction.
 
 Probe: `plugins/ravenclaude-core/hooks/tests/test-gate291-routine-reserve.sh`
 
 **Sources:** [built and measured in the routine token reserve PR 1 session](https://github.com/mcorbett51090/RavenClaude/blob/main/plugins/ravenclaude-core/knowledge/routine-token-reserve.md)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3818,7 +3832,7 @@ Measured 2026-10-17: the recorder appends a sidecar and leaves the caller to pri
 
 **Sources:** [2026-10-14 prompt-caching analysis — headless envelopes were not metered](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/analysis.md)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3848,12 +3862,17 @@ planted `THING_SEAT_ACTIVE` would also have switched command review off. The sea
 lock (`_rc-runtime.sh`) and the pre-tool record check (`pretool-record-check.sh`) cover the
 recursion guard and a review hook that never started.
 
+Since 2026-10-19 (repo review hooks-4) the guard also quarantines `BASH_FUNC_<name>%%` keys. bash
+imports them as functions that shadow the binary of the same name, and `env -u` on the launch line
+cannot name them in advance, so `guard-destructive.sh` and `thing-orchestrator.sh` also unset every
+function before doing anything else (test section 18).
+
 Falsifier: a hooks.json command without the hardened prefix, or a planted key that does not
 deny. Probe: `plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`.
 
 **Sources:** [Claude Code docs: What runs before you trust a folder (env block and settings hooks are used)](https://code.claude.com/docs/en/permissions#what-runs-before-you-trust-a-folder) · [Claude Code docs: hooks reference (shell form runs sh -c; a hook inherits the parent environment)](https://code.claude.com/docs/en/hooks)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-10-19_
 
 
 ---
@@ -3875,6 +3894,32 @@ Measured 2026-10-18: a gap under 5 minutes already reads the 5-minute cache, and
 **Sources:** [2026-10-14 prompt-caching build plan — Phase 4, subagent TTL from data](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/BUILD-PLAN.md)
 
 _Last verified: 2026-10-18_
+
+
+---
+
+### A bulk cleanup that previews before it touches anything · _RavenClaude-built_
+
+> Why a bulk worktree sweep is safe to run blind: --all alone never removes anything.
+
+## What a reader would have assumed instead
+
+A `--all` bulk-cleanup flag mutates immediately, the way most bulk-delete commands do.
+
+## The discriminator
+
+control: a plain `--all` run left a genuinely clean, removable worktree on disk untouched, and the output was labeled DRY RUN
+Measured 2026-11-10: `--all` alone only previews — framed as what `--execute` would do to each worktree — and never passes `--force` even once `--execute` is given. The SessionEnd report hook (`worktree-cleanup-report.sh`) runs the same `--status`/preview path on every session close, which is exactly what makes an always-on hook safe: there is no mutating code path for it to accidentally reach.
+
+## Why it matters
+
+Falsifier: a plain `--all` run (no `--execute`) deleting any worktree.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh` (P12a/P12b/T2 exercise exactly this contract, including a teeth check that neuters the `--execute` gate and confirms a plain `--all` then mutates).
+
+**Sources:** [worktree-clean.sh usage doc + P12/T2 of its own lifecycle test](../plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh)
+
+_Last verified: 2026-11-10_
 
 
 ---

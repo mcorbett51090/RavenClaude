@@ -39,6 +39,18 @@ fi
 [ -z "$scan_target" ] && exit 0
 [ ! -f "$scan_target" ] && exit 0
 
+# Multi-line checks use perl (stock on macOS) via `_rc_pcre_match`, the same
+# helper the sibling domain hooks source. Fail-safe: an absent helper degrades
+# to an inline perl equivalent.
+_rc_portable="${CLAUDE_PLUGIN_ROOT:-}/hooks/_portable.sh"
+[ -f "$_rc_portable" ] || _rc_portable="$(dirname "${BASH_SOURCE[0]}")/../../ravenclaude-core/hooks/_portable.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_portable" ] && . "$_rc_portable" 2>/dev/null || true
+command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
+  [ -r "$1" ] || return 1
+  RC_PCRE_PAT="$2" perl -0777 -ne 'BEGIN{$m=1} $m=0 if /$ENV{RC_PCRE_PAT}/i; END{exit $m}' -- "$1" 2>/dev/null
+}
+
 findings=()
 if grep -nEi "(processingTime|ProcessingTime|TimeCharacteristic\\.ProcessingTime)" "$scan_target" >/dev/null 2>&1; then
   findings+=("Processing-time used for windowing/aggregation — prefer event-time + watermarks for correctness with late/out-of-order events.")
@@ -46,7 +58,14 @@ fi
 if grep -nEi "(acks\\s*=\\s*['\\\"]?0|acks\\s*=\\s*['\\\"]?1\\b)" "$scan_target" >/dev/null 2>&1; then
   findings+=("Producer acks=0/1 — risks data loss; use acks=all (+ idempotent producer) for durability unless loss is acceptable.")
 fi
-if grep -nEi "(send|produce)\\([\\s\\S]{0,80}(commit|save|update)|(commit|save|update)[\\s\\S]{0,80}(producer\\.send|kafka)" "$scan_target" >/dev/null 2>&1; then
+# Was `grep -E "...[\\s\\S]{0,80}..."`, which could never match: POSIX ERE reads
+# `[\s\S]` as {backslash, s, S} and grep is line-oriented (repo-review
+# 2026-10-19). Now perl: a DB commit/save and a producer send/produce within
+# four lines of each other, in either order. A consumer offset commit
+# (`consumer.commit()`) is not a DB write and does not count.
+_rc_ds_db='(?:\b(?:session|db|conn|connection|tx|txn|transaction)\.commit|\.save)\s*\('
+_rc_ds_pub='\b(?:producer|kafka\w*)\.(?:send|produce)\s*\('
+if _rc_pcre_match "$scan_target" "${_rc_ds_db}[^\\n]*(?:\\n[^\\n]*){0,4}?${_rc_ds_pub}|${_rc_ds_pub}[^\\n]*(?:\\n[^\\n]*){0,4}?${_rc_ds_db}"; then
   findings+=("Possible dual-write (DB write + produce separately) — use CDC/transactional outbox so events match committed state.")
 fi
 

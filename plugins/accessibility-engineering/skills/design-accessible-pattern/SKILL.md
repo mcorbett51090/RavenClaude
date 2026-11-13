@@ -19,5 +19,19 @@ Contrast-checked tokens via `accessibility_calc.py contrast`, visible focus, and
 ## Step 4 — Ship it to the design system
 Into the shared component and definition-of-done so the fix prevents recurrence (§3 #7).
 
+## Step 5 — Portal and app chrome
+When the pattern is wayfinding, apply [`../../knowledge/portal-and-agent-accessibility-2026-11.md`](../../knowledge/portal-and-agent-accessibility-2026-11.md) (§3b):
+
+- Persistent visible left rail; every primary item has visible text.
+- Mark the current location. Do not require exactly one `aria-current`.
+- A disclosure is a `<button>` with `aria-expanded` and `aria-controls`. Wayfinding does not use `role="menu"`.
+- Local navigation is visually quieter than the main rail.
+
+## Step 6 — Coding-agent legibility
+Apply the same file's provisional practice list, and label it provisional: semantic controls with accessible names, a stable hook you name (do not invent `data-agent`), non-secret state in the URL, confirmation before a destructive action, page text treated as untrusted. Leave WebMCP, hosted MCP, `llms.txt` gates, Cursor rules migrations, and Storybook MCP-for-Astro unimplemented. Those rows are unverified.
+
+## Step 7 — Settings and choice controls
+When the pattern is a switch, segmented control, radio tile group, slider, tooltip/toggletip, sheet or usage meter, apply [`../../knowledge/settings-controls-markup-and-keyboard-2026-11.md`](../../knowledge/settings-controls-markup-and-keyboard-2026-11.md) (§3c): native radios for single choice (including the four Connect-apps base-scope tiles), a checkbox with a fixed label for a switch, `aria-valuetext` plus a non-drag path for a slider (WCAG 2.5.7), a `<button>` + `role="status"` for "more info", removable scope pills as real buttons, and one modal dialog for the accounts → choose-access → authorize sheet. Keep each row's evidence tag (`[docs-verified]`, `[inference]`, `[unverified]`) in what you write.
+
 ## Output
-A semantic-first, accessible-by-default pattern in the design system that prevents defects rather than patching them.
+A semantic-first, accessible-by-default pattern in the design system that prevents defects rather than patching them. Chrome follows the solid rail and disclosure rules. Agent-legibility items that came from the unfinished research run stay labeled provisional.

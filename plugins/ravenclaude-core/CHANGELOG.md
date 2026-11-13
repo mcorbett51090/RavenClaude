@@ -2,6 +2,159 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.364.0 — 2026-11-13
+
+### Fixed
+- **Revive / land the 2026-10-19 whole-repo review (PR #1387) onto current main.**
+  Merges the 141 implemented fixes (2 P0 / 21 P1 / 83 P2 / 35 P3) and Gates
+  310–316 after resolving drift against main (now past 0.363.5, including
+  directory-edition AppSec residuals). Codex hook projection and installer-lane
+  gates renumbered to 318/319 so they do not collide with main's Gate 308/309
+  worktree lifecycle work. Copilot adapter keeps the `_RC_JQ_LIB` file-key
+  aliasing (1a-2); main's Chat PascalCase G167 cases fold in as G167.18–19.
+
+## 0.363.5 — 2026-11-13
+
+### Fixed
+- **Directory-edition cwd-import AppSec residuals (from draft #1434).** The
+  build-time scanner now fail-closes on `${…}` operator/modifier forms
+  (`:-`/`:=`/`:+`/…), glued `$CC -m…` / empty-quote stripping, same-line
+  assignment of allowlisted vars to interpreters, non-C/C++ `$CC -c` operands,
+  additional interpreters (`ipython`/`micropython`/`jython`/`mksh`/`ash`), and
+  related pipe/process-subst shapes. L8 compiler/editor allowlist no longer
+  softens `-c`/`-m` after `$CC`/`$CXX`/`$INSTALL`/`$VISUAL`/`$SHELL`. Builder
+  self-test 80/80; `check-directory-edition.py` 473/473.
+
+## 0.363.2 — 2026-11-13
+
+### Fixed
+- **AppSec #1431 (Medium) — inline write detector missed `wt`/`w+b` and Ruby `File.write`.**
+  Broadened open-mode matching to any mode containing `w`/`a`/`x`/`+`; added
+  `File.write` / `IO.write` / `FileUtils.`. Read-only `r`/`rb` still allow.
+- **AppSec #1429 (Medium) — Copilot `~/.copilot/chats` cwd allow-listed every session.**
+  Only the session top folder (`_chats/<id>`) is allow-listed; never `_chats` itself.
+
+## 0.363.1 — 2026-11-13
+
+### Fixed
+- **AppSec #1430 (High) — worktree-guard heredoc blanker fail-opens.** The
+  linear data-heredoc blanker dropped opener-line suffixes (`| tee …`,
+  `; touch …`) and treated `<<` inside arithmetic (`$((1<<8))`) or comments
+  (`# <<EOF`) as openers, blanking following writers. Line-continued
+  interpreter heredocs (`python3 \\n<<'PY'`) also missed
+  `_heredoc_feeds_interpreter`. Fixed fail-closed: keep the full opener line
+  and drop only body lines; recognise `<<` as an opener only in command
+  position (skip quotes / `#` comments / `$(( ))` / `(( ))`; unsure → leave
+  unblanked); join bash line continuations before scans. Gate 309 +
+  fail-closed suites cover the acceptance table. N1 size/alarm caps unchanged.
+
+## 0.363.0 — 2026-11-12
+
+### Added
+- **Phase 2 Catalog mode diet.** Shipped `dashboard.html` stays lean
+  (`include_catalog=False`, Gate 132 Δ0). When a marketplace catalog payload is
+  present (`window.__RC_DATA__` or `GET /catalog-data.json`), Catalog gains a
+  JS-injected **Browse plugins** panel (`#/catalog` / `#/discover`). Index
+  generator emits `catalog-data.json`; dashboard CLI gains `--include-catalog`
+  for explicit embed builds (not the consumer ship). Decision Phase 2 /
+  `docs/plans/2026-11-12-phase2-catalog-hybrid.md`.
+
+## 0.362.0 — 2026-11-12
+
+### Changed
+- **One product — portal + dashboard.** Product identity, teal accent, and Catalog IA
+  aligned across `index.html` and `dashboard.html` (decision
+  `docs/decisions/2026-11-12-one-product-portal-dashboard.md`). Local `rc dashboard` /
+  `/dashboard` is the Save home; Pages/static is the hybrid browse mode of the same
+  product. Standalone sidebar group **Learn & Help → Catalog**; brand tag matches the
+  shell ("Engineering Team Platform"). `--rc-accent` is teal estate-wide; commerce
+  green retained as `--rc-commerce` only. Save remains local-only. Artifact collapse
+  (single generator / kill dual HTML) is Phase 3 — not this release.
+
+## 0.361.5 — 2026-11-11
+
+### Fixed
+- **Directory edition cwd-import scan and trust-refusal follow-up (draft #1409, ported onto 0.361.4).** The build-time python cwd-import scan now flags invocations after shell syntax (`if`/`while`/`until`/`!`/`then`/`do`), wrappers (`sudo`/`nice`/`env`/`exec`/`time`/`command`/`xargs`/`timeout`), and wrapper flags that take a separate value (`sudo -u`, `nice -n`, `env -u`). The same forms with `-I` stay allowed. The embedded posture gate no longer stops symlink detection at depth 3 (the runaway counter is depth 4); `find` errors fail closed. `--status detail` names `refused-symlink`, `refused-size` and `refused-other` instead of lumping those as `untrusted` (which told the person to trust a project the trust helper would refuse). `dashboard-prompt.sh` speaks matching copy. Gate 300 gained E5–E7 and a third teeth mutant; Gate 301's M3 plants the expanded spellings. Edition docs now say 8 shipped hooks, matching the manifest. This supersedes the still-needed scope of draft RavenClaude#1409; it does not include that draft's stale catalog stamps.
+
+- **AppSec R2 on #1432 at fb68daf6 (verdict 5e7bd245).** The cwd-import scanner no longer fails open on an unknown first word or a quoted `bash -c`/`sh -c` body: `nohup`, `eval`, `doas`, `bash -c 'python3 -c …'`, and `sudo bash -c '…'` are refused without `-I`. Quoted interpreter words (`"python3" -c`), `$PYTHON`/`${PYTHON3}`, and `$(which python3)` are treated as interpreters. The posture-gate symlink walk keeps no depth cap and now fail-closes on a 4096-entry file-count cap (`why=cap` maps to `refused-other`).
+
+- **AppSec NO-SHIP on #1433 at ae8e8a19 (verdict 9c881f95).** The cwd-import case-pattern guard now uses parse state (`case … in` through `;;`/`esac`) instead of the character next to the token, so spaced and tab subshells (`( python3 )`, `(  python3 )`, `( python3)`, `(<tab>python3 )`) stay flagged. The same commit also flags decode pipes into bash (`base64 -d`, openssl), glued `perl -e'…'`, any `$VAR -c` in interpreter position, `pypy3`/`pypy`, `env -S … | bash`, and grouped or filtered pipes (`{ echo …; } | bash`, `( echo … ) | bash`, `tee | bash`, `if … fi | bash`).
+
+- **AppSec M4 follow-up on #1432 (verdict c0f3d45e) and the Independent Reviewer's one-line case residual.** The cwd-import scanner now flags a safe-data command piped into `bash`/`sh`/`eval` (`echo … | bash`), removes `awk`/`sed` from the data allowlist (`awk 'BEGIN{system(...)}'`, `sed 'e …'`), unquotes ANSI-C `$''` and rescans `<<<` bodies, and catches `sh -c "$(printf …)"`, `perl -e`/`ruby -e` `system(...)`, `source <(…)`, `p\ython3`, `${PYTHON:-python3}`, and a one-line `case …) python3 -c`. A recursion-depth cap fail-closes instead of raising `RecursionError`.
+
+## 0.361.4 — 2026-11-11
+
+### Fixed
+- **AppSec R1 (High) — worktree-guard heredoc delimiter-word mismatch plus drop-on-unterminated, a regression against 0.361.1 and 0.361.2** (SHIPCHECK on RavenClaude#1424, NO-SHIP at 991a54a6). The 0.361.3 linear scanner took only a leading `\w+` run as the delimiter (`EOF-X` was parsed as `EOF`, `'EOF'X` as `EOF`) and, when it could not find a terminator, dropped the rest of the command from both scans. Out-of-tree `rm`/`cp`/`mv`/`sed -i`/`tee`/interpreter writes after an ordinary data heredoc whose delimiter is a valid bash word with punctuation or concatenated quotes (`EOF-X`, `E.O.F`, `EOF.1`, `END-MSG`, `'EOF'X`, `"A"B`, `'E O F'`) were then allowed (helper exit 0, hook exit 0). Fixed: the delimiter is the full bash word (quotes and backslashes stripped and joined: `'EOF'X` → `EOFX`, `'E O F'` → `E O F`); if a terminator is not found, the rest of the command is kept in both scans so it fails closed; a following command after a terminated data heredoc is kept as its own segment. Gate 309 now also runs `hooks/tests/test-worktree-guard-heredoc-delimiter.sh` (49 helper + 49 hook cases plus a teeth mutant of the 0.361.3 scanner). N1 caps, the timing test, and the earlier false-positive controls are unchanged.
+- **AppSec R2 (Low) — `"timeout": 15` on the worktree-guard check entry failed open sooner.** On Claude Code 2.1.261 a timed-out PreToolUse hook is an allow (`onFailure: "block"` needs 2.1.295+). The helper's 5 s `signal.alarm` still fails closed first, but any other stall in the hook (git, lease, jq) past 15 s would have failed open 585 s earlier than the previous 600 s default. The check timeout is now 60 s: well above a legitimate `check` (tens of milliseconds here; AppSec measured 70–90 ms) and well above the 5 s helper alarm, without tightening the host-timeout fail-open window as far as 15 s did. A whole-hook watchdog in `worktree-guard.sh` would also deny first, but would edit a third pinned file; raising the existing timeout is the simpler correct option. `onFailure: "block"` is still not added.
+
+**AppSec review required before the next pin.** This change edits two of the five pinned hook files (`worktree-guard-bash.py`, `hooks.json`) and voids any 0.361.3 pin for this head. Do not compute or apply a live pin from this PR.
+
+## 0.361.3 — 2026-11-11
+
+### Fixed
+- **AppSec N1 (Medium) — worktree-guard heredoc parse could fail open under ReDoS-shaped input** (SHIPCHECK on RavenClaude#1423, present since #1416 / also in installed 0.361.1; not introduced by 0.361.2). The heredoc regex ``<<-?\s*['"]?(\w+)['"]?.*?\n\1\b`` (re.S) was roughly cubic on unterminated markers (16 KiB of `cat <<A` padding took ~56 s at the #1423 head; ~36 KiB would extrapolate past Claude Code's 600 s PreToolUse default). The worktree-guard `check` entry had no `timeout`, and a timed-out PreToolUse hook does not block unless `onFailure: "block"` (requires Claude Code 2.1.295; this box is on 2.1.261). Fixed, all fail-closed: (a) a hard input cap (`len(cmd) > 64 KiB` or more than 256 `<<` markers) exits 3 with reason "too large to parse"; (b) a line-based linear heredoc scanner replaces the regex and keeps the 0.361.2 F1 coverage (interpreter-fed bodies are still scanned, data heredocs are still blanked); (c) `signal.alarm(5)` exits 4, which `worktree-guard.sh` already maps to a hook deny via `_wg_fail_closed` (SIGALRM is required — this helper is Unix-only; inability to arm the timer also exits 4, never open); (d) `"timeout": 15` on the hooks.json worktree-guard `check` PreToolUse entry. `onFailure: "block"` is intentionally not added yet (AppSec item (e), only once the box is on Claude Code 2.1.295+). Gate 309 now also runs `hooks/tests/test-worktree-guard-heredoc-redos.sh` (1 MiB unterminated padding finishes in tens of milliseconds and denies; cap, alarm, hook-mapping, and allow-control cases). N2 (pipelines into an interpreter) and N3 (perl/ruby write-API gaps) remain tracked known Lows, out of scope here.
+
+**AppSec review required before the next pin.** This change edits two of the five pinned hook files (`worktree-guard-bash.py`, `hooks.json`) and voids the 0.361.2 pin for this head. Do not compute or apply a live pin from this PR.
+
+## 0.361.2 — 2026-11-11
+
+### Fixed
+- **AppSec SHIPCHECK 18f5c03f (worktree-guard 0.361.1 pin review) — F1 and F2, both closed.**
+  - **F1 (Medium) — `worktree-guard-bash.py` stopped checking an interpreter program fed by heredoc.** `#1416` (`cba447ec`) started stripping every heredoc body as inert data before the inline-interpreter write scan ran, including a heredoc that FEEDS an interpreter — where the body IS the program that executes. AppSec reproduced the resulting bypass on the 0.361.1 helper: `python3 - <<'PY'` / `open('/workspace/sibling-wt/x','w')…`, `python3 <<PY` / `shutil.rmtree("/workspace/sibling-wt")`, and `node <<JS` / `fs.writeFileSync("/workspace/sibling-wt/x")` all returned exit 0 (allow) instead of exit 3 (deny). Fixed: a heredoc body is stripped only when it feeds a non-interpreter command — the interpreter scan now covers the same set the command-word check two blocks above already lists (python/python3, node, nodejs, perl, ruby, php, deno, bun; the scan regex itself was missing `php`/`deno`/`bun`). A plain data heredoc (`cat <<EOF`, `git commit -F - <<EOF`) is still blanked, so an example path inside its body does not false-deny; `-c`/`-e` one-liners and `cat <<EOF > /out-of-tree` redirects were already denied and remain so.
+  - **F2 (Low) — explicit CODEOWNERS coverage for the pinned worktree-guard hook files.** `#1416` changed two pinned guard-manifest members (`worktree-guard.sh`, `worktree-guard-bash.py`) and merged with only bot COMMENTED reviews — no AppSec SHIPCHECK — which is how the F1 regression shipped unreviewed. `CODEOWNERS` now explicitly lists `plugins/ravenclaude-core/hooks/worktree-guard*`, `_portable.sh`, `_emit-event.sh`, and `hooks.json` (the exact `box-run-wgpin.py` manifest set) under the existing solo-maintainer owner, so a future change to these files is never a silent path-owner gap. `require_code_owner_review` is unchanged (an owner/Sage ruleset call, not made here).
+  - **Gate 309** (`hooks/tests/test-worktree-guard-heredoc-interpreter.sh`, new) drives the helper directly against the three exact AppSec repros plus the php/deno/bun extension, with a teeth mutant that reverts the interpreter check and proves the repros then slip through. `hooks/tests/test-worktree-guard-failclosed.sh` — which already carried a `bad-python-heredoc` case but was never referenced anywhere in `scripts/audit-gates.sh`, which is why CI never caught the regression — is now registered (same gate) and gained the three AppSec repros at the hook level (exit 2).
+
+**AppSec review required before the next pin.** This fix has not yet had a fresh AppSec SHIPCHECK; `/workspace/state/box-run/worktree-guard.sha256` is untouched by this change, and a new manifest pin for whichever version ships this fix must come from AppSec, not from this PR.
+
+## 0.361.1 — 2026-11-10
+
+### Fixed
+- **AppSec hardening for the worktree + branch cleanup lifecycle shipped in 0.361.0 (SHIP-with-conditions verdict, 3 findings, all closed).**
+  - **F2 (Medium, pre-merge condition) — the SessionEnd report write followed symlinks.** `worktree-cleanup-report.sh` wrote `> "$RUN_DIR/report.md"` with no symlink check anywhere on the path; a repo that committed `.ravenclaude/runs/worktree-cleanup/report.md` (or a parent directory, or `.ravenclaude` itself) as a symlink got the target clobbered automatically at every session end. Now refuses a symlink on any existing path component under `.ravenclaude`, re-verifies containment after `mkdir -p`, and writes a `mktemp`'d sibling file that's `mv`'d into place (a same-filesystem `mv` is a `rename(2)`, which replaces a symlink's own directory entry rather than dereferencing it — so even a `report.md` planted as a symlink can't be written through). Fail-safe exit-0 contract for SessionEnd is unchanged.
+  - **F1 (Low) — unknown open-PR status failed open.** `branch_open_pr_count` returning `unknown` (`--no-network`, `gh` absent, or `gh` unauthenticated/failing) let a recent-commit worktree classify as `clean`, so a single `--target`/`<slug>` removal — including with `--force` — and bulk `--all --execute` could both remove a worktree whose branch might have an open PR, without ever checking. A new `PR-UNKNOWN` classification now covers exactly this case: refuses removal unconditionally, even with `--force`, and is skipped under `--all --execute` — unknown PR status is never, by itself, a removal path. An old commit with unverifiable PR status still classifies `STALE` (age alone already flags it); only the recent-commit case moves.
+  - **F3 (Low) — bulk cleanup had no live-session awareness.** `--all --execute` could remove a `clean` worktree another live session was using as its cwd. Reuses the existing `worktree-guard.sh` SessionStart registry (same `sha256(realpath(dir))` keying and `kill -0(pid)`-and-mtime-within-TTL liveness contract that file already uses) rather than inventing a second heuristic — a `clean` worktree registered by a live session there is now skipped (BUSY) under `--all --execute`, with a matching note in the dry-run preview. Single-target removal is unaffected (an explicit, individually-named human action).
+  - **Independent reviewer nit** — dropped the never-implemented `--force-stale` flag from `worktree-clean.sh`'s usage header.
+  - Gate 308 (`hooks/tests/test-worktree-clean-lifecycle.sh`) grew from 50 to 72 assertions: the BUSY skip + a no-registration control, the full PR-UNKNOWN fail-closed matrix (`--no-network`, `gh` absent, single-target with/without `--force`, bulk), the three symlink-refusal shapes (report.md itself / its parent dir / `.ravenclaude` itself) plus a legitimate-write control, and three new teeth tests proving each fix has real effect.
+
+## 0.361.0 — 2026-11-10
+
+### Added
+- **Worktree + branch cleanup lifecycle, closing four gaps in `cleanup-worktrees`.** `scripts/worktree-clean.sh` (moved to its canonical home at `plugins/ravenclaude-core/scripts/`, with a thin root shim, same pattern as `cleanup-branches.sh`) now:
+  1. **Ships with the plugin** — a marketplace/plugin install gets the actual cleaner, not just the skill that referenced it.
+  2. **Discovers every worktree via `git worktree list --porcelain`**, not only `.claude/worktrees/` — a sibling or ad-hoc worktree is covered, addressed via a new `--target <path>` flag anchored to porcelain membership (the resolved path must equal one git itself reported, not a directory-prefix check).
+  3. **Classifies two new states, `OPEN-PR` and `STALE`**, alongside the existing `clean`/`DIRTY`/`IGNORED`/`DETACHED-unreachable`/`UNKNOWN-*`, plus `LOCKED` and `PRUNABLE` (git's own `locked`/`prunable` porcelain fields). `OPEN-PR` and `UNKNOWN`/`LOCKED` refuse removal even with `--force`; `STALE` (age-based, or an unverifiable PR status folded in) gets the same force contract as `IGNORED`/`DETACHED-unreachable`.
+  4. **Unifies the lifecycle** — remove → `git worktree prune` → branch retirement via `cleanup-branches.sh`'s own safety checks (never a second, parallel `-D` path). `--all` now defaults to a dry-run preview; `--execute` performs it, and never forces a flagged class.
+  - A new **SessionEnd hook** (`scripts/worktree-cleanup-report.sh`, registered alongside — never replacing — `spectate-emit.sh`) runs `--status --no-network` at session end and, when there is anything beyond the main worktree, flushes a dry-run report to `.ravenclaude/runs/worktree-cleanup/report.md`. It never mutates: `SessionEnd`'s `additionalContext`/blocking are not supported by the host `[docs-verified]`, so this mirrors the documented "flush artifacts, emit a summary" contract via a file write, same as the plugin's other SessionEnd hooks. Opt out with `RC_WORKTREE_CLEANUP_REPORT=off`.
+  - **Gate 308** (`hooks/tests/test-worktree-clean-lifecycle.sh`) exercises every class, the dry-run default, the unified lifecycle, an installed-plugin layout, the SessionEnd report, and three teeth mutants — all against scratch git repos, never this box's own worktrees.
+
+### Migration
+- `scripts/worktree-clean.sh --all` **no longer removes anything by default** — it now previews; pass `--execute` for the prior bulk-removal behavior. A single `<slug>`/`--target` removal is unchanged.
+
+## 0.360.2 — 2026-11-05
+
+### Changed
+- **Active guidance matches the 0.360.1 Stop and Copilot behavior.** Docs no longer tell an agent to create the definition-of-done confirm file. A person creates it outside the session. Write and Bash attempts stay denied. The trust refusal counts toward `max_blocks`. Adapter notes now include PascalCase `tool_input` objects, a top-level PreToolUse `permissionDecision` (Gate 20; no `hookSpecificOutput` wrapper), and `VERDICT: STOP` as a user warning. The worktree lease is shared on session id or `transcript_hash`, not on a shared parent pid. `release/` is in the branch-prefix table. Leave `chat.useClaudeHooks` off when `.github/hooks/ravenclaude.json` is present.
+
+## 0.360.1 — 2026-11-05
+
+### Fixed
+- **DoD stop verdict.** A Copilot Stop block reason is the next user prompt. The previous wording did not say DONE or NOT DONE, so the agent asked again and the hook blocked again. The gate now answers with `VERDICT: NOT DONE` plus one `[FAIL]` line, or `VERDICT: STOP` after `max_blocks`. No block means DONE: end the turn and do not ask. The first-run trust refusal counts toward `max_blocks` (it used to refuse on every Stop). The Copilot adapter forwards that verdict at the top level and under `hookSpecificOutput` for Local Chat.
+
+## 0.360.0 — 2026-10-26
+
+### Added
+- **Ask the user in modals, never in a prose list.** A new constitution section: every decision, choice or go-ahead goes through `AskUserQuestion` (a modal), up to 4 per call, recommended option first, each option with a one-line consequence, and the answer recorded so it is never asked twice. Requested by the owner after missing questions left at the end of long replies.
+
+## 0.359.0 — 2026-10-26
+
+### Added
+- **`wallet-passes` covers pass types beyond generic, pass builders and contact cards.** Three new references, each retrieval-dated 2026-10-26 with evidence tags:
+  - `references/pass-types.md`: Apple `storeCard`, `coupon`, classic and poster `eventTicket`, and the iOS 27 `posterGeneric` (which needs a legacy fallback on the same pass); Google Loyalty, Offer, EventTicket and Generic-as-membership. It gives per-type layout maxima (Apple drops fields that don't fit; it does not truncate them), image slots, a cross-platform barcode intersection, a neutral role-based `PassTemplate` model with a computed `PlacementPlan`, and the go-live gates. That includes App Store Review Guideline 1.5's "dedicated certificate assigned to the brand or trademark owner", which a multi-tenant signer must escalate to its owner.
+  - `references/pass-builder.md`: what Apple Pass Designer, Google's console, Passcreator and PassKit.com do. It covers what to copy (kind-first picker, a multi-target preview with "not shown here" badges, a slot-aware cropper, blast radius on publish, test-issue to your own phone, a notification composer with Google's 3-per-24-hour budgets) and what to avoid.
+  - `references/contact-card-vcard.md`: vCard 3.0 fidelity. Fold by octet, escape per component, percent-encode `,` and `;` in URLs (one parser truncated at the first comma), and emit several phones and emails, a structured address, labelled links for every social, and `UID`/`REV`/`PRODID`. It also covers QR rules (URL only, ECC H with a logo, dark on light), NFC tag rules, NameDrop limits, card-builder blocks, four-state team templates, and exchange-flow defaults.
+- The skill description and "When to use" name loyalty, coupons, event tickets and the two builders, so routing finds them.
+
 ## 0.358.6 — 2026-10-20
 
 ### Fixed
@@ -4591,7 +4744,8 @@ there is no Cursor binary here, and `host-support.json` records that limitation 
   concurrent sessions in one project can't each spawn a server and steal focus with a new tab.
   **Honest limit:** that probe answers "is a dashboard live on this port?", not "is it *this*
   project's dashboard" — if another project holds the port, the hook stands down rather than
-  starting a competing one. Fail-safe (EXIT trap armed first; always exits 0 — a SessionStart
+  starting a competing one. *(Superseded 2026-10-19, 0.359.0: the probe compares the server's
+  `project_id`, so another project's server is skipped, not adopted.)* Fail-safe (EXIT trap armed first; always exits 0 — a SessionStart
   hook cannot block, and a dashboard that fails to launch must never be why a session doesn't
   start), and bash-3.2/BSD-clean per the macOS-door milestones. **Gate 151**
   (`hooks/tests/test-gate151-dashboard-autostart.sh`) drives the real hook against a recording

@@ -81,6 +81,7 @@ Mobile-first — design the narrowest layout first and expand up with `min-width
 - **Touch targets ≥ 24×24 px everywhere** (WCAG 2.5.8, AA); **primary controls at 44–48 px** (Apple HIG / Material, aligning with the AAA 2.5.5 stretch).
 - **Fluid type and spacing** via `clamp()` on token scales rather than a stack of breakpoint overrides; container queries for component-internal reflow (§3).
 - **Breakpoints in `em`, not `px`**, for typographic breakpoints so user zoom is respected.
+- **Device adaptation** (viewport tag, safe areas, `vh`-then-`svh` heights, touch rules, foldables, the device matrix) follows [`adaptive-layout`](../adaptive-layout/SKILL.md).
 
 ## 6. Performance in the markup (feeds core-web-vitals-tuning)
 

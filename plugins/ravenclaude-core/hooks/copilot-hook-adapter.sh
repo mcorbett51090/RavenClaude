@@ -34,8 +34,13 @@
 #     permissionDecisionReason} with NO hookSpecificOutput wrapper (a verbatim-quote search of the
 #     reference page found zero occurrences, and copilot-cli#2013 confirms a Claude-shaped wrapped
 #     payload is silently ignored);
-#   - toolArgs really is a stringified JSON string (not a nested object) — 4 independent sources
-#     plus copilot-cli#3349;
+#   - camelCase toolArgs was a stringified JSON string — 4 independent sources
+#     plus copilot-cli#3349. PascalCase (the shape this repo generates, and the
+#     shape VS Code Copilot Chat sends) uses tool_input, already parsed.
+#     Probed 2026-11-05: a Chat payload {tool_name:Bash, tool_input:{command:
+#     "echo hello-from-chat"}} was translated to command:"" because this file
+#     read only toolArgs. An object-valued toolArgs became the jq fromjson
+#     error text stuffed into command. Both are fixed below.
 #   - SessionStart injects context via the additionalContext JSON key (the structured half of the
 #     dual-emit below is load-bearing); plain unstructured stdout is preserved in the hook's output
 #     stream but is NOT itself parsed into model context, so the plain-text half is likely inert for
@@ -67,11 +72,101 @@ if [ -f "$_adapter_scrub_helper" ]; then
 fi
 command -v _scrub_reason >/dev/null 2>&1 || _scrub_reason() { printf '%s' "${1:-}"; }
 
+# Path-safe session token — the same PR #363 hardening _emit-event.sh applies
+# (allowlisted charset, length cap, no pure-dot id). The sessionId rides the
+# payload and lands in a directory name (the RAVENCLAUDE_DIAGNOSE trace dir, and
+# every runs/<sid>/ path a wrapped hook builds from CLAUDE_SESSION_ID).
+command -v _ee_sanitize_session >/dev/null 2>&1 || _ee_sanitize_session() {
+  local s; s="$(printf '%s' "${1:-}" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
+  case "$s" in .|.. | "") s="unknown" ;; esac
+  printf '%s' "$s"
+}
+
+# Shared jq translation library — ONE definition of how Copilot tool arguments
+# become Claude tool_input, used by every mode that reads them (bash-pretool,
+# file-pretool, posttool), so the modes cannot drift apart.
+#
+# rc_args: the argument object. Copilot documents toolArgs as a JSON STRING, but
+#   the PascalCase (Claude-compatible) format and VS Code send snake_case
+#   tool_input, and an object-valued toolArgs is cheap to accept. A string that
+#   does not parse to an object is treated as the command text itself. The input
+#   is bound to $a BEFORE the try, so the catch sees the input, not the jq error
+#   message (the old `try fromjson catch {command: .}` bound the error text).
+# rc_tool_name: Copilot vocabulary -> Claude vocabulary (see TOOL-NAME
+#   NORMALISATION below for the full sourcing of this map).
+# rc_tool_input($tn): Bash gets its command coalesced; every other tool gets
+#   Copilot file-tool key names aliased onto the Claude names the guards read
+#   (path/filePath -> file_path, file_text -> content, old_str/new_str ->
+#   old_string/new_string). Originals are kept; absent aliases are dropped.
+# shellcheck disable=SC2016
+_RC_JQ_LIB='
+def rc_args:
+  (.toolArgs // .tool_input // .toolInput // {}) as $a
+  | if ($a | type) == "string" then
+      ((try ($a | fromjson) catch null) as $j
+       | if ($j | type) == "object" then $j else {command: $a} end)
+    elif ($a | type) == "object" then $a
+    else {} end;
+def rc_tool_name:
+  (.toolName // .tool_name // "") as $raw
+  | ($raw | ascii_downcase) as $lc
+  | {
+      bash: "Bash", shell: "Bash", powershell: "Bash",
+      view: "Read", read: "Read",
+      create: "Write", write: "Write",
+      edit: "Edit", str_replace: "Edit", multiedit: "MultiEdit",
+      web_fetch: "WebFetch", webfetch: "WebFetch",
+      web_search: "WebSearch", websearch: "WebSearch",
+      glob: "Glob", grep: "Grep", task: "Task"
+    } as $map
+  | ($map[$lc] // $raw);
+def rc_tool_input($tn):
+  rc_args as $ti
+  | if $tn == "Bash" then ($ti + {command: ($ti.command // $ti.script // $ti.commandLine // "")})
+    else ($ti + ({file_path: ($ti.file_path // $ti.path // $ti.filePath),
+                  content: ($ti.content // $ti.file_text),
+                  old_string: ($ti.old_string // $ti.old_str),
+                  new_string: ($ti.new_string // $ti.new_str)}
+                 | with_entries(select(.value != null))))
+    end;
+'
+
 mode="${1:-}"; real="${2:-}"
 shift 2 2>/dev/null || true
 [ -z "$mode" ] || [ -z "$real" ] && exit 0          # misconfigured -> no-op (fail open)
 command -v jq >/dev/null 2>&1 || exit 0
 [ -f "$real" ] || exit 0
+
+# One tool-args object from whichever field this host actually sent.
+# camelCase CLI: toolArgs is a JSON string (Gate 167).
+# PascalCase Chat / CLI: tool_input is an object (hooks-reference, fetched 2026-11-05).
+# toolArgs may also already be an object (the reference types it as unknown).
+_rc_tool_object() {
+  printf '%s' "${1:-}" | jq -c '
+    (.tool_input // .toolArgs // {}) as $raw
+    | if ($raw | type) == "object" then $raw
+      elif ($raw | type) == "string" and ($raw | length) > 0
+        then ($raw | try fromjson catch {command: $raw})
+      else {}
+      end
+  ' 2>/dev/null || printf '%s' '{}'
+}
+
+# Copilot PreToolUse reads top-level permissionDecision. Gate 20 requires that
+# key and rejects a hookSpecificOutput wrapper (a wrapper-only payload is
+# ignored). Stop still emits both shapes; that event is not this function.
+_emit_pretool_decision() {
+  local dec="$1" reason="$2" revised="${3:-}"
+  if [ -n "$revised" ]; then
+    jq -cn --arg d "$dec" --arg r "$reason" --arg c "$revised" \
+      '{permissionDecision:$d,
+        permissionDecisionReason:($r + " [revised command: " + $c + "]"),
+        updatedInput:{command:$c}}'
+  else
+    jq -cn --arg d "$dec" --arg r "$reason" \
+      '{permissionDecision:$d,permissionDecisionReason:$r}'
+  fi
+}
 
 payload=""
 [ ! -t 0 ] && payload="$(cat)"
@@ -79,8 +174,21 @@ payload=""
 cw="$(printf '%s' "$payload" | jq -r '.cwd // .workspaceRoot // empty' 2>/dev/null)"
 [ -z "$cw" ] && cw="$PWD"
 sid="$(printf '%s' "$payload" | jq -r '.sessionId // .session_id // empty' 2>/dev/null)"
+# Sanitised once, here, so the exported id, the deny-reason pointer, the
+# diagnose trace dir and the session_id handed to wrapped hooks all agree and
+# none of them can resolve outside .ravenclaude/runs/ (a sessionId of
+# `../../../x` used to place the trace dir wherever it pointed).
+[ -n "$sid" ] && sid="$(_ee_sanitize_session "$sid")"
 # (b) Export so _emit_hook_event in spawned hooks writes to runs/<real-sid>/ not runs/unknown/.
 [ -n "$sid" ] && export CLAUDE_SESSION_ID="$sid"
+
+# sessionstart forwards the payload on stdin. The adapter consumed its own stdin
+# with `cat` above, so the wrapped hook used to read EOF and every stdin-reading
+# SessionStart hook ran blind on Copilot. Re-point fd 0 at the payload for that
+# mode (the other modes pipe their translated stdin explicitly). It is done here,
+# not on the invocation line, so check-hooks-selftest.py's A8.4 mutation anchor
+# (the sessionstart invocation line) stays byte-identical.
+[ "$mode" = "sessionstart" ] && exec 0<<<"$payload"
 
 case "$mode" in
   bash-pretool)
@@ -143,24 +251,33 @@ case "$mode" in
     # Copilot regardless of tool_name) and would misrepresent a security decision the maintainers
     # already made on purpose. Full reasoning chain:
     # .ravenclaude/runs/forge/copilot-adapter-tool-names/claims-table.md.
-    claude_stdin="$(printf '%s' "$payload" | jq -c \
-      '(.toolName // .tool_name // "") as $raw
-       | ($raw | ascii_downcase) as $lc
-       | {
-           bash: "Bash", shell: "Bash", powershell: "Bash",
-           view: "Read", read: "Read",
-           create: "Write", write: "Write",
-           edit: "Edit", str_replace: "Edit", multiedit: "MultiEdit",
-           web_fetch: "WebFetch", webfetch: "WebFetch",
-           web_search: "WebSearch", websearch: "WebSearch",
-           glob: "Glob", grep: "Grep", task: "Task"
-         } as $map
-       | ($map[$lc] // $raw) as $tn
-       | ((.toolArgs // "{}") | (try fromjson catch {command: .})) as $ti
+    #
+    # The map itself and the argument reshaping live in _RC_JQ_LIB (top of this
+    # file) so posttool and file-pretool translate identically.
+    claude_stdin="$(printf '%s' "$payload" | jq -c --arg sid "$sid" "$_RC_JQ_LIB"'
+       rc_tool_name as $tn
        | {tool_name: $tn,
-          tool_input: (if $tn == "Bash" then ($ti + {command: ($ti.command // $ti.script // $ti.commandLine // "")}) else $ti end),
+          tool_input: rc_tool_input($tn),
           cwd: (.cwd // .workspaceRoot // "."),
-          session_id: (.sessionId // .session_id // "")}' 2>/dev/null)"
+          session_id: (if $sid != "" then $sid else (.sessionId // .session_id // "") end)}' 2>/dev/null)"
+    # FAIL CLOSED on a shell call whose command text could not be read. An empty
+    # command means the argument shape was not recognised (an object toolArgs, a
+    # key name nobody mapped), and every Bash guard then reviews nothing and
+    # allows. Deny with the reason instead; the agent can re-issue the call.
+    # SCOPED to the bash-family tools (repo review 2026-10-19, INT): Copilot's
+    # `powershell` tool also maps to Bash, but the JSON key its command text
+    # arrives under is unverified, so an empty read there may be OUR gap, not a
+    # malformed call. Denying it would block every PowerShell call outright on a
+    # guess. powershell keeps its previous behaviour (the wrapped hook decides);
+    # closing it properly is on the design list, pending a real payload capture.
+    _rc_raw_lc="$(printf '%s' "$payload" | jq -r '(.toolName // .tool_name // "") | ascii_downcase' 2>/dev/null)"
+    if [ "$(printf '%s' "$claude_stdin" | jq -r '.tool_name // ""' 2>/dev/null)" = "Bash" ] \
+      && [ "$_rc_raw_lc" != "powershell" ] \
+      && [ -z "$(printf '%s' "$claude_stdin" | jq -r '.tool_input.command // "" | tostring' 2>/dev/null)" ]; then
+      jq -cn --arg r "RavenClaude: could not read the command text of this shell tool call (unrecognised Copilot argument shape), so the guard cannot review it; blocking (fail-closed)." \
+        '{permissionDecision:"deny",permissionDecisionReason:$r}'
+      exit 0
+    fi
     # An unmapped tool name still passes through UNCHANGED (behaviour preserved
     # for anything not in the map) but must not be silent: a name we cannot map
     # is precisely the gap that hid this P0 for so long. Record it so the blind
@@ -219,31 +336,26 @@ case "$mode" in
           '{ts:$ts,tool:$tool,inbound_copilot_payload:$payload,translated_claude_stdin:$stdin,hook_exit_code:$rc,hook_stderr_first_256_bytes:$stderr_first256,emitted_reason:$emitted_reason}' \
           >> "$_diag_dir/adapter-trace.jsonl" 2>/dev/null || true
       fi
-      jq -cn --arg r "$reason" '{permissionDecision:"deny",permissionDecisionReason:$r}'
+      _emit_pretool_decision "deny" "$reason"
       exit 0
     fi
-    # Claude verdict JSON -> Copilot top-level shape.
-    dec="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)"
+    # Claude verdict JSON -> Copilot top-level shape AND Local hookSpecificOutput.
+    dec="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // .permissionDecision // empty' 2>/dev/null)"
     if [ -n "$dec" ]; then
-      reason="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // ""' 2>/dev/null)"
-      revised="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.updatedInput.command // empty' 2>/dev/null)"
-      if [ -n "$revised" ]; then
-        jq -cn --arg d "$dec" --arg r "$reason" --arg c "$revised" \
-          '{permissionDecision:$d,permissionDecisionReason:($r + " [revised command: " + $c + "]"),updatedInput:{command:$c}}'
-      else
-        jq -cn --arg d "$dec" --arg r "$reason" '{permissionDecision:$d,permissionDecisionReason:$r}'
-      fi
+      reason="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // .permissionDecisionReason // ""' 2>/dev/null)"
+      revised="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.updatedInput.command // .updatedInput.command // empty' 2>/dev/null)"
+      _emit_pretool_decision "$dec" "$reason" "$revised"
     fi
     exit 0
     ;;
   file-pretool)
     # Claude path hooks (enforce-layout) take the file path as argv, not stdin.
-    fp="$(printf '%s' "$payload" | jq -r \
-      '(.toolArgs // "{}") | (try fromjson catch {}) | (.file_path // .path // .filePath // empty)' 2>/dev/null)"
+    fp="$(printf '%s' "$payload" | jq -r "$_RC_JQ_LIB"'
+      rc_args | (.file_path // .path // .filePath // empty)' 2>/dev/null)"
     [ -z "$fp" ] && exit 0
     CLAUDE_PROJECT_DIR="$cw" bash "$real" "$fp" >/dev/null 2>&1; rc=$?
     if [ "$rc" -eq 2 ]; then
-      jq -cn --arg p "$fp" '{permissionDecision:"deny",permissionDecisionReason:("RavenClaude layout guard: " + $p + " is off the allow-list (.repo-layout.json).")}'
+      _emit_pretool_decision "deny" "RavenClaude layout guard: ${fp} is off the allow-list (.repo-layout.json)."
     fi
     exit 0
     ;;
@@ -260,9 +372,21 @@ case "$mode" in
     ;;
   posttool)
     # Side-effecting hooks (format-on-write, remind-tests): run, ignore output.
-    fp="$(printf '%s' "$payload" | jq -r \
-      '(.toolArgs // "{}") | (try fromjson catch {}) | (.file_path // .path // .filePath // empty)' 2>/dev/null)"
-    CLAUDE_PROJECT_DIR="$cw" bash "$real" "$fp" >/dev/null 2>&1 || true
+    # The file path stays argv (the prior contract), AND the payload is reshaped
+    # to Claude's PostToolUse stdin exactly as bash-pretool reshapes it, so the
+    # stdin-reading hooks (spectate-emit, log-probe and its recorder-alive beacon,
+    # the sanitizers) see a tool call instead of EOF.
+    export CLAUDE_HOOK_EVENT=PostToolUse
+    claude_stdin="$(printf '%s' "$payload" | jq -c --arg sid "$sid" "$_RC_JQ_LIB"'
+       rc_tool_name as $tn
+       | {tool_name: $tn,
+          tool_input: rc_tool_input($tn),
+          cwd: (.cwd // .workspaceRoot // "."),
+          session_id: (if $sid != "" then $sid else (.sessionId // .session_id // "") end)}
+       + ((.toolResult // .tool_response // .tool_result) as $r
+          | if $r == null then {} else {tool_response: $r} end)' 2>/dev/null)"
+    fp="$(printf '%s' "$claude_stdin" | jq -r '.tool_input.file_path // empty' 2>/dev/null)"
+    printf '%s' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$fp" >/dev/null 2>&1 || true
     exit 0
     ;;
   userpromptsubmit)
@@ -310,25 +434,66 @@ case "$mode" in
     #     coalesced because the field is documented snake_case in both Copilot
     #     config formats and this adapter should not depend on which one the host
     #     version emits.
-    # Do NOT touch the dec=="block"/rc==2 emit below (Gate 20 covers it) and do
-    # NOT add an additionalContext forward — there is no such output field on
+    # Do NOT add an additionalContext forward — there is no such output field on
     # Copilot's stop event [docs-verified 2026-09-02]; rev-1's P6c is struck.
+    #
+    # The block reason IS the next user prompt (this file's header; GitHub
+    # hooks-reference agentStop). Keep the verdict text. A fallback that only
+    # says "not yet verified done" is what made Chat sessions re-ask.
+    # stderr is kept when the hook blocks with exit 2 and no JSON reason
+    # (dod-gate's first-run trust check). Exit 0 + no decision stays an allow,
+    # even if the hook wrote a notice to stderr (remind-tests).
     claude_stdin="$(printf '%s' "$payload" | jq -c \
       '{cwd: (.cwd // .workspaceRoot // "."),
         session_id: (.sessionId // .session_id // ""),
         reason: (.stopReason // .stop_reason // ""),
         stop_hook_active: (.stop_hook_active // .stopHookActive // false)}' 2>/dev/null)"
-    out="$(printf '%s' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>/dev/null)"; rc=$?
+    err_file="$(mktemp 2>/dev/null || echo /dev/null)"
+    out="$(printf '%s' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" 2>"$err_file")"; rc=$?
+    hook_stderr="$(cat "$err_file" 2>/dev/null || true)"
+    [ "$err_file" = /dev/null ] || rm -f "$err_file" 2>/dev/null
     # A Claude Stop block is either {"decision":"block","reason":...} on stdout or exit 2.
-    dec="$(printf '%s' "$out" | jq -r '.decision // empty' 2>/dev/null)"
-    reason="$(printf '%s' "$out" | jq -r '.reason // empty' 2>/dev/null)"
+    # Local VS Code Chat reads the same pair nested under hookSpecificOutput
+    # [docs-verified 2026-11-05 — code.visualstudio.com/docs/agents/reference/hooks-reference].
+    # Copilot's harness reads the top-level fields and ignores the extra object.
+    dec="$(printf '%s' "$out" | jq -r '.decision // .hookSpecificOutput.decision // empty' 2>/dev/null)"
+    reason="$(printf '%s' "$out" | jq -r '.reason // .hookSpecificOutput.reason // empty' 2>/dev/null)"
     if [ "$dec" = "block" ] || [ "$rc" -eq 2 ]; then
-      [ -z "$reason" ] && reason="RavenClaude definition-of-done gate: work is not yet verified done."
-      # Best-effort: emit BOTH a structured decision and the plain reason, mirroring
-      # the sessionstart dual-emit, since Copilot's exact stop-block shape is
-      # unverified (VERIFY-IN-COPILOT). Fail-open if Copilot ignores it.
-      jq -cn --arg r "$reason" '{decision:"block",reason:$r}'
+      if [ -z "$reason" ]; then
+        reason="$(printf '%s' "$hook_stderr" | head -c 2500)"
+      fi
+      if [ -z "$reason" ]; then
+        # Assigned, not $(cat <<EOF). A heredoc inside $() aborts at parse time
+        # on bash 3.2 (Gate 3b) and blocks every tool call that loads this hook.
+        reason="VERDICT: NOT DONE
+Stop rule: do not ask if the work is done. Do not end the turn.
+Checklist:
+- [FAIL] the definition-of-done gate blocked this stop and did not name the failed check
+- [PASS] the configured command exits 0
+Do the failed check, then stop again. If the next stop is not blocked, the verdict is DONE — end the turn and do not re-ask."
+      fi
+      # AppSec #1428: scrub secrets from JSON reason and stderr before they become
+      # Copilot's next prompt (reason) or UI text. Cap after scrub so the field
+      # stays bounded like the PreToolUse path.
+      reason="$(_scrub_reason "$reason")"
+      if [ "${#reason}" -gt 2500 ]; then
+        reason="${reason:0:2497}..."
+      fi
+      jq -cn --arg r "$reason" \
+        '{decision:"block",reason:$r,hookSpecificOutput:{hookEventName:"Stop",decision:"block",reason:$r}}'
       printf '%s\n' "$reason" >&2
+    elif printf '%s' "$hook_stderr" | grep -q '^VERDICT: STOP'; then
+      # Cap release is an allow (exit 0, no decision). Copilot turns a block
+      # reason into the next prompt; a systemMessage is a user warning and
+      # does not. The fetched hooks reference (2026-11-05) says reason takes
+      # effect only beside decision "block". Do not put STOP in reason.
+      # AppSec #1428: scrub + cap systemMessage the same way as reason.
+      stop_msg="$(printf '%s' "$hook_stderr" | head -c 2500)"
+      stop_msg="$(_scrub_reason "$stop_msg")"
+      if [ "${#stop_msg}" -gt 2500 ]; then
+        stop_msg="${stop_msg:0:2497}..."
+      fi
+      jq -cn --arg m "$stop_msg" '{systemMessage:$m}'
     fi
     exit 0
     ;;

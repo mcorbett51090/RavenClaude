@@ -185,6 +185,16 @@ Hard catalog restrictions `[verify-at-use]`:
 
 - Scope is never "missing" — if UI has no scope fields, encode envelope in the prompt / CLAUDE.md / ticket.
 
+**Stop rule (definition of done).** A session loops when the stop text does not pick one verdict. Use this checklist and then stop. Do not ask if the work is done.
+
+| Checklist | DONE | NOT DONE |
+|---|---|---|
+| Allowed files only | every edit is inside the envelope | any edit outside it |
+| Acceptance command | exit 0 | non-zero, or not run |
+| Re-ask | you did not ask the user to confirm done | you asked "are we done?" |
+
+DONE: end the turn. NOT DONE: do the single failed line, then stop again. After the host's block cap, stop and say the command did not pass. On RavenClaude that cap line is `VERDICT: STOP` (a user warning on Copilot, not a new prompt).
+
 **Anti-patterns**
 
 - "Be absolutely certain / re-verify everything" without stop rule.

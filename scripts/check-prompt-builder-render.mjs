@@ -360,7 +360,9 @@ const GROUP_TO_DESTINATION = {
   control: "control",
   activity: "activity",
   guardrails: "guardrails",
+  // Pre-2026-11-12 label kept so older fixtures / mid-regen trees still parse.
   "learn & help": "catalog",
+  catalog: "catalog",
 };
 function homeDestination(src) {
   const i = src.indexOf('<a class="ds-sub" href="#/prompt-builder"');
@@ -388,7 +390,7 @@ const HOME_DESTINATION = homeDestination(html);
 if (HOME_DESTINATION) ok(`Prompt Builder's home destination derives to '${HOME_DESTINATION}'`);
 else
   fail(
-    "cannot derive the Prompt Builder's home destination — no ds-sub link under a known ds-label group (Control / Activity / Guardrails / Learn & Help)",
+    "cannot derive the Prompt Builder's home destination — no ds-sub link under a known ds-label group (Control / Activity / Guardrails / Catalog)",
   );
 
 // ── 6. Portal shell routing: on the shell (index.html), the shell router MUST own

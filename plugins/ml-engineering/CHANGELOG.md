@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.7] — 2026-10-19
+
+### Fixed
+
+- **Shuffled-temporal-split and ad-hoc-serving-feature checks never fired** (repo-review 2026-10-19, domainplugins-1). Both were `grep -E "...[\\s\\S]{0,N}..."`, which POSIX ERE cannot match. Both are perl now: a `train_test_split(...)` call passing `shuffle=True` in content that names a datetime/timestamp column; and a raw read (`read_csv`, `read_sql`, ...) inside the `.predict(...)` arguments, across lines.
+
+Fixtures that drive the hook exactly as `hooks.json` registers it (fires on the anti-pattern, silent on clean code) are in `scripts/check-domain-hook-teeth.py` (control: the same fixtures run against the pre-fix hook fail, the anti-pattern case printing nothing).
+
+**Migration:** none. The hook is advisory; expect these checks to fire where they never did.
+
 ## [0.4.6] — 2026-08-14
 
 ### Changed

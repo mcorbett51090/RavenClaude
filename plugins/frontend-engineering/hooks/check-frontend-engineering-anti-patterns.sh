@@ -39,6 +39,18 @@ fi
 [ -z "$scan_target" ] && exit 0
 [ ! -f "$scan_target" ] && exit 0
 
+# Multi-line checks use perl (stock on macOS) via `_rc_pcre_match`, the same
+# helper the sibling domain hooks source. Fail-safe: an absent helper degrades
+# to an inline perl equivalent.
+_rc_portable="${CLAUDE_PLUGIN_ROOT:-}/hooks/_portable.sh"
+[ -f "$_rc_portable" ] || _rc_portable="$(dirname "${BASH_SOURCE[0]}")/../../ravenclaude-core/hooks/_portable.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_portable" ] && . "$_rc_portable" 2>/dev/null || true
+command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
+  [ -r "$1" ] || return 1
+  RC_PCRE_PAT="$2" perl -0777 -ne 'BEGIN{$m=1} $m=0 if /$ENV{RC_PCRE_PAT}/i; END{exit $m}' -- "$1" 2>/dev/null
+}
+
 findings=()
 if grep -nEi ":\\s*any\\b|<any>|as any\\b" "$scan_target" >/dev/null 2>&1; then
   findings+=("TypeScript `any` — type the boundary; `any` at API/prop seams is a runtime bug waiting.")
@@ -46,7 +58,14 @@ fi
 if grep -nEi "<div[^>]*onClick|<span[^>]*onClick" "$scan_target" >/dev/null 2>&1; then
   findings+=("Click handler on a div/span — use a real <button>/<a> for keyboard + screen-reader accessibility.")
 fi
-if grep -nEi "useEffect\\([^,]+,\\s*\\[\\s*\\]\\s*\\)[\\s\\S]{0,200}(props\\.|state)" "$scan_target" >/dev/null 2>&1; then
+# Was `grep -E "useEffect(...,[])[\\s\\S]{0,200}(props.|state)"`: dead (POSIX ERE
+# reads `[\s\S]` as {backslash, s, S}, grep is line-oriented), and it looked for
+# props AFTER the deps array, where the effect body never is (repo-review
+# 2026-10-19). Now perl: an arrow-function effect whose body reads `props.` and
+# whose deps array is `[]`. Neither scan crosses the `}, [` that ends the body,
+# so a later effect cannot lend its `[]`. Bare `state` was dropped (it matched
+# every setState/useState).
+if _rc_pcre_match "$scan_target" '\buseEffect\s*\(\s*(?:async\s*)?\(\s*\)\s*=>\s*\{(?:(?!\}\s*,\s*\[)[\s\S]){0,600}?\bprops\.(?:(?!\}\s*,\s*\[)[\s\S]){0,600}?\}\s*,\s*\[\s*\]\s*\)'; then
   findings+=("useEffect with [] deps referencing props/state — likely a stale-closure/missing-dep bug.")
 fi
 if grep -nEi "dangerouslySetInnerHTML" "$scan_target" >/dev/null 2>&1; then

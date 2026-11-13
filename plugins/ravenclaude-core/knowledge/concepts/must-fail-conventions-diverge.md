@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 904
 summary: "Every self-testing tool declares its own teeth-bit exit, because no single number fits all."
-last_verified: 2026-10-18
+last_verified: 2026-11-11
 covers:
   - scripts/audit-gates.sh
   - scripts/check-covers-completeness.py
@@ -24,7 +24,7 @@ covers:
   - scripts/inventory-coverage.py
   - scripts/inventory-nuance-judge.py
   - plugins/ravenclaude-core/scripts/forge-receipt.py
-covers_digest: "sha256:c2d3c16498f19ac3e762ef4e1887386150122780c8c185b9525cb5a80abba6e2"
+covers_digest: "sha256:2d53c9dc9f734e067baf7ff6aa43ff08a1acbfa74c04c195a2dc0b7d4f2d5b86"
 nuance: "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both."
 nuance_evidence:
   measured: 2026-08-19

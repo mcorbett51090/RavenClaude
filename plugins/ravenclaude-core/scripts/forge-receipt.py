@@ -91,7 +91,11 @@ VALID_STATUS = ("pass", "fail", "waived")
 # outcome twice (srm.force-push, sce.curl-pipe-shell): an untunable guard gets
 # turned off, and a guard that is off protects nothing.
 SHORT_CIRCUIT_GATES = ("G1", "G7")
-_REJECT_RE = re.compile(r"\b(reject|rejected|block|blocked|blocking)\b", re.I)
+# ⛔ The short circuit is decided by the GATE ID alone. An earlier version also
+# accepted any failed record whose free-text `blockers` matched block/reject, or
+# whose `outcome` said reject — so a G5 red-team FAIL with "blocking: ..." in its
+# blockers read COMPLETE (exit 0) while G6-G8 never ran. Blocker prose naturally
+# contains those words; it cannot be the signal that a run legitimately ended.
 
 # Self-test teeth knob. --must-fail flips it and asserts the self-test CATCHES the
 # planted defect; a self-test that still passes with the defect applied has none.
@@ -149,8 +153,11 @@ def is_disabled(start=""):
 
 
 def _disabled_result(sub):
-    return {"status": "disabled", "subcommand": sub,
-            "reason": "FORGE_RECEIPT=off or forge_receipt: off"}
+    return {
+        "status": "disabled",
+        "subcommand": sub,
+        "reason": "FORGE_RECEIPT=off or forge_receipt: off",
+    }
 
 
 # -- helpers ------------------------------------------------------------------
@@ -168,22 +175,57 @@ def _resolve_artifact(artifact, run_dir):
 
 
 def _relativize(abs_path, run_dir):
-    """(relative-path, escapes_run_dir). A relative path survives a move/prune."""
+    """(relative-path, escapes_run_dir). A relative path survives a move/prune.
+
+    ⛔ Containment is decided on REAL paths, not lexical ones. A lexical
+    normpath/relpath test let a symlink inside the run dir that points outside it
+    pass as an in-dir artifact (its bytes taken from the target), and refused a
+    legitimate file whose name merely starts with '..' ('..notes.md'). The
+    artifact itself being a symlink counts as an escape too.
+    """
     try:
         rel = os.path.relpath(abs_path, run_dir)
     except Exception:
         return abs_path, True
-    return rel, rel.startswith("..")
-
+    try:
+        if os.path.islink(abs_path):
+            return rel, True
+        real = os.path.realpath(abs_path)
+        root = os.path.realpath(run_dir)
+        contained = os.path.commonpath([real, root]) == root
+    except Exception:
+        return rel, True
+    if not contained:
+        return rel, True
+    if rel == os.pardir or rel.startswith(os.pardir + os.sep):
+        # Lexically outside but really inside (e.g. /tmp vs /private/tmp):
+        # store the path relative to the resolved run dir instead.
+        rel = os.path.relpath(real, root)
+    return rel, False
 
 
 # Receipt keys written to run-log.jsonl (AppSec F3). Extra keys are dropped.
-RECEIPT_KEY_ALLOWLIST = frozenset({
-    "gate", "status", "artifact", "bytes", "bytes_verified",
-    "artifact_outside_run_dir", "digest", "blockers", "confidence",
-    "ts", "outcome", "waiver", "waived_reason", "note",
-    "model", "subagent_type", "effort",
-})
+RECEIPT_KEY_ALLOWLIST = frozenset(
+    {
+        "gate",
+        "status",
+        "artifact",
+        "bytes",
+        "bytes_verified",
+        "artifact_outside_run_dir",
+        "digest",
+        "blockers",
+        "confidence",
+        "ts",
+        "outcome",
+        "waiver",
+        "waived_reason",
+        "note",
+        "model",
+        "subagent_type",
+        "effort",
+    }
+)
 
 # Secret-shaped strings scrubbed before durable run-log write (AppSec F3).
 _SECRET_RES = (
@@ -221,12 +263,10 @@ def _allowlist_receipt(rec):
         cleaned[k] = _scrub_value(v)
     if dropped:
         print(
-            "forge-receipt: dropped non-allowlisted keys: %s"
-            % ", ".join(sorted(dropped)),
+            "forge-receipt: dropped non-allowlisted keys: %s" % ", ".join(sorted(dropped)),
             file=sys.stderr,
         )
     return cleaned
-
 
 
 # -- append -------------------------------------------------------------------
@@ -262,8 +302,10 @@ def append(gate, receipt_path, run_dir):
 
     status = str(rec.get("status", "")).strip().lower()
     if status not in VALID_STATUS:
-        return 1, {"error": "status must be one of %s (got %r)"
-                            % ("|".join(VALID_STATUS), rec.get("status"))}
+        return 1, {
+            "error": "status must be one of %s (got %r)"
+            % ("|".join(VALID_STATUS), rec.get("status"))
+        }
     rec["status"] = status
 
     artifact = rec.get("artifact")
@@ -300,15 +342,22 @@ def append(gate, receipt_path, run_dir):
         if size <= 0 and not _NEUTER_ARTIFACT_CHECK:
             if not why:
                 why = "missing" if size < 0 else "empty"
-            return 2, {"error": "refused: status=pass but artifact is %s: %s" % (why, artifact),
-                       "gate": gate, "artifact": artifact}
+            return 2, {
+                "error": "refused: status=pass but artifact is %s: %s" % (why, artifact),
+                "gate": gate,
+                "artifact": artifact,
+            }
         rec["bytes"] = max(size, 0)
         rec["bytes_verified"] = size > 0
         rel, escapes = _relativize(abs_path, run_dir) if abs_path else ("", False)
         # AppSec F3: on pass, refuse artifacts outside run-dir (not just flag).
         if escapes and not _NEUTER_ARTIFACT_CHECK:
-            return 2, {"error": "refused: status=pass but artifact is outside run-dir: %s" % artifact,
-                       "gate": gate, "artifact": artifact, "artifact_outside_run_dir": True}
+            return 2, {
+                "error": "refused: status=pass but artifact is outside run-dir: %s" % artifact,
+                "gate": gate,
+                "artifact": artifact,
+                "artifact_outside_run_dir": True,
+            }
         rec["artifact"] = rel
         if escapes:
             rec["artifact_outside_run_dir"] = True
@@ -364,9 +413,14 @@ def append(gate, receipt_path, run_dir):
     except OSError as exc:
         return 1, {"error": "could not append to run-log.jsonl: %s" % exc}
 
-    return 0, {"status": "appended", "gate": gate, "receipt_status": status,
-               "artifact": rec.get("artifact", ""), "bytes": rec.get("bytes"),
-               "log": log}
+    return 0, {
+        "status": "appended",
+        "gate": gate,
+        "receipt_status": status,
+        "artifact": rec.get("artifact", ""),
+        "bytes": rec.get("bytes"),
+        "log": log,
+    }
 
 
 # -- verify -------------------------------------------------------------------
@@ -376,16 +430,7 @@ def _short_circuits(rec):
     """True when this record is a documented short-circuit exit point."""
     if str(rec.get("status", "")).lower() != "fail":
         return False
-    if str(rec.get("gate", "")) in SHORT_CIRCUIT_GATES:
-        return True
-    if str(rec.get("outcome", "")).strip().lower() in ("reject", "rejected"):
-        return True
-    blockers = rec.get("blockers") or []
-    if isinstance(blockers, (list, tuple)):
-        blob = " ".join(str(b) for b in blockers)
-    else:
-        blob = str(blockers)
-    return bool(_REJECT_RE.search(blob))
+    return str(rec.get("gate", "")) in SHORT_CIRCUIT_GATES
 
 
 def verify(run_dir, depth, strict=False):
@@ -395,15 +440,18 @@ def verify(run_dir, depth, strict=False):
     """
     depth = str(depth or "").strip().lower()
     if depth not in DEPTH_GATES:
-        return 1, {"error": "unknown depth %r (expected %s)"
-                            % (depth, "|".join(sorted(DEPTH_GATES)))}
+        return 1, {
+            "error": "unknown depth %r (expected %s)" % (depth, "|".join(sorted(DEPTH_GATES)))
+        }
     if not os.path.isdir(run_dir):
         return 1, {"error": "run-dir does not exist or is not a directory: %s" % run_dir}
 
     log = os.path.join(run_dir, "run-log.jsonl")
     if not os.path.isfile(log):
-        return 1, {"error": "run-log.jsonl not found in %s — a record that was never "
-                            "written cannot be reported clean" % run_dir}
+        return 1, {
+            "error": "run-log.jsonl not found in %s — a record that was never "
+            "written cannot be reported clean" % run_dir
+        }
     try:
         with open(log, encoding="utf-8") as fh:
             raw = fh.read()
@@ -542,13 +590,26 @@ def self_test(broken=False):
             # (a) append refuses a `pass` receipt whose artifact is missing.
             rd = os.path.join(tmp, "a")
             os.makedirs(rd)
-            r = _receipt_file(tmp, "a.json",
-                              {"gate": "G2", "status": "pass", "artifact": "plan-A.md",
-                               "bytes": 9999, "digest": [], "blockers": [], "confidence": 0.9})
+            r = _receipt_file(
+                tmp,
+                "a.json",
+                {
+                    "gate": "G2",
+                    "status": "pass",
+                    "artifact": "plan-A.md",
+                    "bytes": 9999,
+                    "digest": [],
+                    "blockers": [],
+                    "confidence": 0.9,
+                },
+            )
             code, _ = append("G2", r, rd)
             chk("(a) pass receipt naming a MISSING artifact is refused (2)", code, 2)
-            chk("(a) the refusal wrote NO ledger line",
-                os.path.exists(os.path.join(rd, "run-log.jsonl")), False)
+            chk(
+                "(a) the refusal wrote NO ledger line",
+                os.path.exists(os.path.join(rd, "run-log.jsonl")),
+                False,
+            )
 
             # (a2) an artifact that exists but is EMPTY is the same refusal.
             _write(os.path.join(rd, "plan-A.md"), "")
@@ -560,29 +621,49 @@ def self_test(broken=False):
             # size-only check accepts it. Caught by a live smoke test against a real
             # run dir; without this assertion the isfile() guard can be removed and
             # every other fixture still passes.
-            r_dir = _receipt_file(tmp, "adir.json",
-                                  {"gate": "G2", "status": "pass", "artifact": rd})
+            r_dir = _receipt_file(
+                tmp, "adir.json", {"gate": "G2", "status": "pass", "artifact": rd}
+            )
             code, res = append("G2", r_dir, rd)
             chk("(a3) pass receipt naming a DIRECTORY is refused (2)", code, 2)
-            chk("(a3) and the refusal says WHY it is not an artifact",
-                "directory" in res.get("error", ""), True)
+            chk(
+                "(a3) and the refusal says WHY it is not an artifact",
+                "directory" in res.get("error", ""),
+                True,
+            )
 
             # (b) append succeeds, recomputes bytes from disk, stores a relative path.
             rd_b = os.path.join(tmp, "b")
             os.makedirs(rd_b)
             body = "# plan A\nreal content on disk\n"
             art_abs = _write(os.path.join(rd_b, "plan-A.md"), body)
-            r_b = _receipt_file(tmp, "b.json",
-                                {"gate": "G2", "status": "pass", "artifact": art_abs,
-                                 "bytes": 1, "digest": ["x"], "blockers": [], "confidence": 0.8})
+            r_b = _receipt_file(
+                tmp,
+                "b.json",
+                {
+                    "gate": "G2",
+                    "status": "pass",
+                    "artifact": art_abs,
+                    "bytes": 1,
+                    "digest": ["x"],
+                    "blockers": [],
+                    "confidence": 0.8,
+                },
+            )
             code, _ = append("G2", r_b, rd_b)
             chk("(b) a real artifact appends clean (0)", code, 0)
             lines = _log_lines(rd_b)
             chk("(b) exactly one ledger line", len(lines), 1)
-            chk("(b) bytes RECOMPUTED from disk, not the receipt's self-report",
-                lines[0]["bytes"], len(body.encode("utf-8")))
-            chk("(b) an ABSOLUTE artifact path is stored run-dir-RELATIVE",
-                lines[0]["artifact"], "plan-A.md")
+            chk(
+                "(b) bytes RECOMPUTED from disk, not the receipt's self-report",
+                lines[0]["bytes"],
+                len(body.encode("utf-8")),
+            )
+            chk(
+                "(b) an ABSOLUTE artifact path is stored run-dir-RELATIVE",
+                lines[0]["artifact"],
+                "plan-A.md",
+            )
 
             # (c) malformed / unreadable inputs are could-not-run (1), never clean.
             code, _ = append("G2", os.path.join(tmp, "nope.json"), rd_b)
@@ -592,74 +673,132 @@ def self_test(broken=False):
             chk("(c2) a malformed receipt is could-not-run (1)", code, 1)
             code, _ = append("G2", r_b, os.path.join(tmp, "no-such-run-dir"))
             chk("(c3) an unreadable run-dir is could-not-run (1)", code, 1)
-            bad_status = _receipt_file(tmp, "bs.json",
-                                       {"gate": "G2", "status": "greenish", "artifact": art_abs})
+            bad_status = _receipt_file(
+                tmp, "bs.json", {"gate": "G2", "status": "greenish", "artifact": art_abs}
+            )
             code, _ = append("G2", bad_status, rd_b)
             chk("(c4) an out-of-contract status is could-not-run (1)", code, 1)
-            mismatch = _receipt_file(tmp, "mm.json",
-                                     {"gate": "G5", "status": "pass", "artifact": art_abs})
+            mismatch = _receipt_file(
+                tmp, "mm.json", {"gate": "G5", "status": "pass", "artifact": art_abs}
+            )
             code, _ = append("G2", mismatch, rd_b)
             chk("(c5) a CLI/receipt gate mismatch is could-not-run (1), never pick-one", code, 1)
 
             # (c6) a FAILED gate records as-is — no artifact existence check.
             rd_f = os.path.join(tmp, "f")
             os.makedirs(rd_f)
-            r_f = _receipt_file(tmp, "f.json",
-                                {"gate": "G1", "status": "fail", "artifact": "claims-table.md",
-                                 "blockers": ["unsourced third-party claim"]})
+            r_f = _receipt_file(
+                tmp,
+                "f.json",
+                {
+                    "gate": "G1",
+                    "status": "fail",
+                    "artifact": "claims-table.md",
+                    "blockers": ["unsourced third-party claim"],
+                },
+            )
             code, _ = append("G1", r_f, rd_f)
             chk("(c6) a FAIL receipt with no artifact on disk still records (0)", code, 0)
-            chk("(c6) and is honest that its size was not verifiable",
-                _log_lines(rd_f)[0]["bytes_verified"], False)
+            chk(
+                "(c6) and is honest that its size was not verifiable",
+                _log_lines(rd_f)[0]["bytes_verified"],
+                False,
+            )
 
             # (d) verify passes when every required gate for the depth is present.
-            rd_d = _seed_log(os.path.join(tmp, "d"),
-                             [{"gate": g, "status": "pass"} for g in DEPTH_GATES["quick"]])
+            rd_d = _seed_log(
+                os.path.join(tmp, "d"),
+                [{"gate": g, "status": "pass"} for g in DEPTH_GATES["quick"]],
+            )
             code, res = verify(rd_d, "quick")
             chk("(d) quick with every required gate present is clean (0)", code, 0)
             chk("(d) and nothing is reported missing", res["missing"], [])
-            rd_d2 = _seed_log(os.path.join(tmp, "d2"),
-                              [{"gate": g, "status": "pass"} for g in DEPTH_GATES["standard"]])
+            rd_d2 = _seed_log(
+                os.path.join(tmp, "d2"),
+                [{"gate": g, "status": "pass"} for g in DEPTH_GATES["standard"]],
+            )
             code, _ = verify(rd_d2, "standard")
             chk("(d2) standard with its full set is clean (0)", code, 0)
             code, _ = verify(rd_d2, "deep")
             chk("(d3) deep requires the SAME set as standard", code, 0)
-            rd_d3 = _seed_log(os.path.join(tmp, "d3"),
-                              [{"gate": g, "status": ("waived" if g == "G3b" else "pass")}
-                               for g in DEPTH_GATES["quick"]])
+            rd_d3 = _seed_log(
+                os.path.join(tmp, "d3"),
+                [
+                    {"gate": g, "status": ("waived" if g == "G3b" else "pass")}
+                    for g in DEPTH_GATES["quick"]
+                ],
+            )
             code, _ = verify(rd_d3, "quick")
             chk("(d4) a WAIVED gate counts as accounted for", code, 0)
 
             # (e) verify refuses and NAMES the gap when a gate is missing with no
             #     short-circuit to explain it. G3b is the measured CE-6 skip.
-            rd_e = _seed_log(os.path.join(tmp, "e"),
-                             [{"gate": g, "status": "pass"}
-                              for g in DEPTH_GATES["quick"] if g != "G3b"])
+            rd_e = _seed_log(
+                os.path.join(tmp, "e"),
+                [{"gate": g, "status": "pass"} for g in DEPTH_GATES["quick"] if g != "G3b"],
+            )
             code, res = verify(rd_e, "quick")
             chk("(e) a silently-skipped required gate is refused (2)", code, 2)
             chk("(e) and the gap is NAMED, not just counted", res["missing"], ["G3b"])
 
             # (f) RED-TEAM #2: a legitimately short-circuited run must NOT fail verify.
-            rd_f1 = _seed_log(os.path.join(tmp, "f1"), [
-                {"gate": "G0", "status": "pass"},
-                {"gate": "G1", "status": "fail", "blockers": ["BLOCK: unsourced claim"]},
-            ])
+            rd_f1 = _seed_log(
+                os.path.join(tmp, "f1"),
+                [
+                    {"gate": "G0", "status": "pass"},
+                    {"gate": "G1", "status": "fail", "blockers": ["BLOCK: unsourced claim"]},
+                ],
+            )
             code, res = verify(rd_f1, "quick")
             chk("(f1) a G1-BLOCK short circuit is clean (0), not a false denial", code, 0)
-            chk("(f1) the gates after it are correctly ABSENT, not missing",
-                res["after_short_circuit"], ["G2", "G3", "G3b", "G6", "G7", "G8"])
-            rd_f2 = _seed_log(os.path.join(tmp, "f2"),
-                              [{"gate": g, "status": "pass"}
-                               for g in ["G0", "G1", "G2", "G3", "G3b", "G6"]]
-                              + [{"gate": "G7", "status": "fail", "outcome": "reject"}])
+            chk(
+                "(f1) the gates after it are correctly ABSENT, not missing",
+                res["after_short_circuit"],
+                ["G2", "G3", "G3b", "G6", "G7", "G8"],
+            )
+            rd_f2 = _seed_log(
+                os.path.join(tmp, "f2"),
+                [{"gate": g, "status": "pass"} for g in ["G0", "G1", "G2", "G3", "G3b", "G6"]]
+                + [{"gate": "G7", "status": "fail", "outcome": "reject"}],
+            )
             code, _ = verify(rd_f2, "quick")
             chk("(f2) a G7 `reject` short circuit is clean (0)", code, 0)
             # ...but a short circuit does not excuse gates BEFORE it.
-            rd_f3 = _seed_log(os.path.join(tmp, "f3"),
-                              [{"gate": "G1", "status": "fail", "blockers": ["BLOCK"]}])
+            rd_f3 = _seed_log(
+                os.path.join(tmp, "f3"), [{"gate": "G1", "status": "fail", "blockers": ["BLOCK"]}]
+            )
             code, res = verify(rd_f3, "quick")
             chk("(f3) a short circuit does NOT excuse an EARLIER missing gate (2)", code, 2)
             chk("(f3) and names it", res["missing"], ["G0"])
+            # (f4) ⛔ REGRESSION GUARD — blocker PROSE is not a short circuit. A G5
+            # red-team FAIL whose blockers say "blocking: ..." once read COMPLETE.
+            pre_g5 = [
+                {"gate": g, "status": "pass"} for g in ["G0", "G1", "G2", "G3", "G3b", "G4a", "G4b"]
+            ]
+            rd_f4 = _seed_log(
+                os.path.join(tmp, "f4"),
+                pre_g5
+                + [
+                    {
+                        "gate": "G5",
+                        "status": "fail",
+                        "blockers": ["blocking: red-team found an unresolved correlated error"],
+                    }
+                ],
+            )
+            code, res = verify(rd_f4, "standard")
+            chk("(f4) a non-G1/G7 FAIL with 'blocking' blockers is INCOMPLETE (2)", code, 2)
+            chk(
+                "(f4) and the never-run later gates are MISSING", res["missing"], ["G6", "G7", "G8"]
+            )
+            # (f5) an `outcome: reject` on a non-short-circuit gate is not one either.
+            rd_f5 = _seed_log(
+                os.path.join(tmp, "f5"),
+                [{"gate": g, "status": "pass"} for g in ["G0", "G1", "G2", "G3", "G3b"]]
+                + [{"gate": "G4a", "status": "fail", "outcome": "reject"}],
+            )
+            code, _ = verify(rd_f5, "standard")
+            chk("(f5) a G4a `outcome: reject` FAIL is INCOMPLETE (2)", code, 2)
 
             # (g) verify on an unreadable/absent run-log is could-not-run (1).
             rd_g = os.path.join(tmp, "g")
@@ -685,10 +824,14 @@ def self_test(broken=False):
                 os.makedirs(rd_h)
                 rc_h = main(["append", "G2", "--receipt", r, "--run-dir", rd_h])
                 chk("(h) append exits 0 when disabled", rc_h, 0)
-                chk("(h) and wrote no ledger line",
-                    os.path.exists(os.path.join(rd_h, "run-log.jsonl")), False)
-                rc_h = main(["verify", "--run-dir", os.path.join(tmp, "no-such"),
-                             "--depth", "quick"])
+                chk(
+                    "(h) and wrote no ledger line",
+                    os.path.exists(os.path.join(rd_h, "run-log.jsonl")),
+                    False,
+                )
+                rc_h = main(
+                    ["verify", "--run-dir", os.path.join(tmp, "no-such"), "--depth", "quick"]
+                )
                 chk("(h) verify exits NON-ZERO when disabled (F6 non-clean)", rc_h != 0, True)
             finally:
                 os.environ.pop("FORGE_RECEIPT", None)
@@ -697,40 +840,67 @@ def self_test(broken=False):
             rd_i = os.path.join(tmp, "i")
             os.makedirs(rd_i)
             outside = _write(os.path.join(tmp, "outside-secret.env"), "TOKEN=abc\n")
-            r_i = _receipt_file(tmp, "i.json",
-                                {"gate": "G2", "status": "pass", "artifact": outside})
+            r_i = _receipt_file(
+                tmp, "i.json", {"gate": "G2", "status": "pass", "artifact": outside}
+            )
             code, res = append("G2", r_i, rd_i)
             chk("(i) pass artifact outside run-dir refused (2)", code, 2)
             chk("(i) error names outside", "outside" in res.get("error", ""), True)
+            # (i2) ⛔ a SYMLINK inside the run dir pointing outside it is an escape.
+            os.symlink(outside, os.path.join(rd_i, "link.md"))
+            r_i2 = _receipt_file(
+                tmp, "i2.json", {"gate": "G4b", "status": "pass", "artifact": "link.md"}
+            )
+            code, _ = append("G4b", r_i2, rd_i)
+            chk("(i2) pass artifact that is a symlink to outside is refused (2)", code, 2)
+            # (i3) ...and a real file whose NAME starts with '..' is not an escape.
+            _write(os.path.join(rd_i, "..notes.md"), "notes\n")
+            r_i3 = _receipt_file(
+                tmp, "i3.json", {"gate": "G4a", "status": "pass", "artifact": "..notes.md"}
+            )
+            code, _ = append("G4a", r_i3, rd_i)
+            chk("(i3) a file literally named '..notes.md' appends clean (0)", code, 0)
 
             # (j) last-wins duplicate gate.
             rd_j = os.path.join(tmp, "j")
             os.makedirs(rd_j)
             body_j = "first\n"
             _write(os.path.join(rd_j, "a.md"), body_j)
-            r_j1 = _receipt_file(tmp, "j1.json",
-                                 {"gate": "G0", "status": "pass", "artifact": "a.md"})
+            r_j1 = _receipt_file(
+                tmp, "j1.json", {"gate": "G0", "status": "pass", "artifact": "a.md"}
+            )
             code, _ = append("G0", r_j1, rd_j)
             chk("(j1) first append clean", code, 0)
             body_j2 = "second-longer\n"
             _write(os.path.join(rd_j, "a.md"), body_j2)
-            r_j2 = _receipt_file(tmp, "j2.json",
-                                 {"gate": "G0", "status": "pass", "artifact": "a.md",
-                                  "digest": ["api_key=supersecretVALUE"]})
+            r_j2 = _receipt_file(
+                tmp,
+                "j2.json",
+                {
+                    "gate": "G0",
+                    "status": "pass",
+                    "artifact": "a.md",
+                    "digest": ["api_key=supersecretVALUE"],
+                },
+            )
             code, _ = append("G0", r_j2, rd_j)
             chk("(j2) duplicate gate last-wins (0)", code, 0)
             lines_j = _log_lines(rd_j)
             chk("(j2) exactly one G0 line after last-wins", len(lines_j), 1)
-            chk("(j2) secret-shaped digest scrubbed",
-                "[REDACTED]" in str(lines_j[0].get("digest")), True)
+            chk(
+                "(j2) secret-shaped digest scrubbed",
+                "[REDACTED]" in str(lines_j[0].get("digest")),
+                True,
+            )
 
             # (k) verify --strict: deleted artifact not complete.
             rd_k = os.path.join(tmp, "k")
             os.makedirs(rd_k)
             art_k = _write(os.path.join(rd_k, "plan.md"), "body\n")
             for g in DEPTH_GATES["micro"]:
-                r_k = _receipt_file(tmp, "k-%s.json" % g,
-                                    {"gate": g, "status": "pass", "artifact": "plan.md"})
+                r_k = _receipt_file(
+                    tmp, "k-%s.json" % g, {"gate": g, "status": "pass", "artifact": "plan.md"}
+                )
                 code, _ = append(g, r_k, rd_k)
                 if code != 0:
                     ok = False
@@ -747,8 +917,7 @@ def self_test(broken=False):
             os.makedirs(os.path.join(proj, ".ravenclaude"))
             posture = os.path.join(proj, ".ravenclaude", "comfort-posture.yaml")
             _write(posture, "design_checkins: true\nforge_receipt: off\n")
-            chk("(h2) `forge_receipt: off` in comfort-posture disables",
-                is_disabled(proj), True)
+            chk("(h2) `forge_receipt: off` in comfort-posture disables", is_disabled(proj), True)
             _write(posture, "design_checkins: true\nforge_receipt: on\n")
             chk("(h2) `forge_receipt: on` does NOT disable", is_disabled(proj), False)
 
@@ -788,9 +957,12 @@ def self_test(broken=False):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="FORGE Saga run-record recorder + verifier")
     ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--must-fail", action="store_true",
-                    help="neuter the fail-closed artifact check and assert the "
-                         "self-test CATCHES it; exits 0 only when the teeth bite")
+    ap.add_argument(
+        "--must-fail",
+        action="store_true",
+        help="neuter the fail-closed artifact check and assert the "
+        "self-test CATCHES it; exits 0 only when the teeth bite",
+    )
     ap.add_argument("--json", action="store_true")
     sub = ap.add_subparsers(dest="cmd")
 
@@ -799,12 +971,12 @@ def main(argv=None):
     p_app.add_argument("--receipt", required=True)
     p_app.add_argument("--run-dir", required=True)
 
-    p_ver = sub.add_parser("verify",
-                           help="assert the depth's required gate set is accounted for")
+    p_ver = sub.add_parser("verify", help="assert the depth's required gate set is accounted for")
     p_ver.add_argument("--run-dir", required=True)
     p_ver.add_argument("--depth", required=True)
-    p_ver.add_argument("--strict", action="store_true",
-                       help="re-stat pass artifacts; deleted/empty => incomplete")
+    p_ver.add_argument(
+        "--strict", action="store_true", help="re-stat pass artifacts; deleted/empty => incomplete"
+    )
 
     args = ap.parse_args(argv)
 
@@ -824,12 +996,16 @@ def main(argv=None):
     # ⛔ Kill switch: append exits 0 (never wedges). verify exits 2 (F6 non-clean).
     if is_disabled(getattr(args, "run_dir", "") or ""):
         res = _disabled_result(args.cmd)
-        warn = ("forge-receipt: DISABLED (%s) — verify is NON-CLEAN while the "
-                "recorder is off (AppSec F6)" % res["reason"])
+        warn = (
+            "forge-receipt: DISABLED (%s) — verify is NON-CLEAN while the "
+            "recorder is off (AppSec F6)" % res["reason"]
+        )
         if args.cmd == "verify":
             print(json.dumps(res) if args.json else "WARN: " + warn)
-            print("⛔ Do not report a clean G8 exit while forge-receipt verify is disabled.",
-                  file=sys.stderr)
+            print(
+                "⛔ Do not report a clean G8 exit while forge-receipt verify is disabled.",
+                file=sys.stderr,
+            )
             return 2
         print(json.dumps(res) if args.json else "forge-receipt: DISABLED (%s)" % res["reason"])
         return 0
@@ -839,12 +1015,16 @@ def main(argv=None):
         if args.json:
             print(json.dumps(res, indent=2, sort_keys=True))
         elif code == 0:
-            print("forge-receipt: appended %s (%s) -> %s [%s bytes]"
-                  % (res["gate"], res["receipt_status"], res["artifact"] or "-", res["bytes"]))
+            print(
+                "forge-receipt: appended %s (%s) -> %s [%s bytes]"
+                % (res["gate"], res["receipt_status"], res["artifact"] or "-", res["bytes"])
+            )
         elif code == 2:
             print("forge-receipt: REFUSED — %s" % res["error"])
-            print("⛔ A `pass` receipt must name an artifact that exists and is non-empty. "
-                  "Write the artifact, then re-append.")
+            print(
+                "⛔ A `pass` receipt must name an artifact that exists and is non-empty. "
+                "Write the artifact, then re-append."
+            )
         else:
             print("forge-receipt: COULD NOT RUN — %s" % res["error"])
             print("⛔ This is NOT a pass. A recorder that cannot run must not report clean.")
@@ -857,12 +1037,20 @@ def main(argv=None):
         note = ""
         if res.get("short_circuit_gate"):
             note = " (short-circuited at %s; %d later gate(s) correctly absent)" % (
-                res["short_circuit_gate"], len(res["after_short_circuit"]))
-        print("forge-receipt: COMPLETE — depth=%s, %d/%d required gates accounted for "
-              "across %d record(s)%s"
-              % (res["depth"],
-                 len(res["required"]) - len(res["missing"]) - len(res["failing"]),
-                 len(res["required"]), res["records"], note))
+                res["short_circuit_gate"],
+                len(res["after_short_circuit"]),
+            )
+        print(
+            "forge-receipt: COMPLETE — depth=%s, %d/%d required gates accounted for "
+            "across %d record(s)%s"
+            % (
+                res["depth"],
+                len(res["required"]) - len(res["missing"]) - len(res["failing"]),
+                len(res["required"]),
+                res["records"],
+                note,
+            )
+        )
     elif code == 2:
         print("forge-receipt: INCOMPLETE — depth=%s" % res["depth"])
         if res["missing"]:

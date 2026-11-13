@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.6] — 2026-11-05
+
+Source-control operating practices, cited rather than restated as slogans. The checklist lives in `ravenclaude-core` `knowledge/source-control-operating-practices.md`; this plugin holds the specialist rules.
+
+- **Trunk-based bar.** `design-trunk-based-over-long-lived-branches.md` now cites DORA (daily merge, three or fewer active branches, branch lifetime in hours), Fowler, and Google's chapter 16 / Piper paper. A week of drift is the slow pattern.
+- **Behind versus dirty, and remount.** New `merge-behind-clean-tips-before-dirty-ones.md`: classify `mergeStateStatus`, update a behind-clean tip before a conflicting sibling, remount a dirty tip onto current trunk, merge stacks from the bottom. Strict checks when there is no merge queue; `merge_group` when there is.
+- **Secrets.** New `secrets-sync-from-one-store-do-not-hand-dual-write.md`: one store, then a sync, then a name check. Preview and production use different names. `gitops-no-plaintext-secrets` points at it.
+- **Preview, then production.** `deploy-ephemeral-preview-environment-per-pr.md` requires the preview to run the CI artifact and keeps production deploy on the default branch.
+- **Required checks.** `pipeline-required-checks-gate-the-merge.md` records that GitHub treats `neutral` and `skipped` as satisfying a required check, so an advisory bot stays off that list, and names `check-content-placement.mjs` as Website's placement ship gate without adding the script here.
+
 ## [0.3.5] — 2026-09-23
 
 Research-sweep **corrections** (weekly deep-research sweep, issue #1229), independently re-verified this session via WebSearch before shipping:

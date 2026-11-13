@@ -66,7 +66,10 @@ posture="$root/.ravenclaude/comfort-posture.yaml"
 # ALSO accepts the nested mapping form `decision_review:\n  mode: binding`; parse
 # that too so the hook and engine agree (a nested-form posture must not silently
 # fall through to allow when the engine would honor it).
-mode="$(grep -E '^[[:space:]]*decision_review:' "$posture" 2>/dev/null | head -1 | sed -E 's/.*decision_review:[[:space:]]*//; s/["'\'' ]//g; s/#.*//' | tr '[:upper:]' '[:lower:]')"
+# `|| true` inside the substitution: with no decision_review key the grep exits 1,
+# pipefail carries that out, and `set -e` aborted the hook (a non-blocking error on
+# every AskUserQuestion, and the allow JSON never emitted). tribunal-14.
+mode="$(grep -E '^[[:space:]]*decision_review:' "$posture" 2>/dev/null | head -1 | sed -E 's/.*decision_review:[[:space:]]*//; s/["'\'' ]//g; s/#.*//' | tr '[:upper:]' '[:lower:]' || true)"
 if [ -z "$mode" ]; then
   # Nested form: read `mode:` inside the decision_review block (block ends at the
   # next column-0, non-comment line — the standard 2-space-indent YAML shape).
@@ -116,8 +119,11 @@ echo "$opts_lc" | grep -Eq '^(yes|no|proceed|cancel|approve|reject|confirm|deny|
 # ("This will git push --force to main and discard 3 unmerged commits"). Both
 # deterministic defenses (this grep and the engine context below) must see them,
 # or a binding verdict can auto-resolve a destructive action the human never saw.
+# The vocabulary MUST stay in sync with _HIGH_BLAST_RE in scripts/thing-decide.py,
+# including the CLI spellings (a push with a force flag, clean -f, branch -D,
+# chmod -R, destroy, the hook-skip flag) added for tribunal-18.
 hb=false
-if printf '%s %s %s %s %s' "$qtext" "$opt0" "$opt1" "$header" "$description" | grep -Eiq 'force[- ]?push|force-with-lease|reset --hard|\brm -rf\b|delete|\bdrop\b|\btruncate\b|\bwipe\b|\brevoke\b|\bpurge\b|prod(uction)?|publish|secret|credential|merge to main|push to main'; then hb=true; fi
+if printf '%s %s %s %s %s' "$qtext" "$opt0" "$opt1" "$header" "$description" | grep -Eiq 'force[- ]?push|force-with-lease|reset --hard|\brm -rf\b|delete|\bdrop\b|\btruncate\b|\bwipe\b|\brevoke\b|\bpurge\b|prod(uction)?|publish|secret|credential|merge to main|push to main|push[[:space:]]+([^[:space:]]+[[:space:]]+)*(--force|-f)\b|clean[[:space:]]+-[^[:space:]]*f|branch[[:space:]]+-D|chmod[[:space:]]+-R|\bdestroy\b|--no-verify'; then hb=true; fi
 
 # --- 4. Route through the tribunal engine (fail safe to allow on any error) ---
 engine="${CLAUDE_PLUGIN_ROOT:-$root/plugins/ravenclaude-core}/scripts/thing-decide.py"

@@ -100,7 +100,15 @@ def _plant_append(s: str) -> str:
 
 def _plant_mutate(s: str) -> str:
     # Same length, structural, and deliberately NOT under a version/timestamp key.
-    return s.replace('class="', 'class="Q', 1)
+    # Prefer class=" (fat HTML). Phase 3b stub has no classes — mutate the
+    # continue-link id instead (same length).
+    if 'class="' in s:
+        return s.replace('class="', 'class="Q', 1)
+    if 'id="rc-continue"' in s:
+        return s.replace('id="rc-continue"', 'id="rc-continuQ"', 1)
+    if 'charset="utf-8"' in s:
+        return s.replace('charset="utf-8"', 'charset="UTF-8"', 1)
+    raise RuntimeError("plant_mutate: no same-length mutation site in surface")
 
 
 PLANTS = (("append", _plant_append), ("in-place mutate", _plant_mutate))

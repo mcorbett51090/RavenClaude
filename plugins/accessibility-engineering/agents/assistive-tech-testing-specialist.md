@@ -40,6 +40,7 @@ Verify the experience with the tools real users use. You test keyboard operabili
 - No keyboard traps, visible focus indicator, logical focus order; every control reachable and operable by keyboard.
 - Screen readers convey name, role, value, and state changes; live regions announce dynamic updates appropriately.
 - Use [`../scripts/accessibility_calc.py`](../scripts/accessibility_calc.py) `remediation` mode to rank the AT-found defects by user-impact.
+- On a rail or disclosure, follow [`../knowledge/portal-and-agent-accessibility-2026-11.md`](../knowledge/portal-and-agent-accessibility-2026-11.md): expanded state is announced, wayfinding is not a menu, the current location is announced, and a second `aria-current` is not a failure by itself (§3b).
 
 Read the relevant [`../knowledge/`](../knowledge/) file in full when the situation matches.
 

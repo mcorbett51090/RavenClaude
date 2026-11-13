@@ -153,8 +153,17 @@ Full contract: [`../../knowledge/codex-cli-customization.md`](../../knowledge/co
 `cursor-hook-adapter.sh` `[docs-verified 2026-07-28]` — this is in
 [`../../knowledge/host-support.json`](../../knowledge/host-support.json) (`hooks.cursor.supported`).
 Cursor **fails OPEN** on malformed hook JSON; the adapter's deny is a fixed literal for that
-reason. Skills and agents are **not** wired. `AGENTS.md` auto-load remains `[unverified]`;
-the installer writes `.cursor/rules/*.mdc` instead.
+reason. Skills symlink into `.cursor/skills/` and agents are projected into `.cursor/agents/`
+(`host-support.json` `skills.cursor` and `agents.cursor`). `AGENTS.md` auto-load remains
+`[unverified]`; the installer also writes `.cursor/rules/*.mdc`.
+
+## Gemini CLI
+
+**Wiring:** `ravenclaude install --host gemini`. Hooks are projected into `.gemini/settings.json`
+through `gemini-hook-adapter.sh` (`host-support.json` `hooks.gemini`). Skills and agents are
+**not** wired on this host. `GEMINI.md` imports `AGENTS.md`. The lane is docs-verified and
+untested against a running Gemini CLI. Full contract:
+[`../../knowledge/gemini-customization.md`](../../knowledge/gemini-customization.md).
 
 ## Aider · Devin Desktop (formerly Windsurf)
 

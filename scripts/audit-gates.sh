@@ -130,6 +130,63 @@ _gate188_file_ok() { # $1=rendered .yml — returns 0 if hygienic, prints reason
   return "$rc"
 }
 
+# ── Gate 318 helper: the Codex projector with its FIRST _SKIP entry dropped ──
+# Shared by the --check dispatcher and the main sequence (both run it, so it
+# must live above the dispatcher). The mutant path is REPO-RELATIVE
+# (scripts/.<name>): the generator resolves its manifest through
+# Path(__file__).resolve().parent.parent, so a $TMP mutant would die at build()
+# before --check runs and the teeth would pass for the wrong reason (the hollow
+# shape Gate 158 records). Returns non-zero when no entry was removed (anchor
+# drift); both callers treat that as a hard failure, never a skip.
+# (\x7b, not a literal brace: check-gate-registration.py finds a function's end
+# by counting braces, and an unbalanced one in this body swallowed the rest of
+# the file — every later gate read as "unreachable".)
+_gate318_build_mutant() { # $1=output path
+  python3 - "$1" <<'PYX'
+import re, sys, pathlib
+src = pathlib.Path("scripts/generate-codex-hooks.py").read_text(encoding="utf-8")
+out, n = re.subn(
+    r'(_SKIP = \x7b\n(?:[ \t]*#[^\n]*\n)*)[ \t]*"[^"\n]+":[^\n]*\n', r"\1", src, count=1
+)
+pathlib.Path(sys.argv[1]).write_text(out, encoding="utf-8")
+sys.exit(0 if n == 1 else 1)
+PYX
+}
+
+# ── Gate 316 helpers: domain-hook teeth root + the record-screen bridge test ──
+# Shared by the --check dispatcher and the main sequence (both run them, so they
+# live above the dispatcher). The teeth root is a scratch copy of every domain
+# plugin's hooks/ dir that check-domain-hook-teeth.py drives (the plugin list is
+# read from the script's own case tuples, so a new plugin there is copied too).
+# The copy has no ravenclaude-core/hooks/_portable.sh, so each hook uses its own
+# inline _rc_pcre_match fallback; the mutant plants a never-matching
+# _rc_pcre_match ahead of it, which is the "multi-line checks are dead again"
+# regression the gate exists for.
+_gate316_build_root() { # $1 = empty dir -> 0 when the scratch copy is complete
+  local root="$1" p n=0
+  mkdir -p "$root/plugins" || return 1
+  for p in $(python3 -c 'import re; s=open("scripts/check-domain-hook-teeth.py").read(); print(" ".join(sorted(set(re.findall(r"^[A-Z]+ = \(\s*\"([a-z-]+)\"", s, re.M)))))'); do
+    mkdir -p "$root/plugins/$p" && cp -Rp "plugins/$p/hooks" "$root/plugins/$p/" || return 1
+    n=$((n + 1))
+  done
+  [ "$n" -ge 1 ]
+}
+_gate316_kill_pcre() { # $1 = a root built by _gate316_build_root
+  perl -pi -e 'print "_rc_pcre_match() { return 1; }\n" if $. == 2' \
+    "$1/plugins/backend-engineering/hooks/check-backend-engineering-anti-patterns.sh"
+}
+# The bridge test needs node and the ws npm package (record-screen/scripts/setup.sh
+# installs it; NODE_PATH also works). 0 = passed, 3 = cannot run here, else failed.
+# The test prints "SKIP:" and exits 0 when ws is missing, so that is read as 3 too.
+_gate316_bridge() {
+  local d="plugins/power-platform/skills/record-screen/scripts" out
+  command -v node >/dev/null 2>&1 || return 3
+  (cd "$d" && node -e "require.resolve('ws')") >/dev/null 2>&1 || return 3
+  out="$(node "$d/test-bridge-security.js" 2>&1)" || { printf '%s\n' "$out" | tail -20 >&2; return 1; }
+  case "$out" in *"SKIP:"*) return 3 ;; esac
+  return 0
+}
+
 # ── Gate 192 helpers: `ravenclaude init-agent-ci` scaffold runnability ────────
 # The consumer-facing installer subcommand copies the 7-file / 3-dir agent-in-CI
 # set from templates/agent-ready-repo/ into a consumer's .github/. The invariant
@@ -407,7 +464,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # 304/305: AppSec hook-env hardening — the static launch-line gate and the
       # behavioural test (planted PATH/BASH_ENV/LD_PRELOAD/THING_SEAT_*, guard B,
       # seat-child lock C, missing pre-tool record D).
-      echo "7 24 25 48 50 54 98 101 127 142 143 156 159 169 170 199 203 209 304 305"
+      echo "7 24 25 48 50 54 98 101 127 142 143 156 159 169 170 199 203 209 304 305 312 313"
       ;;
     ratchet)
       echo "132 237 238 239 240 241 242 243"
@@ -426,8 +483,14 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # memory-compaction / compact-anchor hook guards), 189 (git-protocol
       # nudge), 216/228/229 (worktree/session/update hygiene cluster), 217
       # (managed-solution-import — same plugins/power-platform/hooks/tests/
-      # home as 124/125).
-      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 53c 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293 295 296 297 298 299 300"
+      # home as 124/125). 308 (worktree + branch unified lifecycle — the
+      # SessionEnd report hook's own fixture lives in this same
+      # plugins/ravenclaude-core/hooks/tests/ home). 309 (worktree-guard
+      # heredoc-interpreter scan, AppSec SHIPCHECK 18f5c03f F1, plus the N1
+      # ReDoS / fail-closed timing fixture and the R1 full-word
+      # delimiter fixture — same
+      # plugins/ravenclaude-core/hooks/tests/ home as 140/308).
+      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 53c 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293 295 296 297 298 299 300 308 309 310 315 316"
       ;;
     portal)
       # Gap: 27 (consumer-dashboard repo-scoped guard — serve-dashboards.py,
@@ -435,7 +498,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # — no such gate exists (the main sequence goes straight from "Gate
       # 38" to "Gate 40"; inventing 39 would violate the PR-C brief's "do not
       # invent gate numbers" constraint).
-      echo "13 23 27 32 35 37 38 40 41 42 43 44 49 51 93 97 99 100 104 105 113 141 144 151 168 174 200 205 294"
+      echo "13 23 27 32 35 37 38 40 41 42 43 44 49 51 93 97 99 100 104 105 113 141 144 151 168 174 200 205 294 314"
       ;;
     claims)
       # Gaps: 19 (capability-orientation banner — same "claim a capability
@@ -456,7 +519,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # generic hook), 196 (every regex in the Thing's own concern/
       # denial-resolution catalogs compiles), 303 (THING_SEAT_* mock-verdict
       # source gate — the tribunal seat's own test-hook trust boundary).
-      echo "14 15 17 21 22 28 31 33 60 102 137 177 179 190 196 197 303"
+      echo "14 15 17 21 22 28 31 33 60 102 137 177 179 190 196 197 303 311"
       ;;
     hosts)
       # Gaps: 26 (Codespace auto-setup — a host environment), 80 (the
@@ -467,7 +530,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # scaffolding), 255 (agent-routing-matrix — routes tasks across host
       # CLIs/models), 256 (VSCode-extension configurationDefaults — VSCode
       # is a host surface).
-      echo "20 26 80 126 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 188 191 192 207 208 211 255 256 257"
+      echo "20 26 80 126 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 188 191 192 207 208 211 255 256 257 318 319"
       ;;
     streams)
       echo "110 111 112 113 114"
@@ -688,7 +751,7 @@ PY
       ;;
     93)
       echo "── Gate 93: Learn-tab stepper render (per-gate run) ──────────────────────"
-      node scripts/check-stepper-render.mjs index.html
+      node scripts/check-stepper-render.mjs plugins/ravenclaude-core/dashboard.html
       exit $?
       ;;
     97)
@@ -2158,9 +2221,174 @@ PY
       rc_mustfail python3 plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py || rc=$?
       exit $rc
       ;;
+    308)
+      echo "── Gate 308: worktree + branch unified lifecycle (porcelain-wide discovery, dry-run default; per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh
+      exit $?
+      ;;
+    309)
+      echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK 18f5c03f F1 + N1 ReDoS fail-closed; per-gate run) ──"
+      # ⛔ `< /dev/null` is load-bearing (see Gate 140): these fixtures drive
+      # worktree-guard.sh, which reads stdin. An inherited-but-never-closed
+      # pipe is the documented hang. Keep stdout/stderr so a per-case timeout
+      # in fail-closed can name the hung case. Outer parent-kills-child
+      # watchdog is a backstop if the hang is before the first case
+      # (parser/setup) or in a harness step that is not itself wrapped.
+      # Parent-kills-child watchdog. Do not use _portable.sh _rc_timeout here:
+      # on stock macOS that is `perl -e 'alarm shift; exec @ARGV'`, and after
+      # exec of bash the pending SIGALRM does not bound the child (637b7e29:
+      # 15s and 60s perl-alarm ceilings never fired; shard 1 ran to the
+      # 30-minute job cap). Keep _portable.sh pinned; this is harness-only.
+      _wg309_watchdog() {
+        local _secs="$1"
+        shift
+        if command -v timeout >/dev/null 2>&1; then
+          timeout "${_secs}s" "$@"
+          return $?
+        fi
+        if command -v gtimeout >/dev/null 2>&1; then
+          gtimeout "${_secs}s" "$@"
+          return $?
+        fi
+        perl -e '
+          my $s = shift @ARGV;
+          my $pid = fork();
+          if (!defined $pid) { exit 127; }
+          if ($pid == 0) { setpgrp(0, 0); exec @ARGV or exit 127; }
+          $SIG{ALRM} = sub {
+            kill "TERM", -$pid;
+            select(undef, undef, undef, 0.5);
+            kill "KILL", -$pid;
+            waitpid $pid, 0;
+            exit 124;
+          };
+          alarm $s;
+          waitpid $pid, 0;
+          my $c = $?;
+          alarm 0;
+          if (($c & 127) == 15 || ($c & 127) == 9) { exit 124; }
+          if ($c & 127) { exit 128 + ($c & 127); }
+          exit $c >> 8;
+        ' "$_secs" "$@"
+      }
+      _wg309_timeout=90
+      rc=0
+      _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: interpreter fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
+      _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: fail-closed fixture exceeded ${_wg309_timeout}s (last HARNESS/HOOK line names the layer)" >&2; rc=1 ;; esac
+      _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: redos fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
+      _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh < /dev/null || rc=$?
+      case "$rc" in 124|142) echo "  timeout: delimiter fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
+      exit $rc
+      ;;
+    318)
+      echo "── Gate 318: Codex hook projection accounting (per-gate run) ──"
+      rc=0
+      python3 scripts/generate-codex-hooks.py --check || rc=$?
+      _cdxh_mut="scripts/.generate-codex-hooks-mutant.py"
+      if _gate318_build_mutant "$_cdxh_mut"; then
+        mrc=0; python3 "$_cdxh_mut" --check >/dev/null 2>&1 || mrc=$?
+        if [ "$mrc" -eq 0 ]; then
+          echo "  ✗ teeth: a dropped _SKIP entry was NOT caught"; rc=1
+        else
+          echo "  ✓ teeth: a dropped _SKIP entry is caught (exit $mrc)"
+        fi
+      else
+        echo "  ✗ teeth: the dropped-_SKIP-entry mutant could not be built (anchor drift)"; rc=1
+      fi
+      rm -f "$_cdxh_mut"
+      exit $rc
+      ;;
+    319)
+      echo "── Gate 319: installer lanes end to end (scratch HOME + project; per-gate run) ──"
+      rc=0
+      python3 scripts/check-installer-lanes.py --check || rc=$?
+      rc_mustfail python3 scripts/check-installer-lanes.py || rc=$?
+      exit $rc
+      ;;
+    310)
+      echo "── Gate 310: hook regressions from the 2026-10-19 review (guard-destructive DELETE, layout normalize, web host parity, advisory no-echo; per-gate run) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-guard-delete-method.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-enforce-layout-normalize.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-web-host-parity.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-advisory-no-echo.sh || rc=$?
+      exit $rc
+      ;;
+    311)
+      echo "── Gate 311: tribunal review rows from the 2026-10-19 review (+ --must-fail mutants; per-gate run) ──"
+      rc=0
+      python3 plugins/ravenclaude-core/hooks/tests/test-tribunal-review-2026-10-19.py || rc=$?
+      python3 plugins/ravenclaude-core/hooks/tests/test-tribunal-review-2026-10-19.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    312)
+      echo "── Gate 312: secret-pattern + intake-sanitizer parity, sanitizer fail-closed (per-gate run) ──"
+      rc=0
+      python3 scripts/check-secret-pattern-parity.py || rc=$?
+      python3 scripts/check-secret-pattern-parity.py --self-test || rc=$?
+      python3 scripts/check-secret-pattern-parity.py --must-fail || rc=$?
+      python3 scripts/check-intake-sanitizer-parity.py --check || rc=$?
+      python3 scripts/check-intake-sanitizer-parity.py --self-test || rc=$?
+      rc_mustfail python3 scripts/check-intake-sanitizer-parity.py || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-sanitizer-failclosed.sh || rc=$?
+      exit $rc
+      ;;
+    313)
+      echo "── Gate 313: cheap-lane delegate argv, signals and scrub floor (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-delegate-args.sh
+      exit $?
+      ;;
+    314)
+      echo "── Gate 314: dashboard server hardening (+ --must-fail mutants; per-gate run) ──"
+      rc=0
+      python3 scripts/check-dashboard-hardening.py || rc=$?
+      python3 scripts/check-dashboard-hardening.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    315)
+      echo "── Gate 315: worktree, brand-extraction, stall-watch, spectate and coordinator-lock fixes (per-gate run) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-cleanup-branches-worktree.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-rcwt-base.sh || rc=$?
+      python3 plugins/ravenclaude-core/hooks/tests/test-brand-extraction-guards.py || rc=$?
+      python3 plugins/ravenclaude-core/hooks/tests/test-stall-watch-identity.py || rc=$?
+      python3 plugins/ravenclaude-core/hooks/tests/test-spectate-store-review.py || rc=$?
+      bash plugins/ravenclaude-core/bin/coordinator-lock.sh --self-test --dead-holder || rc=$?
+      bash plugins/ravenclaude-core/bin/coordinator-lock.sh --self-test --disable-reap-mutex || rc=$?
+      exit $rc
+      ;;
+    316)
+      echo "── Gate 316: domain-plugin hook teeth + domain script tests (per-gate run) ──"
+      rc=0
+      python3 scripts/check-domain-hook-teeth.py || rc=$?
+      _dht_root="$(mktemp -d)"
+      if _gate316_build_root "$_dht_root"; then
+        _ctl=0; python3 scripts/check-domain-hook-teeth.py --root "$_dht_root" >/dev/null 2>&1 || _ctl=$?
+        if [ "$_ctl" -ne 0 ]; then echo "  ✗ teeth control: the unmodified scratch copy failed (rc=$_ctl)"; rc=1; fi
+        _gate316_kill_pcre "$_dht_root"
+        _mut=0; python3 scripts/check-domain-hook-teeth.py --root "$_dht_root" >/dev/null 2>&1 || _mut=$?
+        if [ "$_mut" -eq 0 ]; then echo "  ✗ teeth: a dead _rc_pcre_match was NOT caught"; rc=1
+        else echo "  ✓ teeth: a dead _rc_pcre_match is caught (exit $_mut)"; fi
+      else
+        echo "  ✗ teeth: could not build the scratch copy of the domain hooks"; rc=1
+      fi
+      rm -rf "$_dht_root"
+      python3 plugins/power-platform/skills/dataverse-payload-preflight/test_preflight_org_guard.py || rc=$?
+      python3 plugins/edtech-partner-success/templates/dashboard-streamlit-reference/test_app_saved_views.py || rc=$?
+      _bs_rc=0; _gate316_bridge || _bs_rc=$?
+      case "$_bs_rc" in
+        0) ;;
+        3) echo "  ‼ record-screen bridge test SKIPPED — needs node and the ws package (run setup.sh). THIS IS NOT A PASS." ;;
+        *) rc=1 ;;
+      esac
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 318, 319. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -2619,6 +2847,26 @@ printf 'nope\n' > "$CL/stray.txt"
 git -C "$CL" add -A >/dev/null 2>&1
 rc=0; python3 scripts/check-layout.py --root "$CL" --all >/dev/null 2>&1 || rc=$?
 gate "check-layout (--all, off-allow-list file)" must_fail "$rc"
+# --two-dot is what validate-layout.yml passes once BASE is already the merge
+# base (the clone no longer has the commits in between). A linear add of an
+# off-list file must still fail; an empty range (HEAD..HEAD) must still pass.
+TW="$TMP/cl-twodot"
+mkdir -p "$TW/docs"
+git -C "$TW" init -q
+git -C "$TW" config user.email t@t
+git -C "$TW" config user.name t
+printf '{ "allowed_globs": ["docs/**", ".repo-layout.json"], "forbidden_globs": [], "suggestions": {} }\n' > "$TW/.repo-layout.json"
+printf 'a\n' > "$TW/docs/a.md"
+git -C "$TW" add -A
+git -C "$TW" commit -qm base
+tw_base=$(git -C "$TW" rev-parse HEAD)
+printf 'nope\n' > "$TW/stray.txt"
+git -C "$TW" add -A
+git -C "$TW" commit -qm add-stray
+rc=0; python3 scripts/check-layout.py --root "$TW" --diff "$tw_base" --two-dot >/dev/null 2>&1 || rc=$?
+gate "check-layout (--two-dot, added off-list file)" must_fail "$rc"
+rc=0; python3 scripts/check-layout.py --root "$TW" --diff HEAD --two-dot >/dev/null 2>&1 || rc=$?
+gate "check-layout (--two-dot, empty range)" must_pass "$rc"
 
 echo
 echo "── Gate 6: Behavioral enforce-layout ─────────────────────────────────────"
@@ -2943,7 +3191,7 @@ gate "dashboard freshness teeth: clean baseline -> planted drift in the REAL com
 rc=0; python3 scripts/generate-dashboards.py --plugin ravenclaude-core --stdout > "$DASH_HTML" 2>/dev/null || rc=$?
 gate "dashboard generator runs clean (rendered to temp, no in-place write)" must_pass "$rc"
 rc=0; python3 scripts/generate-index-dashboard.py -o "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-gate "index portal generator runs clean (rendered to temp, no in-place write)" must_pass "$rc"
+gate "index stub generator runs clean (rendered to temp, no in-place write)" must_pass "$rc"
 
 echo
 echo "── Gate 14: command-review tribunal (the Thing) ──────────────────────────"
@@ -5146,7 +5394,7 @@ else
   C2_PID=$!
   c2_ready=0
   for _ in $(seq 1 40); do
-    if curl -fsS -o /dev/null "http://127.0.0.1:${C2_PORT}/index.html" 2>/dev/null; then c2_ready=1; break; fi
+    if curl -fsS -o /dev/null "http://127.0.0.1:${C2_PORT}/plugins/ravenclaude-core/dashboard.html" 2>/dev/null; then c2_ready=1; break; fi
     sleep 0.25
   done
   if [ "$c2_ready" -ne 1 ]; then
@@ -5202,7 +5450,7 @@ else
   C2B_PID=$!
   c2b_ready=0
   for _ in $(seq 1 40); do
-    if curl -fsS -o /dev/null "http://127.0.0.1:${C2B_PORT}/index.html" 2>/dev/null; then c2b_ready=1; break; fi
+    if curl -fsS -o /dev/null "http://127.0.0.1:${C2B_PORT}/plugins/ravenclaude-core/dashboard.html" 2>/dev/null; then c2b_ready=1; break; fi
     sleep 0.25
   done
   if [ "$c2b_ready" -ne 1 ]; then
@@ -5266,7 +5514,7 @@ echo "── Gate 35: dashboard serializer round-trip + Pipeline-tab server vali
 RT="scripts/check-dashboard-roundtrip.mjs"
 if command -v node >/dev/null 2>&1; then
   # must_pass: the real, in-sync dashboard.
-  rc=0; node "$RT" "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  rc=0; node "$RT" "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose decision_review emission line is stripped
   # (simulating the pre-fix serializer that silently dropped the key). The test
@@ -5280,21 +5528,21 @@ if command -v node >/dev/null 2>&1; then
   # Escaping `$` -> `\$` (as the stream_classify mutant two blocks below
   # already did correctly) makes the strip real.
   RT_BAD="$TMP/dashboard-drifted.html"
-  grep -v 'decision_review: \${state.decision_review}' index.html > "$RT_BAD"
+  grep -v 'decision_review: \${state.decision_review}' plugins/ravenclaude-core/dashboard.html > "$RT_BAD"
   rc=0; node "$RT" "$RT_BAD" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: decision_review emit stripped)" must_fail "$rc"
   # must_fail (F4): a drifted dashboard whose stream_classify emission is stripped —
   # reproduces the exact defect this phase fixes (emitYaml silently dropping the
   # Agentic Work-Streams keys on every Save). The gate must catch the regression.
   RT_BAD_F4="$TMP/dashboard-drifted-f4.html"
-  grep -v 'stream_classify: \${state.stream_classify}' index.html > "$RT_BAD_F4"
+  grep -v 'stream_classify: \${state.stream_classify}' plugins/ravenclaude-core/dashboard.html > "$RT_BAD_F4"
   rc=0; node "$RT" "$RT_BAD_F4" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (F4 regression: stream_classify emit stripped)" must_fail "$rc"
   # must_fail (P3): a drifted dashboard whose web-access serializer drops the deny
   # key — proves Gate 35 now reaches emitWebAccessYaml(), the second serializer it
   # was structurally blind to before this phase.
   RT_BAD_P3="$TMP/dashboard-drifted-p3.html"
-  grep -v 'mk("deny", waLines(".wa-deny"))' index.html > "$RT_BAD_P3"
+  grep -v 'mk("deny", waLines(".wa-deny"))' plugins/ravenclaude-core/dashboard.html > "$RT_BAD_P3"
   rc=0; node "$RT" "$RT_BAD_P3" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (P3 regression: web-access deny emit stripped)" must_fail "$rc"
   # must_fail (v0.273.0 A): the conserve_tokens emission stripped. This is the
@@ -5305,7 +5553,7 @@ if command -v node >/dev/null 2>&1; then
   # ⛔ Same unescaped-`$` toothlessness found and fixed 2026-09-03 (see the
   # decision_review mutant above for the full explanation).
   RT_BAD_CT="$TMP/dashboard-drifted-conserve.html"
-  grep -v 'conserve_tokens: \${state.conserve_tokens === true}' index.html > "$RT_BAD_CT"
+  grep -v 'conserve_tokens: \${state.conserve_tokens === true}' plugins/ravenclaude-core/dashboard.html > "$RT_BAD_CT"
   rc=0; node "$RT" "$RT_BAD_CT" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: conserve_tokens emit stripped)" must_fail "$rc"
   # must_fail (v0.273.0 B): the parallelism default reverted to the pre-flip
@@ -5314,7 +5562,7 @@ if command -v node >/dev/null 2>&1; then
   # single most consequential line in this change — reddens here rather than
   # shipping as "absent means whatever the agent feels like" again.
   RT_BAD_PD="$TMP/dashboard-drifted-parallelism.html"
-  sed 's/const PARALLELISM_DEFAULT = Object.freeze({ enabled: true, max_workers: 4, unlimited: true })/const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4, unlimited: false })/' index.html > "$RT_BAD_PD"
+  sed 's/const PARALLELISM_DEFAULT = Object.freeze({ enabled: true, max_workers: 4, unlimited: true })/const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4, unlimited: false })/' plugins/ravenclaude-core/dashboard.html > "$RT_BAD_PD"
   rc=0; node "$RT" "$RT_BAD_PD" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: parallelism default reverted to OFF)" must_fail "$rc"
   # must_fail (context_handoff): the context_handoff block header emit stripped —
@@ -5324,7 +5572,7 @@ if command -v node >/dev/null 2>&1; then
   # + Stop-nudge mode). Test 1 + Test 6 assert the block survives, so the strip
   # must redden here.
   RT_BAD_CH="$TMP/dashboard-drifted-context-handoff.html"
-  grep -v 'lines.push("context_handoff:")' index.html > "$RT_BAD_CH"
+  grep -v 'lines.push("context_handoff:")' plugins/ravenclaude-core/dashboard.html > "$RT_BAD_CH"
   rc=0; node "$RT" "$RT_BAD_CH" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: context_handoff emit stripped)" must_fail "$rc"
   # must_fail (cheap_lane): the cheap_lane block header emit stripped — the exact
@@ -5334,7 +5582,7 @@ if command -v node >/dev/null 2>&1; then
   # deleting a consumer's Grok/Copilot delegation config with zero warning.
   # Test 1 + Test 7 assert the block survives, so the strip must redden here.
   RT_BAD_CL="$TMP/dashboard-drifted-cheap-lane.html"
-  grep -v 'lines.push("cheap_lane:")' index.html > "$RT_BAD_CL"
+  grep -v 'lines.push("cheap_lane:")' plugins/ravenclaude-core/dashboard.html > "$RT_BAD_CL"
   rc=0; node "$RT" "$RT_BAD_CL" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: cheap_lane emit stripped)" must_fail "$rc"
   # must_fail (prompt_optimizer, task-6 dashboard wiring): the prompt_optimizer
@@ -5345,7 +5593,7 @@ if command -v node >/dev/null 2>&1; then
   # consumer's opt-in `enabled`/`mode` the first time they changed anything
   # else. Test 1 + Test 9 assert the block survives, so the strip must redden.
   RT_BAD_PO="$TMP/dashboard-drifted-prompt-optimizer.html"
-  grep -v 'lines.push("prompt_optimizer:")' index.html > "$RT_BAD_PO"
+  grep -v 'lines.push("prompt_optimizer:")' plugins/ravenclaude-core/dashboard.html > "$RT_BAD_PO"
   rc=0; node "$RT" "$RT_BAD_PO" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: prompt_optimizer emit stripped)" must_fail "$rc"
   # must_fail (worktree_lease / keep_awake): both were ENTIRELY unmodelled — no
@@ -5354,11 +5602,11 @@ if command -v node >/dev/null 2>&1; then
   # context_handoff/cheap_lane fixes). Strip the worktree_lease emit line and
   # confirm Test 1/Test 2 catch the regression.
   RT_BAD_WL="$TMP/dashboard-drifted-worktree-lease.html"
-  grep -v 'lines.push(`worktree_lease: \${state.worktree_lease}`)' index.html > "$RT_BAD_WL"
+  grep -v 'lines.push(`worktree_lease: \${state.worktree_lease}`)' plugins/ravenclaude-core/dashboard.html > "$RT_BAD_WL"
   rc=0; node "$RT" "$RT_BAD_WL" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: worktree_lease emit stripped)" must_fail "$rc"
   RT_BAD_KA="$TMP/dashboard-drifted-keep-awake.html"
-  grep -v 'lines.push(`keep_awake: \${state.keep_awake}`)' index.html > "$RT_BAD_KA"
+  grep -v 'lines.push(`keep_awake: \${state.keep_awake}`)' plugins/ravenclaude-core/dashboard.html > "$RT_BAD_KA"
   rc=0; node "$RT" "$RT_BAD_KA" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: keep_awake emit stripped)" must_fail "$rc"
   # must_fail (routine_reserve): the five routine-reserve keys shipped with no
@@ -5366,7 +5614,7 @@ if command -v node >/dev/null 2>&1; then
   # 2026-10-02 on first real use). Strip the mode emit line — the one whose loss
   # disables the feature — and Test 11 must catch it.
   RT_BAD_RR="$TMP/dashboard-drifted-routine-reserve.html"
-  grep -v 'rrLines.push(`routine_reserve: \${rr.mode}`)' index.html > "$RT_BAD_RR"
+  grep -v 'rrLines.push(`routine_reserve: \${rr.mode}`)' plugins/ravenclaude-core/dashboard.html > "$RT_BAD_RR"
   rc=0; node "$RT" "$RT_BAD_RR" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: routine_reserve emit stripped)" must_fail "$rc"
 else
@@ -5472,12 +5720,12 @@ echo "── Gate 37: Heimdall perimeter-alarm tab (render logic + server reader
 #     generated dashboard.html against fixtures (red→red banner, empty→hidden,
 #     drift→DRIFT row, aria-live tiers). Must-pass on the real dashboard.
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-heimdall-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-heimdall-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "heimdall render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose red-tier aria-live line is broken (the
   # render test asserts red→assertive). Simulates a regression in the banner a11y.
   HM_BAD="$TMP/dashboard-heimdall-drift.html"
-  sed 's/tier === "red" ? "assertive" : "polite"/"polite"/' index.html > "$HM_BAD"
+  sed 's/tier === "red" ? "assertive" : "polite"/"polite"/' plugins/ravenclaude-core/dashboard.html > "$HM_BAD"
   rc=0; node scripts/check-heimdall-render.mjs "$HM_BAD" >/dev/null 2>&1 || rc=$?
   gate "heimdall render (drifted: red aria-live broken)" must_fail "$rc"
 else
@@ -5520,13 +5768,13 @@ echo "── Gate 38: Víðarr security-log tab (render + filter + server reader
 # (A) Behavioral render test: drives the REAL renderVidarrTable from the generated
 #     dashboard.html (both kinds render, type filter narrows, empty→quiet).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-vidarr-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-vidarr-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "vidarr render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose kind-filter compare is broken (replaced
   # with a constant true) so the type filter no longer narrows — the render test
   # asserts the posture filter yields exactly one row.
   VD_BAD="$TMP/dashboard-vidarr-drift.html"
-  sed 's/vidarrKindFilter === "all" || e.kind === vidarrKindFilter/true/' index.html > "$VD_BAD"
+  sed 's/vidarrKindFilter === "all" || e.kind === vidarrKindFilter/true/' plugins/ravenclaude-core/dashboard.html > "$VD_BAD"
   rc=0; node scripts/check-vidarr-render.mjs "$VD_BAD" >/dev/null 2>&1 || rc=$?
   gate "vidarr render (drifted: kind filter broken)" must_fail "$rc"
 else
@@ -5573,13 +5821,13 @@ echo "── Gate 40: Norns lineage tab (render + Skuld gating + server reader) 
 #     generated dashboard.html (Urðr scenarios/commits, Verðandi counts, Skuld
 #     gated-empty-state when next_version absent + populated when present).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-norns-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-norns-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "norns render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose Skuld gated-empty-state condition is
   # broken (forced false) so the gated message never shows — the render test
   # asserts it appears when next_version is absent.
   NR_BAD="$TMP/dashboard-norns-drift.html"
-  sed 's/if (!s.next_version \&\& (!s.roadmap/if (false \&\& (!s.roadmap/' index.html > "$NR_BAD"
+  sed 's/if (!s.next_version \&\& (!s.roadmap/if (false \&\& (!s.roadmap/' plugins/ravenclaude-core/dashboard.html > "$NR_BAD"
   rc=0; node scripts/check-norns-render.mjs "$NR_BAD" >/dev/null 2>&1 || rc=$?
   gate "norns render (drifted: Skuld gating broken)" must_fail "$rc"
 else
@@ -5621,12 +5869,12 @@ echo "── Gate 41: Níðhöggr debt-watch card (render + server reader) ─�
 # (A) Behavioral render test: drives the REAL renderNidhoggr from the generated
 #     dashboard.html (four signals render counts; populated lists items; empty→clean).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-nidhoggr-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-nidhoggr-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "nidhoggr render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose "clean" empty-state word is renamed, so the
   # all-clean assertion (four 'clean' sections) breaks.
   ND_BAD="$TMP/dashboard-nidhoggr-drift.html"
-  sed 's/p.textContent = "clean";/p.textContent = "ok";/' index.html > "$ND_BAD"
+  sed 's/p.textContent = "clean";/p.textContent = "ok";/' plugins/ravenclaude-core/dashboard.html > "$ND_BAD"
   rc=0; node scripts/check-nidhoggr-render.mjs "$ND_BAD" >/dev/null 2>&1 || rc=$?
   gate "nidhoggr render (drifted: clean label changed)" must_fail "$rc"
 else
@@ -5668,13 +5916,13 @@ echo "── Gate 42: Bifröst install-wizard (verify logic + no-command-exec) �
 # path executes no command — the §3.6 "copy-paste only, never invokes a slash
 # command" acceptance criterion, checked structurally.
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-bifrost-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-bifrost-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "bifrost render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose failure verdict is broken — the bad-path
   # `bifrostSetBadge(step, "red")` is rewritten to "amber", so a known-failure
   # paste no longer turns the badge red (the render test asserts step-2 → red).
   BF_BAD="$TMP/dashboard-bifrost-drift.html"
-  python3 -c "p='index.html'; o='$TMP/dashboard-bifrost-drift.html'; s=open(p,encoding='utf-8').read(); s=s.replace('bifrostSetBadge(step, \"red\");','bifrostSetBadge(step, \"amber\");'); open(o,'w',encoding='utf-8').write(s)"
+  python3 -c "p='plugins/ravenclaude-core/dashboard.html'; o='$TMP/dashboard-bifrost-drift.html'; s=open(p,encoding='utf-8').read(); s=s.replace('bifrostSetBadge(step, \"red\");','bifrostSetBadge(step, \"amber\");'); open(o,'w',encoding='utf-8').write(s)"
   rc=0; node scripts/check-bifrost-render.mjs "$BF_BAD" >/dev/null 2>&1 || rc=$?
   gate "bifrost render (drifted: failure regex broken)" must_fail "$rc"
 else
@@ -5685,7 +5933,7 @@ fi
 rc=0
 python3 - <<'PY' || rc=$?
 import re, sys
-html = open("index.html", encoding="utf-8").read()
+html = open("plugins/ravenclaude-core/dashboard.html", encoding="utf-8").read()
 # Extract the bifrost JS region (between the wizard comment and the next section).
 m = re.search(r"Bifröst — install-bridge wizard.*?Hydrate command-review config", html, re.DOTALL)
 assert m, "bifrost JS block not found"
@@ -5699,12 +5947,12 @@ echo "── Gate 43: Sleipnir worktree widget (render + server reader) ──�
 # (A) Behavioral render test from the generated dashboard.html (count+names,
 #     singular, empty, undefined→no-crash).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-sleipnir-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-sleipnir-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "sleipnir render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose empty-state text is renamed, so the
   # 0-worktrees assertion ("no active worktrees") no longer holds.
   SL_BAD="$TMP/dashboard-sleipnir-drift.html"
-  python3 -c "p='index.html'; o='$TMP/dashboard-sleipnir-drift.html'; s=open(p,encoding='utf-8').read(); s=s.replace('no active worktrees','none'); open(o,'w',encoding='utf-8').write(s)"
+  python3 -c "p='plugins/ravenclaude-core/dashboard.html'; o='$TMP/dashboard-sleipnir-drift.html'; s=open(p,encoding='utf-8').read(); s=s.replace('no active worktrees','none'); open(o,'w',encoding='utf-8').write(s)"
   rc=0; node scripts/check-sleipnir-render.mjs "$SL_BAD" >/dev/null 2>&1 || rc=$?
   gate "sleipnir render (drifted: empty-state text changed)" must_fail "$rc"
 else
@@ -5999,7 +6247,7 @@ echo "── Gate 49: Mímir session-state tab (render + both-copies parity) ─
 # A render gate that misses that drift would lie to the user about what
 # Claude Code actually exposes; the must_fail half proves it doesn't.
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-mimir-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-mimir-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "mimir render (real dashboard.html)" must_pass "$rc"
   # must_fail: drift the dashboard so mimirInProcessPill returns a plain dash
   # instead of a pill — the populated-fixture assertion "reasoning effort uses
@@ -6010,7 +6258,7 @@ if command -v node >/dev/null 2>&1; then
   MM_BAD="$TMP/dashboard-mimir-drift.html"
   python3 - <<'PY' > "$MM_BAD"
 import re, sys
-src = open("index.html", "r", encoding="utf-8").read()
+src = open("plugins/ravenclaude-core/dashboard.html", "r", encoding="utf-8").read()
 # Rewrite mimirInProcessPill body to return a plain text node with no pill class.
 patched = re.sub(
     r"function mimirInProcessPill\(label\) \{[\s\S]*?return pill;\s*\}",
@@ -6046,185 +6294,70 @@ rc=0; grep -Fq "hunter2" "$TMP/g50-secret-leak.jsonl" || rc=1
 gate "phase0-emit-scrub: secret-containing JSONL is detectable (gate has teeth)" must_pass "$rc"
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "── Gate 51: Unified portal shell router + committed-route destinations ────"
-# Proves index.html still carries the native-merge contract: NAV has the
-# Dashboard + Catalog entries, DASH_SECTIONS lists every dashboard-owned
-# top-level route, payloadKind()/resolveNavActive()/route() drive the native
-# mount hosts (#dash-root / #catalog-root) — not iframes — and the sub-app
-# entry points are present. Bidirectional: must-fail half feeds an index.html
-# fixture with DASH_SECTIONS emptied → check-shell-router.mjs exits nonzero,
-# proving the gate has teeth. Must-pass runs against the real index.html.
+echo "── Gate 51: Phase 3b index stub + committed-route destinations ───────────"
+# Phase 3b: committed index.html is a THIN redirect stub → dashboard.html.
+# The fat-portal shell-router / router-execution contract is retired; Gate 51
+# now proves (1) the stub redirects and stays lean, and (2) every committed
+# `#/…` on the DASHBOARD surface resolves (index surface is empty under stub).
 #
-# By-destination half (Phase 4a — docs/dashboard-redesign-plan.md §7): the
-# router existing is not enough — every committed `#/…` on BOTH surfaces must
-# resolve to a REAL destination (not the router's catch-all fallback). The
-# committed fixture tests/fixtures/routes/committed-routes.json enumerates every
-# `#/…` (188 dashboard hrefs / 202 index hrefs) → its resolved destination;
-# check-committed-routes.mjs re-derives that from the freshly-rendered temp
-# copies ($DASH_HTML/$IDX_HTML) and asserts the fixture still matches. Two
-# must-fail halves prove teeth in BOTH directions: a route deleted from the
-# fixture (enumeration) and a DASH_OWNER destination removed from the html
-# (resolution) each go red. This feeds Phase 2's "every #/… resolves" acceptance.
-if command -v node >/dev/null 2>&1; then
-  # must_fail: an emptied DASH_SECTIONS must be detected (gate has teeth).
-  SHELL_BAD="$TMP/index-broken-shell.html"
-  python3 - <<'PY' > "$SHELL_BAD"
-import re, sys
-with open("index.html", "r", encoding="utf-8") as f:
-    src = f.read()
-# Replace the DASH_SECTIONS Set literal with an empty one. The exact anchor
-# (`const DASH_SECTIONS = new Set([`) is what the gate looks up.
-out = re.sub(
-    r"const DASH_SECTIONS = new Set\(\[[\s\S]*?\]\);",
-    "const DASH_SECTIONS = new Set([]);",
-    src, count=1,
-)
-sys.stdout.write(out)
-PY
-  rc=0; node scripts/check-shell-router.mjs "$SHELL_BAD" >/dev/null 2>&1 || rc=$?
-  gate "shell-router (emptied DASH_SECTIONS is detected)" must_fail "$rc"
-  # must_pass: real index.html satisfies the contract.
-  rc=0; node scripts/check-shell-router.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-  gate "shell-router (real index.html satisfies the contract)" must_pass "$rc"
+# Stub half: check-index-stub.py — must contain plugins/ravenclaude-core/
+# dashboard.html via meta refresh or location.replace, must NOT contain
+# id="dt-store" / const DASH_SECTIONS, must stay < 8 KiB. Teeth: a stub that
+# omits the dashboard path goes red.
+#
+# By-destination half (Phase 4a — docs/dashboard-redesign-plan.md §7): every
+# committed `#/…` on the dashboard surface must resolve to a REAL destination.
+# check-committed-routes.mjs treats a stub index (no DASH_SECTIONS / route()) as
+# zero routes and validates dashboard + sibling pitch.html deep links. Two
+# must-fail halves prove teeth: a route deleted from the fixture (enumeration)
+# and a dashboard tab destination broken (resolution) each go red.
+if command -v node >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+  # ── Index stub half (replaces check-shell-router / check-router-execution) ──
+  rc=0; python3 scripts/check-index-stub.py "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "index-stub (rendered stub redirects to dashboard, lean, no fat portal)" must_pass "$rc"
+  rc=0; python3 scripts/check-index-stub.py >/dev/null 2>&1 || rc=$?
+  gate "index-stub (committed index.html satisfies Phase 3b stub contract)" must_pass "$rc"
+  # must_fail (teeth): stub missing the dashboard path is detected.
+  STUB_BAD="$TMP/index-stub-no-dash.html"
+  printf '%s\n' '<!DOCTYPE html><html><head><title>bad</title>' \
+    '<meta http-equiv="refresh" content="0; url=/elsewhere.html" />' \
+    '</head><body>no dashboard</body></html>' > "$STUB_BAD"
+  rc=0; python3 scripts/check-index-stub.py "$STUB_BAD" >/dev/null 2>&1 || rc=$?
+  gate "index-stub (missing dashboard path is detected)" must_fail "$rc"
+  # Self-contained --must-fail (plants its own temp bad file; exits 0 iff teeth bite).
+  rc=0; python3 scripts/check-index-stub.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "index-stub --must-fail (planted missing-dashboard stub reddens)" must_pass "$rc"
 
-  # ── External teeth-check (PB-3): the shell-router gate's must-fail halves are
-  # proven by check-shell-router.selftest.mjs, NOT by an in-process block that
-  # tested a hardcoded bad string against its own regex (that block certified
-  # nothing — a weakened re-authoring passed it — and was deleted). The driver
-  # mutates a fresh render three structural ways (empty SECTION_ALIAS / rename a
-  # NAV id / strip the chrome-hide rule) and re-invokes check-shell-router.mjs as
-  # a subprocess, requiring non-zero each time. Because it locates those by shape,
-  # it needs no edit across the IA re-cut — so the IA commit re-authors the gate
-  # but must NOT touch this driver, which is what proves the re-authored gate is
-  # not weaker.
-  # must_pass: the real checker is tripped by all three mutations (green today).
-  rc=0; node scripts/check-shell-router.selftest.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-  gate "shell-router selftest (real checker tripped by all 3 mutations)" must_pass "$rc"
-  # must_fail (the selftest's OWN teeth): point it at a checker whose SECTION_ALIAS
-  # assertion is neutered → that mutation no longer trips → the selftest goes red.
-  WEAK_CHECKER="$TMP/check-shell-router.weak.mjs"
-  python3 - scripts/check-shell-router.mjs "$WEAK_CHECKER" <<'PY'
-import sys
-src = open(sys.argv[1]).read()
-src = src.replace("re.test(SECTION_ALIAS_TEXT),",
-                  "true /* WEAKENED */ || re.test(SECTION_ALIAS_TEXT),", 1)
-src = src.replace("assert(NAV_IDS.includes(target), `alias target",
-                  "assert(true /* WEAKENED */ || NAV_IDS.includes(target), `alias target", 1)
-open(sys.argv[2], "w").write(src)
-PY
-  rc=0; node scripts/check-shell-router.selftest.mjs --checker "$WEAK_CHECKER" "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-  gate "shell-router selftest (a weakened checker is caught)" must_fail "$rc"
-
-  # ── G2/G3: router-EXECUTION reachability. The gates above prove the router
-  # SCAFFOLD by reading source as text; NONE runs it — so dropping a sub-nav <a href>
-  # while the map literals stay well-formed sails through (the exact class that
-  # orphaned #/pipeline, #/web-access, Help, trees to hash-only access). This gate
-  # EXTRACTS the four maps + navChildren()/resolveNavActive() and EXECUTES them in a
-  # node:vm against the real D, asserting every FLOOR route stays click-reachable as a
-  # nav-subitem <a href> and highlights the right NAV section. (Eval is a deliberate,
-  # documented exception justified by the trusted same-org generated input.)
-  rc=0; node scripts/check-router-execution.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-  gate "router-execution (every floor route click-reachable, executed)" must_pass "$rc"
-  # must_pass: the selftest proves the teeth EXTERNALLY (every floor-route mutation
-  # trips the gate as a subprocess) — the self-certification guard, mirroring the
-  # shell-router selftest. A gate that only asserts its own green is worthless.
-  rc=0; node scripts/check-router-execution.mjs --selftest "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-  gate "router-execution selftest (all floor mutations trip the gate)" must_pass "$rc"
-  # must_fail (teeth): dropping a sub-nav link from the EXECUTED navChildren goes red.
-  rc=0; node scripts/check-router-execution.mjs --mutate '#/web-access' "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-  gate "router-execution (a dropped sub-nav link is detected)" must_fail "$rc"
-
-  # ── DASH_TAB_ALIAS-target validity teeth (P3, §11.2). DASH_TAB_ALIAS maps a
-  # shell route → a FRAGMENT tab id; a mistyped value that is not a real tab blanks
-  # the dashboard host with zero console error (invisible to both Gate 51 scripts
-  # before P3, and the exact failure P4's DASH_TAB_ALIAS edit could ship). Point one
-  # value at a non-existent tab and assert the re-authored gate goes RED. (A-split,
-  # dashboard-consumption: the old `nidhoggr: "heimdall"` alias was removed when the
-  # Observe family un-merged into own tabs, so this now mutates a SURVIVING alias —
-  # sleipnir: "activity" — to a non-existent tab.)
-  IDX_ALIAS_BAD="$TMP/render-index-badalias.html"
-  sed 's/sleipnir: "activity"/sleipnir: "activityyy"/' "$IDX_HTML" > "$IDX_ALIAS_BAD"
-  # G7 (no-op guard): the mutation hardcodes the IA literal `sleipnir: "activity"`.
-  # If that alias ever drifts (renamed/reordered/removed — as `nidhoggr: "heimdall"`
-  # already did on the A-split un-merge), the sed matches NOTHING, bad==good, and the
-  # must_fail below would be exercising an UNMUTATED file — the teeth quietly gone.
-  # Assert the mutation actually changed the file (cmp returns nonzero == differ == good).
-  cmp_rc=0; cmp -s "$IDX_HTML" "$IDX_ALIAS_BAD" || cmp_rc=$?; gate "shell-router DASH_TAB_ALIAS mutation is not a no-op" must_fail "$cmp_rc"
-  rc=0; node scripts/check-shell-router.mjs "$IDX_ALIAS_BAD" >/dev/null 2>&1 || rc=$?
-  gate "shell-router (a mistyped DASH_TAB_ALIAS target is detected)" must_fail "$rc"
-
-  # ── By-destination half (Phase 4a): every committed #/… resolves. ──────────
+  # ── By-destination half (dashboard-only under Phase 3b stub) ───────────────
   ROUTE_FIX="tests/fixtures/routes/committed-routes.json"
-  # must_pass: the committed fixture enumerates + resolves every #/… on both
-  # surfaces, checked against the freshly-rendered temp copies (hermetic).
+  # must_pass: fixture matches live dashboard routes; stub index is empty.
   rc=0; node scripts/check-committed-routes.mjs \
     --dashboard "$DASH_HTML" --index "$IDX_HTML" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
-  gate "committed-routes (every #/… resolves by destination, both surfaces)" must_pass "$rc"
-  # must_fail A (enumeration teeth): a route deleted from the fixture is detected
-  # — the fixture stops enumerating a route the html still commits.
+  gate "committed-routes (every #/… resolves by destination, dashboard + stub index)" must_pass "$rc"
+  # must_fail A (enumeration teeth): a dashboard route deleted from the fixture
+  # is detected — the fixture stops enumerating a route the html still commits.
+  # (Index surface is empty under the stub, so teeth live on the dashboard half.)
   ROUTE_FIX_BAD="$TMP/committed-routes-missing.json"
   python3 - "$ROUTE_FIX" "$ROUTE_FIX_BAD" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
-d["surfaces"]["index"]["static_href_routes"].pop()
+routes = d["surfaces"]["dashboard"]["static_href_routes"]
+assert routes, "dashboard static_href_routes empty — cannot plant enumeration rot"
+routes.pop()
 json.dump(d, open(sys.argv[2], "w"))
 PY
   rc=0; node scripts/check-committed-routes.mjs \
     --dashboard "$DASH_HTML" --index "$IDX_HTML" --fixture "$ROUTE_FIX_BAD" >/dev/null 2>&1 || rc=$?
-  gate "committed-routes (a route deleted from the fixture is detected)" must_fail "$rc"
-  # must_fail B (resolution teeth): a DASH_OWNER destination removed from the html
-  # → #/heimdall dead-ends on the router fallback instead of viewDashboard:heimdall.
-  IDX_ROUTE_BAD="$TMP/render-index-route-broken.html"
-  sed 's/heimdall: "guardrails", vidarr: "guardrails"/vidarr: "guardrails"/' "$IDX_HTML" > "$IDX_ROUTE_BAD"
-  # G7 (no-op guard): same latent class as the DASH_TAB_ALIAS mutation above — this
-  # hardcodes the exact adjacent-pair string `heimdall: "guardrails", vidarr: "guardrails"`,
-  # so a reorder / prettier reflow / owner change turns the sed into a no-op and the
-  # must_fail teeth would test an unmutated file. Assert the mutation changed the file.
-  cmp_rc=0; cmp -s "$IDX_HTML" "$IDX_ROUTE_BAD" || cmp_rc=$?; gate "committed-routes DASH_OWNER mutation is not a no-op" must_fail "$cmp_rc"
+  gate "committed-routes (a dashboard route deleted from the fixture is detected)" must_fail "$rc"
+  # must_fail B (resolution teeth): rename a dashboard data-tab so #/settings
+  # dead-ends (UNRESOLVED) instead of activate:settings.
+  DASH_ROUTE_BAD="$TMP/render-dash-route-broken.html"
+  sed 's/data-tab="settings"/data-tab="settings-GONE"/' "$DASH_HTML" > "$DASH_ROUTE_BAD"
+  cmp_rc=0; cmp -s "$DASH_HTML" "$DASH_ROUTE_BAD" || cmp_rc=$?
+  gate "committed-routes dashboard data-tab mutation is not a no-op" must_fail "$cmp_rc"
   rc=0; node scripts/check-committed-routes.mjs \
-    --dashboard "$DASH_HTML" --index "$IDX_ROUTE_BAD" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
-  gate "committed-routes (a broken DASH_OWNER destination is detected)" must_fail "$rc"
-
-  # ── G12: rendered-artifact version consistency. Asserts the ravenclaude-core
-  # plugin version embedded in the RENDERED index.html ($IDX_HTML, window.__RC_DATA__)
-  # equals the committed plugin.json version.
-  #
-  # ⛔ NAME/COMMENT CORRECTION (2026-08-18). This block was documented as a
-  # "committed-only tripwire" for the 0.208.1-vs-0.209.0 drift that reached main via
-  # merge-skew — but the code passes $IDX_HTML, the file the audit had just rendered,
-  # so it never read the committed artifact at all and could not have caught that
-  # class of drift. The comment was cited as coverage that did not exist. It is
-  # relabelled here rather than repointed: on origin/main @ 08237f2e the COMMITTED
-  # index.html embedded 0.273.0 against a 0.275.0 manifest, and gating that at PR
-  # time would fail every version-bumping PR (7 of the last 20 commits) until the
-  # author regenerated a 9 MB artifact — the contagion regenerate-artifacts.yml
-  # exists to end. Committed version freshness is owned by that post-merge self-heal,
-  # which exits 1 loudly when it cannot land (runs 32121433735 / 32134742228 /
-  # 32136250292 / 32137465607 all failed at "self-heal PR #968 registered NO checks",
-  # which is why main was two versions behind). Structural committed-artifact drift
-  # — the class that does NOT self-heal — is gated in Gates 13(a) and 97. ──
-  _idx_rc_version() { # $1=html $2=want-version → exit 0 iff embedded == want
-    python3 - "$1" "$2" <<'PY'
-import json, re, sys
-html = open(sys.argv[1], encoding="utf-8").read()
-want = sys.argv[2]
-m = re.search(r"window\.__RC_DATA__ = (.*?);\s*\n\s*const D = window\.__RC_DATA__;", html, re.DOTALL)
-if not m:
-    sys.exit(2)
-data = json.loads(m.group(1))
-rc = next((p for p in data.get("plugins", []) if p.get("name") == "ravenclaude-core"), None)
-sys.exit(0 if (rc and rc.get("version") == want) else 1)
-PY
-  }
-  MANIFEST_V=$(python3 -c "import json;print(json.load(open('plugins/ravenclaude-core/.claude-plugin/plugin.json'))['version'])")
-  rc=0; _idx_rc_version "$IDX_HTML" "$MANIFEST_V" || rc=$?
-  gate "artifact-version (RENDERED index.html embeds the manifest rc-core version)" must_pass "$rc"
-  # must_fail (teeth): an index.html embedding a DIFFERENT rc-core version is caught.
-  IDX_VER_BAD="$TMP/render-index-verdrift.html"
-  sed "s/\"name\":\"ravenclaude-core\",\"label\":\"Ravenclaude Core\",\"version\":\"$MANIFEST_V\"/\"name\":\"ravenclaude-core\",\"label\":\"Ravenclaude Core\",\"version\":\"0.0.0\"/" "$IDX_HTML" > "$IDX_VER_BAD"
-  cmp_rc=0; cmp -s "$IDX_HTML" "$IDX_VER_BAD" || cmp_rc=$?; gate "artifact-version mutation is not a no-op" must_fail "$cmp_rc"
-  rc=0; _idx_rc_version "$IDX_VER_BAD" "$MANIFEST_V" || rc=$?
-  gate "artifact-version (a drifted embedded rc-core version is detected in the RENDERED index)" must_fail "$rc"
+    --dashboard "$DASH_ROUTE_BAD" --index "$IDX_HTML" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
+  gate "committed-routes (a broken dashboard tab destination is detected)" must_fail "$rc"
 
   # ── required_routes floor half (PB-2): the anti-laundering control C5 needs. ──
   # must_fail 51-a (the sharpest): remove a required href from a rendered copy,
@@ -6242,7 +6375,7 @@ PY
     --fixture "$FLOOR_FX" --dashboard "$FLOOR_DASH_BAD" --index "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "committed-routes required_routes floor (a laundered removal is caught)" must_fail "$rc"
 else
-  _skip_or_fail "Gate 51 shell-router" node
+  _skip_or_fail "Gate 51 index-stub + committed-routes" node
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -6339,71 +6472,84 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "── Gate 141: plugin-detail island render (H4 zero-content-loss) ──────────"
-# P2 (plan §1.4) moves the detail-only fields read SOLELY by window.__openPlugin
-# — agents[].scenarios/.quickstart/.works_with + plugins[].scripts_index /
-# .scenarios_index / .templates_index / .best_practices_index — off the eager
-# window.__RC_DATA__ parse path into a lazy <script id="plugin-detail-payload">
-# island. The H4 hazard: __openPlugin can count `(p.scripts_index||[]).length`
-# and `.filter(s => s.body)` on data that is NOT hydrated yet, so whole sections
-# vanish with ZERO count and NO error — invisible to any render-only /
-# no-console-errors test. So "zero content loss" IS this gate, not a console check.
-# Text/structural (no eval), like the sibling check-*-render.mjs gates, driven
-# against the freshly-rendered $IDX_HTML. Key PRESENCE is the hydration sentinel:
-# absent == not hydrated, [] == genuinely zero (77 plugins really have
-# scripts_index: [], so "assert non-empty" would be wrong on 46% of the catalog).
+echo "── Gate 141: catalog-data.json structure (Phase 3b catalog sidecar) ───────"
+# Phase 3b retires the fat index island `#plugin-detail-payload`. Catalog browse
+# now loads from committed `catalog-data.json`. This gate proves the sidecar is
+# present and structurally usable (top-level `categories` + `plugins` keys) —
+# the replacement for the old plugin-detail island render contract.
 #
-# Three must-fail halves prove teeth: (a) RENAME THE ISLAND ID — the literal H4
-# hydration-break scenario, silent today; (b) delete one plugin's island record;
-# (c) alter one committed baseline count. Each must go red.
-if command -v node >/dev/null 2>&1; then
-  # must_pass: ravenclaude-core (the ONLY plugin with all 8 data-backed sections
-  # non-empty) renders all nine section counts from the island + eager blob, and a
-  # genuinely-empty section is present-but-[] (absent at render, no error).
-  rc=0; node scripts/check-plugin-detail-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-  gate "plugin-detail render (real index.html — nine section counts hydrate)" must_pass "$rc"
+# Teeth: a temp catalog missing `categories` / `plugins` must go red.
+if command -v python3 >/dev/null 2>&1; then
+  CATALOG_JSON="${CATALOG_JSON:-catalog-data.json}"
+  rc=0; python3 - "$CATALOG_JSON" <<'PYCHK' >/dev/null 2>&1 || rc=$?
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+if not p.is_file():
+    sys.exit(2)
+try:
+    d = json.loads(p.read_text(encoding="utf-8"))
+except Exception:
+    sys.exit(2)
+if not isinstance(d, dict):
+    sys.exit(2)
+if "categories" not in d or "plugins" not in d:
+    sys.exit(2)
+if not isinstance(d["categories"], (list, dict)):
+    sys.exit(2)
+if not isinstance(d["plugins"], (list, dict)):
+    sys.exit(2)
+sys.exit(0)
+PYCHK
+  gate "catalog-data (committed file has categories + plugins keys)" must_pass "$rc"
 
-  # must_fail (a): RENAME THE ISLAND ID. The element becomes unreachable by the
-  # id hydrateDetail() looks up → __openPlugin would count/filter unhydrated data
-  # and drop whole sections silently. This is the exact H4 break the gate exists
-  # to catch; renaming only the HTML attribute (not the JS getElementById arg)
-  # reproduces it faithfully.
-  PD_BAD_A="$TMP/index-detail-renamed-id.html"
-  sed 's/id="plugin-detail-payload"/id="plugin-detail-payload-RENAMED"/' "$IDX_HTML" > "$PD_BAD_A"
-  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_A" >/dev/null 2>&1 || rc=$?
-  gate "plugin-detail render (renamed island id → H4 hydration break detected)" must_fail "$rc"
+  # must_fail: missing required keys is detected.
+  CAT_BAD="$TMP/catalog-data-missing-keys.json"
+  printf '%s\n' '{"generated":"x","marketplace_version":"0"}' > "$CAT_BAD"
+  rc=0; python3 - "$CAT_BAD" <<'PYCHK' >/dev/null 2>&1 || rc=$?
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+if not p.is_file():
+    sys.exit(2)
+try:
+    d = json.loads(p.read_text(encoding="utf-8"))
+except Exception:
+    sys.exit(2)
+if not isinstance(d, dict):
+    sys.exit(2)
+if "categories" not in d or "plugins" not in d:
+    sys.exit(2)
+if not isinstance(d["categories"], (list, dict)):
+    sys.exit(2)
+if not isinstance(d["plugins"], (list, dict)):
+    sys.exit(2)
+sys.exit(0)
+PYCHK
+  gate "catalog-data (missing categories/plugins keys is detected)" must_fail "$rc"
 
-  # must_fail (b): delete one plugin's island record → the completeness check
-  # (island plugin-set === eager plugin-set) goes red.
-  PD_BAD_B="$TMP/index-detail-dropped-record.html"
-  python3 - "$IDX_HTML" "$PD_BAD_B" <<'PY'
-import sys, re, json
-src = open(sys.argv[1]).read()
-m = re.search(r'(<script type="application/json" id="plugin-detail-payload">)([\s\S]*?)(</script>)', src)
-isl = json.loads(m.group(2))
-del isl["plugins"]["ravenclaude-core"]  # drop one plugin's island record
-new = m.group(1) + json.dumps(isl, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + m.group(3)
-open(sys.argv[2], "w").write(src[:m.start()] + new + src[m.end():])
-PY
-  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_B" >/dev/null 2>&1 || rc=$?
-  gate "plugin-detail render (deleted island record is detected)" must_fail "$rc"
-
-  # must_fail (c): alter one committed baseline count (ravenclaude-core's islanded
-  # scripts_index N -> N-1) → the rc-core baseline + the counts invariant go red.
-  PD_BAD_C="$TMP/index-detail-altered-count.html"
-  python3 - "$IDX_HTML" "$PD_BAD_C" <<'PY'
-import sys, re, json
-src = open(sys.argv[1]).read()
-m = re.search(r'(<script type="application/json" id="plugin-detail-payload">)([\s\S]*?)(</script>)', src)
-isl = json.loads(m.group(2))
-isl["plugins"]["ravenclaude-core"]["scripts_index"].pop()  # N -> N-1 vs RC_BASELINE.tools
-new = m.group(1) + json.dumps(isl, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + m.group(3)
-open(sys.argv[2], "w").write(src[:m.start()] + new + src[m.end():])
-PY
-  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_C" >/dev/null 2>&1 || rc=$?
-  gate "plugin-detail render (altered baseline count is detected)" must_fail "$rc"
+  # must_fail: malformed JSON is detected.
+  CAT_BAD2="$TMP/catalog-data-bad.json"
+  printf '%s\n' '{not-json' > "$CAT_BAD2"
+  rc=0; python3 - "$CAT_BAD2" <<'PYCHK' >/dev/null 2>&1 || rc=$?
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+if not p.is_file():
+    sys.exit(2)
+try:
+    d = json.loads(p.read_text(encoding="utf-8"))
+except Exception:
+    sys.exit(2)
+if not isinstance(d, dict):
+    sys.exit(2)
+if "categories" not in d or "plugins" not in d:
+    sys.exit(2)
+sys.exit(0)
+PYCHK
+  gate "catalog-data (malformed JSON is detected)" must_fail "$rc"
 else
-  _skip_or_fail "Gate 141 (plugin-detail island render)" node
+  _skip_or_fail "Gate 141 (catalog-data structure)" python3
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -7078,30 +7224,40 @@ echo "── Gate 300: dashboard-prompt.sh (unconfigured-project dashboard promp
 # when .ravenclaude/comfort-posture.yaml is absent — one fixed-text line through
 # systemMessage (the person) and additionalContext (the agent), writing nothing and
 # starting nothing. Autostart was rejected as an undisclosed background server per
-# session. The test drives the REAL script: P1 prompt (both channels), P2 silent when
-# configured, P3 off-switch, P4 writes nothing, P5 edition wording (no bin/rc), P6
-# fail-safe, P7 no-egress of payload/env, P8 registered in hooks.json AND the dev-mirror,
-# and two teeth mutants (posture gate removed -> speaks when configured; stdin echo ->
-# caught by the P7 check).
+# session. The test drives the REAL script: P1-P8, E1-E7 edition trust states
+# (untrusted, changed, refused-symlink, refused-size, refused-other — a refusal
+# does not tell the person to trust the project), and three teeth mutants (T1
+# posture gate removed -> speaks when configured; T2 stdin echo -> caught by the
+# P7 check; T3 ignoring --status -> speaks in a trusted project). 25 assertions.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate300-dashboard-prompt.sh >/dev/null 2>&1 || rc=$?
 gate "dashboard-prompt: prompt when unconfigured, silent when configured, writes nothing, no egress, registered, teeth" must_pass "$rc"
 
 echo "── Gate 301: directory edition of ravenclaude-core (Anthropic Directory submission) ──"
 # The Directory edition is a SMALLER build of the source plugin for strangers: it ships only agents,
 # skills, commands and hooks that docs/directory-edition/ravenclaude-core/manifest.json allow-lists with
-# a reason, and wraps every hook (except the one setup prompt) in hooks/posture-gate.sh so it does nothing
-# until a posture file exists. This gate builds it and refuses it unless its README and PRIVACY.md claims
-# hold: deterministic build, limits (<=512 files, no file over 256 KiB non-image, none over 5 MiB, no
-# symlinks), no bin/ monitors/ CLAUDE.md dashboard.html or `experimental`, README lists exactly the shipped
-# hooks, every network primitive in an executable classified, no secret-shaped string, and every shipped
-# hook MEASURED (scripts/directory-edition-hook-audit.py) inert with no posture file and safe under a
-# hostile one (no posture string executed, no claude, no network, no allow/updatedInput output, writes only
-# under .ravenclaude/, only allow-listed programs). Must-fail halves: an always-on hook behind the real
-# shim is inert and behind a shim without the posture test is not; real guard-destructive.sh is not
-# inert and real dod-gate.sh is not hostile-safe (it runs a command read from the posture file), so the
-# audit's payloads and seeds provably reach real triggers. `claude plugin validate --strict` and the
-# strace syscall lane run when their tools exist and are reported NOT RUN otherwise (not a pass);
-# RC_EDITION_REQUIRE_STRACE=1 makes strace's absence a failure.
+# a reason, and wraps every hook (except the one setup prompt) in hooks/posture-gate.sh. A hook runs only
+# when three things hold: a regular posture file, nothing under .ravenclaude/ is a symlink at any depth
+# (find errors fail closed; the runaway counter is depth 4), and ~/.ravenclaude/edition-trusted-projects
+# holds a line whose sha256 still matches the posture, .repo-layout.json and .ravenclaude/task-scope.json.
+# A posture file alone is not the switch. This gate builds the edition and refuses it unless its README
+# and PRIVACY.md claims hold: deterministic build, limits (<=512 files, no file over 256 KiB non-image,
+# none over 5 MiB, no symlinks), no bin/ monitors/ CLAUDE.md dashboard.html or `experimental`, README lists
+# exactly the shipped hooks, every network primitive in an executable classified, no secret-shaped string,
+# and every shipped hook MEASURED (scripts/directory-edition-hook-audit.py) inert with no posture file,
+# inert when the posture is present but the project is not trusted, and safe under a hostile one (no
+# posture string executed, no claude, no network, no allow/updatedInput output, writes only under
+# .ravenclaude/, only allow-listed programs). Must-fail halves include: M1 removes the posture test and,
+# separately, the trust grep, and the untrusted lane must see the hook; M6 plants a directory symlink and
+# a file symlink at the depth-4 runaway counter, and a mutant that stops at depth 3 must go active on that
+# file; M3 plants the cwd-importing python forms (a path to the interpreter, -c glued to its code, an
+# option argument, a pipe, a bare interpreter, a backslash-newline, and wrapper flags that take a value)
+# and expects a build refusal, and still runs the runtime pair (python3 -c imports a planted module;
+# python3 -I does not). Detail status is refused-symlink, refused-size or refused-other for those refusals,
+# not the word untrusted. Real guard-destructive.sh is not inert and real dod-gate.sh is not hostile-safe
+# (it runs a command read from the posture file), so the audit's payloads and seeds provably reach real
+# triggers. The checker prints its own pass/fail tally; a lane marked NOT RUN is not a pass.
+# `claude plugin validate --strict` and the strace syscall lane run when their tools exist and are
+# reported NOT RUN otherwise (not a pass); RC_EDITION_REQUIRE_STRACE=1 makes strace's absence a failure.
 if command -v python3 >/dev/null 2>&1; then
   rc=0; DE_OUT="$(python3 scripts/check-directory-edition.py 2>&1)" || rc=$?
   if [[ "$rc" -ne 0 ]]; then echo "$DE_OUT"; fi
@@ -7220,6 +7376,114 @@ if command -v python3 >/dev/null 2>&1; then
 else
   _skip_or_fail "Gate 307 (headless-usage)" python3
 fi
+
+echo "── Gate 308: worktree + branch unified lifecycle (dry-run default, porcelain-wide) ──"
+# scripts/worktree-clean.sh (shipped at plugins/ravenclaude-core/scripts/, root
+# scripts/ is a thin shim) now discovers EVERY worktree via `git worktree list
+# --porcelain` (not only .claude/worktrees/, so sibling/ad-hoc worktrees are
+# covered), classifies dirty/IGNORED/DETACHED-unreachable/UNKNOWN-*/STALE/
+# OPEN-PR/LOCKED/PRUNABLE/MAIN/SELF, and — only on an explicit human --execute
+# or a single named <slug>/--target — removes a worktree, prunes, and retires
+# its branch through cleanup-branches.sh's OWN safety checks (never a second
+# -D path). `--all` defaults to a dry run. The SessionEnd hook
+# (worktree-cleanup-report.sh) runs `--status --no-network` and only ever
+# FLUSHES a report file — it never mutates. The test builds real scratch git
+# repos (never this box's own /workspace worktrees) and includes three teeth
+# mutants: the shared force-gate (targeting STALE, which has no git-native
+# backstop, unlike dirty), the --all --execute gate, and the OPEN-PR refusal.
+# GREP THE SUITE OUTPUT FOR "Gate 308".
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh >/dev/null 2>&1 || rc=$?
+gate "worktree-clean-lifecycle: porcelain discovery, every safety class, dry-run default, unified remove->prune->branch-cleanup, SessionEnd report-only, teeth" must_pass "$rc"
+
+echo "── Gate 309: worktree-guard heredoc-interpreter scan (AppSec SHIPCHECK 18f5c03f F1 + N1 ReDoS fail-closed) ──"
+# #1416 (cba447ec) made worktree-guard-bash.py strip EVERY heredoc body as
+# inert data before its inline-interpreter write scan ran — including a
+# heredoc that FEEDS an interpreter, where the body IS the program that
+# executes. AppSec SHIPCHECK 18f5c03f (F1) reproduced the resulting bypass on
+# the 0.361.1 helper: `python3 - <<'PY'` / `open(...,'w')`,
+# `python3 <<PY` / `shutil.rmtree(...)`, and `node <<JS` / `writeFileSync(...)`
+# all returned exit 0 (allow) instead of exit 3 (deny). The fix strips a
+# heredoc body only when it feeds a NON-interpreter command (matching the
+# WRITERS-loop command-word check's own interpreter set: python/python3,
+# node, nodejs, perl, ruby, php, deno, bun) — a plain data heredoc (`cat
+# <<EOF`, `git commit -F - <<EOF`) is still blanked, so an example path inside
+# its body does not false-deny.
+#
+# Two fixtures, bidirectionally: test-worktree-guard-heredoc-interpreter.sh
+# drives the HELPER directly (exit 3) — the three exact repros, the php/deno/
+# bun extension of the interpreter set, the pre-existing -c/-e/redirect
+# mechanisms (no regression), the data-heredoc allow cases, and a teeth
+# mutant that reverts the interpreter check and proves the repros then slip
+# through (exit 0). test-worktree-guard-failclosed.sh — previously NOT
+# referenced anywhere in this suite, which is why CI never caught the
+# regression — is now wired in below (same file this gate shares with Gate
+# 140) and carries the three repros at the HOOK level (exit 2, through
+# worktree-guard.sh check). test-worktree-guard-heredoc-redos.sh is the
+# AppSec N1 follow-up: 64 KiB / 256-marker caps fail closed (exit 3), a 1 MiB
+# unterminated-padding payload finishes in well under the 5 s self-timeout
+# and denies, signal.alarm exits 4, and worktree-guard.sh maps that to a
+# hook deny. test-worktree-guard-heredoc-delimiter.sh is the AppSec R1
+# follow-up: full-word delimiters (EOF-X, E.O.F, EOF.1, END-MSG, 'EOF'X,
+# "A"B, 'E O F') plus a following write are denied at helper and hook
+# level, with a teeth mutant of the 0.361.3 scanner. GREP THE SUITE OUTPUT FOR "Gate 309".
+# ⛔ `< /dev/null` is load-bearing (see Gate 140): fail-closed drives
+# worktree-guard.sh, which reads stdin. An inherited-but-never-closed pipe
+# is the documented hang that previously stalled macOS shard 1 until the
+# 30-minute job cap, with output discarded so the hung case was invisible.
+# Keep stdout/stderr so the fixture's BEGIN/TIMEOUT lines reach the log,
+# including any interpreter-fixture failure. Outer parent-kills-child
+# watchdog is a backstop if the hang is before the first case or in a
+# harness step that is not itself wrapped.
+# Parent-kills-child watchdog. Do not use _portable.sh _rc_timeout here:
+# on stock macOS that is `perl -e 'alarm shift; exec @ARGV'`, and after
+# exec of bash the pending SIGALRM does not bound the child (637b7e29:
+# 15s and 60s perl-alarm ceilings never fired; shard 1 ran to the
+# 30-minute job cap). Keep _portable.sh pinned; this is harness-only.
+_wg309_watchdog() {
+  local _secs="$1"
+  shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "${_secs}s" "$@"
+    return $?
+  fi
+  if command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "${_secs}s" "$@"
+    return $?
+  fi
+  perl -e '
+    my $s = shift @ARGV;
+    my $pid = fork();
+    if (!defined $pid) { exit 127; }
+    if ($pid == 0) { setpgrp(0, 0); exec @ARGV or exit 127; }
+    $SIG{ALRM} = sub {
+      kill "TERM", -$pid;
+      select(undef, undef, undef, 0.5);
+      kill "KILL", -$pid;
+      waitpid $pid, 0;
+      exit 124;
+    };
+    alarm $s;
+    waitpid $pid, 0;
+    my $c = $?;
+    alarm 0;
+    if (($c & 127) == 15 || ($c & 127) == 9) { exit 124; }
+    if ($c & 127) { exit 128 + ($c & 127); }
+    exit $c >> 8;
+  ' "$_secs" "$@"
+}
+_wg309_timeout=90
+rc=0; _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-interpreter.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: interpreter fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
+gate "worktree-guard-bash.py: interpreter heredocs (python/node/perl/ruby/php/deno/bun) are scanned, not blanked (+ teeth)" must_pass "$rc"
+rc=0; _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-failclosed.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: fail-closed fixture exceeded ${_wg309_timeout}s (last HARNESS/HOOK line names the layer)" >&2; rc=1 ;; esac
+gate "worktree-guard fail-closed suite (incl. the AppSec F1 repros at hook level, exit 2) — now actually registered" must_pass "$rc"
+rc=0; _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-redos.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: redos fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
+gate "worktree-guard-bash.py: heredoc ReDoS fail-closed (input cap, linear scanner, alarm exit 4, hook timeout) — AppSec N1" must_pass "$rc"
+rc=0; _wg309_watchdog "$_wg309_timeout" bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-heredoc-delimiter.sh < /dev/null || rc=$?
+case "$rc" in 124|142) echo "  timeout: delimiter fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
+gate "worktree-guard-bash.py: full-word heredoc delimiters (EOF-X/'EOF'X/END-MSG/…) — AppSec R1" must_pass "$rc"
 
 
 echo "── Gate 285: handoff-tax-meter.sh (model-tier delegation — the measurement leg) ──"
@@ -7426,7 +7690,7 @@ gate "dom-budget: both surfaces within their ratchet budgets" must_pass "$rc"
 # teeth, per surface. The must-fail bar is DERIVED as `count - 1`, never a literal:
 # plan A's literal 57,418 would have PASSED against the real 57,330 — a must-fail
 # half that cannot fail. Deriving it from the live count is what makes it teeth.
-for _surface in "plugins/ravenclaude-core/dashboard.html" "index.html"; do
+for _surface in "plugins/ravenclaude-core/dashboard.html"; do
   _n="$(python3 scripts/check-dom-budget.py --count "$_surface")"
   rc=0; python3 scripts/check-dom-budget.py --check --surface "$_surface" \
     --budget-override "$(( _n - 1 ))" >/dev/null 2>&1 || rc=$?
@@ -7440,14 +7704,14 @@ rc=0; python3 - <<'PY' >/dev/null 2>&1 || rc=$?
 import importlib.util, sys
 s = importlib.util.spec_from_file_location("m", "scripts/check-dom-budget.py")
 m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
-for p in (m.DASHBOARD, m.INDEX):
-    r = m.measure(p)
-    if sum(r["panels"].values()) + r["shell"] != r["total"]:
-        sys.exit(1)
-    if len(r["panels"]) != 18:  # 17th = panel-host-context (v0.216.0, MH-14); 18th = panel-reserve (routine token reserve PR 2, v0.326.0)
-        sys.exit(1)
+# Phase 3b: INDEX stub is not panel-budgeted.
+r = m.measure(m.DASHBOARD)
+if sum(r["panels"].values()) + r["shell"] != r["total"]:
+    sys.exit(1)
+if len(r["panels"]) != 18:  # 17th = panel-host-context (v0.216.0, MH-14); 18th = panel-reserve (routine token reserve PR 2, v0.326.0)
+    sys.exit(1)
 PY
-gate "dom-budget: SUM(panels)+shell == whole doc, 18 panels both surfaces" must_pass "$rc"
+gate "dom-budget: SUM(panels)+shell == whole doc, 18 panels (dashboard)" must_pass "$rc"
 
 # F3 / §0.2b rail: an EXEMPT panel (settings) must never be silently islanded.
 # Neither existing gate catches this — Gate 35 (posture round-trip) is DOM-free by
@@ -7614,12 +7878,8 @@ echo "── Gate 144: Prompt Builder render + XSS floor (check-prompt-builder-r
 if command -v node >/dev/null 2>&1; then
   rc=0; node scripts/check-prompt-builder-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "prompt-builder render (dashboard.html: static sink grep + assembler/linter/token)" must_pass "$rc"
-  rc=0; node scripts/check-prompt-builder-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-  gate "prompt-builder render (index.html portal: same region shipped)" must_pass "$rc"
   rc=0; node scripts/check-host-context-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "host-context render (dashboard.html)" must_pass "$rc"
-  rc=0; node scripts/check-host-context-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-  gate "host-context render (index.html portal)" must_pass "$rc"
   # must_fail: a reintroduced HTML-string sink in the pb region MUST be caught by the grep.
   PB_BAD="$TMP/dashboard-pb-innerhtml.html"
   python3 -c "p='$DASH_HTML'; o='$PB_BAD'; s=open(p,encoding='utf-8').read(); s=s.replace('/* PROMPT-BUILDER:END */','function pbEvilSink(el, t) { el.innerHTML = t; }\n/* PROMPT-BUILDER:END */',1); open(o,'w',encoding='utf-8').write(s)"
@@ -8573,7 +8833,7 @@ fi
 echo "── Gate 189: git-protocol nudge — default-warn, block-only-on-knob ────────"
 # The in-loop git-protocol hook (default WARN). It WARNs on a non-Conventional-
 # Commits `git commit -m` subject or a new-branch creation off the repo's own
-# (feat|fix|chore|docs|refactor|agent)/ prefix convention, and BLOCKS (exit 2) only
+# (feat|fix|chore|docs|refactor|agent|release)/ prefix convention, and BLOCKS (exit 2) only
 # when the `git_protocol: block` knob is set. A direct non-force push to
 # main/master is advisory-only and NEVER blocks. It deliberately does not touch
 # force operations (guard-destructive.sh owns those). The test invokes the hook via
@@ -9423,27 +9683,22 @@ gate "committed-routes derived-dispatch+siblings: live tree + shipped sibling pa
 rc=0; node scripts/check-committed-routes.mjs --must-fail >/dev/null 2>&1 || rc=$?
 gate "committed-routes sibling teeth: --must-fail (rotten pitch.html #/ href) actually fails" must_fail "$rc"
 
-# Live-tree teeth: retarget the learn branch in a copy. A hard-coded
-# `learn → viewResources` ladder stays green; the derived walker goes red.
-_g205_idx="$TMP/index-learn-retarget.html"
-python3 - "$IDX_HTML" "$_g205_idx" <<'PY'
-import sys
+# Live-tree teeth (Phase 3b): index is a stub with no route() ladder. Break the
+# dashboard settings tab-btn so #/settings dead-ends — same destination-break
+# class the former learn-retarget exercised on the fat portal.
+_g205_dash="$TMP/dash-settings-retarget.html"
+python3 - "$DASH_HTML" "$_g205_dash" <<'PY'
+import re, sys
 src = open(sys.argv[1], encoding="utf-8").read()
-anchor = 'else if (section === "learn")'
-i = src.find(anchor)
-assert i != -1, "learn branch drifted — update the Gate 205 mutant"
-j = src.find("} else", i)
-assert j != -1 and "viewResources()" in src[i:j], "learn body has no viewResources() — no-op"
-open(sys.argv[2], "w", encoding="utf-8").write(
-    src[:i] + src[i:j].replace("viewResources()", "viewMarketplace()", 1) + src[j:]
-)
+re_btn = re.compile(r'(<button\b[^>]*\btab-btn\b[^>]*\bdata-tab=")settings(")')
+assert re_btn.search(src), "settings tab-btn drifted — update the Gate 205 mutant"
+open(sys.argv[2], "w", encoding="utf-8").write(re_btn.sub(r"\1settings-GONE\2", src, count=1))
 PY
-cmp_rc=0; cmp -s "$IDX_HTML" "$_g205_idx" || cmp_rc=$?
-gate "committed-routes learn-retarget mutation is not a no-op" must_fail "$cmp_rc"
-rc=0; node scripts/check-committed-routes.mjs --index "$_g205_idx" >/dev/null 2>&1 || rc=$?
-gate "committed-routes derived-dispatch teeth: retargeting the learn branch IS caught" must_fail "$rc"
+cmp_rc=0; cmp -s "$DASH_HTML" "$_g205_dash" || cmp_rc=$?
+gate "committed-routes settings-tab mutation is not a no-op" must_fail "$cmp_rc"
+rc=0; node scripts/check-committed-routes.mjs --dashboard "$_g205_dash" --index "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+gate "committed-routes derived-dispatch teeth: breaking dashboard settings tab IS caught" must_fail "$rc"
 
-echo
 echo "── Gate 223: parallelism posture — 3 conserve triggers + the serial detector ─"
 # Parallelism now defaults to MAXIMUM, which is a default + a directive + a DETECTOR.
 # ⛔ None of the three can be a blocking gate: a hook can stop an action, it cannot
@@ -11704,6 +11959,212 @@ if command -v python3 >/dev/null 2>&1; then
 else
   _skip_or_fail "Gate 282 (claude-launch-safeguard)" python3
 fi
+
+echo "── Gate 318: Codex hook projection — no canonical hook silently dropped ──"
+# 1a-codex-check (repo-review 2026-10-19). The Copilot (158), Cursor (160) and
+# Gemini (165) projectors each have a --check accounting gate; Codex had none, so
+# a new canonical hook with neither a Codex wiring nor a _SKIP reason would have
+# shipped green. Teeth: a mutant with its first _SKIP entry dropped must fail
+# --check (that hook is then unaccounted for). Registered in the --check
+# dispatcher, this main sequence, the Supported: string and the `hosts` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 318".
+rc=0; python3 scripts/generate-codex-hooks.py --check >/dev/null 2>&1 || rc=$?
+gate "codex-hooks: every canonical hook wired or explicitly skipped" must_pass "$rc"
+CDXH_MUT="scripts/.generate-codex-hooks-mutant.py"
+rc=0; _gate318_build_mutant "$CDXH_MUT" || rc=$?
+gate "codex-hooks teeth: the dropped-_SKIP-entry mutant could be built (anchor present)" must_pass "$rc"
+rc=0; python3 "$CDXH_MUT" --check >/dev/null 2>&1 || rc=$?
+rm -f "$CDXH_MUT"
+gate "codex-hooks teeth: a dropped _SKIP entry is caught" must_fail "$rc"
+
+echo "── Gate 319: installer lanes — every host lane end to end, scratch HOME ──"
+# repo-review 2026-10-19 (scripts-1..7, scripts-13). Nothing drove the gemini /
+# cursor / aider / codex install lanes end to end, so the installer could clobber
+# an unparseable .gemini/settings.json while printing "merged, not clobbered",
+# plant cyclic links in the marketplace skill tree, rm -rf a user's own skill,
+# overwrite .aider.conf.yml with no backup, print a green "wired" line after a
+# failed projection, and install into $PWD on a typo'd flag. check-installer-
+# lanes.py runs the REAL installer (a byte copy) against a scratch marketplace,
+# project and HOME, and fails if the operator's real rc files change. Teeth: 7
+# mutants (one per fix), --must-fail exits 3. Registered in the --check
+# dispatcher, this main sequence, the Supported: string and the `hosts` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 319".
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-installer-lanes.py --check >/dev/null 2>&1 || rc=$?
+  gate "installer-lanes: every lane keeps user config and reports failures honestly" must_pass "$rc"
+  rc=0; rc_mustfail python3 scripts/check-installer-lanes.py || rc=$?
+  gate "installer-lanes: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 319 (installer-lanes)" python3
+fi
+
+echo "── Gate 310: hook regressions from the 2026-10-19 repo review ──"
+# Four test files from the review's P0 package, each carrying its own teeth
+# mutants: guard-destructive denies a DELETE-method push / API delete
+# (test-guard-delete-method.sh); enforce-layout normalises `.`/`..`/`//` before
+# matching allowed_globs (test-enforce-layout-normalize.sh); the web-access guard
+# and its marker hook share one host parser (test-web-host-parity.sh); advisory
+# hooks report file:line [rule-id], never the matched text
+# (test-advisory-no-echo.sh). Registered in the --check dispatcher, this main
+# sequence, the Supported: string and the `hooks` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 310".
+if command -v jq >/dev/null 2>&1; then
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-guard-delete-method.sh >/dev/null 2>&1 || rc=$?
+  gate "guard-destructive: DELETE-method deletes denied, benign controls allowed" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-enforce-layout-normalize.sh >/dev/null 2>&1 || rc=$?
+  gate "enforce-layout: paths normalised before the allow-list match" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-web-host-parity.sh >/dev/null 2>&1 || rc=$?
+  gate "web-access: guard and marker agree on every host shape" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-advisory-no-echo.sh >/dev/null 2>&1 || rc=$?
+  gate "advisory hooks: file:line [rule-id] only, matched text never echoed" must_pass "$rc"
+else
+  _skip_or_fail "Gate 310 (review hook regressions)" jq
+fi
+
+echo "── Gate 311: tribunal review rows from the 2026-10-19 repo review ──"
+# test-tribunal-review-2026-10-19.py drives the REAL tribunal engine and hooks
+# (thing-concerns.py, thing-decision.py, thing-decide.py, apply-comfort-posture.py,
+# thing-orchestrator.sh, route-decision-review.sh) once per finding. --must-fail
+# rebuilds the most security-relevant fixes as mutants (the hooks-4 function
+# purge among them) and exits 0 only when every mutant turns its rows red.
+# Registered in the --check dispatcher, this main sequence, the Supported: string
+# and the `tribunal` suite. GREP THE SUITE OUTPUT FOR "Gate 311".
+if command -v python3 >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-tribunal-review-2026-10-19.py >/dev/null 2>&1 || rc=$?
+  gate "tribunal review rows: every 2026-10-19 fix holds against the real engine" must_pass "$rc"
+  rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-tribunal-review-2026-10-19.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "tribunal review teeth: every reverted fix turns its rows red" must_pass "$rc"
+else
+  _skip_or_fail "Gate 311 (tribunal review rows)" "python3/jq"
+fi
+
+echo "── Gate 312: secret-pattern + intake-sanitizer parity, sanitizer fail-closed ──"
+# check-secret-pattern-parity.py: every vendored copy of the secret patterns
+# matches the canonical list and no unlisted copy exists; --must-fail disables
+# the anchoring check and exits 0 only when the self-test then fails.
+# check-intake-sanitizer-parity.py: the external-intake processor vendors every
+# canonical sanitizer pattern (declared --must-fail convention, compared by
+# rc_mustfail). test-sanitizer-failclosed.sh: the PostToolUse output sanitizers
+# fail CLOSED when the scanner crashes, hangs or is missing (beside Gate 48's
+# python3-missing case). Registered in the --check dispatcher, this main sequence,
+# the Supported: string and the `security` suite. GREP THE SUITE OUTPUT FOR "Gate 312".
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-secret-pattern-parity.py >/dev/null 2>&1 || rc=$?
+  gate "secret-pattern parity: every copy in parity, no unlisted copy" must_pass "$rc"
+  rc=0; python3 scripts/check-secret-pattern-parity.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "secret-pattern parity: self-test" must_pass "$rc"
+  rc=0; python3 scripts/check-secret-pattern-parity.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "secret-pattern parity teeth: a disabled boundary check fails the self-test" must_pass "$rc"
+  rc=0; python3 scripts/check-intake-sanitizer-parity.py --check >/dev/null 2>&1 || rc=$?
+  gate "intake-sanitizer parity: every canonical pattern vendored" must_pass "$rc"
+  rc=0; python3 scripts/check-intake-sanitizer-parity.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "intake-sanitizer parity: self-test" must_pass "$rc"
+  rc=0; rc_mustfail python3 scripts/check-intake-sanitizer-parity.py || rc=$?
+  gate "intake-sanitizer parity: --must-fail teeth agree with the declared convention" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-sanitizer-failclosed.sh >/dev/null 2>&1 || rc=$?
+  gate "output sanitizers fail closed on crash / hang / missing scanner" must_pass "$rc"
+else
+  _skip_or_fail "Gate 312 (secret/sanitizer parity)" python3
+fi
+
+echo "── Gate 313: cheap-lane delegate argv, signals and scrub floor ──"
+# test-delegate-args.sh drives grok-delegate.sh, copilot-delegate.sh and
+# cheap-lane-delegate.sh against stub vendor CLIs: a value flag given last exits
+# 2 (never hangs), SIGINT/SIGTERM stop the script with cleanup run once, a
+# missing _scrub.sh refuses before any egress, and the secret-shape refusal no
+# longer fires on a trailing newline or a kebab-case name. Each fix has a teeth
+# mutant. Registered in the --check dispatcher, this main sequence, the
+# Supported: string and the `security` suite. GREP THE SUITE OUTPUT FOR "Gate 313".
+if command -v perl >/dev/null 2>&1; then
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-delegate-args.sh >/dev/null 2>&1 || rc=$?
+  gate "cheap-lane delegates: argv, signal and scrub-before-egress floor" must_pass "$rc"
+else
+  _skip_or_fail "Gate 313 (delegate argv)" perl
+fi
+
+echo "── Gate 314: dashboard server hardening ──"
+# check-dashboard-hardening.py drives both serve-dashboards.py copies (and the
+# launchers) through the review's hardening cases. --must-fail rebuilds four
+# mutants and exits 0 only when every one is caught. Registered in the --check
+# dispatcher, this main sequence, the Supported: string and the `portal` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 314".
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-dashboard-hardening.py >/dev/null 2>&1 || rc=$?
+  gate "dashboard hardening: both server copies refuse every hostile case" must_pass "$rc"
+  rc=0; python3 scripts/check-dashboard-hardening.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "dashboard hardening teeth: every mutant is caught" must_pass "$rc"
+else
+  _skip_or_fail "Gate 314 (dashboard hardening)" python3
+fi
+
+echo "── Gate 315: worktree, brand-extraction, stall-watch, spectate and coordinator-lock fixes ──"
+# Five test files plus the coordinator lock's concurrency proof from the review:
+# cleanup-branches skips a branch checked out in another worktree; rcwt bases a
+# new worktree on origin/main; brand extraction's fetch guards; stall_watch's
+# process identity; spectate_store's review fixes. coordinator-lock.sh
+# --self-test --dead-holder asserts one winner per dead-holder trial, and
+# --self-test --disable-reap-mutex is its control: it exits 0 only when the race
+# reappears with the reap mutex removed. Registered in the --check dispatcher,
+# this main sequence, the Supported: string and the `hooks` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 315".
+if command -v python3 >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-cleanup-branches-worktree.sh >/dev/null 2>&1 || rc=$?
+  gate "cleanup-branches: a branch checked out in a worktree is kept" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-rcwt-base.sh >/dev/null 2>&1 || rc=$?
+  gate "rcwt: a new worktree is based on origin/main" must_pass "$rc"
+  rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-brand-extraction-guards.py >/dev/null 2>&1 || rc=$?
+  gate "brand extraction: fetch guards hold" must_pass "$rc"
+  rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-stall-watch-identity.py >/dev/null 2>&1 || rc=$?
+  gate "stall-watch: process identity checks hold" must_pass "$rc"
+  rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-spectate-store-review.py >/dev/null 2>&1 || rc=$?
+  gate "spectate store: review fixes hold" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/bin/coordinator-lock.sh --self-test --dead-holder >/dev/null 2>&1 || rc=$?
+  gate "coordinator-lock: exactly one winner per dead-holder trial" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/bin/coordinator-lock.sh --self-test --disable-reap-mutex >/dev/null 2>&1 || rc=$?
+  gate "coordinator-lock control: the race reappears without the reap mutex" must_pass "$rc"
+else
+  _skip_or_fail "Gate 315 (worktree/brand/stall/spectate/lock)" "python3/git"
+fi
+
+echo "── Gate 316: domain-plugin hook teeth + domain script tests ──"
+# check-domain-hook-teeth.py drives each domain advisory hook the way its
+# hooks.json registers it (fires-on-bad / silent-on-good, 48 cases). Teeth: a
+# scratch copy of the domain hooks passes (control), then a never-matching
+# _rc_pcre_match planted in one hook must be caught. Also the review's domain
+# script tests: the Dataverse preflight org guard, the Streamlit saved-views
+# binds, and the record-screen bridge's network surface. The bridge test needs
+# node and the ws npm package; without them it is a LOUD skip (counted, never a
+# pass), in CI too, because CI does not install record-screen's dependencies.
+# Registered in the --check dispatcher, this main sequence, the Supported:
+# string and the `hooks` suite. GREP THE SUITE OUTPUT FOR "Gate 316".
+if command -v python3 >/dev/null 2>&1 && command -v perl >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-domain-hook-teeth.py >/dev/null 2>&1 || rc=$?
+  gate "domain hook teeth: every domain hook fires on bad, silent on good" must_pass "$rc"
+  DHT_ROOT="$TMP/domain-hook-teeth"
+  rc=0; _gate316_build_root "$DHT_ROOT" || rc=$?
+  gate "domain hook teeth: the scratch copy of the domain hooks was built" must_pass "$rc"
+  rc=0; python3 scripts/check-domain-hook-teeth.py --root "$DHT_ROOT" >/dev/null 2>&1 || rc=$?
+  gate "domain hook teeth control: the unmodified scratch copy passes" must_pass "$rc"
+  _gate316_kill_pcre "$DHT_ROOT"
+  rc=0; python3 scripts/check-domain-hook-teeth.py --root "$DHT_ROOT" >/dev/null 2>&1 || rc=$?
+  gate "domain hook teeth: a dead _rc_pcre_match in one hook is caught" must_fail "$rc"
+  rc=0; python3 plugins/power-platform/skills/dataverse-payload-preflight/test_preflight_org_guard.py >/dev/null 2>&1 || rc=$?
+  gate "dataverse preflight: --org must be a Dataverse host before the token is sent" must_pass "$rc"
+  rc=0; python3 plugins/edtech-partner-success/templates/dashboard-streamlit-reference/test_app_saved_views.py >/dev/null 2>&1 || rc=$?
+  gate "streamlit reference: saved views use bound parameters" must_pass "$rc"
+  rc=0; _gate316_bridge || rc=$?
+  if [[ "$rc" -eq 3 ]]; then
+    echo "  ‼ Gate 316 (record-screen bridge security) SKIPPED — needs node and the ws npm package"
+    echo "    (plugins/power-platform/skills/record-screen/scripts/setup.sh). THIS IS NOT A PASS."
+    SKIP=$((SKIP + 1))
+    SKIPPED_GATES+=("Gate 316 (record-screen bridge security) [no node/ws]")
+  else
+    gate "record-screen bridge: loopback only, Origin/Host refused, output confined" must_pass "$rc"
+  fi
+else
+  _skip_or_fail "Gate 316 (domain hook teeth)" "python3/perl"
+fi
+
 
 echo "── Gate 317: 2026-10-20 review regression cases (core / scripts / domain) ──"
 # One case per fixed finding from the 2026-10-20 autonomous repo review (PR

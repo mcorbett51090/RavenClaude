@@ -237,7 +237,7 @@
           {
             "type": "command",
             "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/scripts/guard-remediation-cause.sh\"",
-            "comment": "Git-protocol nudge (default WARN). PreToolUse(Bash). No-ops unless .ravenclaude/comfort-posture.yaml is present; reads the `git_protocol: off|warn|block` knob (default warn). WARNs (stderr, exit 0) on a non-Conventional-Commits `git commit -m` subject or a new-branch creation off the (feat|fix|chore|docs|refactor|agent)/ prefix convention; BLOCKS (exit 2) only when the knob is `block`. A direct non-force push to main/master is advisory-only and NEVER blocks at any knob. Deliberately does NOT touch force operations / branch force-delete / recursive-remove / hard reset \u2014 guard-destructive.sh owns those, and force pushes are force-EXCLUDED here so the two never collide. Fail-open on any error / missing git / missing python3 / absent posture."
+            "comment": "Git-protocol nudge (default WARN). PreToolUse(Bash). No-ops unless .ravenclaude/comfort-posture.yaml is present; reads the `git_protocol: off|warn|block` knob (default warn). WARNs (stderr, exit 0) on a non-Conventional-Commits `git commit -m` subject or a new-branch creation off the (feat|fix|chore|docs|refactor|agent|release)/ prefix convention; BLOCKS (exit 2) only when the knob is `block`. A direct non-force push to main/master is advisory-only and NEVER blocks at any knob. Deliberately does NOT touch force operations / branch force-delete / recursive-remove / hard reset \u2014 guard-destructive.sh owns those, and force pushes are force-EXCLUDED here so the two never collide. Fail-open on any error / missing git / missing python3 / absent posture."
           },
           {
             "type": "command",
@@ -261,11 +261,12 @@
         ]
       },
       {
-        "matcher": "Bash|Write|Edit|MultiEdit",
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
         "hooks": [
           {
             "type": "command",
             "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.sh\" check",
+            "timeout": 60,
             "comment": "Worktree-hygiene guard (check). Two independent knobs in .ravenclaude/comfort-posture.yaml: `worktree_guard: off|warn|block` (default warn) for CONTENTION/ANCHOR, and `worktree_bound: off|warn|block` (default block) for FOREIGN-TREE \u2014 a Write/Edit/MultiEdit or mutating git -C / GIT_WORK_TREE whose target is a sibling worktree. FOREIGN-TREE is evaluated first and does not depend on worktree_guard. On worktree_guard=block DENIES (exit 2) a MUTATING op only on contention or anchor-work; never a read / git status / rcwt / sibling Read. Escape hatches: RC_WORKTREE_GUARD_ACK=1 (contention/anchor ONLY), RC_WORKTREE_BOUND_ACK=1 (FOREIGN-TREE). \u26d4 NEITHER ACK releases the third knob, the SESSION LEASE (`worktree_lease`, default on): the lease clause is evaluated BEFORE contention, so where a lease is held its denial is what you get, and GUARD_ACK does not touch it. That is deliberate \u2014 the lease is a mutual-exclusion control and an env var must not defeat it. Its own escapes: open your own worktree, wait for the lease to go stale (the next session then takes over and auto-commits the holder's work), or set `worktree_lease: off`. Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; emits a hook-event audit line on a verdict."
           }
         ]
@@ -480,6 +481,12 @@
     "SessionEnd": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/scripts/worktree-cleanup-report.sh\"",
+            "timeout": 10,
+            "comment": "Worktree-cleanup dry-run report. OPT-OUT via RC_WORKTREE_CLEANUP_REPORT=off. On session end, runs the shipped worktree-clean.sh in `--status --no-network` mode (git-worktree-list --porcelain discovery, so sibling/ad-hoc worktrees are covered too; zero network calls \u2014 no gh invocations on every session end) and, when anything beyond the solo main worktree exists, FLUSHES a DRY-RUN-ONLY summary to .ravenclaude/runs/worktree-cleanup/report.md for a human or a later session to read \u2014 a SessionEnd hook's stdout is not injected into any live context (the session is ending; there is no further turn), so this writes a file rather than attempting systemMessage/additionalContext, matching the documented SessionEnd contract ('flush run artifacts, emit a summary') and the existing SessionEnd siblings in this plugin (stream-session-close.sh / thing-denial-kb-sync.sh). NEVER removes a worktree, prunes, or deletes a branch \u2014 report only; mutation always needs an explicit human --execute. Fail-safe: no git / no bash / no worktree-clean.sh / any error -> silent no-op, always exits 0. Registered here only (not the dev-mirror .claude/settings.json): the dev-mirror fires on this machine's own ~17 real /workspace worktrees at every session end, which the HARD STOP in the originating task forbids inspecting outside a test fixture. See skills/cleanup-worktrees/SKILL.md."
+          },
           {
             "type": "command",
             "command": "/usr/bin/env -u BASH_ENV -u ENV -u SHELLOPTS -u BASHOPTS -u LD_PRELOAD -u LD_LIBRARY_PATH -u LD_AUDIT -u DYLD_INSERT_LIBRARIES -u DYLD_LIBRARY_PATH -u PYTHONPATH -u PYTHONSTARTUP PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin /bin/bash --noprofile --norc \"${CLAUDE_PLUGIN_ROOT}/hooks/spectate-emit.sh\"",

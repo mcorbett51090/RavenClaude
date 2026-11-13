@@ -188,6 +188,9 @@ _SKIP = {
     "pretool-record-check.sh": (
         "Claude-Code-only (AppSec hook-env): pairs with thing-orchestrator.sh's record keyed by Claude Code's tool_use_id; other hosts' adapters do not carry that id."
     ),
+    # SessionEnd — scripts/ worktree-cleanup report (Claude plugin SessionEnd only;
+    # Codex SessionEnd lane stays Spectate-scoped in this generator's fixed list).
+    "worktree-cleanup-report.sh": _LANE_SCOPE_REASON,
 }
 
 # The pre-Phase-4 SessionStart hand-list, transcribed verbatim as literal data

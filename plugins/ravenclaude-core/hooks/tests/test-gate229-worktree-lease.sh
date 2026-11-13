@@ -50,6 +50,7 @@ ok_() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
 no_() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
 
 TMP="$(mktemp -d 2>/dev/null || mktemp -d -t gate229)"
+export RC_WG_STALE_LOG="$TMP/stale-leases.log" RC_WG_ERROR_LOG="$TMP/errors.log"
 cleanup() { [ -n "${TMP:-}" ] && [ -d "$TMP" ] && rm -rf "$TMP"; }
 trap cleanup EXIT
 
@@ -171,24 +172,54 @@ printf 'work-in-progress\n' > "$WT/holder-work.txt"          # untracked
 printf 'edited\n' >> "$WT/file.txt"                          # tracked
 touch -t 200001010000 "$GHL/leases/"*/lease.json 2>/dev/null
 
+head_before="$(git -C "$WT" rev-parse HEAD 2>/dev/null)"
 out="$(runL "$WT/file.txt" "$WT" sB)"
-[ "$(exit_of "$out")" = "0" ] && ok_ "a STALE lease is taken over, not stranded" \
-                              || no_ "stale lease still blocked — the fallback does not work"
+# AppSec ruling 2026-10-23: a stale lease on a DIRTY tree is recorded and DENIED;
+# the guard never runs `git add`/`git commit` on anyone's behalf.
+[ "$(exit_of "$out")" = "2" ] && ok_ "a STALE lease on a dirty tree is denied (no auto-commit takeover)" \
+                              || no_ "stale dirty lease was taken over"
+case "$out" in *"no longer auto-commits"*) ok_ "the denial explains why" ;;
+  *) no_ "stale denial is silent / unexplained" ;; esac
+
+# ⛔ THE ASSERTION THIS GATE EXISTS FOR (inverted 2026-10-23): nothing staged or committed.
+[ "$(git -C "$WT" rev-parse HEAD 2>/dev/null)" = "$head_before" ] && ok_ "no commit was made on the holder's behalf" \
+  || no_ "the guard committed the holder's work"
+[ -z "$(git -C "$WT" diff --cached --name-only 2>/dev/null)" ] && ok_ "nothing was staged (no git add -A)" \
+  || no_ "the guard staged files"
+grep -q "holder=sA" "$RC_WG_STALE_LOG" 2>/dev/null && ok_ "the stale lease was recorded in stale-leases.log" \
+  || no_ "stale lease not recorded"
+# Maker lands their own work -> the next claimant takes over cleanly.
+git_q -C "$WT" add -A; git_q -C "$WT" commit -qm "maker lands work"
+out="$(runL "$WT/file.txt" "$WT" sB)"
+[ "$(exit_of "$out")" = "0" ] && ok_ "once the maker commits, a stale lease is taken over" \
+                              || no_ "clean stale lease still blocked"
 case "$out" in *"took over"*) ok_ "the takeover is announced" ;;
   *) no_ "takeover happened silently" ;; esac
 
-# ⛔ THE ASSERTION THIS GATE EXISTS FOR.
-committed="$(git -C "$WT" log -1 --pretty=%s 2>/dev/null || printf '')"
-case "$committed" in "wip(worktree-lease)"*) ok_ "the holder's work was auto-committed" ;;
-  *) no_ "no auto-checkin commit — the takeover may have lost work (HEAD: $committed)" ;; esac
-if git -C "$WT" show --stat HEAD 2>/dev/null | grep -q 'holder-work.txt'; then
-  ok_ "untracked work was included (owner ruling: tracked AND untracked)"
-else
-  no_ "untracked work was NOT captured"
-fi
-[ -z "$(git -C "$WT" status --porcelain 2>/dev/null)" ] \
-  && ok_ "the tree is clean for the new holder" \
-  || no_ "the new session inherited a dirty tree"
+# ── part 3b: the same clean takeover under BSD `stat` semantics ─────────────
+# PR #1394 (macOS CI run 40030178445): the lease section runs under `set -E` + an
+# ERR trap, and _wg_mtime's GNU probe `stat -c %Y` is EXPECTED to fail on stock
+# macOS. Unguarded, that expected failure fired the trap and every stale-lease
+# check denied as an "internal error" — green on Linux, red only on macOS. This
+# shim makes the macOS shape reproducible on any host: `-c` is rejected like BSD
+# stat, `-f %m` prints the mtime. Built on python3, not GNU stat.
+# It BITES under bash 3.2 (the macOS shell), where a failing $(...) inside a
+# function still fires the inherited ERR trap in an `||` context; bash 5 suppresses
+# it there, so under Linux bash 5 this case is a control, not the teeth.
+BSDSTAT="$TMP/bsd-stat-bin"; mkdir -p "$BSDSTAT"
+cat > "$BSDSTAT/stat" <<'SHIM'
+#!/bin/sh
+case "$1" in
+  -f) [ "$2" = "%m" ] || exit 1; shift 2
+      exec python3 -c 'import os,sys; print(int(os.stat(sys.argv[1]).st_mtime))' "$@" ;;
+  *) echo "stat: illegal option -- ${1#-}" >&2; exit 1 ;;
+esac
+SHIM
+chmod +x "$BSDSTAT/stat"
+touch -t 200001010000 "$GHL/leases/"*/lease.json 2>/dev/null
+out="$(PATH="$BSDSTAT:$PATH" runL "$WT/file.txt" "$WT" sC)"
+[ "$(exit_of "$out")" = "0" ] && ok_ "BSD stat: a clean stale lease is still taken over (expected GNU-probe failure is not an ERR)" \
+  || no_ "BSD stat: clean stale lease denied — the fail-closed ERR trap fired on the portable stat fallback"
 
 # ── part 4: the anchor branch is never auto-committed ───────────────────────
 GHL="$TMP/ghanchor"

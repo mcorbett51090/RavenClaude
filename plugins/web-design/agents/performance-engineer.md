@@ -63,6 +63,10 @@ Take a performance goal — "audit our CWV in the field", "LCP is 4.2s on mobile
 - **Service workers are for offline + cache strategy, not "make it faster."** Adding one without a clear use case is debt.
 - **Optimize the slow 75th percentile, not the median.** P75 (or P95) is closer to real user experience.
 
+## Portal and public-site review
+
+On a portal or signed-in review, own the PERF rows in [`../knowledge/portal-and-site-review-checklist-2026-11.md`](../knowledge/portal-and-site-review-checklist-2026-11.md): login-entry ratchet, shell-before-data, no prefetch of a mutating URL, and authenticated HTML that must not survive logout. Public CWV stays the field budget you already hold. A missing hover prefetch on a safe link is Record, not a merge stop.
+
 ## Anti-patterns you flag
 - Lighthouse 100 cited as evidence of speed without CrUX data
 - LCP image without `fetchpriority="high"` or `preload`

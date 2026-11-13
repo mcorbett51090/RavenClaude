@@ -199,6 +199,14 @@ A new file's path must match at least one glob in `.repo-layout.json` `allowed_g
 
 ## Testing instructions
 
+> **CI for this repo runs on GitHub Actions; rely on it** (owner rule, 2026-10-26). This repo is
+> **public**, so Actions minutes are free. Don't hold a push to run the suite below locally: push the
+> branch, open the PR, let Actions validate it, then fix what it reports. The steps below are optional
+> fast feedback, worth running when you are iterating on one gate or have no network. Where a step
+> says "required before pushing", read it as "required to be green on the PR". What gates a merge is
+> unchanged: every required check green on the PR's current head. Private repos bill per minute and
+> keep their own push discipline; this rule is for this repo only.
+
 > **⚠️ If steps 3 or 4 fail with a network error, the cause is probably your host's sandbox — not a
 > broken checkout** (added 2026-07-29, audit MH-34). `npx --yes prettier@…` and `pip install ruff`
 > both **download**, and several hosts run the agent inside a sandbox that blocks outbound network by
@@ -292,8 +300,10 @@ scripts/audit-gates.sh
 # Proves each CI gate fails on a known-bad fixture AND passes on a known-good one.
 # Required reading before adding or changing any CI step: docs/best-practices/ci-gate-audit.md
 # NOTE: Gate 10 (actionlint) uses a checksum-pinned actionlint binary (rhysd/actionlint
-#       v1.7.7, sha256-verified) — NO Docker. It resolves actionlint from PATH, a cached
-#       /tmp/actionlint, or a pinned download. On a host with none of those AND no network,
+#       v1.7.7, sha256-verified) — NO Docker. It resolves actionlint from PATH, a per-user
+#       cache of the pinned tarball under ${XDG_CACHE_HOME:-~/.cache}/ravenclaude/ (its
+#       sha256 re-checked on every use — the old unverified /tmp/actionlint arm is gone),
+#       or a pinned download. On a host with none of those AND no network,
 #       it LOUD-skips locally ("THIS IS NOT A PASS" — a skip is not a pass); in CI an
 #       unrunnable Gate 10 is a hard failure, never a silent skip.
 
@@ -334,24 +344,32 @@ CI runs the same checks plus the gate-audit meta-test.
 ## PR conventions
 
 - **When a PR is required vs. not** — changes that ship inside `plugins/` (agents, skills, hooks, manifests, scripts, generated `dashboard.html`) or that touch CI / config / boundary files (`AGENTS.md`, `CLAUDE.md`, `.repo-layout.json`, `.github/`) go through a **PR**. Pure **documentation** under `docs/` — plan, design, proposal, and research write-ups, plus the rolling `docs/session-log.md` — commits **straight to `main`, no PR**. (Rationale: docs can't break a consumer's `/plugin marketplace update`, and the PR overhead slows the planning loop. The boundary is "could this change a consumer's installed plugin?" — if no, it's docs-only.)
-- **Branches** — `feat/<plugin-name>-<slug>`, `fix/<plugin-name>-<slug>`, `chore/<slug>`.
+- **Branches** — `feat/<plugin-name>-<slug>`, `fix/<plugin-name>-<slug>`, `chore/<slug>`, and also `docs/`, `refactor/`, `agent/<role>/`, and `release/`. The git-protocol nudge accepts that set (`plugins/ravenclaude-core/rules/git-workflow.md`).
 - **Versioning** — bump the plugin's semver on every user-visible change.
 - **Migration notes** — if the change could break a consumer's existing project on `/plugin marketplace update`, add a "Migration" section to the plugin's release notes.
 - **Privacy** — the marketplace is private by default. Don't push to a public-readable remote without removing the `email` field from `marketplace.json` and `plugin.json`.
 
 ### Required status checks — never add `paths:` to a required workflow (added 2026-07-17)
 
-The `main` ruleset requires three checks before a PR can merge: **Validate manifests and hooks** (`validate-marketplace.yml`), **Validate file paths against .repo-layout.json** (`validate-layout.yml`), and **Validate plugin and marketplace JSON Schemas** (`validate-schemas.yml`).
+The `main` ruleset requires seven checks before a PR can merge: **Validate manifests and hooks** (`validate-marketplace.yml`), **Validate file paths against .repo-layout.json** (`validate-layout.yml`), **Validate plugin and marketplace JSON Schemas** (`validate-schemas.yml`), **Semantic PR title (Conventional Commits)** (`github-protocol-pr-title.yml`), **Scan for committed secrets (TruffleHog)** (`github-protocol-secret-scan.yml`), **Lint workflow permissions + action pins** (`github-protocol-workflow-hygiene.yml`), and **Lint GitHub Actions (zizmor)** (`github-protocol-zizmor.yml`). (Corrected 2026-10-19: this section used to say three, and the gate below guarded only those three.)
 
-**None of these three may carry a `paths:` filter on its `pull_request` trigger.** GitHub: _"If a workflow is skipped due to path filtering, branch filtering or a commit message, then checks associated with that workflow will remain in a Pending state. A pull request that requires those checks to be successful will be blocked from merging"_ — and, explicitly, _"You should not use path or branch filtering to skip workflow runs if the workflow is required to pass before merging"_ ([troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks), retrieved 2026-07-17). A path filter on a required check doesn't cost coverage — it **hangs the PR forever**.
+**None of these seven may carry a `paths:`, `paths-ignore:`, `branches:` or `branches-ignore:` filter on its `pull_request` trigger.** Gate 242 (`scripts/check-inception-coverage.py`) enforces it for all seven; its `REQUIRED_WORKFLOWS` list is static on purpose (reading the live ruleset would make the gate network-dependent), so a newly required check must be added there too. GitHub: _"If a workflow is skipped due to path filtering, branch filtering or a commit message, then checks associated with that workflow will remain in a Pending state. A pull request that requires those checks to be successful will be blocked from merging"_ — and, explicitly, _"You should not use path or branch filtering to skip workflow runs if the workflow is required to pass before merging"_ ([troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks), retrieved 2026-07-17). A path filter on a required check doesn't cost coverage — it **hangs the PR forever**.
 
 This is not hypothetical: `validate-schemas.yml` used to run only on manifest changes, so every docs-only PR (including the external-intake bot's `docs/staging/incoming/external/**` PRs) would have hung permanently the moment it became required. Both filters were removed when the checks were made required.
 
 The filters were also the wrong shape independently: `validate-marketplace.yml`'s gates (`prettier --check .`, `ruff check .`, `audit-gates.sh`) are **whole-tree readers**, so no glob list can be correct — that list was patched three times (2026-05-31, 2026-06-20, 2026-07-06) and still missed `index.html` / `tests/**` / `.repo-layout.json`. An allow-list that fails **open** (the gate silently never runs) is the wrong shape for a whole-tree validator.
 
-**If PR minutes ever need trimming, gate individual _steps_ with `if:` inside the job — never the workflow trigger.** A skipped *job* reports Success; a skipped *workflow* reports nothing at all. Adding a fourth required check? Check its trigger for `paths:` first.
+**If PR minutes ever need trimming, gate individual _steps_ with `if:` inside the job — never the workflow trigger.** A skipped *job* reports Success; a skipped *workflow* reports nothing at all. Adding an eighth required check? Check its trigger for `paths:` / `branches:` first, and add its workflow to `REQUIRED_WORKFLOWS` in `scripts/check-inception-coverage.py`.
 
 > **Admin bypass is deliberate.** `RepositoryRole 5` (admin) keeps `bypass_mode: always` on the ruleset — the documented docs-straight-to-main flow and the `[skip ci]` artifact commits both depend on it, and it is the escape hatch if a required check ever does hang. The trade-off is real and accepted: **required checks do not bind an admin merge**, so `gh pr merge --auto` as an admin can still land ahead of a running check. If you want CI to gate your own merge, wait for green before merging — the ruleset will not do it for you.
+
+### Cursor review agents — out of tokens does not block a merge (owner rule, 2026-10-26)
+
+The **Cursor Approval Agent** and **Cursor Security Agent** run on PRs here. They are not required checks. When the Cursor account is out of tokens, each one finishes **neutral** within a second, with the summary *"run failed to start: … On-demand usage is required"*. That run reviewed nothing, so it does not block a merge: merge on the required checks.
+
+- A Cursor run that is still **queued or in progress** has not finished. Wait for it.
+- A Cursor run that **did** review and left findings is a review. Handle the findings.
+- A neutral Cursor result is never a review. If a PR needs one, a run that failed to start does not supply it.
 
 ## House rules
 

@@ -19,6 +19,7 @@
     "index.html",
     "pitch.html",
     "pitch-data.json",
+    "catalog-data.json",
     "feedback-report.html",
     ".nojekyll",
     ".gitignore",

@@ -21,7 +21,7 @@
 #      not authored, so they never warn or block.
 #   2. branch-name — on a NEW-BRANCH creation (checkout -b <name> / switch -c
 #      <name> / plain `branch <name>`), WARN when <name> does not match the repo's
-#      prefix convention `^(feat|fix|chore|docs|refactor|agent)/` (rules/git-workflow.md).
+#      prefix convention `^(feat|fix|chore|docs|refactor|agent|release)/` (rules/git-workflow.md).
 #      Default warn; blocks ONLY when the knob is `block`.
 #   3. push-to-a-protected-branch — a direct, non-force push whose refspec targets
 #      main / master is ADVISORY ONLY: it emits a nudge and NEVER blocks at any
@@ -114,7 +114,7 @@ CC_RE = re.compile(
     r"(?:\([^)]+\))?!?:\s.+"
 )
 # This repo's branch-prefix convention (rules/git-workflow.md).
-BR_RE = re.compile(r"^(?:feat|fix|chore|docs|refactor|agent)/")
+BR_RE = re.compile(r"^(?:feat|fix|chore|docs|refactor|agent|release)/")
 # Git's OWN generated commit subjects — the shapes `git revert` / `git merge` /
 # `--fixup` / `--squash` emit. They are not human-authored, so they are exempt from
 # the Conventional-Commits check (never warn, never block — no subject to fix).
@@ -208,9 +208,6 @@ def new_branch_name(sub, args):
     positional = [a for a in args if not a.startswith("-")]
     flags = [a for a in args if a.startswith("-")]
 
-    def has(*names):
-        return any(f in names for f in flags)
-
     if sub == "checkout":
         for idx, a in enumerate(args):
             if a in ("-b", "-B") and idx + 1 < len(args):
@@ -225,12 +222,19 @@ def new_branch_name(sub, args):
         # Only a PLAIN creation (`git branch <name>`). Anything that lists, deletes,
         # renames, copies, or edits is not a new-branch creation -> not our concern
         # (delete in particular is force-EXCLUDED — the destructive guard owns it).
-        if has("-d", "-D", "--delete", "-m", "-M", "--move", "-c", "-C", "--copy",
-               "-l", "--list", "-a", "--all", "-r", "--remotes",
-               "--edit-description", "--show-current",
-               "-u", "--set-upstream-to", "--unset-upstream"):
+        # hooks-14 (2026-10-19): WHITELIST the creation shape instead of
+        # blacklisting the queries. The old exclusion list missed --merged,
+        # --no-merged, --contains, --points-at and friends, so `git branch
+        # --merged main` read as creating a branch named `main` (and was DENIED
+        # in block mode). A creation is: only these flags, and one or two
+        # positionals (<name> [<start-point>]).
+        create_flags = {"-q", "--quiet", "-f", "--force", "-t", "--track",
+                        "--no-track", "--create-reflog"}
+        if any(f not in create_flags for f in flags):
             return None
-        return positional[0] if positional else None
+        if len(positional) not in (1, 2):
+            return None
+        return positional[0]
     return None
 
 
@@ -302,7 +306,7 @@ case "$kind" in
     ;;
   branch-name)
     reason="branch-name-off-convention"
-    nudge="[enforce-git-protocol] new branch '$val' does not match the repo's prefix convention (feat|fix|chore|docs|refactor|agent)/…"
+    nudge="[enforce-git-protocol] new branch '$val' does not match the repo's prefix convention (feat|fix|chore|docs|refactor|agent|release)/…"
     remediation="[enforce-git-protocol] Rename to e.g. 'feat/$val' (see rules/git-workflow.md)."
     blockable=1
     ;;
@@ -329,6 +333,13 @@ if [ "$blockable" = "1" ] && [ "$mode" = "block" ]; then
   exit 2   # 2 blocks the tool call; 1 would NOT (non-blocking error)
 fi
 
+# hooks-15 (2026-10-19): stderr at exit 0 does not reach the model (measured
+# 2026-08-19, see _advise.sh), so the warn lane goes through the advisory helper:
+# the terminal notice is unchanged AND the model gets it as additionalContext.
+# Initialised HERE — after the block/warn decision — so its exit trap can never
+# wrap the exit-2 deny above.
+_rc_adv="$(dirname "$0")/_advise.sh"
+if [ -f "$_rc_adv" ]; then . "$_rc_adv" 2>/dev/null && rc_advise_init PreToolUse 0; fi
 _emit_hook_event "enforce-git-protocol.sh" "warn" "Bash" "$cmd" "$reason" 0
 {
   printf '%s\n' "$nudge"
