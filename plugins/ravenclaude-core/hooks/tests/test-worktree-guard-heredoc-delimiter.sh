@@ -181,6 +181,18 @@ src = src.replace(
     'blank="<<HEREDOC"',
     1,
 )
+# AppSec #1430 kept the full opener line; 0.361.3 blanked from << onward and
+# glued the next command onto <<HEREDOC (no newline). Revert that keep so the
+# teeth still fail-open the way AppSec reproduced.
+old_keep_opener = '''                    # Keep the full opener line (writers on that line); drop body.
+                    # `blank` unused here on purpose — kept in the signature.
+                    _ = blank
+                    out.append(text[pos : nl + 1])
+'''
+new_drop_opener = '''                    out.append(text[pos:idx] + blank)
+'''
+assert old_keep_opener in src, "opener-line keep (#1430) not found for mutation"
+src = src.replace(old_keep_opener, new_drop_opener, 1)
 # Restore the drop-on-unterminated else branch.
 old_else_keep = '''        else:
             if nl < 0:
