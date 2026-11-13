@@ -5,7 +5,7 @@ The Directory's pre-submission checklist (https://claude.com/docs/plugins/pre-su
 re-read 2026-10-14) stops validating a repository that is not "under 50 MiB as GitHub archives it and under
 256 MiB unpacked, with fewer than 10,000 files and folders", and a stopped validation cannot be fixed from
 the portal. This repo held 10,883 tracked files when that was first measured; packing the 1,019 generated
-diagram SVGs (scripts/visual_pack.py) brought the FILE count under. This gate keeps it there: without it
+diagram SVGs (scripts/visual_pack.py) brought the FILE count under. Later packs follow the same pattern — scripts/unpack-vfl-fixtures.py restores Gate 100's packed tests/fixtures/visual-feedback-loop/fixtures.pack.json in place. This gate keeps the count there: without it
 the count drifts back over the limit one PR at a time and nobody notices until a submission fails.
 
 What a green run does and does not mean (read before trusting it):
