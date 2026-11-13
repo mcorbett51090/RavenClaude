@@ -6,7 +6,8 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 913
 summary: "A rule about how a command turned out cannot run before the command."
-last_verified: 2026-11-05covers:
+last_verified: 2026-11-05
+covers:
   - plugins/ravenclaude-core/scripts/build-outcome-corpus.py
   - plugins/ravenclaude-core/scripts/audit-fired-count.py
   - plugins/ravenclaude-core/scripts/check-cause-eval.py
@@ -15,7 +16,8 @@ last_verified: 2026-11-05covers:
   - plugins/ravenclaude-core/scripts/guard-remediation-cause.sh
   - plugins/ravenclaude-core/scripts/preflight-command-review.sh
   - plugins/ravenclaude-core/scripts/replay-outcome-rules.py
-covers_digest: "sha256:ed53734d12f129ee50468ab9c1bbcd73bf0aabf6e2423d79a6f91a2165b8b14b"nuance: "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%."
+covers_digest: "sha256:9296513412af160b067af6a6a90d81df6ed7f24f5acd10533d00bbc8394a56d1"
+nuance: "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%."
 nuance_evidence:
   measured: "2026-08-25"
   control: "the same rule measured post-hoc (with stdout_empty) fired 487 times and lexically (without it) 2,816 times over the same 34,014 evidence-bearing commands, so the gap is the missing field and not a different corpus"

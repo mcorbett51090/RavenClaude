@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.364.0 — 2026-11-13
+
+### Fixed
+- **Revive / land the 2026-10-19 whole-repo review (PR #1387) onto current main.**
+  Merges the 141 implemented fixes (2 P0 / 21 P1 / 83 P2 / 35 P3) and Gates
+  310–316 after resolving drift against main (now past 0.363.4). Codex hook
+  projection and installer-lane gates renumbered to 318/319 so they do not
+  collide with main's Gate 308/309 worktree lifecycle work. Copilot adapter
+  keeps the `_RC_JQ_LIB` file-key aliasing (1a-2); main's Chat PascalCase
+  G167 cases fold in as G167.18–19.
+
 ## 0.363.2 — 2026-11-13
 
 ### Fixed

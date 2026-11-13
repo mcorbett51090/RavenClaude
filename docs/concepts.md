@@ -2357,6 +2357,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 _Last verified: 2026-11-13_
 
+
 ---
 
 ### Two emitters on one event · _RavenClaude-built_
@@ -2452,6 +2453,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 _Last verified: 2026-11-13_
 
+
 ---
 
 ### must-fail conventions diverge · _RavenClaude-built_
@@ -2476,6 +2478,7 @@ Probe: `scripts/audit-gates.sh`
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
 _Last verified: 2026-11-11_
+
 
 ---
 
@@ -2821,6 +2824,7 @@ predicate names anything the command has not done yet.
 **Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md)
 
 _Last verified: 2026-11-05_
+
 
 ---
 

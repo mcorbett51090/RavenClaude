@@ -2812,7 +2812,8 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-11-13",      "refresh_when": null,
+      "last_verified": "2026-11-13",
+      "refresh_when": null,
       "sources": [
         {
           "label": "measured in the FORGE product-inventory run",
@@ -2881,7 +2882,8 @@
         "plugins/ravenclaude-core/hooks/worktree-guard-bash.py",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:e621016ac6d87bae2f2830f7327a27b5c4e019c0221d9877a8f4152742183863",      "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
+      "covers_digest": "sha256:c71be625911f1399a088cbd0877cbcc48e63e7f8072525d7a3f96ad3cb1242fb",
+      "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
         "control": "a SessionStart additionalContext sentinel came back in every trial while the stderr token never did",
@@ -3003,7 +3005,8 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-11-13",      "refresh_when": null,
+      "last_verified": "2026-11-13",
+      "refresh_when": null,
       "sources": [
         {
           "label": "measured in the FORGE product-inventory run",
@@ -3022,7 +3025,8 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:8382f577c279bb844a3189f3978ae75f9a388197a0dbe789e3fbb11be518bb30",      "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
+      "covers_digest": "sha256:a7a758f27a6a2710a44e98e01bb974d4e9c8b48a691c72cc998f85ee14085593",
+      "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
         "control": "a bumped version propagated on the next update while an unbumped one did not",
@@ -3050,7 +3054,8 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-11-11",      "refresh_when": null,
+      "last_verified": "2026-11-11",
+      "refresh_when": null,
       "sources": [
         {
           "label": "measured in the FORGE product-inventory run",
@@ -3082,7 +3087,8 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:a557def7e74d97a5aab734f813d433ed32d83107c9ec2e404ea68956634604f2",      "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
+      "covers_digest": "sha256:db2919447a9de0ef33098ea84176cce99732c1a6fa1c65146b8d0019f2ace468",
+      "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
         "control": "ran --must-fail on both: each exits 0 on success, so the 0-vs-2 divergence is in the CHECK exit each teeth run observes, not in the teeth exit itself",
@@ -3619,7 +3625,8 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-11-05",      "refresh_when": null,
+      "last_verified": "2026-11-05",
+      "refresh_when": null,
       "sources": [
         {
           "label": "measured in the verify-before-assert Phase 1 corpus run",
@@ -3643,7 +3650,8 @@
         "plugins/ravenclaude-core/scripts/preflight-command-review.sh",
         "plugins/ravenclaude-core/scripts/replay-outcome-rules.py"
       ],
-      "covers_digest": "sha256:ed53734d12f129ee50468ab9c1bbcd73bf0aabf6e2423d79a6f91a2165b8b14b",      "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
+      "covers_digest": "sha256:9296513412af160b067af6a6a90d81df6ed7f24f5acd10533d00bbc8394a56d1",
+      "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
       "nuance_evidence": {
         "measured": "2026-08-25",
         "control": "the same rule measured post-hoc (with stdout_empty) fired 487 times and lexically (without it) 2,816 times over the same 34,014 evidence-bearing commands, so the gap is the missing field and not a different corpus",
