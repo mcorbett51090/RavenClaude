@@ -110,6 +110,41 @@ hello
 EOF"
 
 echo
+echo "── AppSec #1430 — blanker keeps opener-line writers; false <<; line cont ───"
+# Use /workspace/sibling-wt (same as F1 cases), NOT a path under $T/mktemp:
+# the helper allowlists /tmp, so $T/sibling would false-allow every deny row.
+_SIB="/workspace/sibling-wt"
+
+run appsec-1430-control-redirect 3 "echo x > ${_SIB}/a"
+
+_body="cat ${_HD}EOF | tee ${_SIB}/x"$'\n'"body"$'\n'"EOF"
+run appsec-1430-cat-tee-opener-suffix 3 "$_body"
+
+_body="cat ${_HD}EOF; touch ${_SIB}/x"$'\n'"body"$'\n'"EOF"
+run appsec-1430-cat-touch-opener-suffix 3 "$_body"
+
+# Arithmetic << must not blank the following touch (false opener).
+_body="echo \$((1<<8)); touch ${_SIB}/x"$'\n'"8"
+run appsec-1430-arith-shift-false-opener 3 "$_body"
+
+# Comment decoy: # <<EOF must not blank the following touch.
+_body="# ${_HD}EOF"$'\n'"touch ${_SIB}/x"$'\n'"EOF"
+run appsec-1430-comment-decoy-opener 3 "$_body"
+
+_body="python3 - ${_HD}'PY'"$'\n'"open('${_SIB}/x','w').write('x')"$'\n'"PY"
+run appsec-1430-python-heredoc 3 "$_body"
+
+# Line-continued interpreter: python3 \ ⏎ <<'PY'
+_body="python3 \\"$'\n'"${_HD}'PY'"$'\n'"open('${_SIB}/x','w').write('x')"$'\n'"PY"
+run appsec-1430-python-line-continuation 3 "$_body"
+
+_body="cat ${_HD}EOF > ./in-tree"$'\n'"hi"$'\n'"EOF"
+run appsec-1430-allow-cat-in-tree 0 "$_body"
+
+_body="git commit -F - ${_HD}EOF"$'\n'"msg"$'\n'"EOF"
+run appsec-1430-allow-git-commit-F 0 "$_body"
+
+echo
 echo "── allow — data heredocs (non-interpreter) stay treated as inert data ───────"
 run allow-cat-only-mentions-path 0 "cat <<'EOF' | grep rf
 some text mentioning /workspace/other/f

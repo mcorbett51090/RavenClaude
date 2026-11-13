@@ -175,6 +175,37 @@ run appsec-f1-python-rmtree       2 "$(j Bash "$_cmd_appsec_f1_python_rmtree")"
 
 _cmd_appsec_f1_node_writeFileSync="node ${_HD}JS"$'\n'"require('fs').writeFileSync(\"/workspace/sibling-wt/x\", \"x\")"$'\n'"JS"
 run appsec-f1-node-writeFileSync  2 "$(j Bash "$_cmd_appsec_f1_node_writeFileSync")"
+
+# ── AppSec #1430: blanker must keep opener-line writers; false << openers
+# (comment / arithmetic) must not blank following writers; line-continued
+# interpreter heredocs must still deny. Hook-level exit 2.
+_cmd_1430_control="echo x > /workspace/sibling-wt/a"
+run appsec-1430-control-redirect 2 "$(j Bash "$_cmd_1430_control")"
+
+_cmd_1430_tee="cat ${_HD}EOF | tee /workspace/sibling-wt/x"$'\n'"body"$'\n'"EOF"
+run appsec-1430-cat-tee-opener-suffix 2 "$(j Bash "$_cmd_1430_tee")"
+
+_cmd_1430_touch="cat ${_HD}EOF; touch /workspace/sibling-wt/x"$'\n'"body"$'\n'"EOF"
+run appsec-1430-cat-touch-opener-suffix 2 "$(j Bash "$_cmd_1430_touch")"
+
+_cmd_1430_arith="echo \$((1<<8)); touch /workspace/sibling-wt/x"$'\n'"8"
+run appsec-1430-arith-shift-false-opener 2 "$(j Bash "$_cmd_1430_arith")"
+
+_cmd_1430_comment="# ${_HD}EOF"$'\n'"touch /workspace/sibling-wt/x"$'\n'"EOF"
+run appsec-1430-comment-decoy-opener 2 "$(j Bash "$_cmd_1430_comment")"
+
+_cmd_1430_py="python3 - ${_HD}'PY'"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run appsec-1430-python-heredoc 2 "$(j Bash "$_cmd_1430_py")"
+
+_cmd_1430_pycont="python3 \\"$'\n'"${_HD}'PY'"$'\n'"open('/workspace/sibling-wt/x','w').write('x')"$'\n'"PY"
+run appsec-1430-python-line-continuation 2 "$(j Bash "$_cmd_1430_pycont")"
+
+_cmd_1430_allow_cat="cat ${_HD}EOF > ./in-tree"$'\n'"hi"$'\n'"EOF"
+run appsec-1430-allow-cat-in-tree 0 "$(j Bash "$_cmd_1430_allow_cat")"
+
+_cmd_1430_allow_git="git commit -F - ${_HD}EOF"$'\n'"msg"$'\n'"EOF"
+run appsec-1430-allow-git-commit-F 0 "$(j Bash "$_cmd_1430_allow_git")"
+
 run crash-malformed-json     2 '{"tool_name":"Bash","tool_input":{'
 # crash: helper unavailable -> must deny, not allow
 cp "$H" "$T/wg.sh"

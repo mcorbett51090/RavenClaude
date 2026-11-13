@@ -19,6 +19,7 @@ on this box's Claude Code < 2.1.295). Defense in depth, all fail-closed:
 helper exits to a deny via _wg_fail_closed). SIGALRM is required: this
 helper is invoked by a bash hook and is Unix-only; if the timer cannot
 be armed, exit 4 (never fail open)."""
+
 import os
 import re
 import shlex
@@ -122,7 +123,7 @@ def _parse_shell_word(text, j):
             j += 1
             buf = []
             while j < n and text[j] != '"':
-                if text[j] == "\\" and j + 1 < n and text[j + 1] in "$`\"\\\n":
+                if text[j] == "\\" and j + 1 < n and text[j + 1] in '$`"\\\n':
                     buf.append(text[j + 1])
                     j += 2
                     continue
@@ -161,8 +162,108 @@ def _is_terminator(line, tag, strip_tabs):
 _INTERP_NAME_RE = re.compile(r"^(?:python[0-9.]*|node|nodejs|perl|ruby|php|deno|bun)$")
 
 
+def _join_line_continuations(text):
+    """Join bash line continuations (backslash-newline) outside single quotes.
+
+    Unquoted and double-quoted ``\\\n`` continue the command; inside single
+    quotes backslash is literal. Best-effort — AppSec #1430: so
+    ``python3 \\\n<<'PY'`` is seen as one direct interpreter heredoc.
+    """
+    out = []
+    i = 0
+    n = len(text)
+    in_squote = False
+    while i < n:
+        c = text[i]
+        if in_squote:
+            out.append(c)
+            if c == "'":
+                in_squote = False
+            i += 1
+            continue
+        if c == "'":
+            in_squote = True
+            out.append(c)
+            i += 1
+            continue
+        if c == "\\" and i + 1 < n and text[i + 1] == "\n":
+            i += 2
+            continue
+        if c == "\\" and i + 2 < n and text[i + 1 : i + 3] == "\r\n":
+            i += 3
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def _is_command_position_heredoc(text, idx):
+    """True only when ``<<`` at idx looks like a heredoc redirection.
+
+    Skip ``<<`` inside quotes, line comments (``#`` at word start), and
+    arithmetic ``$(( ))`` / ``(( ))``. If unsure, return False so the text
+    stays unblanked (AppSec #1430 fail closed — writers remain visible).
+    """
+    line_start = text.rfind("\n", 0, idx) + 1
+    i = line_start
+    n = len(text)
+    in_squote = False
+    in_dquote = False
+    arith_depth = 0
+    while i < idx:
+        c = text[i]
+        if in_squote:
+            if c == "'":
+                in_squote = False
+            i += 1
+            continue
+        if in_dquote:
+            if c == "\\" and i + 1 < n:
+                i += 2
+                continue
+            if c == '"':
+                in_dquote = False
+            i += 1
+            continue
+        if c == "\\":
+            i += 2 if i + 1 < n else 1
+            continue
+        if c == "'":
+            in_squote = True
+            i += 1
+            continue
+        if c == '"':
+            in_dquote = True
+            i += 1
+            continue
+        if c == "#":
+            # Rest of the physical line is a comment — not a heredoc opener.
+            return False
+        if c == "$" and i + 2 < n and text[i + 1 : i + 3] == "((":
+            arith_depth += 1
+            i += 3
+            continue
+        if c == "(" and i + 1 < n and text[i + 1] == "(":
+            arith_depth += 1
+            i += 2
+            continue
+        if arith_depth > 0:
+            if c == ")" and i + 1 < n and text[i + 1] == ")":
+                arith_depth -= 1
+                i += 2
+                continue
+            i += 1
+            continue
+        i += 1
+    if in_squote or in_dquote or arith_depth > 0:
+        return False
+    return True
+
+
 def _heredoc_feeds_interpreter(prefix):
     # The simple command immediately before `<<` (e.g. `python3 - <<'PY'`).
+    # Line continuations are joined in main(); still tolerate residual \\\n.
+    prefix = _join_line_continuations(prefix)
     seg = re.split(r"[\n;&|(]", prefix)[-1]
     for tok in seg.split():
         tok = tok.strip("'\"").lstrip("\\")
@@ -176,12 +277,16 @@ def _heredoc_feeds_interpreter(prefix):
 def _strip_data_heredocs(text, keep_interpreter, blank):
     """Line-based linear replacement for the old ``.*?\\n\\1\\b`` regex.
 
-    Walks the string once. Terminated data heredocs are replaced with
-    `blank`. Interpreter-fed heredocs are kept whole when keep_interpreter
+    Walks the string once. Terminated data heredocs drop only their **body**
+    lines (AppSec #1430): the opener line — including ``| tee …`` / ``; touch …``
+    suffixes — stays so the WRITERS scan still sees them. `blank` is retained
+    for API compatibility with callers/tests but is no longer substituted for
+    the opener. Interpreter-fed heredocs are kept whole when keep_interpreter
     is True so the body (the program) is scanned. If a terminator is not
     found, or the opener cannot be parsed, the rest of the command is
     kept in the output (AppSec R1): never drop unscanned text. Linear —
-    a missing terminator does not backtrack.
+    a missing terminator does not backtrack. ``<<`` inside comments,
+    quotes, or arithmetic is not treated as an opener (#1430).
     """
     n = len(text)
     out = []
@@ -192,7 +297,7 @@ def _strip_data_heredocs(text, keep_interpreter, blank):
             out.append(text[pos:])
             break
         parsed = _parse_heredoc_opener(text, idx)
-        if parsed is None:
+        if parsed is None or not _is_command_position_heredoc(text, idx):
             out.append(text[pos : idx + 2])
             pos = idx + 2
             continue
@@ -241,7 +346,10 @@ def _strip_data_heredocs(text, keep_interpreter, blank):
                     line = text[k:line_end]
                     next_k = line_end + 1
                 if _is_terminator(line, tag, strip_tabs):
-                    out.append(text[pos:idx] + blank)
+                    # Keep the full opener line (writers on that line); drop body.
+                    # `blank` unused here on purpose — kept in the signature.
+                    _ = blank
+                    out.append(text[pos : nl + 1])
                     pos = next_k
                     found = True
                     break
@@ -259,18 +367,33 @@ def main():
     _arm_alarm()
     try:
         root, cwd = os.path.realpath(sys.argv[1]), os.path.realpath(sys.argv[2])
-        cmd = _read_cmd_capped()
+        # AppSec #1430: join bash line continuations before any scan so
+        # `python3 \\\n<<'PY'` is one direct interpreter heredoc.
+        cmd = _join_line_continuations(_read_cmd_capped())
         if cmd.count("<<") > _MAX_HEREDOC_MARKERS:
             print("too large to parse")
             sys.exit(3)
 
-        ALLOW = [root, "/tmp", "/var/tmp", "/dev/null", "/dev/stdout", "/dev/stderr", "/dev/fd", "/proc/self/fd"]
+        ALLOW = [
+            root,
+            "/tmp",
+            "/var/tmp",
+            "/dev/null",
+            "/dev/stdout",
+            "/dev/stderr",
+            "/dev/fd",
+            "/proc/self/fd",
+        ]
         # Copilot Chat with no project uses ~/.copilot/chats/<id> as cwd. Writes inside
         # that one session folder are the chat's own scratch, not a sibling worktree.
         _chats = os.path.realpath(os.path.expanduser("~/.copilot/chats"))
         if cwd == _chats or cwd.startswith(_chats + os.sep):
             ALLOW.append(cwd)
-        for _e in [os.environ.get("TMPDIR"), os.environ.get("RC_WG_GUARD_HOME"), "/workspace/cli-out"] + os.environ.get("RC_WG_EXTRA_WRITE_ROOTS", "").split(":"):
+        for _e in [
+            os.environ.get("TMPDIR"),
+            os.environ.get("RC_WG_GUARD_HOME"),
+            "/workspace/cli-out",
+        ] + os.environ.get("RC_WG_EXTRA_WRITE_ROOTS", "").split(":"):
             if _e:
                 ALLOW.append(os.path.realpath(_e))
         bad = []
@@ -284,7 +407,9 @@ def main():
             if "$" in p:
                 expanded = os.path.expandvars(p)
                 if expanded == p or "$" in expanded:
-                    return not p.startswith(("$TMPDIR", "${TMPDIR")) and not re.match(r"^\$\{?(PWD|CLAUDE_PROJECT_DIR)\}?(/|$)", p)
+                    return not p.startswith(("$TMPDIR", "${TMPDIR")) and not re.match(
+                        r"^\$\{?(PWD|CLAUDE_PROJECT_DIR)\}?(/|$)", p
+                    )
                 p = expanded
             p = os.path.expanduser(p)
             a = os.path.realpath(os.path.join(cwd, p))
@@ -299,20 +424,40 @@ def main():
             flag("redirect", m.group(1))
         # 2. heredoc bodies are data; analyse their command line only (already above).
         # Linear scanner (AppSec N1) — same blanking as the old regex, no backtracking.
-        segs = re.split(r"\|\||&&|;|\||\n", _strip_data_heredocs(cmd, keep_interpreter=False, blank="<<HEREDOC\n"))
-        WRITERS = {"cp": "last", "mv": "last", "install": "last", "ln": "last", "rsync": "last",
-                   "rm": "all", "rmdir": "all", "mkdir": "all", "touch": "all", "truncate": "all",
-                   "chmod": "allbut1", "chown": "allbut1", "tee": "all", "dd": "of"}
+        segs = re.split(
+            r"\|\||&&|;|\||\n",
+            _strip_data_heredocs(cmd, keep_interpreter=False, blank="<<HEREDOC\n"),
+        )
+        WRITERS = {
+            "cp": "last",
+            "mv": "last",
+            "install": "last",
+            "ln": "last",
+            "rsync": "last",
+            "rm": "all",
+            "rmdir": "all",
+            "mkdir": "all",
+            "touch": "all",
+            "truncate": "all",
+            "chmod": "allbut1",
+            "chown": "allbut1",
+            "tee": "all",
+            "dd": "of",
+        }
         for s in segs:
             try:
                 toks = shlex.split(s, comments=False)
             except ValueError:
                 toks = s.split()
-            while toks and (re.match(r"^\w+=", toks[0]) or toks[0] in ("sudo", "env", "nohup", "time", "command", "exec", "xargs")):
+            while toks and (
+                re.match(r"^\w+=", toks[0])
+                or toks[0] in ("sudo", "env", "nohup", "time", "command", "exec", "xargs")
+            ):
                 toks = toks[1:]
             if not toks:
                 continue
-            c = os.path.basename(toks[0]); args = [t for t in toks[1:] if not t.startswith("-")]
+            c = os.path.basename(toks[0])
+            args = [t for t in toks[1:] if not t.startswith("-")]
             if c == "sed" and any(t.startswith("-i") or t == "--in-place" for t in toks):
                 for t in args[1:]:
                     flag("sed -i", t)
@@ -328,7 +473,11 @@ def main():
                     [flag(c, t) for t in args]
             elif re.match(r"^(python[0-9.]*|node|nodejs|perl|ruby|php|deno|bun)$", c):
                 # inline (-c/-e) or heredoc/stdin programs: look for absolute/home path literals used in writes
-                if any(t in ("-c", "-e", "-E", "--eval", "-") for t in toks) or "<<" in s or "<<HEREDOC" in s:
+                if (
+                    any(t in ("-c", "-e", "-E", "--eval", "-") for t in toks)
+                    or "<<" in s
+                    or "<<HEREDOC" in s
+                ):
                     pass
         # Heredoc bodies are data UNLESS the heredoc feeds an interpreter — then the
         # body IS the program that runs, and blanking it (as the straight-command
@@ -349,11 +498,23 @@ def main():
         # AppSec N1: the interpreter-vs-data decision is still made per opener
         # (via _heredoc_feeds_interpreter) but the walk is line-based and linear.
         _scan = _strip_data_heredocs(cmd, keep_interpreter=True, blank=" <<HEREDOC\n")
-        for _m in re.finditer(r"(?:python[0-9.]*|node|nodejs|perl|ruby|php|deno|bun)\b[^\n]*?(?:\s-[ceE]\s|\s-\s|<<)", _scan):
+        # After _join_line_continuations, interpreter and << share a line; still
+        # allow optional whitespace (and a residual \\\n) between them (#1430).
+        for _m in re.finditer(
+            r"(?:python[0-9.]*|node|nodejs|perl|ruby|php|deno|bun)\b"
+            r"(?:[^\n]|[ \t]*\\\n)*?"
+            r"(?:\s-[ceE]\s|\s-\s|<<)",
+            _scan,
+        ):
             # best-effort: any quoted absolute/~ path literal in the whole command that looks write-ish
-            if re.search(r"open\([^)]*['\"][wax]b?\+?['\"]|write_text|write_bytes|writeFile|writeTextFile|file_put_contents|appendFile|createWriteStream|shutil\.|os\.(rename|replace|remove|unlink|makedirs|mkdir)|rmtree|unlinkSync|rmSync|Bun\.write|open\s*\(?\s*\w+\s*,\s*['\"]\+?>|print\s*\{", _scan):
+            if re.search(
+                r"open\([^)]*['\"][wax]b?\+?['\"]|write_text|write_bytes|writeFile|writeTextFile|file_put_contents|appendFile|createWriteStream|shutil\.|os\.(rename|replace|remove|unlink|makedirs|mkdir)|rmtree|unlinkSync|rmSync|Bun\.write|open\s*\(?\s*\w+\s*,\s*['\"]\+?>|print\s*\{",
+                _scan,
+            ):
                 for p in re.findall(r"['\"]((?:/|~/)[^'\"\s]*)['\"]", _scan):
-                    if not p.startswith(("/usr/", "/bin/", "/lib", "/etc/", "/opt/", "/proc/", "/sys/")):
+                    if not p.startswith(
+                        ("/usr/", "/bin/", "/lib", "/etc/", "/opt/", "/proc/", "/sys/")
+                    ):
                         flag("inline-interpreter", p)
             break
         if bad:

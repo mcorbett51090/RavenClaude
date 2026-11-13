@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.363.1 — 2026-11-13
+
+### Fixed
+- **AppSec #1430 (High) — worktree-guard heredoc blanker fail-opens.** The
+  linear data-heredoc blanker dropped opener-line suffixes (`| tee …`,
+  `; touch …`) and treated `<<` inside arithmetic (`$((1<<8))`) or comments
+  (`# <<EOF`) as openers, blanking following writers. Line-continued
+  interpreter heredocs (`python3 \\n<<'PY'`) also missed
+  `_heredoc_feeds_interpreter`. Fixed fail-closed: keep the full opener line
+  and drop only body lines; recognise `<<` as an opener only in command
+  position (skip quotes / `#` comments / `$(( ))` / `(( ))`; unsure → leave
+  unblanked); join bash line continuations before scans. Gate 309 +
+  fail-closed suites cover the acceptance table. N1 size/alarm caps unchanged.
+
 ## 0.363.0 — 2026-11-12
 
 ### Added
