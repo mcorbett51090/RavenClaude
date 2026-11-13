@@ -138,8 +138,8 @@ Marketplace Pages / root serve-dashboards.py
 
 5. **Do not change consumer `DASH_PATH`**  
    - `plugins/ravenclaude-core/scripts/serve-dashboards.py` keeps `DASH_PATH = "/dashboard.html"`.  
-   - Root `scripts/serve-dashboards.py` keeps `dash_path = "/index.html"`.  
-   - `scripts/open-dashboard.sh` keeps `/index.html` URLs.
+   - Root `scripts/serve-dashboards.py` kept `dash_path = "/index.html"` for Phase 2 (retargeted in Phase 3a).  
+   - `scripts/open-dashboard.sh` kept `/index.html` URLs for Phase 2 (retargeted in Phase 3a).
 
 6. **Gates / docs**  
    - Gate 132: raise **only** if static DOM lands; append owned ratchet reason.  
@@ -206,8 +206,8 @@ Marketplace Pages / root serve-dashboards.py
 
 | Path | Why |
 |---|---|
-| `scripts/open-dashboard.sh` `url=…/index.html` | Still correct marketplace hybrid entry |
-| Root `serve-dashboards.py` `dash_path = "/index.html"` | Phase 3 |
+| `scripts/open-dashboard.sh` `url=…/index.html` | Phase 2 keep; Phase 3a retargets to `dashboard.html` |
+| Root `serve-dashboards.py` `dash_path = "/index.html"` | Phase 3a retargets to `/plugins/ravenclaude-core/dashboard.html` |
 | Consumer `DASH_PATH = "/dashboard.html"` | Correct lean home |
 | Gate 97 retarget off `index.html` | Phase 3 |
 

@@ -2276,6 +2276,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
     def do_HEAD(self):
         path_base = self.path.split("?", 1)[0]
+        # Match do_GET: bare root redirects to dash_path (otherwise SimpleHTTP
+        # would HEAD-serve index.html and defeat Phase 3a entry unification).
+        if path_base in ("/", ""):
+            target = getattr(
+                self.server, "_dash_path", "/plugins/ravenclaude-core/dashboard.html"
+            )
+            self.send_response(302)
+            self.send_header("Location", target)
+            self.end_headers()
+            return
         if path_base.startswith("/__spectate"):
             self._handle_spectate_api()
             return
@@ -2414,7 +2424,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             # onAutoForward: openBrowser lands on the dashboard, not a directory
             # listing.  The target path is injected by main() after it resolves
             # the actual dash_path.
-            target = getattr(self.server, "_dash_path", "/index.html")
+            target = getattr(self.server, "_dash_path", "/plugins/ravenclaude-core/dashboard.html")
             self.send_response(302)
             self.send_header("Location", target)
             self.end_headers()
@@ -3578,11 +3588,12 @@ def main() -> int:
             _ALLOWED_HOSTS.add(f"{_ip}:{actual_port}")
             _ALLOWED_ORIGINS.add(f"http://{_ip}:{actual_port}")
 
-    # The marketplace dev portal is now the unified index.html (the dashboard +
-    # catalog are folded in natively). serve REPO_ROOT (unchanged) and point the
-    # landing path + root redirect at index.html so its live /__* fetches run at
-    # this same origin.
-    dash_path = "/index.html"
+    # Phase 3a (one-product): marketplace *local* home is the same artifact
+    # consumers use — plugins/ravenclaude-core/dashboard.html — with Catalog
+    # Browse via /catalog-data.json (Phase 2 hybrid). Fat index.html remains
+    # for GitHub Pages + Gates 97/51 until Phase 3b. serve REPO_ROOT unchanged
+    # so /__* and the sidecar stay same-origin.
+    dash_path = "/plugins/ravenclaude-core/dashboard.html"
     # Attach dash_path to the server so do_GET's root redirect can read it
     # without a global variable.
     server._dash_path = dash_path  # type: ignore[attr-defined]

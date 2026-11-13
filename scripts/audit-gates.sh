@@ -5234,7 +5234,7 @@ else
   C2_PID=$!
   c2_ready=0
   for _ in $(seq 1 40); do
-    if curl -fsS -o /dev/null "http://127.0.0.1:${C2_PORT}/index.html" 2>/dev/null; then c2_ready=1; break; fi
+    if curl -fsS -o /dev/null "http://127.0.0.1:${C2_PORT}/plugins/ravenclaude-core/dashboard.html" 2>/dev/null; then c2_ready=1; break; fi
     sleep 0.25
   done
   if [ "$c2_ready" -ne 1 ]; then
@@ -5290,7 +5290,7 @@ else
   C2B_PID=$!
   c2b_ready=0
   for _ in $(seq 1 40); do
-    if curl -fsS -o /dev/null "http://127.0.0.1:${C2B_PORT}/index.html" 2>/dev/null; then c2b_ready=1; break; fi
+    if curl -fsS -o /dev/null "http://127.0.0.1:${C2B_PORT}/plugins/ravenclaude-core/dashboard.html" 2>/dev/null; then c2b_ready=1; break; fi
     sleep 0.25
   done
   if [ "$c2b_ready" -ne 1 ]; then
