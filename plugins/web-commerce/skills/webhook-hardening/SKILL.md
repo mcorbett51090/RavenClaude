@@ -26,8 +26,10 @@ Per-provider scheme:
 Providers **retry** deliveries and do **not** guarantee ordering. Before any side effect:
 
 1. Extract the provider event id (Stripe `event.id`, Square `event_id`, Shopify delivery id).
-2. `await store.seen(eventId)` — if true, return 2xx and stop (already processed).
-3. Do the work, then `await store.remember(eventId, ttl)`.
+2. `if (!(await store.claim(eventId))) return 2xx` — `claim` is one atomic set-if-absent lease, so exactly one of two concurrent deliveries does the work; a duplicate or in-flight delivery is acknowledged without it.
+3. Do the work, then `await store.remember(eventId, ttl)`. If the work throws, `await store.release(eventId)` and rethrow, so the provider's retry runs it again.
+
+> **Superseded 2026-10-19 (0.1.3):** this list used to say `seen()` then do the work. A check-then-mark lets two concurrent deliveries both pass `seen()` and both run the side effects, and marking before the work loses the event when the work fails. The templates and `IdempotencyStore` now use `claim` / `remember` / `release`.
 
 Use an `IdempotencyStore` (`templates/shared/idempotency-store.ts`). **On a static tier the store is KV-backed** (Upstash / Vercel KV) behind a serverless function — never a process-memory `Set` (a recycled invocation loses it and re-processes) and never browser state.
 

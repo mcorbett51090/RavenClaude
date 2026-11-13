@@ -24,9 +24,21 @@
 
 set -euo pipefail
 
-# Resolve this script's own directory (follow one symlink level for PATH installs).
+# Resolve this script's own directory, following every symlink to the real file
+# (corescripts-17). A RELATIVE link target is relative to the LINK's directory, not
+# the caller's cwd, and a chain (link -> link -> rc) is followed to the end; the one
+# level, cwd-relative follow this replaces broke Homebrew-style relative PATH links.
+# The hop cap stops a link cycle from looping forever.
 _src="${BASH_SOURCE[0]}"
-[ -L "$_src" ] && _src="$(readlink "$_src")"
+_hops=0
+while [ -L "$_src" ] && [ "$_hops" -lt 40 ]; do
+  _l="$(readlink "$_src")"
+  case "$_l" in
+    /*) _src="$_l" ;;
+    *) _src="$(dirname "$_src")/$_l" ;;
+  esac
+  _hops=$((_hops + 1))
+done
 BIN_DIR="$(cd "$(dirname "$_src")" && pwd)"
 PLUGIN_ROOT="$(cd "$BIN_DIR/.." && pwd)"
 
@@ -200,10 +212,25 @@ case "$cmd" in
     if [ "$do_demo" -eq 1 ]; then
       python3 "$demo_py" --project-root "$PWD" || exit 1
     fi
-    # Attach-don't-kill: probe ports port..port+10 for our live server with /__spectate.
+    # Whose server is it? (dashboard-9) /__csrf carries project_id =
+    # sha256(<resolved project root>)[:12]; the server we launch below serves
+    # --project-root "$PWD", so ours reports the id of $PWD. A live Spectate server
+    # that reports another id (or none: an older server) belongs to another project
+    # or worktree, and attaching to it would show the wrong sessions.
+    my_id="$(python3 -c 'import hashlib, sys
+from pathlib import Path
+print(hashlib.sha256(str(Path(sys.argv[1]).resolve()).encode("utf-8")).hexdigest()[:12])' "$PWD" 2>/dev/null || true)"
+    _rc_port_is_ours() {
+      curl -fsS -H "Host: 127.0.0.1:$1" "http://127.0.0.1:$1/__spectate/capabilities" >/dev/null 2>&1 || return 1
+      local body pid
+      body="$(curl -fsS -m 3 -H "Host: 127.0.0.1:$1" "http://127.0.0.1:$1/__csrf" 2>/dev/null)" || return 1
+      pid="$(printf '%s' "$body" | sed -n 's/.*"project_id"[[:space:]]*:[[:space:]]*"\([0-9a-f]*\)".*/\1/p' | head -1)"
+      [ -n "$pid" ] && [ "$pid" = "$my_id" ]
+    }
+    # Attach-don't-kill: probe ports port..port+10 for OUR live server.
     bound=""
     for cand in $(seq "$port" $((port + 10))); do
-      if curl -fsS -H "Host: 127.0.0.1:${cand}" "http://127.0.0.1:${cand}/__spectate/capabilities" >/dev/null 2>&1; then
+      if _rc_port_is_ours "$cand"; then
         bound=$cand
         break
       fi
@@ -220,7 +247,7 @@ case "$cmd" in
       nohup python3 "$server" --project-root "$PWD" --port "$port" --no-reclaim --no-open >"$log" 2>&1 &
       for _i in 1 2 3 4 5 6 7 8 9 10; do
         for cand in $(seq "$port" $((port + 10))); do
-          if curl -fsS -H "Host: 127.0.0.1:${cand}" "http://127.0.0.1:${cand}/__spectate/capabilities" >/dev/null 2>&1; then
+          if _rc_port_is_ours "$cand"; then
             bound=$cand
             break 2
           fi

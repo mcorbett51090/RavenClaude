@@ -998,6 +998,11 @@ def resolve_nested_dispatch(posture: dict) -> tuple[str, str, dict]:
     on without auth → effective off.
     """
     requested = nested_dispatch_mode(posture)
+    if requested != "on":
+        # Absent / off: the auth status is never consumed, so do not pay for a
+        # `claude auth status` probe (up to 8 s, inside the settings lock, on every
+        # SessionStart reapply). tribunal-15.
+        return requested, "off", {}
     auth = claude_auth_status()
     if requested == "on" and not auth.get("logged_in"):
         return requested, "off", auth

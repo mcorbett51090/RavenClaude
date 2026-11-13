@@ -43,6 +43,22 @@
 # This shim does NOT implement those checks and MUST NOT weaken them.
 set -uo pipefail
 
+# Shared secret scrub for every reason this shim writes to stderr. Fail-safe: if
+# the helper is absent, a passthrough stands in (same pattern as the Copilot shim).
+_adapter_scrub_helper="$(dirname "${BASH_SOURCE[0]:-$0}")/_scrub.sh"
+if [ -f "$_adapter_scrub_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_adapter_scrub_helper" 2>/dev/null || true
+fi
+command -v _scrub_reason >/dev/null 2>&1 || _scrub_reason() { printf '%s' "${1:-}"; }
+
+# Scrub, then cap at 512 bytes, then print one stderr line.
+_say() {
+  _m="$(_scrub_reason "${1:-}")"
+  [ "${#_m}" -gt 512 ] && _m="${_m:0:509}..."
+  printf 'RavenClaude: %s\n' "$_m" >&2
+}
+
 mode="${1:-}"
 real="${2:-}"
 # A missing/misconfigured shim must not brick every tool call in the editor. The
@@ -85,10 +101,27 @@ export THING_HOST="${THING_HOST:-gemini}"
 # field untouched. Unmapped names pass through VERBATIM rather than defaulting to
 # anything: a wrong default is how MH-01 reviewed an absent name as `Bash` while
 # skipping a present one.
+#
+# The payload goes to the helper on STDIN only; argv carries the session id and
+# the project dir. It used to ride argv[1] as well, and a single argv element over
+# MAX_ARG_STRLEN (128 KiB) makes the exec itself fail with E2BIG, so a large
+# write_file / padded command reached the guards UN-normalised (snake_case tool
+# name -> every PascalCase dispatch fell through to "no decision").
+#
+# Returns non-zero when python3 is present but the helper fails; pretool treats
+# that as fail-closed. With no python3 at all the payload passes through as-is
+# (the guards then see snake_case and decline, the pre-existing unsupported state).
+#
+# MCP names: Gemini sends mcp_<server>_<tool>, Claude expects
+# mcp__<server>__<tool>. The server/tool boundary is resolved from the mcpServers
+# keys in .gemini/settings.json (project, then user), longest matching prefix
+# first. Without a matching server name the first underscore is the boundary,
+# which is AMBIGUOUS for a server whose name itself contains an underscore
+# (my_server_do_x reads as server my) -- list the server in settings to fix it.
 _normalise() {
   if command -v python3 >/dev/null 2>&1; then
     printf '%s' "$payload" | python3 -c '
-import json, sys
+import json, os, sys
 MAP = {
     "run_shell_command": "Bash",
     "read_file": "Read",
@@ -100,21 +133,52 @@ MAP = {
     "google_web_search": "WebSearch",
     "web_search": "WebSearch",
 }
+
+
+def _server_names(proj):
+    names = set()
+    paths = [os.path.join(os.path.expanduser("~"), ".gemini", "settings.json")]
+    if proj:
+        paths.insert(0, os.path.join(proj, ".gemini", "settings.json"))
+    for p in paths:
+        try:
+            with open(p, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except Exception:
+            continue
+        servers = data.get("mcpServers") if isinstance(data, dict) else None
+        if isinstance(servers, dict):
+            names.update(k for k in servers if isinstance(k, str) and k)
+    return names
+
+
+def _mcp_name(raw, proj):
+    rest = raw[4:]
+    best = ""
+    for s in _server_names(proj):
+        if len(s) > len(best) and len(rest) > len(s) + 1 and rest.startswith(s + "_"):
+            best = s
+    if best:
+        return "mcp__" + best + "__" + rest[len(best) + 1 :]
+    server, _sep, tool = rest.partition("_")
+    return "mcp__" + server + ("__" + tool if tool else "")
+
+
+raw_in = sys.stdin.read()
 try:
-    d = json.load(sys.stdin)
+    d = json.loads(raw_in)
 except Exception:
-    sys.stdout.write(sys.argv[1] if len(sys.argv) > 1 else "")
+    sys.stdout.write(raw_in)
     sys.exit(0)
 if isinstance(d, dict):
     raw = d.get("tool_name")
     if isinstance(raw, str):
-        # MCP tools arrive as mcp_<server>_<tool>; Claude expects mcp__<server>__<tool>.
         if raw.startswith("mcp_") and not raw.startswith("mcp__"):
-            d["tool_name"] = "mcp__" + raw[4:]
+            d["tool_name"] = _mcp_name(raw, sys.argv[2] if len(sys.argv) > 2 else "")
         else:
             d["tool_name"] = MAP.get(raw, raw)
-    if "session_id" not in d and sys.argv[2:]:
-        d["session_id"] = sys.argv[2]
+    if "session_id" not in d and len(sys.argv) > 1:
+        d["session_id"] = sys.argv[1]
     # Spectate v0.8: normalise camelCase toolUseId → tool_use_id when present.
     # Do not mint an id — Gemini BeforeTool/AfterTool docs publish none.
     if not d.get("tool_use_id"):
@@ -122,7 +186,8 @@ if isinstance(d, dict):
         if isinstance(alt, str) and alt:
             d["tool_use_id"] = alt
 sys.stdout.write(json.dumps(d))
-' "$payload" "$sid" 2>/dev/null && return 0
+' "$sid" "${CLAUDE_PROJECT_DIR:-}" 2>/dev/null && return 0
+    return 1
   fi
   # No python3: pass the payload through unchanged rather than guessing. The guard
   # then sees a snake_case name and declines to act — the same as today's
@@ -147,15 +212,45 @@ case "$mode" in
     # Mode owns the event name — do not inherit ambient CLAUDE_HOOK_EVENT from a
     # parent session or observe hooks mis-kind the line.
     export CLAUDE_HOOK_EVENT=PreToolUse
+    # Fail CLOSED when normalisation breaks: a guard handed the raw snake_case
+    # payload dispatches on nothing and allows, which is the MH-01 shape. Exit 2
+    # is Gemini's block, and the reason goes to stderr.
+    norm="$(_normalise)"
+    nrc=$?
+    if [ "$nrc" -ne 0 ] || { [ -n "$payload" ] && [ -z "$norm" ]; }; then
+      _say "the hook payload could not be normalised, so the guard would not see this tool call; blocking (fail-closed)."
+      exit 2
+    fi
     # Capture stdout (Claude JSON verdicts); let stderr flow for the reason.
     # exit 2 IS Gemini's block. ALSO honor permissionDecision==deny at exit 0
     # (tribunal / JSON-deny guards — 2026-10-06 SH-F1).
-    out="$(_normalise | bash "$real" "$@")"
+    out="$(printf '%s' "$norm" | bash "$real" "$@")"
     rc=$?
     [ "$rc" -eq 2 ] && exit 2
     if [ -n "$out" ] && command -v jq >/dev/null 2>&1; then
       dec="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecision // empty' 2>/dev/null)"
-      [ "$dec" = "deny" ] && exit 2
+      if [ "$dec" = "deny" ]; then
+        # A JSON deny carries its reason in permissionDecisionReason, on stdout,
+        # which Gemini does not read. Its reason channel is stderr, so copy the
+        # reason there (scrubbed, capped) before blocking.
+        why="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)"
+        _say "${why:-Blocked by a RavenClaude guardrail.}"
+        exit 2
+      fi
+      # A tribunal EDIT arrives as allow + updatedInput.command. This shim does
+      # not translate a rewrite into Gemini terms, so dropping it would run the
+      # ORIGINAL command the panel judged unsafe as written. Block, and give the
+      # agent the reason and the revised command to re-issue. An updatedInput
+      # without a command (explore-tier-pin model-pin shape) passes unchanged.
+      rev="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.updatedInput.command // empty' 2>/dev/null)"
+      if [ -n "$rev" ]; then
+        orig="$(printf '%s' "$norm" | jq -r '.tool_input.command // empty' 2>/dev/null)"
+        if [ "$rev" != "$orig" ]; then
+          why="$(printf '%s' "$out" | jq -r '.hookSpecificOutput.permissionDecisionReason // empty' 2>/dev/null)"
+          _say "command review proposed a revised command and this adapter does not apply rewrites on Gemini, so the original is blocked. ${why:+Reason: $why. }Revised: $rev"
+          exit 2
+        fi
+      fi
     fi
     exit "$rc"
     ;;
@@ -163,9 +258,10 @@ case "$mode" in
     # Keep path-as-argv for file-shaped PostToolUse hooks; also forward
     # normalised stdin + CLAUDE_HOOK_EVENT so observe hooks (spectate-emit)
     # can kind the line (empty stdin previously made emit a silent no-op).
+    # Observe-only, so a normalisation failure falls back to the raw payload.
     export CLAUDE_HOOK_EVENT=PostToolUse
     fp="$(_field file_path)"
-    _normalise | bash "$real" "$fp" >/dev/null 2>&1 || true
+    { _normalise || printf '%s' "$payload"; } | bash "$real" "$fp" >/dev/null 2>&1 || true
     exit 0
     ;;
   sessionstart)

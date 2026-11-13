@@ -53,16 +53,33 @@ command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
 }
 
 findings=()
-if grep -nEi "(UserDefaults|SharedPreferences|AsyncStorage)[\\s\\S]{0,60}(token|password|secret|credential|apikey|api_key)" "$scan_target" >/dev/null 2>&1; then
+# The secret-storage and polling checks were `grep -E "...[\\s\\S]{0,N}..."`, which
+# could never match: POSIX ERE reads `[\s\S]` as {backslash, s, S} and grep is
+# line-oriented (repo-review 2026-10-19). Both are perl now, tightened before
+# enabling. Secret storage: the store and a secret-ish word in ONE statement
+# (no `;` or newline between). EncryptedSharedPreferences is the secure store,
+# so it does not count.
+if _rc_pcre_match "$scan_target" '(?<!Encrypted)(?:UserDefaults|SharedPreferences|AsyncStorage)[^;\n]{0,80}?(?:token|password|secret|credential|api_?key)'; then
   findings+=("Secret stored in UserDefaults/SharedPreferences/AsyncStorage — use the Keychain/Keystore secure store; on-device storage is untrusted.")
 fi
-if _rc_pcre_match "$scan_target" "\\{\\s*\\[?\\s*self\\b(?![\\s\\S]{0,40}weak)|capture.*self(?!.*weak)"; then
-  findings+=("Closure capturing self strongly (iOS) — use [weak self] where it can cause a retain cycle.")
-fi
+# Strong self capture: Swift only, and only a CLOSURE — a `{` whose signature
+# ends in `in` on the same line, with no [weak self]/[unowned self] capture
+# list, using `self.` before the next `}`. The old pattern matched any `{ self.`
+# (every init and method body) in any file type (repo-review 2026-10-19).
+case "$file" in
+  *.swift)
+    if _rc_pcre_match "$scan_target" '\{(?![ \t]*\[[ \t]*(?:weak|unowned)[ \t]+self)(?:(?!\bfor\b)[^{}\n])*?\bin\b[^}]{0,200}?\bself\.'; then
+      findings+=("Closure capturing self strongly (iOS) — use [weak self] where it can cause a retain cycle.")
+    fi
+    ;;
+esac
 if grep -nEi "(NSAllowsArbitraryLoads|usesCleartextTraffic\\s*=\\s*\\\"?true|cleartextTrafficPermitted\\s*=\\s*\\\"?true)" "$scan_target" >/dev/null 2>&1; then
   findings+=("Cleartext/arbitrary HTTP allowed — require TLS; mobile traffic must not be cleartext.")
 fi
-if grep -nEi "(while\\s*\\(true\\)[\\s\\S]{0,80}(fetch|http|request)|setInterval\\([\\s\\S]{0,40},\\s*[0-9]{1,4}\\))" "$scan_target" >/dev/null 2>&1; then
+# Polling: a while(true) loop or a setInterval( call with a network call on the
+# same line or one of the next three.
+_rc_mo_net='\b(?:fetch|axios|URLSession|http\w*|request(?!AnimationFrame)\w*)\s*[.(]'
+if _rc_pcre_match "$scan_target" '(?:\bwhile\s*\(?\s*true\b|\bsetInterval\s*\()[^\n]*(?:\n[^\n]*){0,3}?'"$_rc_mo_net"; then
   findings+=("Possible polling loop — prefer push (APNs/FCM) or batched/deferred work; polling drains battery + data.")
 fi
 

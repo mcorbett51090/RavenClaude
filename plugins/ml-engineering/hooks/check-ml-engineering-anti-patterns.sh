@@ -53,13 +53,22 @@ command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
 }
 
 findings=()
-if grep -nEi "(train_test_split|sample)\\([\\s\\S]{0,80}(shuffle\\s*=\\s*True)[\\s\\S]{0,80}(time|date|timestamp)" "$scan_target" >/dev/null 2>&1; then
+# This check and the `.predict(` one below were `grep -E "...[\\s\\S]{0,N}..."`,
+# which could never match: POSIX ERE reads `[\s\S]` as {backslash, s, S} and grep
+# is line-oriented (repo-review 2026-10-19). Both are perl now, tightened before
+# enabling. Shuffled temporal split: a train_test_split(...) call that passes
+# shuffle=True, in content that also names a datetime/timestamp column.
+_rc_ml_split='\btrain_test_split\s*\((?:[^()]|\([^()]*\)){0,400}?\bshuffle\s*=\s*True\b'
+_rc_ml_temporal='\b(?:parse_dates|to_datetime|datetime64|timestamp|event_time|created_at|date|datetime)\b|\b\w+_(?:date|time|at)\b'
+if _rc_pcre_match "$scan_target" "$_rc_ml_split" && _rc_pcre_match "$scan_target" "$_rc_ml_temporal"; then
   findings+=("Shuffled split on temporal data — use a time-aware split to avoid leaking future information into training.")
 fi
 if _rc_pcre_match "$scan_target" "(fit_transform|scaler\\.fit|StandardScaler\\(\\)\\.fit)[\\s\\S]{0,120}(X|data)(?![\\s\\S]{0,40}train)"; then
   findings+=("Possible fitting a transform on the full dataset before splitting — fit on train only, or you leak test statistics.")
 fi
-if grep -nEi "\\.predict\\([\\s\\S]{0,120}(read_csv|read_sql|requests\\.get)" "$scan_target" >/dev/null 2>&1; then
+# Ad-hoc serving features: a raw read (read_csv/read_sql/...) INSIDE the
+# .predict(...) argument list, across lines (nesting up to two levels deep).
+if _rc_pcre_match "$scan_target" '\.predict(?:_proba)?\s*\((?:[^()]|\((?:[^()]|\([^()]*\))*\)){0,400}?\b(?:read_csv|read_sql|read_parquet|read_json|requests\.get)\s*\('; then
   findings+=("Computing serving features ad-hoc at predict time — risks training-serving skew; use the shared transform/feature store.")
 fi
 

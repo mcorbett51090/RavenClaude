@@ -135,6 +135,40 @@ outa="$(RC_OUT="$TMP" _run_ad bash "$AD" shell-pretool "$TMP/json-allow.sh" <<<"
 [ -z "$outa" ] && ok "JSON permissionDecision=allow at exit 0 stays silent" \
   || bad "JSON allow fabricated a verdict: ${outa:0:60}"
 
+# ── a tribunal EDIT is blocked, never silently dropped (repo-review item 1a-5) ─
+# EDIT = allow + updatedInput.command. beforeShellExecution has no rewrite field,
+# so before this the adapter emitted nothing (= allow) and the ORIGINAL ran.
+cat >"$TMP/edit.sh" <<'EDS'
+#!/usr/bin/env bash
+cat >/dev/null
+printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"panel EDIT","updatedInput":{"command":"echo the-revised-one"}}}'
+exit 0
+EDS
+chmod +x "$TMP/edit.sh"
+oute="$(RC_OUT="$TMP" _run_ad bash "$AD" shell-pretool "$TMP/edit.sh" <<<"$BENIGN" 2>"$TMP/erre.txt")"
+if [ "$oute" = "$(sed -n "s/^_RC_DENY='\(.*\)'$/\1/p" "$AD")" ] \
+  && grep -qi 'revised' "$TMP/erre.txt" && grep -q 'the-revised-one' "$TMP/erre.txt"; then
+  ok "an EDIT verdict emits the byte-fixed deny literal, revised command on stderr"
+else
+  bad "EDIT verdict not blocked (out=${oute:0:60} stderr=$(head -c 120 "$TMP/erre.txt"))"
+fi
+printf '%s' "$oute" | grep -q 'the-revised-one' \
+  && bad "the revised command LEAKED into the deny literal" \
+  || ok "the revised command stays out of the deny JSON (literal unchanged)"
+# updatedInput WITHOUT a command (explore-tier-pin model-pin shape) is not an
+# EDIT of a shell command: silence (= allow), exactly as before.
+cat >"$TMP/pin.sh" <<'PNS'
+#!/usr/bin/env bash
+cat >/dev/null
+printf '%s' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","updatedInput":{"subagent_type":"Explore","model":"haiku"}}}'
+exit 0
+PNS
+chmod +x "$TMP/pin.sh"
+outp="$(RC_OUT="$TMP" _run_ad bash "$AD" shell-pretool "$TMP/pin.sh" <<<"$BENIGN" 2>"$TMP/errp.txt")"
+[ -z "$outp" ] && [ ! -s "$TMP/errp.txt" ] \
+  && ok "updatedInput without a command (model-pin shape) stays silent" \
+  || bad "model-pin shape changed: out=${outp:0:60} stderr=$(head -c 80 "$TMP/errp.txt")"
+
 # ── envelope translation ────────────────────────────────────────────────────
 run 0 "$BENIGN" >/dev/null
 if python3 -c '
@@ -434,6 +468,18 @@ if grep -q '^      :$' "$MUT3"; then
     || bad "teeth: JSON-deny mutant still denied — assertion may be vacuous"
 else
   bad "teeth: could not build the no-JSON-deny mutant (adapter shape changed?)"
+fi
+
+# 4. 1a-5: strip the updatedInput.command branch; the EDIT must go silent again
+#    (the original defect on demand), proving the EDIT assertion is not vacuous.
+MUT4="$TMP/mutant-edit.sh"
+sed 's/^      if \[ -n "$rev" \] && \[ "$rev" != "$cmd" \]; then$/      if false; then/' "$AD" >"$MUT4"
+if grep -q '^      if false; then$' "$MUT4"; then
+  outme="$(RC_OUT="$TMP" _run_ad bash "$MUT4" shell-pretool "$TMP/edit.sh" <<<"$BENIGN" 2>/dev/null)"
+  [ -z "$outme" ] && ok "teeth: removing the EDIT branch lets the rewrite drop silently again" \
+    || bad "teeth: EDIT mutant still denied — assertion may be vacuous"
+else
+  bad "teeth: could not build the no-EDIT mutant (adapter shape changed?)"
 fi
 
 printf '\n  %d pass, %d fail\n' "$PASS" "$FAIL"

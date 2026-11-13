@@ -411,5 +411,79 @@ class PostureBlockTests(unittest.TestCase):
             self.assertEqual(out["spawn"], "os-terminal")
 
 
+class RepoReview20261019Tests(unittest.TestCase):
+    """repo-review 2026-10-19: 1c-8 (Grok config window applied to Claude Code),
+    1c-11 (splitlines tears a record on U+2028), 1c-12 (fallback transcript-path
+    encoding differs from the mimir algorithm)."""
+
+    def test_grok_config_window_not_applied_to_claude_code(self):
+        import os
+
+        with tempfile.TemporaryDirectory() as raw:
+            tmp = Path(raw)
+            grok = tmp / "grok"
+            grok.mkdir()
+            (grok / "config.toml").write_text("context_window = 256000\n")
+            transcript = _claude_transcript_with_model(
+                tmp, [({"input_tokens": 150000}, "claude-sonnet-5-5")]
+            )
+            saved = os.environ.get("GROK_HOME")
+            os.environ["GROK_HOME"] = str(grok)
+            try:
+                r = meter.measure(
+                    None, None, 70, None, claude_payload={"transcript_path": str(transcript)}
+                )
+                # Positive control: the same config IS honoured for a Grok reading.
+                sess = _session(tmp, [128000])
+                g = meter.measure(sess, None, 70, 85)
+            finally:
+                if saved is None:
+                    os.environ.pop("GROK_HOME", None)
+                else:
+                    os.environ["GROK_HOME"] = saved
+            self.assertEqual(r["source"], "claude-code")
+            self.assertEqual(r["window"], 1000000)
+            self.assertEqual(r["percent"], 15.0)
+            self.assertEqual(g["window"], 256000)
+
+    def test_record_with_line_separator_is_parsed_whole(self):
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "t.jsonl"
+            lines = [
+                json.dumps({"type": "assistant", "message": {"usage": {"input_tokens": 10000}}}),
+                json.dumps(
+                    {
+                        "type": "assistant",
+                        "message": {
+                            "content": "a b c\x85d",
+                            "model": "claude-sonnet-5-5",
+                            "usage": {"input_tokens": 180000},
+                        },
+                    },
+                    ensure_ascii=False,
+                ),
+            ]
+            path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            self.assertEqual(meter.last_total_tokens_claude(path), 180000)
+            self.assertEqual(meter.last_assistant_model_claude(path), "claude-sonnet-5-5")
+
+    def test_fallback_encoding_matches_mimir_key(self):
+        self.assertEqual(meter._claude_encode_cwd("/home/user/my.project"), "-home-user-my-project")
+        self.assertEqual(
+            meter._claude_encode_cwd("/r/.claude/worktrees/x"), "-r--claude-worktrees-x"
+        )
+
+    def test_fallback_encoding_does_not_resolve_symlinks(self):
+        import os
+
+        with tempfile.TemporaryDirectory() as raw:
+            real = Path(raw) / "real.dir"
+            real.mkdir()
+            link = Path(raw) / "link"
+            os.symlink(real, link)
+            enc = meter._claude_encode_cwd(str(link))
+            self.assertTrue(enc.endswith("-link"), enc)
+
+
 if __name__ == "__main__":
     unittest.main()

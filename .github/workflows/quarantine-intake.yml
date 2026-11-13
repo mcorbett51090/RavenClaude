@@ -148,7 +148,9 @@ jobs:
           commit-message: "stage(external): scenario submission from issue #${{ github.event.issue.number }}"
           # The title/body here are workflow-authored boilerplate referencing only the
           # issue NUMBER (a trusted integer), never the untrusted issue title/body.
-          title: "Staged external scenario submission (issue #${{ github.event.issue.number }})"
+          # Conventional-Commits shaped, so the required "Semantic PR title" check
+          # can pass on it once the checks are run (repo-review 2026-10-19, cicd-3).
+          title: "docs(staging): external scenario submission (issue #${{ github.event.issue.number }})"
           labels: |
             scenario-submission
             quarantine
@@ -171,14 +173,23 @@ jobs:
             do not merge it straight to a canonical location.
 
             **⚠️ CI does NOT auto-run on this PR.** It was opened with the automatic
-            `GITHUB_TOKEN`, so GitHub does not trigger `pull_request` workflows
-            (validate-layout / validate-marketplace / validate-schemas) on it. That is
-            acceptable here: the only change is a scrubbed markdown file confined to the
-            already-allow-listed `docs/staging/incoming/external/**` path, so those gates
-            have nothing to validate. Full CI runs later, on your **promotion PR** when the
-            file moves out of staging into a plugin/canonical location. If you want to
-            validate this PR directly anyway, re-run the gates via
-            **Actions → the relevant workflow → Run workflow** (`workflow_dispatch`).
+            `GITHUB_TOKEN`, so GitHub does not trigger `pull_request` workflows on it,
+            and none of the seven required checks has run:
+
+            - Validate manifests and hooks (`validate-marketplace.yml`)
+            - Validate file paths against .repo-layout.json (`validate-layout.yml`)
+            - Validate plugin and marketplace JSON Schemas (`validate-schemas.yml`)
+            - Semantic PR title (Conventional Commits) (`github-protocol-pr-title.yml`)
+            - Scan for committed secrets (TruffleHog) (`github-protocol-secret-scan.yml`)
+            - Lint workflow permissions + action pins (`github-protocol-workflow-hygiene.yml`)
+            - Lint GitHub Actions (zizmor) (`github-protocol-zizmor.yml`)
+
+            Those gates are NOT vacuous for this file: the markdown-link check inside
+            *Validate manifests and hooks* and the secret scan both read
+            `docs/staging/incoming/external/**`. The processor neutralises link syntax
+            and rejects secret shapes, but run the checks before merging — via
+            **Actions → the relevant workflow → Run workflow** (`workflow_dispatch`) —
+            rather than relying on the later promotion PR to catch a break on `main`.
 
       - name: Comment, label, and close the staged issue
         if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'

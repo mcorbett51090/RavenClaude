@@ -114,4 +114,6 @@ jobs:
       - name: Assert this watch is NOT a required status check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash scripts/assert-not-required-check.sh 'Atlas watch'
+        # Ruleset contexts are JOB names, not workflow names: 'Atlas watch' could
+        # never match, so this step passed whatever the ruleset said (cicd-4).
+        run: bash scripts/assert-not-required-check.sh 'Re-fetch the cited vendor pages'

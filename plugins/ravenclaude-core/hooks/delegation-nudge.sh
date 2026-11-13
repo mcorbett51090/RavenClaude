@@ -92,6 +92,14 @@ reason='(unless you|if you (lack|don'\''?t|do not|can'\''?t|cannot)|because you 
 # A line that already cites a held route is documenting the self-serve path, not delegating.
 route='(Web API|GET |POST |PATCH |DELETE |pac |az |gh |/api/data/|curl )'
 
+# hooks-16 (2026-10-19): this report reaches the model as additionalContext under
+# a "RavenClaude guard notice" banner, i.e. as TRUSTED text. It used to echo the
+# matched line, so a written line holding instruction-shaped text came back to
+# the model with the guard's authority. Only `file:line [rule-id]` is printed
+# now, and the path is reduced to [A-Za-z0-9._/:@-].
+_rc_safe_path() { printf '%s' "$1" | tr -c 'A-Za-z0-9._/:@-' '_' | cut -c1-160; }
+safe_file="$(_rc_safe_path "$file")"
+
 violations=()
 in_fence=0
 in_frontmatter=0
@@ -140,9 +148,8 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     [[ "$line" =~ $route ]] && route_hit=1
     shopt -s nocasematch
     [[ "$route_hit" -eq 1 ]] && continue
-    trimmed="${line#"${line%%[![:space:]]*}"}"
-    trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
-    violations+=("  $file:$lineno: $trimmed")
+    # hooks-16 (2026-10-19): never the matched text — see _rc_safe_path below.
+    violations+=("  $safe_file:$lineno [delegation-to-user]")
   fi
 done < "$file"
 
@@ -153,7 +160,7 @@ if [[ ${#violations[@]} -gt 0 ]]; then
 
 ────────────────────────────────────────────────────────────────────
   ⚠  Delegation nudge — ${#violations[@]} "tell the user to manually check / open the portal" phrasing(s) written to:
-       $file
+       $safe_file
 EOF
   count=0
   for v in "${violations[@]}"; do

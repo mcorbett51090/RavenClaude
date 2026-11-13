@@ -50,10 +50,7 @@ def map_posture(cats: dict) -> dict:
     def allowed(name: str) -> bool:
         return cats.get(name) == "allow"
 
-    writes = any(
-        allowed(c)
-        for c in ("file_edit_project", "shell_local_mutate", "shell_code_exec")
-    )
+    writes = any(allowed(c) for c in ("file_edit_project", "shell_local_mutate", "shell_code_exec"))
     net = allowed("network_write")
     mode = "default" if writes else "plan"
     return {
@@ -109,12 +106,28 @@ def emit(project: Path) -> int:
         print("emit-gemini-config: no comfort-posture.yaml — skipped", file=sys.stderr)
         return 0
     want = map_posture(read_posture_categories(posture))
-    try:
-        cfg = json.loads(dest.read_text(encoding="utf-8")) if dest.is_file() else {}
-    except Exception:
-        cfg = {}
-    if not isinstance(cfg, dict):
-        cfg = {}
+    # An existing settings.json that strict JSON cannot read (a comment, a trailing
+    # comma, a half-saved edit) is REFUSED with a non-zero exit, never replaced by
+    # {general, tools}: that silently dropped the user's model/theme/MCP keys. A
+    # UTF-8 BOM is accepted. Nothing is written on this path. (repo-review
+    # 2026-10-19, scripts-1; the installer reports the non-zero, scripts-5.)
+    cfg: dict = {}
+    if dest.is_file():
+        try:
+            cfg = json.loads(dest.read_text(encoding="utf-8-sig"))
+        except Exception as exc:
+            print(
+                f"emit-gemini-config: unparseable {dest}: {exc} — left unchanged",
+                file=sys.stderr,
+            )
+            return 1
+        if not isinstance(cfg, dict):
+            print(
+                f"emit-gemini-config: unparseable {dest}: the top level is not a JSON "
+                "object — left unchanged",
+                file=sys.stderr,
+            )
+            return 1
     changes = []
     for key, val in want.items():
         parent, leaf = get_nested(cfg, key)

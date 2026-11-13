@@ -24,14 +24,24 @@
 #   never PCRE non-capturing `(?:...)` (grep -E does not support `(?:...)`).
 #
 # MODES
-#   default      ADVISORY  — print findings to stderr, ALWAYS exit 0. Safe to wire
-#                            as a PostToolUse hook: it never blocks an edit.
+#   default      ADVISORY  — print findings to stderr and exit 0, so it never
+#                            blocks an edit. Set FINANCE_STRICT=1 (the same knob
+#                            as flag-finance-anti-patterns.sh) to exit 2 instead.
+#                            Note: stderr at exit 0 reaches the user's terminal,
+#                            NOT the model (see docs/best-practices/hook-authoring.md).
 #   --ci         GATE      — exit non-zero (1) if ANY finding survives filtering.
 #                            Use in a pre-merge CI step to fail the build.
 #
 # ARGS
 #   Any number of file or directory paths. Directories are scanned recursively.
-#   With no path args the default scope is  plugins/finance/ .
+#   Empty arguments are ignored: hooks.json passes "$CLAUDE_TOOL_FILE_PATH",
+#   which Claude Code does not set, so under Claude Code $1 is the empty string.
+#   With no path args and a hook payload on stdin (the real Claude Code
+#   contract), the edited file is read from .tool_input.file_path // .path and
+#   scanned ONLY if it is a finance-conventional path (the same filter as
+#   flag-finance-anti-patterns.sh); any other edited file is skipped.
+#   With no path args and no payload (CLI / CI) the default scope is
+#   plugins/finance/ .
 #
 # EXCLUSIONS (never a finding)
 #   - this script, the gate's own knowledge doc + test file
@@ -52,6 +62,8 @@
 #       "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scan-finance-secrets.sh \"$CLAUDE_TOOL_FILE_PATH\"",
 #       "comment": "Advisory secret/PII shape scan on every finance edit. Non-blocking; run with --ci in CI to gate a merge."
 #     }
+#   "$CLAUDE_TOOL_FILE_PATH" is empty under Claude Code; the edited path is read
+#   from the stdin payload instead (see ARGS above).
 #   See plugins/finance/knowledge/secrets-pii-gate.md for the full rationale.
 
 set -euo pipefail
@@ -68,11 +80,34 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --ci) MODE="ci"; shift ;;
     -h|--help) print_help; exit 0 ;;
-    --) shift; while [ $# -gt 0 ]; do PATHS+=("$1"); shift; done ;;
+    --) shift; while [ $# -gt 0 ]; do if [ -n "$1" ]; then PATHS+=("$1"); fi; shift; done ;;
     -*) echo "scan-finance-secrets: unknown option: $1" >&2; exit 2 ;;
-    *) PATHS+=("$1"); shift ;;
+    # An empty arg (the unset "$CLAUDE_TOOL_FILE_PATH" under Claude Code) is not
+    # a path. Appending it made PATHS=("") non-empty, so the scan grepped "".
+    # control (repo-review 2026-10-19): the hooks.json command with a stdin
+    # payload for a finance file holding an AWS-key and an SSN shape -> rc=0,
+    # no output; the same file passed as $1 -> 2 findings.
+    *) if [ -n "$1" ]; then PATHS+=("$1"); fi; shift ;;
   esac
 done
+
+# Hook mode: no path args, a payload on stdin. Scan the one edited file, and only
+# when it is a finance-conventional path. Never fall back to plugins/finance/
+# relative to an arbitrary cwd here: this hook runs on every Edit/Write in a
+# consumer project, so an unfiltered path would scan every file the agent edits.
+if [ ${#PATHS[@]} -eq 0 ] && [ ! -t 0 ] && command -v jq >/dev/null 2>&1; then
+  payload="$(cat 2>/dev/null || true)"
+  if [ -n "$payload" ]; then
+    hook_file="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
+    [ -z "$hook_file" ] && exit 0
+    case "$hook_file" in
+      */finance/*|*/workpapers/*|*/board/*|*/models/*|*/close/*) ;;
+      *variance*.md|*forecast*.md|*budget*.md|*model*.md|*board-pack*.md|*recon*.md|*pbc*.md) ;;
+      *) exit 0 ;;
+    esac
+    PATHS=("$hook_file")
+  fi
+fi
 
 if [ ${#PATHS[@]} -eq 0 ]; then
   PATHS=("plugins/finance/")
@@ -174,8 +209,11 @@ if [ "$count" -gt 0 ]; then
     echo "  Each is a SHAPE match, not proof of a live secret. Verify every one:"
     echo "  replace any real credential with an env-var NAME reference (never a"
     echo "  value), scrub PII from example data, and rotate anything committed."
-    if [ "$MODE" = "advisory" ]; then
-      echo "  (advisory: NOT blocking — run with --ci to gate a merge.)"
+    if [ "$MODE" = "advisory" ] && [ "${FINANCE_STRICT:-0}" = "1" ]; then
+      echo "  (FINANCE_STRICT=1: exit 2. Remove/scrub the findings above.)"
+    elif [ "$MODE" = "advisory" ]; then
+      echo "  (advisory: NOT blocking — run with --ci to gate a merge, or set"
+      echo "   FINANCE_STRICT=1 to exit 2 from the hook.)"
     else
       echo "  (--ci: this run will FAIL. Remove/scrub the findings above.)"
     fi
@@ -185,5 +223,9 @@ fi
 
 if [ "$MODE" = "ci" ] && [ "$count" -gt 0 ]; then
   exit 1
+fi
+# exit 2, not 1: exit 1 is a non-blocking error that Claude Code swallows.
+if [ "$MODE" = "advisory" ] && [ "$count" -gt 0 ] && [ "${FINANCE_STRICT:-0}" = "1" ]; then
+  exit 2
 fi
 exit 0

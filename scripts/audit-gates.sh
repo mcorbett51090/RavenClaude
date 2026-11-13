@@ -130,6 +130,63 @@ _gate188_file_ok() { # $1=rendered .yml — returns 0 if hygienic, prints reason
   return "$rc"
 }
 
+# ── Gate 318 helper: the Codex projector with its FIRST _SKIP entry dropped ──
+# Shared by the --check dispatcher and the main sequence (both run it, so it
+# must live above the dispatcher). The mutant path is REPO-RELATIVE
+# (scripts/.<name>): the generator resolves its manifest through
+# Path(__file__).resolve().parent.parent, so a $TMP mutant would die at build()
+# before --check runs and the teeth would pass for the wrong reason (the hollow
+# shape Gate 158 records). Returns non-zero when no entry was removed (anchor
+# drift); both callers treat that as a hard failure, never a skip.
+# (\x7b, not a literal brace: check-gate-registration.py finds a function's end
+# by counting braces, and an unbalanced one in this body swallowed the rest of
+# the file — every later gate read as "unreachable".)
+_gate318_build_mutant() { # $1=output path
+  python3 - "$1" <<'PYX'
+import re, sys, pathlib
+src = pathlib.Path("scripts/generate-codex-hooks.py").read_text(encoding="utf-8")
+out, n = re.subn(
+    r'(_SKIP = \x7b\n(?:[ \t]*#[^\n]*\n)*)[ \t]*"[^"\n]+":[^\n]*\n', r"\1", src, count=1
+)
+pathlib.Path(sys.argv[1]).write_text(out, encoding="utf-8")
+sys.exit(0 if n == 1 else 1)
+PYX
+}
+
+# ── Gate 316 helpers: domain-hook teeth root + the record-screen bridge test ──
+# Shared by the --check dispatcher and the main sequence (both run them, so they
+# live above the dispatcher). The teeth root is a scratch copy of every domain
+# plugin's hooks/ dir that check-domain-hook-teeth.py drives (the plugin list is
+# read from the script's own case tuples, so a new plugin there is copied too).
+# The copy has no ravenclaude-core/hooks/_portable.sh, so each hook uses its own
+# inline _rc_pcre_match fallback; the mutant plants a never-matching
+# _rc_pcre_match ahead of it, which is the "multi-line checks are dead again"
+# regression the gate exists for.
+_gate316_build_root() { # $1 = empty dir -> 0 when the scratch copy is complete
+  local root="$1" p n=0
+  mkdir -p "$root/plugins" || return 1
+  for p in $(python3 -c 'import re; s=open("scripts/check-domain-hook-teeth.py").read(); print(" ".join(sorted(set(re.findall(r"^[A-Z]+ = \(\s*\"([a-z-]+)\"", s, re.M)))))'); do
+    mkdir -p "$root/plugins/$p" && cp -Rp "plugins/$p/hooks" "$root/plugins/$p/" || return 1
+    n=$((n + 1))
+  done
+  [ "$n" -ge 1 ]
+}
+_gate316_kill_pcre() { # $1 = a root built by _gate316_build_root
+  perl -pi -e 'print "_rc_pcre_match() { return 1; }\n" if $. == 2' \
+    "$1/plugins/backend-engineering/hooks/check-backend-engineering-anti-patterns.sh"
+}
+# The bridge test needs node and the ws npm package (record-screen/scripts/setup.sh
+# installs it; NODE_PATH also works). 0 = passed, 3 = cannot run here, else failed.
+# The test prints "SKIP:" and exits 0 when ws is missing, so that is read as 3 too.
+_gate316_bridge() {
+  local d="plugins/power-platform/skills/record-screen/scripts" out
+  command -v node >/dev/null 2>&1 || return 3
+  (cd "$d" && node -e "require.resolve('ws')") >/dev/null 2>&1 || return 3
+  out="$(node "$d/test-bridge-security.js" 2>&1)" || { printf '%s\n' "$out" | tail -20 >&2; return 1; }
+  case "$out" in *"SKIP:"*) return 3 ;; esac
+  return 0
+}
+
 # ── Gate 192 helpers: `ravenclaude init-agent-ci` scaffold runnability ────────
 # The consumer-facing installer subcommand copies the 7-file / 3-dir agent-in-CI
 # set from templates/agent-ready-repo/ into a consumer's .github/. The invariant
@@ -407,7 +464,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # 304/305: AppSec hook-env hardening — the static launch-line gate and the
       # behavioural test (planted PATH/BASH_ENV/LD_PRELOAD/THING_SEAT_*, guard B,
       # seat-child lock C, missing pre-tool record D).
-      echo "7 24 25 48 50 54 98 101 127 142 143 156 159 169 170 199 203 209 304 305"
+      echo "7 24 25 48 50 54 98 101 127 142 143 156 159 169 170 199 203 209 304 305 312 313"
       ;;
     ratchet)
       echo "132 237 238 239 240 241 242 243"
@@ -433,7 +490,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # ReDoS / fail-closed timing fixture and the R1 full-word
       # delimiter fixture — same
       # plugins/ravenclaude-core/hooks/tests/ home as 140/308).
-      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 53c 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293 295 296 297 298 299 300 308 309"
+      echo "3 3b 4 5 5b 6 14 15 16 17 21 22 30 33 36 52 53 53c 90 91 122 123 124 125 126 128 133 135 136 137 138 139 140 162 182 184 186 189 197 201 216 217 225 227 228 229 231 235 247 251 252 253 254 259 285 286 290 291 292 293 295 296 297 298 299 300 308 309 310 315 316"
       ;;
     portal)
       # Gap: 27 (consumer-dashboard repo-scoped guard — serve-dashboards.py,
@@ -441,7 +498,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # — no such gate exists (the main sequence goes straight from "Gate
       # 38" to "Gate 40"; inventing 39 would violate the PR-C brief's "do not
       # invent gate numbers" constraint).
-      echo "13 23 27 32 35 37 38 40 41 42 43 44 49 51 93 97 99 100 104 105 113 141 144 151 168 174 200 205 294"
+      echo "13 23 27 32 35 37 38 40 41 42 43 44 49 51 93 97 99 100 104 105 113 141 144 151 168 174 200 205 294 314"
       ;;
     claims)
       # Gaps: 19 (capability-orientation banner — same "claim a capability
@@ -462,7 +519,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # generic hook), 196 (every regex in the Thing's own concern/
       # denial-resolution catalogs compiles), 303 (THING_SEAT_* mock-verdict
       # source gate — the tribunal seat's own test-hook trust boundary).
-      echo "14 15 17 21 22 28 31 33 60 102 137 177 179 190 196 197 303"
+      echo "14 15 17 21 22 28 31 33 60 102 137 177 179 190 196 197 303 311"
       ;;
     hosts)
       # Gaps: 26 (Codespace auto-setup — a host environment), 80 (the
@@ -473,7 +530,7 @@ _suite_gate_tokens() { # $1=suite name -> echoes space-separated gate tokens; re
       # scaffolding), 255 (agent-routing-matrix — routes tasks across host
       # CLIs/models), 256 (VSCode-extension configurationDefaults — VSCode
       # is a host surface).
-      echo "20 26 80 126 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 188 191 192 207 208 211 255 256 257"
+      echo "20 26 80 126 154 155 156 157 158 159 160 161 162 163 164 165 166 167 168 169 170 171 172 188 191 192 207 208 211 255 256 257 318 319"
       ;;
     streams)
       echo "110 111 112 113 114"
@@ -2226,9 +2283,112 @@ PY
       case "$rc" in 124|142) echo "  timeout: delimiter fixture exceeded ${_wg309_timeout}s (HARNESS or fixture did not return)" >&2; rc=1 ;; esac
       exit $rc
       ;;
+    318)
+      echo "── Gate 318: Codex hook projection accounting (per-gate run) ──"
+      rc=0
+      python3 scripts/generate-codex-hooks.py --check || rc=$?
+      _cdxh_mut="scripts/.generate-codex-hooks-mutant.py"
+      if _gate318_build_mutant "$_cdxh_mut"; then
+        mrc=0; python3 "$_cdxh_mut" --check >/dev/null 2>&1 || mrc=$?
+        if [ "$mrc" -eq 0 ]; then
+          echo "  ✗ teeth: a dropped _SKIP entry was NOT caught"; rc=1
+        else
+          echo "  ✓ teeth: a dropped _SKIP entry is caught (exit $mrc)"
+        fi
+      else
+        echo "  ✗ teeth: the dropped-_SKIP-entry mutant could not be built (anchor drift)"; rc=1
+      fi
+      rm -f "$_cdxh_mut"
+      exit $rc
+      ;;
+    319)
+      echo "── Gate 319: installer lanes end to end (scratch HOME + project; per-gate run) ──"
+      rc=0
+      python3 scripts/check-installer-lanes.py --check || rc=$?
+      rc_mustfail python3 scripts/check-installer-lanes.py || rc=$?
+      exit $rc
+      ;;
+    310)
+      echo "── Gate 310: hook regressions from the 2026-10-19 review (guard-destructive DELETE, layout normalize, web host parity, advisory no-echo; per-gate run) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-guard-delete-method.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-enforce-layout-normalize.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-web-host-parity.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-advisory-no-echo.sh || rc=$?
+      exit $rc
+      ;;
+    311)
+      echo "── Gate 311: tribunal review rows from the 2026-10-19 review (+ --must-fail mutants; per-gate run) ──"
+      rc=0
+      python3 plugins/ravenclaude-core/hooks/tests/test-tribunal-review-2026-10-19.py || rc=$?
+      python3 plugins/ravenclaude-core/hooks/tests/test-tribunal-review-2026-10-19.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    312)
+      echo "── Gate 312: secret-pattern + intake-sanitizer parity, sanitizer fail-closed (per-gate run) ──"
+      rc=0
+      python3 scripts/check-secret-pattern-parity.py || rc=$?
+      python3 scripts/check-secret-pattern-parity.py --self-test || rc=$?
+      python3 scripts/check-secret-pattern-parity.py --must-fail || rc=$?
+      python3 scripts/check-intake-sanitizer-parity.py --check || rc=$?
+      python3 scripts/check-intake-sanitizer-parity.py --self-test || rc=$?
+      rc_mustfail python3 scripts/check-intake-sanitizer-parity.py || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-sanitizer-failclosed.sh || rc=$?
+      exit $rc
+      ;;
+    313)
+      echo "── Gate 313: cheap-lane delegate argv, signals and scrub floor (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-delegate-args.sh
+      exit $?
+      ;;
+    314)
+      echo "── Gate 314: dashboard server hardening (+ --must-fail mutants; per-gate run) ──"
+      rc=0
+      python3 scripts/check-dashboard-hardening.py || rc=$?
+      python3 scripts/check-dashboard-hardening.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    315)
+      echo "── Gate 315: worktree, brand-extraction, stall-watch, spectate and coordinator-lock fixes (per-gate run) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-cleanup-branches-worktree.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-rcwt-base.sh || rc=$?
+      python3 plugins/ravenclaude-core/hooks/tests/test-brand-extraction-guards.py || rc=$?
+      python3 plugins/ravenclaude-core/hooks/tests/test-stall-watch-identity.py || rc=$?
+      python3 plugins/ravenclaude-core/hooks/tests/test-spectate-store-review.py || rc=$?
+      bash plugins/ravenclaude-core/bin/coordinator-lock.sh --self-test --dead-holder || rc=$?
+      bash plugins/ravenclaude-core/bin/coordinator-lock.sh --self-test --disable-reap-mutex || rc=$?
+      exit $rc
+      ;;
+    316)
+      echo "── Gate 316: domain-plugin hook teeth + domain script tests (per-gate run) ──"
+      rc=0
+      python3 scripts/check-domain-hook-teeth.py || rc=$?
+      _dht_root="$(mktemp -d)"
+      if _gate316_build_root "$_dht_root"; then
+        _ctl=0; python3 scripts/check-domain-hook-teeth.py --root "$_dht_root" >/dev/null 2>&1 || _ctl=$?
+        if [ "$_ctl" -ne 0 ]; then echo "  ✗ teeth control: the unmodified scratch copy failed (rc=$_ctl)"; rc=1; fi
+        _gate316_kill_pcre "$_dht_root"
+        _mut=0; python3 scripts/check-domain-hook-teeth.py --root "$_dht_root" >/dev/null 2>&1 || _mut=$?
+        if [ "$_mut" -eq 0 ]; then echo "  ✗ teeth: a dead _rc_pcre_match was NOT caught"; rc=1
+        else echo "  ✓ teeth: a dead _rc_pcre_match is caught (exit $_mut)"; fi
+      else
+        echo "  ✗ teeth: could not build the scratch copy of the domain hooks"; rc=1
+      fi
+      rm -rf "$_dht_root"
+      python3 plugins/power-platform/skills/dataverse-payload-preflight/test_preflight_org_guard.py || rc=$?
+      python3 plugins/edtech-partner-success/templates/dashboard-streamlit-reference/test_app_saved_views.py || rc=$?
+      _bs_rc=0; _gate316_bridge || _bs_rc=$?
+      case "$_bs_rc" in
+        0) ;;
+        3) echo "  ‼ record-screen bridge test SKIPPED — needs node and the ws package (run setup.sh). THIS IS NOT A PASS." ;;
+        *) rc=1 ;;
+      esac
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309. Run without --check to execute the full suite." >&2
+      echo "Supported: 5, 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 316, 318, 319. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -11799,6 +11959,212 @@ if command -v python3 >/dev/null 2>&1; then
 else
   _skip_or_fail "Gate 282 (claude-launch-safeguard)" python3
 fi
+
+echo "── Gate 318: Codex hook projection — no canonical hook silently dropped ──"
+# 1a-codex-check (repo-review 2026-10-19). The Copilot (158), Cursor (160) and
+# Gemini (165) projectors each have a --check accounting gate; Codex had none, so
+# a new canonical hook with neither a Codex wiring nor a _SKIP reason would have
+# shipped green. Teeth: a mutant with its first _SKIP entry dropped must fail
+# --check (that hook is then unaccounted for). Registered in the --check
+# dispatcher, this main sequence, the Supported: string and the `hosts` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 318".
+rc=0; python3 scripts/generate-codex-hooks.py --check >/dev/null 2>&1 || rc=$?
+gate "codex-hooks: every canonical hook wired or explicitly skipped" must_pass "$rc"
+CDXH_MUT="scripts/.generate-codex-hooks-mutant.py"
+rc=0; _gate318_build_mutant "$CDXH_MUT" || rc=$?
+gate "codex-hooks teeth: the dropped-_SKIP-entry mutant could be built (anchor present)" must_pass "$rc"
+rc=0; python3 "$CDXH_MUT" --check >/dev/null 2>&1 || rc=$?
+rm -f "$CDXH_MUT"
+gate "codex-hooks teeth: a dropped _SKIP entry is caught" must_fail "$rc"
+
+echo "── Gate 319: installer lanes — every host lane end to end, scratch HOME ──"
+# repo-review 2026-10-19 (scripts-1..7, scripts-13). Nothing drove the gemini /
+# cursor / aider / codex install lanes end to end, so the installer could clobber
+# an unparseable .gemini/settings.json while printing "merged, not clobbered",
+# plant cyclic links in the marketplace skill tree, rm -rf a user's own skill,
+# overwrite .aider.conf.yml with no backup, print a green "wired" line after a
+# failed projection, and install into $PWD on a typo'd flag. check-installer-
+# lanes.py runs the REAL installer (a byte copy) against a scratch marketplace,
+# project and HOME, and fails if the operator's real rc files change. Teeth: 7
+# mutants (one per fix), --must-fail exits 3. Registered in the --check
+# dispatcher, this main sequence, the Supported: string and the `hosts` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 319".
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-installer-lanes.py --check >/dev/null 2>&1 || rc=$?
+  gate "installer-lanes: every lane keeps user config and reports failures honestly" must_pass "$rc"
+  rc=0; rc_mustfail python3 scripts/check-installer-lanes.py || rc=$?
+  gate "installer-lanes: --must-fail teeth agree with the declared convention (3)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 319 (installer-lanes)" python3
+fi
+
+echo "── Gate 310: hook regressions from the 2026-10-19 repo review ──"
+# Four test files from the review's P0 package, each carrying its own teeth
+# mutants: guard-destructive denies a DELETE-method push / API delete
+# (test-guard-delete-method.sh); enforce-layout normalises `.`/`..`/`//` before
+# matching allowed_globs (test-enforce-layout-normalize.sh); the web-access guard
+# and its marker hook share one host parser (test-web-host-parity.sh); advisory
+# hooks report file:line [rule-id], never the matched text
+# (test-advisory-no-echo.sh). Registered in the --check dispatcher, this main
+# sequence, the Supported: string and the `hooks` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 310".
+if command -v jq >/dev/null 2>&1; then
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-guard-delete-method.sh >/dev/null 2>&1 || rc=$?
+  gate "guard-destructive: DELETE-method deletes denied, benign controls allowed" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-enforce-layout-normalize.sh >/dev/null 2>&1 || rc=$?
+  gate "enforce-layout: paths normalised before the allow-list match" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-web-host-parity.sh >/dev/null 2>&1 || rc=$?
+  gate "web-access: guard and marker agree on every host shape" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-advisory-no-echo.sh >/dev/null 2>&1 || rc=$?
+  gate "advisory hooks: file:line [rule-id] only, matched text never echoed" must_pass "$rc"
+else
+  _skip_or_fail "Gate 310 (review hook regressions)" jq
+fi
+
+echo "── Gate 311: tribunal review rows from the 2026-10-19 repo review ──"
+# test-tribunal-review-2026-10-19.py drives the REAL tribunal engine and hooks
+# (thing-concerns.py, thing-decision.py, thing-decide.py, apply-comfort-posture.py,
+# thing-orchestrator.sh, route-decision-review.sh) once per finding. --must-fail
+# rebuilds the most security-relevant fixes as mutants (the hooks-4 function
+# purge among them) and exits 0 only when every mutant turns its rows red.
+# Registered in the --check dispatcher, this main sequence, the Supported: string
+# and the `tribunal` suite. GREP THE SUITE OUTPUT FOR "Gate 311".
+if command -v python3 >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-tribunal-review-2026-10-19.py >/dev/null 2>&1 || rc=$?
+  gate "tribunal review rows: every 2026-10-19 fix holds against the real engine" must_pass "$rc"
+  rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-tribunal-review-2026-10-19.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "tribunal review teeth: every reverted fix turns its rows red" must_pass "$rc"
+else
+  _skip_or_fail "Gate 311 (tribunal review rows)" "python3/jq"
+fi
+
+echo "── Gate 312: secret-pattern + intake-sanitizer parity, sanitizer fail-closed ──"
+# check-secret-pattern-parity.py: every vendored copy of the secret patterns
+# matches the canonical list and no unlisted copy exists; --must-fail disables
+# the anchoring check and exits 0 only when the self-test then fails.
+# check-intake-sanitizer-parity.py: the external-intake processor vendors every
+# canonical sanitizer pattern (declared --must-fail convention, compared by
+# rc_mustfail). test-sanitizer-failclosed.sh: the PostToolUse output sanitizers
+# fail CLOSED when the scanner crashes, hangs or is missing (beside Gate 48's
+# python3-missing case). Registered in the --check dispatcher, this main sequence,
+# the Supported: string and the `security` suite. GREP THE SUITE OUTPUT FOR "Gate 312".
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-secret-pattern-parity.py >/dev/null 2>&1 || rc=$?
+  gate "secret-pattern parity: every copy in parity, no unlisted copy" must_pass "$rc"
+  rc=0; python3 scripts/check-secret-pattern-parity.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "secret-pattern parity: self-test" must_pass "$rc"
+  rc=0; python3 scripts/check-secret-pattern-parity.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "secret-pattern parity teeth: a disabled boundary check fails the self-test" must_pass "$rc"
+  rc=0; python3 scripts/check-intake-sanitizer-parity.py --check >/dev/null 2>&1 || rc=$?
+  gate "intake-sanitizer parity: every canonical pattern vendored" must_pass "$rc"
+  rc=0; python3 scripts/check-intake-sanitizer-parity.py --self-test >/dev/null 2>&1 || rc=$?
+  gate "intake-sanitizer parity: self-test" must_pass "$rc"
+  rc=0; rc_mustfail python3 scripts/check-intake-sanitizer-parity.py || rc=$?
+  gate "intake-sanitizer parity: --must-fail teeth agree with the declared convention" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-sanitizer-failclosed.sh >/dev/null 2>&1 || rc=$?
+  gate "output sanitizers fail closed on crash / hang / missing scanner" must_pass "$rc"
+else
+  _skip_or_fail "Gate 312 (secret/sanitizer parity)" python3
+fi
+
+echo "── Gate 313: cheap-lane delegate argv, signals and scrub floor ──"
+# test-delegate-args.sh drives grok-delegate.sh, copilot-delegate.sh and
+# cheap-lane-delegate.sh against stub vendor CLIs: a value flag given last exits
+# 2 (never hangs), SIGINT/SIGTERM stop the script with cleanup run once, a
+# missing _scrub.sh refuses before any egress, and the secret-shape refusal no
+# longer fires on a trailing newline or a kebab-case name. Each fix has a teeth
+# mutant. Registered in the --check dispatcher, this main sequence, the
+# Supported: string and the `security` suite. GREP THE SUITE OUTPUT FOR "Gate 313".
+if command -v perl >/dev/null 2>&1; then
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-delegate-args.sh >/dev/null 2>&1 || rc=$?
+  gate "cheap-lane delegates: argv, signal and scrub-before-egress floor" must_pass "$rc"
+else
+  _skip_or_fail "Gate 313 (delegate argv)" perl
+fi
+
+echo "── Gate 314: dashboard server hardening ──"
+# check-dashboard-hardening.py drives both serve-dashboards.py copies (and the
+# launchers) through the review's hardening cases. --must-fail rebuilds four
+# mutants and exits 0 only when every one is caught. Registered in the --check
+# dispatcher, this main sequence, the Supported: string and the `portal` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 314".
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-dashboard-hardening.py >/dev/null 2>&1 || rc=$?
+  gate "dashboard hardening: both server copies refuse every hostile case" must_pass "$rc"
+  rc=0; python3 scripts/check-dashboard-hardening.py --must-fail >/dev/null 2>&1 || rc=$?
+  gate "dashboard hardening teeth: every mutant is caught" must_pass "$rc"
+else
+  _skip_or_fail "Gate 314 (dashboard hardening)" python3
+fi
+
+echo "── Gate 315: worktree, brand-extraction, stall-watch, spectate and coordinator-lock fixes ──"
+# Five test files plus the coordinator lock's concurrency proof from the review:
+# cleanup-branches skips a branch checked out in another worktree; rcwt bases a
+# new worktree on origin/main; brand extraction's fetch guards; stall_watch's
+# process identity; spectate_store's review fixes. coordinator-lock.sh
+# --self-test --dead-holder asserts one winner per dead-holder trial, and
+# --self-test --disable-reap-mutex is its control: it exits 0 only when the race
+# reappears with the reap mutex removed. Registered in the --check dispatcher,
+# this main sequence, the Supported: string and the `hooks` suite.
+# GREP THE SUITE OUTPUT FOR "Gate 315".
+if command -v python3 >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-cleanup-branches-worktree.sh >/dev/null 2>&1 || rc=$?
+  gate "cleanup-branches: a branch checked out in a worktree is kept" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-rcwt-base.sh >/dev/null 2>&1 || rc=$?
+  gate "rcwt: a new worktree is based on origin/main" must_pass "$rc"
+  rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-brand-extraction-guards.py >/dev/null 2>&1 || rc=$?
+  gate "brand extraction: fetch guards hold" must_pass "$rc"
+  rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-stall-watch-identity.py >/dev/null 2>&1 || rc=$?
+  gate "stall-watch: process identity checks hold" must_pass "$rc"
+  rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-spectate-store-review.py >/dev/null 2>&1 || rc=$?
+  gate "spectate store: review fixes hold" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/bin/coordinator-lock.sh --self-test --dead-holder >/dev/null 2>&1 || rc=$?
+  gate "coordinator-lock: exactly one winner per dead-holder trial" must_pass "$rc"
+  rc=0; bash plugins/ravenclaude-core/bin/coordinator-lock.sh --self-test --disable-reap-mutex >/dev/null 2>&1 || rc=$?
+  gate "coordinator-lock control: the race reappears without the reap mutex" must_pass "$rc"
+else
+  _skip_or_fail "Gate 315 (worktree/brand/stall/spectate/lock)" "python3/git"
+fi
+
+echo "── Gate 316: domain-plugin hook teeth + domain script tests ──"
+# check-domain-hook-teeth.py drives each domain advisory hook the way its
+# hooks.json registers it (fires-on-bad / silent-on-good, 48 cases). Teeth: a
+# scratch copy of the domain hooks passes (control), then a never-matching
+# _rc_pcre_match planted in one hook must be caught. Also the review's domain
+# script tests: the Dataverse preflight org guard, the Streamlit saved-views
+# binds, and the record-screen bridge's network surface. The bridge test needs
+# node and the ws npm package; without them it is a LOUD skip (counted, never a
+# pass), in CI too, because CI does not install record-screen's dependencies.
+# Registered in the --check dispatcher, this main sequence, the Supported:
+# string and the `hooks` suite. GREP THE SUITE OUTPUT FOR "Gate 316".
+if command -v python3 >/dev/null 2>&1 && command -v perl >/dev/null 2>&1; then
+  rc=0; python3 scripts/check-domain-hook-teeth.py >/dev/null 2>&1 || rc=$?
+  gate "domain hook teeth: every domain hook fires on bad, silent on good" must_pass "$rc"
+  DHT_ROOT="$TMP/domain-hook-teeth"
+  rc=0; _gate316_build_root "$DHT_ROOT" || rc=$?
+  gate "domain hook teeth: the scratch copy of the domain hooks was built" must_pass "$rc"
+  rc=0; python3 scripts/check-domain-hook-teeth.py --root "$DHT_ROOT" >/dev/null 2>&1 || rc=$?
+  gate "domain hook teeth control: the unmodified scratch copy passes" must_pass "$rc"
+  _gate316_kill_pcre "$DHT_ROOT"
+  rc=0; python3 scripts/check-domain-hook-teeth.py --root "$DHT_ROOT" >/dev/null 2>&1 || rc=$?
+  gate "domain hook teeth: a dead _rc_pcre_match in one hook is caught" must_fail "$rc"
+  rc=0; python3 plugins/power-platform/skills/dataverse-payload-preflight/test_preflight_org_guard.py >/dev/null 2>&1 || rc=$?
+  gate "dataverse preflight: --org must be a Dataverse host before the token is sent" must_pass "$rc"
+  rc=0; python3 plugins/edtech-partner-success/templates/dashboard-streamlit-reference/test_app_saved_views.py >/dev/null 2>&1 || rc=$?
+  gate "streamlit reference: saved views use bound parameters" must_pass "$rc"
+  rc=0; _gate316_bridge || rc=$?
+  if [[ "$rc" -eq 3 ]]; then
+    echo "  ‼ Gate 316 (record-screen bridge security) SKIPPED — needs node and the ws npm package"
+    echo "    (plugins/power-platform/skills/record-screen/scripts/setup.sh). THIS IS NOT A PASS."
+    SKIP=$((SKIP + 1))
+    SKIPPED_GATES+=("Gate 316 (record-screen bridge security) [no node/ws]")
+  else
+    gate "record-screen bridge: loopback only, Origin/Host refused, output confined" must_pass "$rc"
+  fi
+else
+  _skip_or_fail "Gate 316 (domain hook teeth)" "python3/perl"
+fi
+
 
 echo "── Gate 317: 2026-10-20 review regression cases (core / scripts / domain) ──"
 # One case per fixed finding from the 2026-10-20 autonomous repo review (PR

@@ -131,6 +131,11 @@
         "Phase 2 Catalog hybrid regen (core 0.363.0, 2026-11-12)",
         33310,
         "Phase 2 Catalog mode diet regenerates dashboard.html with hybrid Browse JS (createElement-only, Gate 132 \u03940) plus concept restamps for plugin-cache-is-version-keyed and islanded-panel-costs-two after the 0.363.0 bump and generator edits. Measured island payload 33,301 (over prior 33,280 ceiling by 21; largest panel learn-payload). Pure content-size raise from regen + restamped Learn island prose \u2014 not a DOM control. Appended, never edited."
+      ],
+      [
+        "PR #1387 revive: Gates 310\u2013316/318\u2013319 + merge through 0.363.5 (2026-11-13)",
+        33330,
+        "Whole-repo review revive onto main through e352b94d (0.363.5). Regenerated/merged dashboard.html measures 33,316 island payload elements, over the prior 33,310 Phase-2 Catalog ceiling by 6 (largest panel learn-payload). Pure content-size raise from review-fix concepts/gates landing beside main's AppSec residual regen \u2014 not a DOM control. Appended, never edited. Re-measured on branch head after prettier + merge."
       ]
     ],
     "index.html": [
@@ -465,5 +470,5 @@
       ]
     ]
   },
-  "measured_against": "ab0e7771693c431fb9dc0f3353c8803a710bb0d9"
+  "measured_against": "e352b94d0a92e891efdb4c20b8015df882352a0e"
 }

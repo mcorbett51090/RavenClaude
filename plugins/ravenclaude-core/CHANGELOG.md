@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.364.0 — 2026-11-13
+
+### Fixed
+- **Revive / land the 2026-10-19 whole-repo review (PR #1387) onto current main.**
+  Merges the 141 implemented fixes (2 P0 / 21 P1 / 83 P2 / 35 P3) and Gates
+  310–316 after resolving drift against main (now past 0.363.5, including
+  directory-edition AppSec residuals). Codex hook projection and installer-lane
+  gates renumbered to 318/319 so they do not collide with main's Gate 308/309
+  worktree lifecycle work. Copilot adapter keeps the `_RC_JQ_LIB` file-key
+  aliasing (1a-2); main's Chat PascalCase G167 cases fold in as G167.18–19.
+
 ## 0.363.5 — 2026-11-13
 
 ### Fixed
@@ -4733,7 +4744,8 @@ there is no Cursor binary here, and `host-support.json` records that limitation 
   concurrent sessions in one project can't each spawn a server and steal focus with a new tab.
   **Honest limit:** that probe answers "is a dashboard live on this port?", not "is it *this*
   project's dashboard" — if another project holds the port, the hook stands down rather than
-  starting a competing one. Fail-safe (EXIT trap armed first; always exits 0 — a SessionStart
+  starting a competing one. *(Superseded 2026-10-19, 0.359.0: the probe compares the server's
+  `project_id`, so another project's server is skipped, not adopted.)* Fail-safe (EXIT trap armed first; always exits 0 — a SessionStart
   hook cannot block, and a dashboard that fails to launch must never be why a session doesn't
   start), and bash-3.2/BSD-clean per the macOS-door milestones. **Gate 151**
   (`hooks/tests/test-gate151-dashboard-autostart.sh`) drives the real hook against a recording

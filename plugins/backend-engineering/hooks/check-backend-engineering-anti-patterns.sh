@@ -59,10 +59,23 @@ fi
 if grep -nEi "(catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}|except\\s*:\\s*pass|except Exception:\\s*pass)" "$scan_target" >/dev/null 2>&1; then
   findings+=("Swallowed exception (empty catch / except: pass) — model the error; don't hide failures.")
 fi
-if grep -nEi "(for\\b[\\s\\S]{0,120}(\\.find\\(|\\.get\\(|SELECT|query\\())" "$scan_target" >/dev/null 2>&1; then
+# The next two checks were `grep -E "...[\\s\\S]{0,N}..."`: POSIX ERE reads
+# `[\s\S]` as the set {backslash, s, S} and grep is line-oriented, so neither
+# could ever match (repo-review 2026-10-19). They are perl (multi-line) now,
+# tightened before enabling because their false-positive rate was never seen.
+# N+1: a loop line, then a query call on the same line or on one of the next
+# four lines indented deeper than the loop (its body). A bare `.get(` (dict or
+# cache lookup) is not a query, nor is `.find(` on a string or array (Python
+# str.find, JS Array.find): only a filter-object `.find({` or an ORM finder
+# (findOne/findAll/findById/...) counts. SELECT counts only in upper case.
+_rc_n1_call='(?:\.(?:query|execute)\s*\(|\.find\s*\(\s*\{|\.find(?:One|All|Many|ById|_one|_by_id)\s*\(|(?-i:\bSELECT\b))'
+_rc_n1_re='(?m)^([ \t]*)(?:for|while)\b(?:[^\n]*'"$_rc_n1_call"'|[^\n]*\n(?:(?:\1[ \t]+[^\n]*)?\n){0,3}\1[ \t]+[^\n]*'"$_rc_n1_call"')'
+if _rc_pcre_match "$scan_target" "$_rc_n1_re"; then
   findings+=("Possible N+1: a query inside a loop — eager-load/batch instead (route SQL tuning to database-engineering).")
 fi
-if grep -nEi "(publish|emit|send).*event[\\s\\S]{0,80}(commit|save)|(commit|save)[\\s\\S]{0,80}(publish|emit)" "$scan_target" >/dev/null 2>&1; then
+# Dual-write: a commit/save call followed within four lines by a publish/emit
+# call (`$emit`, a UI event, does not count).
+if _rc_pcre_match "$scan_target" '(?:\bcommit|\.save)\s*\([^\n]*(?:\n[^\n]*){0,4}?(?<![$\w])(?:publish|emit)\w*\s*\('; then
   findings+=("Possible dual-write (publish + commit separately) — use the transactional outbox so events match committed state.")
 fi
 

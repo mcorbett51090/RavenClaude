@@ -130,10 +130,18 @@ case "$cmd" in
   new)
     task="${1:?usage: rcwt new <task> [base-branch]}"
     base="${2:-main}"
+    # ⛔ The base is handed to `git fetch`, which parses a leading '-' as an
+    # option even after the remote name — '--upload-pack=<cmd>' runs <cmd>.
+    # Validate it as a branch name (rejects a leading '-') and end option
+    # parsing with '--' before the refspec.
+    git check-ref-format --branch "$base" >/dev/null 2>&1 || {
+      echo "rcwt: invalid base branch name: $base" >&2
+      exit 2
+    }
     dest="$WT_ROOT/$task"
     branch="forge/$task"
     mkdir -p "$WT_ROOT"
-    git -C "$PRIMARY" fetch --prune origin "$base"
+    git -C "$PRIMARY" fetch --prune origin -- "$base"
     git -C "$PRIMARY" worktree add "$dest" -b "$branch" "origin/$base"
     stamp="$PLUGIN_ROOT/scripts/write-lane-stamp.sh"
     if [ -x "$stamp" ]; then
