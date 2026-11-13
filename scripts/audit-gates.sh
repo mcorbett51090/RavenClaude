@@ -5354,7 +5354,7 @@ echo "── Gate 35: dashboard serializer round-trip + Pipeline-tab server vali
 RT="scripts/check-dashboard-roundtrip.mjs"
 if command -v node >/dev/null 2>&1; then
   # must_pass: the real, in-sync dashboard.
-  rc=0; node "$RT" "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  rc=0; node "$RT" "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose decision_review emission line is stripped
   # (simulating the pre-fix serializer that silently dropped the key). The test
@@ -7544,14 +7544,14 @@ rc=0; python3 - <<'PY' >/dev/null 2>&1 || rc=$?
 import importlib.util, sys
 s = importlib.util.spec_from_file_location("m", "scripts/check-dom-budget.py")
 m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
-for p in (m.DASHBOARD, m.INDEX):
-    r = m.measure(p)
-    if sum(r["panels"].values()) + r["shell"] != r["total"]:
-        sys.exit(1)
-    if len(r["panels"]) != 18:  # 17th = panel-host-context (v0.216.0, MH-14); 18th = panel-reserve (routine token reserve PR 2, v0.326.0)
-        sys.exit(1)
+# Phase 3b: INDEX stub is not panel-budgeted.
+r = m.measure(m.DASHBOARD)
+if sum(r["panels"].values()) + r["shell"] != r["total"]:
+    sys.exit(1)
+if len(r["panels"]) != 18:  # 17th = panel-host-context (v0.216.0, MH-14); 18th = panel-reserve (routine token reserve PR 2, v0.326.0)
+    sys.exit(1)
 PY
-gate "dom-budget: SUM(panels)+shell == whole doc, 18 panels both surfaces" must_pass "$rc"
+gate "dom-budget: SUM(panels)+shell == whole doc, 18 panels (dashboard)" must_pass "$rc"
 
 # F3 / §0.2b rail: an EXEMPT panel (settings) must never be silently islanded.
 # Neither existing gate catches this — Gate 35 (posture round-trip) is DOM-free by
@@ -7718,12 +7718,8 @@ echo "── Gate 144: Prompt Builder render + XSS floor (check-prompt-builder-r
 if command -v node >/dev/null 2>&1; then
   rc=0; node scripts/check-prompt-builder-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "prompt-builder render (dashboard.html: static sink grep + assembler/linter/token)" must_pass "$rc"
-  rc=0; node scripts/check-prompt-builder-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-  gate "prompt-builder render (index.html portal: same region shipped)" must_pass "$rc"
   rc=0; node scripts/check-host-context-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "host-context render (dashboard.html)" must_pass "$rc"
-  rc=0; node scripts/check-host-context-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
-  gate "host-context render (index.html portal)" must_pass "$rc"
   # must_fail: a reintroduced HTML-string sink in the pb region MUST be caught by the grep.
   PB_BAD="$TMP/dashboard-pb-innerhtml.html"
   python3 -c "p='$DASH_HTML'; o='$PB_BAD'; s=open(p,encoding='utf-8').read(); s=s.replace('/* PROMPT-BUILDER:END */','function pbEvilSink(el, t) { el.innerHTML = t; }\n/* PROMPT-BUILDER:END */',1); open(o,'w',encoding='utf-8').write(s)"

@@ -816,7 +816,7 @@ function breakDashboardSettingsTab(html) {
       'dashboard missing <button … tab-btn … data-tab="settings"> — cannot plant destination break',
     );
   }
-  return html.replace(re, '$1settings-GONE$2');
+  return html.replace(re, "$1settings-GONE$2");
 }
 
 function plantRottenPitch(html) {
@@ -875,7 +875,8 @@ function selfTest() {
       note(
         drifted.exit === 2 &&
           drifted.failures.some(
-            (f) => f.includes("#/settings") && (f.includes("does not resolve") || f.includes("floor")),
+            (f) =>
+              f.includes("#/settings") && (f.includes("does not resolve") || f.includes("floor")),
           ),
         "breaking dashboard data-tab=settings is exit 2 (destination / floor)",
       );
