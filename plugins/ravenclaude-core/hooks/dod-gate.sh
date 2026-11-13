@@ -240,7 +240,16 @@ if [ "$dod_trusted" != "true" ]; then
     | { sha256sum 2>/dev/null || shasum -a 256 2>/dev/null || cksum 2>/dev/null; } \
     | tr -dc '0-9a-f' | cut -c1-16)"
   [ -z "$cmd_hash" ] && cmd_hash="nohash"
-  confirm_dir="${cwd}/.ravenclaude/runs/dod-gate/${safe_sid}"
+  # AppSec #1427: confirm token lives OUTSIDE the agent-writable worktree.
+  # An in-tree `.ravenclaude/runs/dod-gate/.../confirmed-*` is no longer accepted
+  # (python/cd+touch/ln/dd could create it while the Bash verb list missed them).
+  # Override for tests: RC_DOD_CONFIRM_HOME. Default: ~/.ravenclaude/dod-confirm.
+  _dod_confirm_home="${RC_DOD_CONFIRM_HOME:-${HOME}/.ravenclaude/dod-confirm}"
+  _dod_repo_key="$(printf '%s' "$cwd" \
+    | { sha256sum 2>/dev/null || shasum -a 256 2>/dev/null || cksum 2>/dev/null; } \
+    | tr -dc '0-9a-f' | cut -c1-16)"
+  [ -z "$_dod_repo_key" ] && _dod_repo_key="norepo"
+  confirm_dir="${_dod_confirm_home}/${_dod_repo_key}/${safe_sid}"
   confirm_file="${confirm_dir}/confirmed-${cmd_hash}"
   if [ ! -f "$confirm_file" ]; then
     mkdir -p "$confirm_dir" 2>/dev/null || true
@@ -252,7 +261,7 @@ if [ "$dod_trusted" != "true" ]; then
     reason="$(_dod_not_done \
       "definition_of_done.cmd is not authorized for this session (attempt ${blocks}/${max_blocks}). This is not a test failure." \
       "A person approves this. Do not create the confirm file yourself. Creating it from this session is denied.
-A person creates this file outside the agent:
+A person creates this file outside the agent session (path is outside the worktree):
   $confirm_file
 The gate will then run:
   $dod_cmd

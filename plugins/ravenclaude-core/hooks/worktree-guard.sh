@@ -957,13 +957,25 @@ case "$SUBCMD" in
     # programs. Variables, eval, globs and encodings can evade it — the real
     # backstop is the bwrap sandbox write allowlist (cwd + /tmp). Helper error
     # => fail closed. Escape: RC_WORKTREE_BASH_WRITE_ACK=1.
-    # Human-only DoD confirm file. A Bash touch/redirect must not approve the gate.
+    # Human-only DoD confirm (AppSec #1427). Verb-agnostic: any Bash that names
+    # the confirm token (legacy in-tree dod-gate/…/confirmed-* OR out-of-tree
+    # dod-confirm/…/confirmed-*) is denied — python/cd+touch/ln/dd evade a verb list.
     if [ "$tn" = "Bash" ] && [ -n "$cmd" ] \
-      && printf '%s' "$cmd" | grep -Eq 'dod-gate/.*/confirmed-' \
-      && printf '%s' "$cmd" | grep -Eq '(touch|tee|cp|mv|mkdir|install|>)'; then
+      && printf '%s' "$cmd" | grep -Eq '(dod-gate|dod-confirm).{0,400}confirmed-|confirmed-.{0,400}(dod-gate|dod-confirm)'; then
       printf '%s\n' "worktree-guard: DENIED — the definition-of-done confirm file is human-only. Do not create it. A person creates it outside this session, or the stop gate releases at max_blocks with VERDICT: STOP." >&2
       _emit_hook_event "worktree-guard.sh" "deny" "Bash" "" "dod-confirm-human-only" "2"
       exit 2
+    fi
+    # Write/Edit of the confirm path (legacy in-tree or ~/.ravenclaude/dod-confirm).
+    if [ "$tn" = "Write" ] || [ "$tn" = "Edit" ] || [ "$tn" = "MultiEdit" ]; then
+      _wg_dod_fp="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
+      case "$_wg_dod_fp" in
+        */.ravenclaude/runs/dod-gate/*/confirmed-*|.ravenclaude/runs/dod-gate/*/confirmed-*|*/.ravenclaude/dod-confirm/*/confirmed-*|*/dod-confirm/*/confirmed-*)
+          printf '%s\n' "worktree-guard: DENIED — the definition-of-done confirm file is human-only. Do not create it." >&2
+          _emit_hook_event "worktree-guard.sh" "deny" "$tn" "" "dod-confirm-human-only" "2"
+          exit 2
+          ;;
+      esac
     fi
     if [ "$tn" = "Bash" ] && [ -n "$cmd" ] && [ "${RC_WORKTREE_BASH_WRITE_ACK:-}" != "1" ]; then
       _wg_helper="$(dirname "${BASH_SOURCE[0]}")/worktree-guard-bash.py"

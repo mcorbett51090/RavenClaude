@@ -49,7 +49,7 @@ fi
 # not write it (BTCSI session: the agent created the file and the gate then
 # ran). This deny is independent of .repo-layout.json.
 case "$file" in
-  */.ravenclaude/runs/dod-gate/*/confirmed-*|.ravenclaude/runs/dod-gate/*/confirmed-*)
+  */.ravenclaude/runs/dod-gate/*/confirmed-*|.ravenclaude/runs/dod-gate/*/confirmed-*|*/.ravenclaude/dod-confirm/*/confirmed-*|*/dod-confirm/*/confirmed-*)
     echo "[enforce-layout] DENIED — definition-of-done confirm file is human-only. Do not create it. A person creates it outside this session, or the stop gate releases at max_blocks with VERDICT: STOP." >&2
     if command -v jq >/dev/null 2>&1; then
       jq -cn --arg r "definition-of-done confirm file is human-only. Do not create it." \

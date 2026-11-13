@@ -137,6 +137,17 @@ run bad-sed-i-outside        2 "$(j Bash 'sed -i s/a/b/ /workspace/other/f')"
 run bad-python-c-outside     2 "$(j Bash "python3 -c \"open('/workspace/other/f','w').write('x')\"")"
 run bad-node-e-outside       2 "$(j Bash "node -e \"require('fs').writeFileSync('/workspace/other/f','x')\"")"
 run bad-perl-e-outside       2 "$(j Bash "perl -e 'open(F, \">/workspace/other/f\"); print F 1'")"
+# AppSec #1427 — DoD confirm is human-only; verb-agnostic Bash deny + Write deny.
+run bad-dod-touch            2 "$(j Bash 'touch .ravenclaude/runs/dod-gate/s/confirmed-abc')"
+run bad-dod-python           2 "$(j Bash "python3 -c \"open('.ravenclaude/runs/dod-gate/s/confirmed-abc','w')\"")"
+run bad-dod-cd-touch         2 "$(j Bash 'cd .ravenclaude/runs/dod-gate/s && touch confirmed-abc')"
+run bad-dod-ln               2 "$(j Bash 'ln -s /dev/null .ravenclaude/runs/dod-gate/s/confirmed-abc')"
+run bad-dod-dd               2 "$(j Bash 'dd if=/dev/null of=.ravenclaude/runs/dod-gate/s/confirmed-abc')"
+run bad-dod-cp               2 "$(j Bash 'cp /dev/null .ravenclaude/runs/dod-gate/s/confirmed-abc')"
+run bad-dod-redirect         2 "$(j Bash 'echo x > .ravenclaude/runs/dod-gate/s/confirmed-abc')"
+run bad-dod-confirm-home     2 "$(j Bash 'touch ~/.ravenclaude/dod-confirm/rk/s/confirmed-abc')"
+run bad-dod-write-tool       2 "$(j Write "$T/wt/.ravenclaude/runs/dod-gate/s/confirmed-abc")"
+run bad-dod-write-home       2 "$(j Write "$HOME/.ravenclaude/dod-confirm/rk/s/confirmed-abc")"
 # macOS bash 3.2 portability (AppSec SHIPCHECK 18f5c03f F2 follow-up, 2026-11-11):
 # the payloads below used to spell `<<'TAG'`/`<<TAG` literally inside a `$( )`
 # that also wraps a `j Bash "..."` call. Even though the tag is quoted and the

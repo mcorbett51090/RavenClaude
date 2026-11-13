@@ -755,10 +755,10 @@ Checklist before you try to stop after a source change:
 
 - [ ] The gate ran the configured command, or a person created the confirm file outside this session
 - [ ] That command exited 0
-- [ ] You did not create `.ravenclaude/runs/dod-gate/<session>/confirmed-*` yourself. Write and Bash attempts are denied
+- [ ] You did not create the out-of-tree DoD confirm file yourself (`$HOME/.ravenclaude/dod-confirm/<repo-hash>/<session>/confirmed-*`). Write and Bash attempts are denied (legacy in-tree `.ravenclaude/runs/dod-gate/.../confirmed-*` is also denied and is no longer accepted)
 - [ ] You are not waiting on the user to decide whether you are done
 
-The confirm file is human-only. Do not `touch` it, and do not ask the user whether you are done. A trust refusal counts toward `max_blocks`. At the cap the first line is `VERDICT: STOP` and the turn ends.
+The confirm file is human-only and lives outside the worktree (`$HOME/.ravenclaude/dod-confirm/...`). Do not create it from the agent session, and do not ask the user whether you are done. A trust refusal counts toward `max_blocks`. At the cap the first line is `VERDICT: STOP` and the turn ends.
 
 Config (all knobs optional; sensible defaults):
 
