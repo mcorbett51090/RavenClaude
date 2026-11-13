@@ -12013,7 +12013,7 @@ if command -v jq >/dev/null 2>&1; then
   gate "guard-destructive: DELETE-method deletes denied, benign controls allowed" must_pass "$rc"
   rc=0; bash plugins/ravenclaude-core/hooks/tests/test-enforce-layout-normalize.sh >/dev/null 2>&1 || rc=$?
   gate "enforce-layout: paths normalised before the allow-list match" must_pass "$rc"
-  rc=0; _run_test_tail bash plugins/ravenclaude-core/hooks/tests/test-web-host-parity.sh || rc=$?
+  rc=0; bash plugins/ravenclaude-core/hooks/tests/test-web-host-parity.sh >/dev/null 2>&1 || rc=$?
   gate "web-access: guard and marker agree on every host shape" must_pass "$rc"
   rc=0; bash plugins/ravenclaude-core/hooks/tests/test-advisory-no-echo.sh >/dev/null 2>&1 || rc=$?
   gate "advisory hooks: file:line [rule-id] only, matched text never echoed" must_pass "$rc"
@@ -12089,9 +12089,9 @@ echo "── Gate 314: dashboard server hardening ──"
 # dispatcher, this main sequence, the Supported: string and the `portal` suite.
 # GREP THE SUITE OUTPUT FOR "Gate 314".
 if command -v python3 >/dev/null 2>&1; then
-  rc=0; _run_test_tail python3 scripts/check-dashboard-hardening.py || rc=$?
+  rc=0; python3 scripts/check-dashboard-hardening.py >/dev/null 2>&1 || rc=$?
   gate "dashboard hardening: both server copies refuse every hostile case" must_pass "$rc"
-  rc=0; _run_test_tail python3 scripts/check-dashboard-hardening.py --must-fail || rc=$?
+  rc=0; python3 scripts/check-dashboard-hardening.py --must-fail >/dev/null 2>&1 || rc=$?
   gate "dashboard hardening teeth: every mutant is caught" must_pass "$rc"
 else
   _skip_or_fail "Gate 314 (dashboard hardening)" python3
