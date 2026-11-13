@@ -39,11 +39,11 @@ Owner direction (2026-11-12): collapse to **one product**, local dashboard as ho
 - Gate 132 budget raise only with an owned reason when Catalog shell DOM lands on standalone.
 - **Phase 2 landed (implementation):** shipped `dashboard.html` stays `include_catalog=False` (Gate 132 Δ0). Runtime hybrid enables Browse via `catalog-data.json` / `__RC_DATA__`. CLI `--include-catalog` embeds lean payload for explicit hybrid builds only. Plan: `docs/plans/2026-11-12-phase2-catalog-hybrid.md`.
 
-### Phase 3 — single artifact
+### Phase 3 — single artifact — **done**
 
 - One generator pipeline; retire or redirect the non-canonical HTML; retarget Gates 97/51/132 to one surface; root `dash_path` + Pages host follow.
-- **Phase 3a (entry unification):** root `serve-dashboards.py` / `open-dashboard.sh` land on `/plugins/ravenclaude-core/dashboard.html` (Catalog via `catalog-data.json`). Fat `index.html` kept for Pages + Gates 97/51 until 3b. Plan: `docs/plans/2026-11-12-phase3-single-artifact.md`.
-- **Phase 3b (thin stub):** committed `index.html` is a redirect stub to `plugins/ravenclaude-core/dashboard.html`. Fat portal retired. Gates 51/97/132/141/200 retargeted. Plan: `docs/plans/2026-11-12-phase3b-thin-stub.md`.
+- **Phase 3a (entry unification) — shipped #1437:** root `serve-dashboards.py` / `open-dashboard.sh` land on `/plugins/ravenclaude-core/dashboard.html` (Catalog via `catalog-data.json`). Fat `index.html` kept for Pages + Gates 97/51 until 3b. Plan: `docs/plans/2026-11-12-phase3-single-artifact.md`.
+- **Phase 3b (thin stub) — shipped #1438:** committed `index.html` is a redirect stub to `plugins/ravenclaude-core/dashboard.html`. Fat portal retired. Gates 51/97/132/141/200 retargeted. Plan: `docs/plans/2026-11-12-phase3b-thin-stub.md`.
 
 ## Non-goals (this decision)
 
