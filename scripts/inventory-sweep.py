@@ -733,6 +733,7 @@ def _callgraph_haystack(root: Path) -> dict[str, str]:
         (
             ".github/workflows/*.yml",
             f"{PLUGIN}/hooks/*.sh",
+            f"{PLUGIN}/hooks/tests/*.sh",
             f"{PLUGIN}/skills/*/SKILL.md",
             f"{PLUGIN}/commands/*.md",
             "scripts/*",

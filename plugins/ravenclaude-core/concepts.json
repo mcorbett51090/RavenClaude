@@ -3087,7 +3087,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:2d53c9dc9f734e067baf7ff6aa43ff08a1acbfa74c04c195a2dc0b7d4f2d5b86",
+      "covers_digest": "sha256:7499916d4654a25b3a62a628c3883446e8691c57bb1f7167ebc9a279ec2e9f9c",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3444,7 +3444,7 @@
         "scripts/inventory-sweep.py",
         "scripts/inventory-coverage.py"
       ],
-      "covers_digest": "sha256:46cd5ab6f63f4c0c6a08414bad0679ed2a939405faa31e5f8153cdaf6985ee14",
+      "covers_digest": "sha256:3059214f911e785b52faabe97ff2c90f7b1802efae3394aa760d5febec7ba1db",
       "nuance": "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3596,7 +3596,7 @@
         "scripts/inventory-sweep.py",
         "scripts/audit-prose-rendering-path.py"
       ],
-      "covers_digest": "sha256:008c33ac653cd5733f3f7dba4c7cd5f7e2c46c2787887f945d4de9633c48f13d",
+      "covers_digest": "sha256:7e6c584f26a1882b91235bf6c24d62312a51276bf380a4974a593aab482c7140",
       "nuance": "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.",
       "nuance_evidence": {
         "measured": "2026-08-19",
