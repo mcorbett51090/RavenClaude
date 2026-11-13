@@ -65,6 +65,10 @@ CARVE_SUBSTR = (
     "plugins/claude-app-engineering/",  # illustrative routing-ladder narrative
     "/docs/",  # plans/research/follow-ups + historical prose
     "docs/research/2026-10-04-coding-agent-harness-atlas/data/",  # vendor quotes name other vendors' model ids verbatim
+    # Packed form of the atlas markdown. Those pages were .md (not a governed
+    # extension). The pack is .json, so the same historical text is now scanned:
+    # evidence tokens E-claude-code-<n> and quoted vendor model names.
+    "docs/research/2026-10-04-coding-agent-harness-atlas/md/md.pack.json",
     "plugins/ravenclaude-core/knowledge/spectate-capabilities.json",  # atlas evidence tokens E-claude-code-<n> (not model ids)
     "CHANGELOG.md",
 )

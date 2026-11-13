@@ -41,6 +41,9 @@ docs/research/2026-10-04-coding-agent-harness-atlas/*.html
 docs/research/2026-10-04-coding-agent-harness-atlas/trees/
 docs/research/2026-10-04-coding-agent-harness-atlas/harness/
 docs/research/2026-10-04-coding-agent-harness-atlas/sources/
+# render_md.py writes this with dump_json (sorted keys, the member text unchanged). Prettier would
+# only churn it, and the committed bytes should not depend on the prettier version.
+docs/research/2026-10-04-coding-agent-harness-atlas/md/md.pack.json
 
 # Bundled third-party content keeps its upstream formatting.
 plugins/power-platform/skills/record-screen/extension/

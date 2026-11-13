@@ -77,3 +77,7 @@ evals/inject-golden-set/__pycache__/
 
 # Plugin-lifecycle last-used ledger (per-project, local-only — M6)
 .ravenclaude/plugin-lifecycle.json
+
+# Unpacked harness-atlas markdown. The committed copy is md/md.pack.json;
+# render_md.py --unpack writes these back for grepping and they must not return as tracked files.
+docs/research/2026-10-04-coding-agent-harness-atlas/md/**/*.md
