@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # open-dashboard.sh — one command to open RavenClaude for this marketplace
-# checkout (hybrid index.html shell + live /__* endpoints). Same product as
-# `rc dashboard` / /dashboard; this path is the maintainer hybrid entry.
+# checkout. Phase 3a: opens the same artifact as `rc dashboard` /
+# /dashboard (plugins/ravenclaude-core/dashboard.html) with live /__*
+# endpoints + Catalog via /catalog-data.json. Fat index.html remains the
+# Pages/static hybrid until Phase 3b.
 #
 #   (default)   probe for a dashboard already serving THIS checkout and REUSE it;
 #               otherwise start one on port 8000 (background, survives this script)
@@ -139,9 +141,9 @@ fi
 announce_and_open() { # $1 = bound port
   local port="$1" url browser_bin
   if [ -n "${CODESPACE_NAME:-}" ]; then
-    url="https://${CODESPACE_NAME}-${port}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/index.html"
+    url="https://${CODESPACE_NAME}-${port}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/plugins/ravenclaude-core/dashboard.html"
   else
-    url="http://127.0.0.1:${port}/index.html"
+    url="http://127.0.0.1:${port}/plugins/ravenclaude-core/dashboard.html"
   fi
   if [ "$OPEN" -eq 1 ] && [ -t 1 ]; then
     # Resolve the first word of $BROWSER via PATH so a bare command name (BROWSER=firefox)
@@ -168,7 +170,7 @@ announce_and_open() { # $1 = bound port
 find_our_live_port() {
   local cand pid
   for cand in $(seq "$PORT" $((PORT + WALK))); do
-    if curl -fsS -o /dev/null "http://127.0.0.1:${cand}/index.html" 2>/dev/null; then
+    if curl -fsS -o /dev/null "http://127.0.0.1:${cand}/plugins/ravenclaude-core/dashboard.html" 2>/dev/null; then
       for pid in $(_holder_pids "$cand"); do
         if _is_our_dashboard "$pid"; then
           echo "$cand"
@@ -222,7 +224,7 @@ bound_port=""
 fallback_port=""
 for _ in $(seq 1 20); do
   for cand in $(seq "$PORT" $((PORT + WALK))); do
-    if curl -fsS -o /dev/null "http://127.0.0.1:${cand}/index.html" 2>/dev/null; then
+    if curl -fsS -o /dev/null "http://127.0.0.1:${cand}/plugins/ravenclaude-core/dashboard.html" 2>/dev/null; then
       [ -n "$fallback_port" ] || fallback_port="$cand"
       for pid in $(_holder_pids "$cand"); do
         if _is_our_dashboard "$pid"; then

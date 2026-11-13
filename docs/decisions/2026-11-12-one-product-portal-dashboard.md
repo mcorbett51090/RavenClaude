@@ -42,6 +42,7 @@ Owner direction (2026-11-12): collapse to **one product**, local dashboard as ho
 ### Phase 3 — single artifact
 
 - One generator pipeline; retire or redirect the non-canonical HTML; retarget Gates 97/51/132 to one surface; root `dash_path` + Pages host follow.
+- **Phase 3a (entry unification):** root `serve-dashboards.py` / `open-dashboard.sh` land on `/plugins/ravenclaude-core/dashboard.html` (Catalog via `catalog-data.json`). Fat `index.html` kept for Pages + Gates 97/51 until 3b. Plan: `docs/plans/2026-11-12-phase3-single-artifact.md`.
 
 ## Non-goals (this decision)
 
