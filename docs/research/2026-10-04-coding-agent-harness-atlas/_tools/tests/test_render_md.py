@@ -2,6 +2,7 @@ import ast
 import contextlib
 import copy
 import io
+import json
 import os
 import re
 import subprocess
@@ -16,7 +17,7 @@ sys.path.insert(0, str(TOOLS))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import render_md  # noqa: E402
-from atlas_common import DATA_DIR  # noqa: E402
+from atlas_common import DATA_DIR, dump_json  # noqa: E402
 from test_render import XSS, fixture, read_tree, write_data  # noqa: E402
 
 RENDER_MD_PY = TOOLS / "render_md.py"
@@ -305,6 +306,24 @@ class RealDataTests(unittest.TestCase):
         code, out, err = run_main(["--check"])
         self.assertEqual(code, 0, out + err)
 
+    def test_the_committed_pack_unpacks_to_the_rendered_bytes(self):
+        pages, _ = real_pages()
+        with tempfile.TemporaryDirectory() as tmp:
+            code, out, err = run_main(
+                [
+                    "--unpack",
+                    "--pack",
+                    str(render_md.MD_DIR / render_md.PACK_NAME),
+                    "--out",
+                    tmp,
+                ]
+            )
+            self.assertEqual(code, 0, out + err)
+            tree = read_tree(tmp)
+            self.assertEqual(set(tree), set(pages))
+            for path, body in pages.items():
+                self.assertEqual(tree[path], body.encode("utf-8"), path)
+
 
 class CheckModeTests(unittest.TestCase):
     def setUp(self):
@@ -319,29 +338,93 @@ class CheckModeTests(unittest.TestCase):
     def check(self):
         return run_main(["--data-dir", str(self.data_dir), "--out", str(self.out), "--check"])
 
+    def rewrite(self, mutate):
+        path = self.out / render_md.PACK_NAME
+        pack = json.loads(path.read_text(encoding="utf-8"))
+        mutate(pack)
+        dump_json(path, pack)
+
     def test_a_fresh_tree_passes(self):
         code, out, _ = self.check()
         self.assertEqual(code, 0)
         self.assertIn("up to date", out)
+        self.assertTrue((self.out / render_md.PACK_NAME).is_file())
 
-    def test_an_edited_file_is_stale(self):
-        target = self.out / "register.md"
-        target.write_bytes(target.read_bytes() + b"x")
+    def test_an_edited_member_is_stale(self):
+        self.rewrite(lambda pack: pack.__setitem__("register.md", pack["register.md"] + "x"))
         code, _, err = self.check()
         self.assertEqual(code, 1)
         self.assertIn("stale: register.md", err)
 
-    def test_a_deleted_file_is_missing(self):
-        (self.out / "known-gaps.md").unlink()
+    def test_a_deleted_member_is_missing(self):
+        self.rewrite(lambda pack: pack.pop("known-gaps.md"))
         code, _, err = self.check()
         self.assertEqual(code, 1)
         self.assertIn("missing: known-gaps.md", err)
 
-    def test_an_extra_markdown_file_fails_the_check(self):
-        (self.out / "agents" / "stray.md").write_text("x\n", encoding="utf-8")
+    def test_a_missing_pack_is_missing(self):
+        (self.out / render_md.PACK_NAME).unlink()
+        code, _, err = self.check()
+        self.assertEqual(code, 1)
+        self.assertIn("missing: md.pack.json", err)
+
+    def test_an_extra_pack_member_fails_the_check(self):
+        self.rewrite(lambda pack: pack.__setitem__("agents/stray.md", "x\n"))
         code, _, err = self.check()
         self.assertEqual(code, 1)
         self.assertIn("extra: agents/stray.md", err)
+
+    def test_an_extra_markdown_file_fails_the_check(self):
+        agents = self.out / "agents"
+        agents.mkdir()
+        (agents / "stray.md").write_text("x\n", encoding="utf-8")
+        code, _, err = self.check()
+        self.assertEqual(code, 1)
+        self.assertIn("extra: agents/stray.md", err)
+
+    def test_a_loose_file_that_matches_the_render_is_an_unpack(self):
+        code, out, err = run_main(
+            [
+                "--unpack",
+                "--pack",
+                str(self.out / render_md.PACK_NAME),
+                "--out",
+                str(self.root / "unpacked"),
+            ]
+        )
+        self.assertEqual(code, 0, err)
+        pages = render_md.render_all(self.data_dir)
+        tree = read_tree(self.root / "unpacked")
+        self.assertEqual(set(tree), set(pages))
+        for path, body in pages.items():
+            self.assertEqual(tree[path], body.encode("utf-8"), path)
+        self.assertIn("unpacked", out)
+
+    def test_writing_drops_a_legacy_markdown_file(self):
+        legacy = self.out / "rows" / "F04.md"
+        legacy.parent.mkdir(parents=True)
+        legacy.write_text("legacy\n", encoding="utf-8")
+        code, _, err = run_main(["--data-dir", str(self.data_dir), "--out", str(self.out)])
+        self.assertEqual(code, 0, err)
+        self.assertFalse(legacy.exists())
+        self.assertFalse(legacy.parent.exists())
+
+    def test_a_member_that_leaves_the_directory_is_rejected(self):
+        pack_path = self.root / "bad.pack.json"
+        pack_path.write_text(json.dumps({"../escape.md": "x\n"}) + "\n", encoding="utf-8")
+        code, _, err = run_main(
+            ["--unpack", "--pack", str(pack_path), "--out", str(self.root / "escaped")]
+        )
+        self.assertEqual(code, 2)
+        self.assertIn("relative path", err)
+        self.assertFalse((self.root / "escape.md").exists())
+
+    def test_a_pack_that_is_not_a_map_of_text_is_an_error(self):
+        path = self.out / render_md.PACK_NAME
+        path.write_text(json.dumps({"register.md": 1}) + "\n", encoding="utf-8")
+        code, _, err = self.check()
+        self.assertEqual(code, 2)
+        self.assertIn("not a map of filename to text", err)
 
     def test_writing_reports_a_stray_file_and_leaves_it(self):
         stray = self.out / "stray.md"
@@ -353,7 +436,7 @@ class CheckModeTests(unittest.TestCase):
 
     def test_the_tree_it_writes_has_no_other_files(self):
         names = set(read_tree(self.out))
-        self.assertTrue(all(n.endswith(".md") for n in names))
+        self.assertEqual(names, {render_md.PACK_NAME})
 
 
 class ModuleTests(unittest.TestCase):
