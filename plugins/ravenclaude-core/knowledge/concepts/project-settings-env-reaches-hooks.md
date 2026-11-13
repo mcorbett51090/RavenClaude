@@ -6,13 +6,13 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 945
 summary: "Project settings env (PATH, BASH_ENV, THING_SEAT_*) reaches hooks; a hardened launch line plus a quarantine guard stop it."
-last_verified: 2026-10-18
+last_verified: 2026-10-19
 covers:
   - plugins/ravenclaude-core/hooks/env-integrity-guard.sh
   - plugins/ravenclaude-core/hooks/_rc-runtime.sh
   - plugins/ravenclaude-core/hooks/pretool-record-check.sh
   - scripts/check-hook-launch-line.py
-covers_digest: "sha256:6838a617753d681d186b8ae652cd33bf826c068a258380aaafefa95a3ed4a194"
+covers_digest: "sha256:22d0e80957bdb91652d49c938fd8bcd9ec08b6952b4562b55432142c6ee925dd"
 nuance: "Claude Code 2.1.260 exports project settings env into every hook (sh -c): a planted BASH_ENV ran in every bash hook, a planted PATH chose jq. The hardened launch line keeps them out; env-integrity-guard.sh denies every tool call. A real LD_PRELOAD library cannot be stopped, only refused."
 nuance_evidence:
   measured: 2026-10-18
@@ -53,6 +53,11 @@ The `env` block is not a hook, so neither the trust dialog nor `/hooks` shows it
 planted `THING_SEAT_ACTIVE` would also have switched command review off. The seat-child
 lock (`_rc-runtime.sh`) and the pre-tool record check (`pretool-record-check.sh`) cover the
 recursion guard and a review hook that never started.
+
+Since 2026-10-19 (repo review hooks-4) the guard also quarantines `BASH_FUNC_<name>%%` keys. bash
+imports them as functions that shadow the binary of the same name, and `env -u` on the launch line
+cannot name them in advance, so `guard-destructive.sh` and `thing-orchestrator.sh` also unset every
+function before doing anything else (test section 18).
 
 Falsifier: a hooks.json command without the hardened prefix, or a planted key that does not
 deny. Probe: `plugins/ravenclaude-core/hooks/tests/test-hook-env-hardening.sh`.

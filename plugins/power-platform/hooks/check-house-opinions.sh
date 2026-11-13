@@ -19,8 +19,10 @@
 #      (password=, AccountKey=, api_key=, "secret"…) — §4 anti-pattern. Should be a
 #      `@Microsoft.KeyVault(...)` reference, not a plaintext default.
 #
-# Advisory by default: prints warnings to stderr so Claude and the user both see them,
-# but exits 0 so the edit is not blocked. To make this hook BLOCK on violation, set
+# Advisory by default: prints warnings to stderr and exits 0 so the edit is not
+# blocked. stderr at exit 0 reaches the user's terminal but is NOT delivered to
+# the model (measured; see docs/best-practices/hook-authoring.md), so Claude does
+# not see these advisories. To make this hook BLOCK on violation, set
 # POWER_PLATFORM_STRICT=1 in the env (exit 2 = block in Claude Code; exit 1 is a
 # non-blocking error Claude Code silently swallows, so it would NOT block).
 
@@ -112,10 +114,21 @@ esac
 # §3 #8 requires every recommendation involving a premium connector to call out the
 # licensing impact. Mechanical proxy: if the flow JSON references one of the known-
 # premium connector apiIds, expect a `// premium:` or `"_comments":` annotation in
-# the same file. Conservative list — covers the most common premium offenders.
+# the same file. Curated list of common Premium connectors, each one checked
+# against Microsoft's Premium-tier list (repo-review 2026-10-19). The earlier
+# list flagged Standard connectors — SharePoint, Teams, Approvals, SMTP, Adobe
+# Sign, DocuSign, Defender for Cloud Apps, Encodian — and used names no apiId
+# carries (azureservicebus, azuredevops, azurekeyvault, servicenow). Entries
+# are API names (the shared_<name> in an apiId), which can differ from the doc
+# URL slug (Service Bus is servicebus, documented at /connectors/servicebus-1/).
+# `http` is the built-in HTTP action, Premium per Microsoft Learn's SharePoint
+# workflow-migration guidance; HTTP with Microsoft Entra ID is webcontents(v2).
+# Azure Functions is dropped: it is in neither tier list.
+# retrieved 2026-10-19 from learn.microsoft.com/connectors/connector-reference/
+#   (connector-reference-premium-connectors + connector-reference-standard-connectors)
 case "$file" in
   */workflows/*.json)
-    premium_pattern='shared_(commondataserviceforapps|salesforce|hubspotcrm|sap|oracle|adobesign|docusign|approvals|encodian|cloudappsecurity|servicenow|azurequeues|azureblob|azuretables|azureservicebus|azureeventgrid|azurefunctions|azureopenai|azuredevops|azurekeyvault|sql|smtp|http(withazuread)?|webcontents|teams|sharepointonline)'
+    premium_pattern='shared_(commondataserviceforapps|salesforce|hubspotcrm|sap|oracle|service-now|azurequeues|azureblob|azuretables|servicebus|azureeventgrid|azureopenai|visualstudioteamservices|keyvault|sql|http|webcontents(v2)?)'
     if grep -qE "\"apiId\"[[:space:]]*:[[:space:]]*\"[^\"]*${premium_pattern}\"" "$file" 2>/dev/null; then
       if ! grep -qE '("_comments"|//[[:space:]]*premium|"premium"[[:space:]]*:[[:space:]]*true)' "$file" 2>/dev/null; then
         # Show the first matching premium connector reference as evidence

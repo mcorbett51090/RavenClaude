@@ -33,6 +33,7 @@ import re
 import stat as stat_mod
 import tempfile
 import urllib.parse
+from collections import OrderedDict
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
@@ -145,24 +146,34 @@ NODE_KINDS = frozenset(
 HOOK_DENY_VERDICTS = frozenset({"deny", "denied", "block", "blocked"})
 
 # Mirror of plugins/ravenclaude-core/hooks/_scrub.sh `_secret_patterns` (ERE → Python re).
-# Keep the three copies in sync (hook, thing-seat.sh, this).
+# Keep the copies in sync (hook, thing-seat.sh, this) — SECRET_SPEC R-set, repo-review
+# 2026-10-19: sk- carries a left boundary (it matched the tail of any kebab word ending
+# in "sk"), the GitHub classes are gh[pousr]_, a PEM block is matched through END (or
+# to end of input), and the hooks-13 shapes are added.
 SECRET_PATTERNS = tuple(
     re.compile(p)
     for p in (
         r"AKIA[0-9A-Z]{12,}",
-        r"sk-(ant-)?[A-Za-z0-9-]{20,}",
+        r"ASIA[0-9A-Z]{12,}",
+        r"(?<![A-Za-z0-9])sk-(?:ant-)?[A-Za-z0-9-]{20,}",
         r"sk_live_[A-Za-z0-9]{24,}",
+        r"sk_test_[A-Za-z0-9]{16,}",
         r"rk_live_[A-Za-z0-9]{24,}",
-        r"ghp_[A-Za-z0-9]{30,}",
+        r"gh[pousr]_[A-Za-z0-9]{30,}",
         r"github_pat_[A-Za-z0-9_]{20,}",
         r"glpat-[A-Za-z0-9_-]{15,}",
         r"xox[baprs]-[A-Za-z0-9-]{10,}",
+        r"xapp-[A-Za-z0-9-]{10,}",
         r"AIza[0-9A-Za-z_-]{30,}",
+        r"ya29\.[A-Za-z0-9_-]{20,}",
         r"npm_[A-Za-z0-9]{30,}",
         r"hf_[A-Za-z0-9]{30,}",
         r"AccountKey=[A-Za-z0-9+/=]{20,}",
         r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}",
-        r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+        r"(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|\Z)",
+        r"(Bearer|bearer|token)\s+[A-Za-z0-9._~+/-]{20,}",
+        r"-u\s+[^\s:$]+:[^\s$]+",
+        r"(PASSWORD|SECRET|TOKEN|API_?KEY)[A-Z_]*=[^\s$]\S*",
         r"--password[=\s]\S+",
         r"--token[=\s]\S+",
         r"(^|\s)-p[^\s0-9]\S{15,}",
@@ -176,7 +187,9 @@ SECRET_PATTERNS = tuple(
 _DROPPABLE_PATHS = (("tool", "target"), ("deny", "source"), ("deny", "rule"))
 
 _SCHEMA_CACHE: dict[str, Any] = {}
-_REDUCE_CACHE: dict[tuple, dict] = {}
+# LRU, not clear-all: a wholesale clear at the cap meant a project with more sessions
+# than the cap never got a warm poll (every stream re-read on every poll).
+_REDUCE_CACHE: OrderedDict[tuple, dict] = OrderedDict()
 _REDUCE_CACHE_MAX = 256
 
 
@@ -1119,6 +1132,21 @@ def _stream_harness(snap: _Snapshot, session_id: str, size: int) -> str | None:
     return None
 
 
+def _first_stream_event(snap: _Snapshot, session_id: str) -> dict | None:
+    """The first valid event in the tail window's probe range — the same event
+    ``_stream_harness`` locks the harness on, and the same one ``_load_reduced`` reads
+    ``synthetic`` from. Cheap: at most 256 KiB, no reduce."""
+    assert snap.sfd is not None
+    size = snap.s_stat[1]
+    start = max(0, size - TAIL_BYTES)
+    lines, _first = _complete_lines(snap.sfd, start, min(size, start + 256 * 1024))
+    for raw, _end in lines:
+        ev, _why = parse_event_line(raw.strip(b" \t\r"), session_id)
+        if ev is not None:
+            return ev
+    return None
+
+
 def _read_hook_denies(snap: _Snapshot) -> tuple[list[dict], int]:
     if snap.hfd is None:
         return [], 0
@@ -1175,6 +1203,7 @@ def _load_reduced(snap: _Snapshot, session_id: str, capabilities: dict, caps_mti
     key = (str(snap.run.path), snap.fingerprint(caps_mtime))
     hit = _REDUCE_CACHE.get(key)
     if hit is not None:
+        _REDUCE_CACHE.move_to_end(key)
         return hit
     stream = _read_stream(snap, session_id, cursor=None, limit=None)
     denies, hook_skipped = _read_hook_denies(snap)
@@ -1192,8 +1221,8 @@ def _load_reduced(snap: _Snapshot, session_id: str, capabilities: dict, caps_mti
         synthetic=synthetic,
         skipped_malformed=stream["skipped_malformed"] + hook_skipped,
     )
-    if len(_REDUCE_CACHE) >= _REDUCE_CACHE_MAX:
-        _REDUCE_CACHE.clear()
+    while _REDUCE_CACHE and len(_REDUCE_CACHE) >= _REDUCE_CACHE_MAX:
+        _REDUCE_CACHE.popitem(last=False)
     _REDUCE_CACHE[key] = result
     return result
 
@@ -1308,8 +1337,15 @@ def events_response(
 
 
 def _session_item(
-    project_root: Path | str, name: str, capabilities: dict, caps_mtime: int
+    project_root: Path | str,
+    name: str,
+    capabilities: dict,
+    caps_mtime: int,
+    reduce: bool = True,
 ) -> dict | None:
+    """One ``/__spectate/sessions`` row. ``reduce=False`` fills only the cheap ranking
+    facts (harness and synthetic from the first stream event, mtime, has_stream) and
+    leaves ``latest_status`` unset; ``list_sessions`` reduces only the page it returns."""
     state, run = open_run(project_root, name)
     if run is None:
         return None
@@ -1327,6 +1363,13 @@ def _session_item(
             "latest_status": "idle",
             "has_stream": snap.sfd is not None,
         }
+        if snap.sfd is not None and not reduce:
+            first = _first_stream_event(snap, name)
+            if first is not None:
+                item["harness"] = first.get("harness") or "unknown"
+                item["synthetic"] = item["synthetic"] or first.get("synthetic") is True
+                return item
+            # No valid event in the probe range: only a full reduce knows the answer.
         if snap.sfd is not None:
             red = _load_reduced(snap, name, capabilities, caps_mtime)
             item["harness"] = red["harness"]
@@ -1368,10 +1411,14 @@ def list_sessions(
         names = sorted(e.name for e in os.scandir(root) if e.is_dir(follow_symlinks=False))
     except OSError:
         names = []
+    # ⛔ Rank on CHEAP facts, page, then reduce only the page. Reducing every session
+    # before slicing re-read every stream on every poll (300 sessions: ~12 s/poll).
+    # The cheap harness/synthetic come from the same first stream event the reduce
+    # uses, so the ranking — and the harness filter — are unchanged.
     for name in names:
         if not validate_session_id(name):
             continue
-        item = _session_item(project_root, name, caps, caps_mtime)
+        item = _session_item(project_root, name, caps, caps_mtime, reduce=False)
         if item is None or (harness and item["harness"] != harness):
             continue
         items.append(item)
@@ -1381,7 +1428,14 @@ def list_sessions(
         return (group, -it["mtime"], it["session_id"])
 
     items.sort(key=rank)
-    page = items[cursor : cursor + limit]
+    page = []
+    for it in items[cursor : cursor + limit]:
+        full = (
+            _session_item(project_root, it["session_id"], caps, caps_mtime)
+            if it["has_stream"]
+            else it
+        )
+        page.append(full if full is not None else it)
     nxt = str(cursor + limit) if cursor + limit < len(items) else None
     return {"sessions": page, "next_cursor": nxt}
 
@@ -1715,7 +1769,9 @@ def apply_steer(
         return 403, {"error": "spectate_steer_off"}
     if not validate_session_id(session_id):
         return 400, {"error": "invalid_session_id"}
-    if agent_id is None or not ID_RE.match(str(agent_id)):
+    # fullmatch, not match: ID_RE ends in `$`, which re.match lets sit before a
+    # trailing newline, so "main\n" passed here and then failed the event schema.
+    if agent_id is None or not ID_RE.fullmatch(str(agent_id)):
         agent_id = "main"
     note_text = (note or "").strip()
     if len(note_text) > MAX_STEER_NOTE:
@@ -1741,7 +1797,8 @@ def apply_steer(
 
     ts = now_rfc3339()
     with _steer_lock(project_root, session_id):
-        pending = read_steer_pending(project_root, session_id) or {}
+        prior = read_steer_pending(project_root, session_id)
+        pending = prior or {}
         decision = pending.get("decision") if pending.get("decision") in STEER_DECISIONS else None
         interrupt_pending = bool(pending.get("interrupt_pending"))
         if action == "pause":
@@ -1804,31 +1861,42 @@ def apply_steer(
                 "decision_ts": ts,
                 "interrupt_pending": interrupt_pending,
             }
+        node_id = f"steer-{action}-{ts.replace(':', '').replace('.', '')[-12:]}"
+        if not ID_RE.fullmatch(node_id):
+            node_id = f"steer-{action}"
+        event = {
+            "schema": "rc.spectate.v1",
+            "ts": ts,
+            "session_id": session_id,
+            "harness": harness if harness in HARNESS_ENUM else "unknown",
+            "source": "steer",
+            "kind": "steer.applied",
+            "node_id": node_id,
+            "agent_id": agent_id,
+            "detail": "minimal",
+            "steer": {
+                "action": action,
+                "note_chars": len(note_text) if action == "note" or note_text else 0,
+            },
+        }
+        if pending.get("decision") in STEER_DECISIONS:
+            event["steer"]["decision"] = pending["decision"]
+        # ⛔ Build and validate the audit event BEFORE persisting the steer state, and
+        # roll the state back if the append still fails: the state used to be written
+        # first, so a rejected event returned 500 while the pause stayed in force
+        # with no audit record of it.
+        errs = check_event(event)
+        if errs:
+            return 500, {"error": "append_failed", "detail": "schema:" + errs[0]}
         write_steer_pending(project_root, session_id, pending)
-
-    node_id = f"steer-{action}-{ts.replace(':', '').replace('.', '')[-12:]}"
-    if not ID_RE.match(node_id):
-        node_id = f"steer-{action}"
-    event = {
-        "schema": "rc.spectate.v1",
-        "ts": ts,
-        "session_id": session_id,
-        "harness": harness if harness in HARNESS_ENUM else "unknown",
-        "source": "steer",
-        "kind": "steer.applied",
-        "node_id": node_id,
-        "agent_id": agent_id,
-        "detail": "minimal",
-        "steer": {
-            "action": action,
-            "note_chars": len(note_text) if action == "note" or note_text else 0,
-        },
-    }
-    if pending.get("decision") in STEER_DECISIONS:
-        event["steer"]["decision"] = pending["decision"]
-    ok, err = append_spectate_event(project_root, event)
-    if not ok:
-        return 500, {"error": "append_failed", "detail": err}
+        ok, err = append_spectate_event(project_root, event)
+        if not ok:
+            if prior is not None:
+                write_steer_pending(project_root, session_id, prior)
+            else:
+                with contextlib.suppress(OSError):
+                    (runs_root(project_root) / session_id / STEER_FILE).unlink()
+            return 500, {"error": "append_failed", "detail": err}
     return 200, {
         "ok": True,
         "session_id": session_id,
@@ -1942,7 +2010,7 @@ def append_permission_resolve(
         return
     ts = now_rfc3339()
     nid = node_id or f"perm-resolve-{ts.replace(':', '').replace('.', '')[-12:]}"
-    if not ID_RE.match(str(nid)):
+    if not ID_RE.fullmatch(str(nid)):
         nid = "perm-resolve"
     event = {
         "schema": "rc.spectate.v1",
@@ -1952,7 +2020,7 @@ def append_permission_resolve(
         "source": "steer",
         "kind": "permission.resolve",
         "node_id": nid,
-        "agent_id": agent_id if ID_RE.match(str(agent_id)) else "main",
+        "agent_id": agent_id if ID_RE.fullmatch(str(agent_id)) else "main",
         "detail": "minimal",
         "asserted_status": "succeeded" if decision == "allow" else "failed",
     }
@@ -2007,6 +2075,11 @@ def iter_new_spectate_lines(
         if cursor > size:
             # resume past EOF → reset to tail (live)
             cursor = size
+        # ⛔ Clamp to the tail window, as _read_stream does. Any client-supplied
+        # Last-Event-ID (0 included) used to read size - cursor bytes in one go on the
+        # handler thread (42 MB stream: 27.5 s, +392 MB RSS). The clamp also bounds
+        # every poll's read to at most TAIL_BYTES.
+        cursor = max(cursor, size - TAIL_BYTES)
         lines, next_cur = _complete_lines(snap.sfd, cursor, size)
         out: list[tuple[dict, int]] = []
         for raw, end in lines:

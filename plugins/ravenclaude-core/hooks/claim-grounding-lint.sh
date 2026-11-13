@@ -146,6 +146,14 @@ done
 violations=()
 contract_violations=()
 inference_violations=()
+# hooks-16 (2026-10-19): this report reaches the model as additionalContext under
+# a "RavenClaude guard notice" banner, i.e. as TRUSTED text. It used to echo the
+# matched line (the scanner's third column), so a written line holding
+# instruction-shaped text came back to the model with the guard's authority. Only
+# `file:line [rule-id]` is printed now; the text column is dropped here, at the
+# formatting step, and the path is reduced to [A-Za-z0-9._/:@-].
+_rc_safe_path() { printf '%s' "$1" | tr -c 'A-Za-z0-9._/:@-' '_' | cut -c1-160; }
+safe_file="$(_rc_safe_path "$file")"
 
 if command -v python3 >/dev/null 2>&1; then
   _scan=""
@@ -163,10 +171,11 @@ if command -v python3 >/dev/null 2>&1; then
     _scan_out="$(python3 "$_scan" --file "$file" 2>/dev/null || true)"
     while IFS=$'\t' read -r _chk _ln _txt || [[ -n "${_chk:-}" ]]; do
       [[ -n "${_chk:-}" ]] || continue
+      case "$_ln" in "" | *[!0-9]*) _ln="?" ;; esac
       case "$_chk" in
-        c1) violations+=("  $file:$_ln: $_txt") ;;
-        c2) contract_violations+=("  $file:$_ln: $_txt") ;;
-        c3) inference_violations+=("  $file:$_ln: $_txt") ;;
+        c1) violations+=("  $safe_file:$_ln [unhedged-absolute]") ;;
+        c2) contract_violations+=("  $safe_file:$_ln [contract-provenance]") ;;
+        c3) inference_violations+=("  $safe_file:$_ln [inference-as-observation]") ;;
       esac
     done <<<"$_scan_out"
   fi
@@ -178,7 +187,7 @@ if [[ ${#violations[@]} -gt 0 ]]; then
 
 ────────────────────────────────────────────────────────────────────
   ⚠  Claim-grounding nudge — ${#violations[@]} unhedged absolute claim(s) written to:
-       $file
+       $safe_file
 EOF
   count=0
   for v in "${violations[@]}"; do
@@ -207,7 +216,7 @@ if [[ ${#contract_violations[@]} -gt 0 ]]; then
 
 ────────────────────────────────────────────────────────────────────
   ⚠  Contract-provenance nudge — ${#contract_violations[@]} unmarked capability/contract claim(s) in:
-       $file
+       $safe_file
 EOF
   count=0
   for v in "${contract_violations[@]}"; do
@@ -242,7 +251,7 @@ if [[ ${#inference_violations[@]} -gt 0 ]]; then
 
 ────────────────────────────────────────────────────────────────────
   ⚠  Inference-as-observation nudge — ${#inference_violations[@]} uncited causal claim(s) in:
-       $file
+       $safe_file
 EOF
   count=0
   for v in "${inference_violations[@]}"; do

@@ -37,6 +37,16 @@ set -euo pipefail
 
 WT_ROOT_REL=".claude/worktrees"
 SLUG_RE='^[a-z0-9][a-z0-9-]{1,60}$'
+
+# ⛔ grep matches per LINE, so `printf '%s' "$slug" | grep -Eq "$SLUG_RE"` accepts
+# 'alpha-one<newline>../../x' because one of its lines matches the anchored
+# pattern. Reject any embedded newline before the grep, at every slug site.
+_slug_ok() {
+  case "$1" in
+    *$'\n'*) return 1 ;;
+  esac
+  printf '%s' "$1" | grep -Eq "$SLUG_RE"
+}
 WT_FETCH="on"
 
 # --- tiny helpers -----------------------------------------------------------
@@ -246,7 +256,7 @@ cmd_init() {
     esac
   done
 
-  if ! printf '%s' "$slug" | grep -Eq "$SLUG_RE"; then
+  if ! _slug_ok "$slug"; then
     _receipt "skipped" "" "" "$slug" "invalid-slug"
     if [ "$required" -eq 1 ]; then
       echo "forge-worktree.sh: REQUIRED but invalid-slug" >&2
@@ -357,7 +367,7 @@ cmd_init() {
 
 cmd_path() {
   local slug="${1:-}"
-  if ! printf '%s' "$slug" | grep -Eq "$SLUG_RE"; then
+  if ! _slug_ok "$slug"; then
     return 0
   fi
   _is_git_repo || return 0
@@ -374,7 +384,7 @@ cmd_checkpoint() {
   local slug="${1:-}"; shift || true
   local label="${*:-checkpoint}"
 
-  if ! printf '%s' "$slug" | grep -Eq "$SLUG_RE"; then
+  if ! _slug_ok "$slug"; then
     _receipt "skipped" "" "" "$slug" "invalid-slug"
     return 0
   fi
@@ -396,13 +406,18 @@ cmd_checkpoint() {
 
   # AppSec F7: refuse unbounded `git add -A` when secret-shaped paths are present.
   # Dry-run secret globs; stage with pathspecs excluding common secret names.
+  # -z is load-bearing: without it git C-quotes a path holding non-ASCII bytes,
+  # a tab, a quote or a backslash ("caf\303\251/id_rsa") and the trailing '"'
+  # defeats the (/|$) terminator.
+  # control: checkpoint with café/credentials.json -> rc=0 "committed" without
+  # -z; rc=2 secret-glob-blocked with it (2026-10-19, self-test fixture 17).
   local secret_hit
   secret_hit="$(
     {
-      git -C "$wt_abs" diff --name-only 2>/dev/null
-      git -C "$wt_abs" diff --cached --name-only 2>/dev/null
-      git -C "$wt_abs" ls-files --others --exclude-standard 2>/dev/null
-    } | sort -u | grep -E '(^|/)(\.env|\.env\..*|.*\.pem|.*\.key|id_rsa|id_ed25519|credentials\.json|secrets?\.ya?ml)(/|$)' || true
+      git -C "$wt_abs" diff --name-only -z 2>/dev/null
+      git -C "$wt_abs" diff --cached --name-only -z 2>/dev/null
+      git -C "$wt_abs" ls-files --others --exclude-standard -z 2>/dev/null
+    } | tr '\0' '\n' | sort -u | grep -E '(^|/)(\.env|\.env\..*|.*\.pem|.*\.key|id_rsa|id_ed25519|credentials\.json|secrets?\.ya?ml)(/|$)' || true
   )"
   if [ -n "$secret_hit" ]; then
     _receipt "skipped" "$wt_abs" "$branch" "$slug" "secret-glob-blocked"
@@ -416,7 +431,8 @@ cmd_checkpoint() {
     ':(exclude).env' ':(exclude).env.*' ':(exclude)*/.env' ':(exclude)*/.env.*' \
     ':(exclude)*.pem' ':(exclude)*.key' \
     ':(exclude)id_rsa' ':(exclude)id_ed25519' \
-    ':(exclude)credentials.json' \
+    ':(exclude)*/id_rsa' ':(exclude)*/id_ed25519' \
+    ':(exclude)credentials.json' ':(exclude)*/credentials.json' \
     ':(exclude)secrets.yml' ':(exclude)secrets.yaml' \
     ':(exclude)*/secrets.yml' ':(exclude)*/secrets.yaml' \
     >/dev/null 2>&1 || true
@@ -657,8 +673,33 @@ cmd_self_test() {
     [ "$rc" -ne 2 ] || exit 57
   ) || _st_fail "tracked unchanged .env.example blocked checkpoint ($?)"
 
+  # Fixture 17 (F7): a secret-named file under a NON-ASCII directory still
+  # blocks. git C-quotes such a path unless listed with -z.
+  (
+    cd "$repo"
+    wt=".claude/worktrees/forge-alpha"
+    mkdir -p "$wt/café"
+    printf '{"k":"v"}\n' > "$wt/café/credentials.json"
+    out="$(bash "$script_abs" checkpoint alpha 'nonascii-secret' 2>&1)"
+    rc=$?
+    rm -rf "$wt/café"
+    [ "$rc" -eq 2 ] || exit 58
+    printf '%s' "$out" | grep -q 'secret-glob-blocked' || exit 59
+  ) || _st_fail "non-ASCII-dir credentials.json did not block checkpoint ($?)"
+
+  # Fixture 18: a slug with an embedded newline is invalid-slug, not a
+  # per-line grep pass.
+  (
+    cd "$repo"
+    nl_slug="$(printf 'alpha-one\n../../x')"
+    out="$(bash "$script_abs" checkpoint "$nl_slug" lbl 2>&1)"
+    printf '%s' "$out" | grep -q '"invalid-slug"' || exit 60
+    out="$(bash "$script_abs" init "$nl_slug" --no-fetch 2>&1)"
+    printf '%s' "$out" | grep -q '"invalid-slug"' || exit 61
+  ) || _st_fail "newline slug was not refused as invalid-slug ($?)"
+
   if [ "$ST_RC" -eq 0 ]; then
-    echo "SELF-TEST PASS: forge-worktree.sh (16 fixtures)"
+    echo "SELF-TEST PASS: forge-worktree.sh (18 fixtures)"
   fi
   return "$ST_RC"
 }

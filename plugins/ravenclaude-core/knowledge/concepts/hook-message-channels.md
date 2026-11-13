@@ -15,6 +15,7 @@ covers:
   - plugins/ravenclaude-core/hooks/_portable.sh
   - plugins/ravenclaude-core/hooks/_rearm-notice.sh
   - plugins/ravenclaude-core/hooks/_scrub.sh
+  - plugins/ravenclaude-core/hooks/_web.sh
   - plugins/ravenclaude-core/hooks/agent-dispatch-evaluator.sh
   - plugins/ravenclaude-core/hooks/capability-orientation.sh
   - plugins/ravenclaude-core/hooks/claim-grounding-lint.sh
@@ -60,7 +61,7 @@ covers:
   - plugins/ravenclaude-core/hooks/worktree-guard.sh
   - plugins/ravenclaude-core/hooks/worktree-guard-bash.py
   - plugins/ravenclaude-core/hooks/emit-permission-denied.sh
-covers_digest: "sha256:e621016ac6d87bae2f2830f7327a27b5c4e019c0221d9877a8f4152742183863"
+covers_digest: "sha256:c71be625911f1399a088cbd0877cbcc48e63e7f8072525d7a3f96ad3cb1242fb"
 nuance: "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life."
 nuance_evidence:
   measured: 2026-08-19

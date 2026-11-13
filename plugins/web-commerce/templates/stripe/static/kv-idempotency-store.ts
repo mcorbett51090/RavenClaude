@@ -24,6 +24,8 @@
 import type { IdempotencyStore } from "../../shared/idempotency-store";
 
 const DEFAULT_TTL_SECONDS = 60 * 60 * 24; // 24h — comfortably beyond Stripe's retry window.
+/** How long an in-flight claim holds before a crashed worker's event can be retried. */
+const DEFAULT_LEASE_SECONDS = 60 * 10;
 
 export interface KvClientConfig {
   /** REST endpoint base URL, e.g. UPSTASH_REDIS_REST_URL or KV_REST_API_URL. */
@@ -41,12 +43,31 @@ export class KvIdempotencyStore implements IdempotencyStore {
   }
 
   async remember(eventId: string, ttlSeconds: number = DEFAULT_TTL_SECONDS): Promise<void> {
-    // SET key value EX ttl — a plain SET, not SETNX: the caller is expected to
-    // call seen() first (see webhook.ts's dedup-then-remember order). A race
-    // between two concurrent deliveries of the SAME event is rare (Stripe
-    // de-dupes on its side too) and merely re-runs remember(), which is
-    // harmless — it is the SIDE EFFECT re-run that dedup guards against.
-    await this.request(["SET", this.key(eventId), "1", "EX", String(ttlSeconds)]);
+    // SET key "done" EX ttl — a plain SET that OVERWRITES the shorter-lived
+    // claim once the side effects have succeeded. The dedup decision itself is
+    // claim()'s atomic SET NX, never a GET-then-SET: two concurrent deliveries
+    // of the same event would both pass a GET and both run the side effects.
+    await this.request(["SET", this.key(eventId), "done", "EX", String(ttlSeconds)]);
+  }
+
+  async claim(eventId: string, leaseSeconds: number = DEFAULT_LEASE_SECONDS): Promise<boolean> {
+    // SET key "processing" NX EX lease — atomic set-if-absent. Redis replies
+    // "OK" when it wrote the key and null when the key already existed, so
+    // exactly one concurrent delivery wins. [verify-at-use: Upstash REST
+    // returns the Redis reply as {"result": ...}]
+    const res = await this.request([
+      "SET",
+      this.key(eventId),
+      "processing",
+      "NX",
+      "EX",
+      String(leaseSeconds),
+    ]);
+    return res.result === "OK";
+  }
+
+  async release(eventId: string): Promise<void> {
+    await this.request(["DEL", this.key(eventId)]);
   }
 
   private key(eventId: string): string {

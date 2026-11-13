@@ -62,7 +62,14 @@ fi
 if _rc_pcre_match "$scan_target" "(flag|feature)\\s*[:=].*(true|enabled)(?![\\s\\S]{0,120}(owner|remove|expire|kill))"; then
   findings+=("Feature flag without an apparent owner/removal/kill-switch nearby — every temp flag needs an owner + removal date; risky ones need a kill switch.")
 fi
-if grep -nEi "(track|capture|logEvent)\\([\\s\\S]{0,40}[\\\"'][A-Z ]{2,}|track\\([\\s\\S]{0,40}[\\\"'][a-z]+ [a-z]+" "$scan_target" >/dev/null 2>&1; then
+# Was `grep -Ei "(track|...)\\([\\s\\S]{0,40}[\"'][A-Z ]{2,}..."`. In POSIX ERE
+# `[\s\S]` is the set {backslash, s, S}, so the 0-40 gap only ever matched zero
+# characters; and with -i, `[A-Z ]{2,}` matched any two letters, so a compliant
+# name fired too (control, repo-review 2026-10-19: the pre-fix hook, driven as
+# hooks.json registers it on `track("button_clicked")`, printed this advisory).
+# Now case-SENSITIVE and line-local: the event-name string (first argument)
+# holds a space or an upper-case letter, breaking the object_action convention.
+if grep -nE "(track|capture|logEvent)\\([[:space:]]*[\"'][^\"']*([[:space:]]|[[:upper:]])[^\"']*[\"']" "$scan_target" >/dev/null 2>&1; then
   findings+=("Possibly ad-hoc/inconsistent event name — follow the tracking plan's object_action convention; inconsistent names are the data mess.")
 fi
 

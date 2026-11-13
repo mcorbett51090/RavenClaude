@@ -80,6 +80,13 @@ def default_log_path() -> Path:
     override = os.environ.get("HEADLESS_USAGE_LOG")
     if override:
         return Path(override)
+    # Prefer the project root over cwd. A hook or a test can run with cwd in a
+    # subdirectory; .gitignore's `.ravenclaude/runs/` is anchored to the repo root,
+    # so a cwd-relative log there is an untracked, un-ignored file, and
+    # `rc cache-report` (which reads one log) undercounts the split rows.
+    project = os.environ.get("CLAUDE_PROJECT_DIR")
+    if project and Path(project).is_dir():
+        return Path(project) / ".ravenclaude" / "runs" / "headless-usage.jsonl"
     return Path.cwd() / ".ravenclaude" / "runs" / "headless-usage.jsonl"
 
 
@@ -358,6 +365,26 @@ def self_test() -> int:
         )
         if len(log.read_text(encoding="utf-8").splitlines()) != 2:
             failures.append("non-json or unknown-site envelope was written")
+
+        # Default path: CLAUDE_PROJECT_DIR wins over a subdirectory cwd.
+        proj = Path(tmp) / "proj"
+        sub = proj / "plugins" / "x"
+        sub.mkdir(parents=True)
+        env_proj = {k: v for k, v in os.environ.items() if k != "HEADLESS_USAGE_LOG"}
+        env_proj["CLAUDE_PROJECT_DIR"] = str(proj)
+        subprocess.run(
+            [sys.executable, script, "record", "--site", "thing-seat", "--model", "m"],
+            input=json.dumps(full),
+            text=True,
+            capture_output=True,
+            env=env_proj,
+            cwd=str(sub),
+            check=False,
+        )
+        if not (proj / ".ravenclaude" / "runs" / "headless-usage.jsonl").is_file():
+            failures.append("CLAUDE_PROJECT_DIR did not anchor the default log")
+        if (sub / ".ravenclaude").exists():
+            failures.append("default log landed under a subdirectory cwd")
 
         report = run(["report", "--log", str(log)], "", env)
         # read 10 / (10 + 30 + 2 + 0) = 10/42

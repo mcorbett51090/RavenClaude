@@ -40,6 +40,7 @@ import argparse
 import base64
 import binascii
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -90,9 +91,16 @@ def _concerns_for(catalog: dict, category: str | None) -> list[dict]:
 # (audit-gates.sh) feeds wrapped force-push / branch -D commands through BOTH
 # the classifier (which uses _normalize_lead) and this matcher, so a drift in
 # either copy turns the gate red.
+# A shell WORD as an option value: unquoted characters and whole quoted spans,
+# so `-C "/Users/First Last/repo"` and `-c core.sshCommand='ssh -i k'` are one
+# value, not a value cut at the space (which left `Last/repo" push ...` behind,
+# un-stripped, and dodged both the force-push hard rule and classification).
+# Linear: the three alternatives start on disjoint characters, so there is no
+# backtracking blow-up on an unbalanced quote. MUST stay identical in both files.
+_V = r"(?:[^\s\"']|\"[^\"]*\"|'[^']*')+"
 _GIT_GLOBAL_OPT = (
-    r"-[cC]\s+\S+"
-    r"|--(?:git-dir|work-tree|namespace|super-prefix)(?:=\S+|\s+\S+)"
+    r"-[cC]\s+" + _V
+    + r"|--(?:git-dir|work-tree|namespace|super-prefix)(?:=" + _V + r"|\s+" + _V + r")"
     r"|--exec-path(?:=\S+)?"
     r"|--no-pager|--paginate|-p"
     r"|--bare|--literal-pathspecs|--no-replace-objects|--no-optional-locks|--no-advice"
@@ -117,7 +125,7 @@ def _normalize_for_match(command: str) -> str:
     prev = None
     while cmd and cmd != prev:
         prev = cmd
-        cmd = re.sub(r"^[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", cmd)
+        cmd = re.sub(r"^[A-Za-z_][A-Za-z0-9_]*=(?:[^\s\"']|\"[^\"]*\"|'[^']*')*\s+", "", cmd)
         cmd = re.sub(r"^(?:sudo|env|command|nohup|nice|stdbuf)\b(?:\s+-\S+)*\s+", "", cmd)
         cmd = re.sub(r"^(?:sudo|env)\s+[A-Za-z_][A-Za-z0-9_]*=\S*\s+", "", cmd)
     m = re.match(r"^(\S*/)?(\S+)(.*)$", cmd, re.S)
@@ -153,10 +161,33 @@ def _match_variants(command: str) -> tuple[str, ...]:
         # flatten's real purpose — a line-continuation can no longer hide a dangerous flag
         # from `.*` — while keeping segment-scoped triggers (`[^|&;]`) bounded to ONE
         # command, which is what they were written to mean.
-        return re.sub(r"\s*\n\s*", "; ", s)
+        #
+        # LINEAR on purpose. The previous `re.sub(r"\s*\n\s*", "; ", s)` is quadratic
+        # on a long whitespace run that holds no newline (every start position scans
+        # to the end of the run before failing), and it ran once per concern: 40,000
+        # padding spaces pushed the hook past its 90 s timeout, and the platform fails
+        # OPEN on a timed-out hook, so every pre-LLM hard rule was skipped. Splitting
+        # on maximal whitespace runs and replacing each run that contains a newline is
+        # the same transformation (a `\s*\n\s*` match is always a whole maximal run),
+        # verified equal on a fuzz corpus by test-tribunal-review-2026-10-19.py.
+        parts = re.split(r"(\s+)", s)
+        for i in range(1, len(parts), 2):
+            if "\n" in parts[i]:
+                parts[i] = "; "
+        return "".join(parts)
+
+    def _stderr_merge(s: str) -> str:
+        # `2>&1 | sh` and `|& sh` put an `&` between the program and the pipe, and
+        # the hard rules exclude `&` from their segment class (so they never bridge
+        # a backgrounded or chained command). Normalising the stderr-merge tokens
+        # lets the pipe-to-interpreter rule see the pipe. Like the other variants it
+        # can only ADD a match: the raw form is still matched.
+        s = re.sub(r"\|&", "|", s)
+        return re.sub(r"\d*>&\d+|&>", " ", s)
 
     forms = [command, _normalize_for_match(command)]
     forms += [_flatten(f) for f in list(forms)]
+    forms += [_stderr_merge(f) for f in list(forms)]
     out: list[str] = []
     for f in forms:
         if f not in out:
@@ -165,9 +196,17 @@ def _match_variants(command: str) -> tuple[str, ...]:
 
 
 def _matches(concern: dict, command: str) -> bool:
-    """True if any trigger regex matches the command or its normalized form."""
+    """True if any trigger regex matches the command or its normalized form.
+
+    Thin wrapper kept for external callers. Inside this module the variants are
+    computed ONCE per command and passed to _matches_variants: recomputing them per
+    concern multiplied the normalisation cost by the concern count (tribunal-1)."""
+    return _matches_variants(concern, _match_variants(command))
+
+
+def _matches_variants(concern: dict, variants: tuple[str, ...]) -> bool:
+    """True if any trigger regex matches any of the precomputed command variants."""
     triggers = concern.get("triggers") or {}
-    variants = _match_variants(command)
     for rx in triggers.get("regex", []) or []:
         try:
             if any(re.search(rx, v, re.IGNORECASE) for v in variants):
@@ -238,8 +277,9 @@ def _decoded_payload_concerns(catalog: dict, command: str, category: str | None)
     concerns = _concerns_for(catalog, category)
     found: set[str] = set()
     for text in _iter_decoded_texts(command):
+        variants = _match_variants(text)
         for c in concerns:
-            if c["id"] != "sce.embedded-base64-payload" and _matches(c, text):
+            if c["id"] != "sce.embedded-base64-payload" and _matches_variants(c, variants):
                 found.add(c["id"])
     return found
 
@@ -267,7 +307,8 @@ def evaluate(catalog: dict, command: str, category: str | None) -> dict:
     thing-decision.py, which overrides this field. `high_blast` is consumed by
     the orchestrator's always-surface rule.
     """
-    matched = [c for c in _concerns_for(catalog, category) if _matches(c, command)]
+    variants = _match_variants(command)
+    matched = [c for c in _concerns_for(catalog, category) if _matches_variants(c, variants)]
 
     # #14: merge any concerns hidden inside base64-encoded payloads BEFORE the
     # pre-deny tally, so a base64'd curl|sh / inline secret / injection is denied
@@ -332,18 +373,72 @@ def revalidate(
             "reason": f"cited concern '{cited}' is not deterministically verifiable",
         }
 
-    orig_ids = set(evaluate(catalog, original, category)["concerns"])
-    rev_ids = set(evaluate(catalog, revised, category)["concerns"])
+    # The revision is matched against EVERY category's concerns, not only the
+    # original's (tribunal-6). classify() routes by the first segment only, so a
+    # revision that appends `&& <global install>` or `; <fetch> | <shell>` keeps the
+    # original's category; scoring it against that category alone let a cross-
+    # category hard rule through the invariant, and the orchestrator then emitted
+    # the revision as an allow.
+    orig_ids = _ids_all(catalog, original)
+    rev_ids = _ids_all(catalog, revised)
     allowed = orig_ids - {cited}
     new_concerns = sorted(rev_ids - allowed)
     cited_resolved = cited not in rev_ids
-    ok = cited_resolved and not new_concerns
+    screen = screen_always(catalog, revised)
+    screen_hit = screen["self_disable_concern"] or screen["hard_rule_concern"]
+    # Shape rule: a revision may not ADD a chained command or a substitution. It
+    # catches an appended command for which the catalog has no trigger at all (a
+    # POST of a dotfile, say). Counted over the raw text, quotes included: a quoted
+    # separator in the revision is rejected too, which only ever denies an edit.
+    shape_grew = _chain_count(revised) > _chain_count(original)
+    ok = cited_resolved and not new_concerns and not screen_hit and not shape_grew
+    if ok:
+        reason = ""
+    elif screen_hit:
+        reason = f"edit matches an always-screen hard rule ({screen_hit})"
+    elif shape_grew:
+        reason = "edit adds a chained command or a substitution"
+    else:
+        reason = "edit introduces new concerns or fails to remove the cited one"
     return {
         "ok": ok,
         "cited_resolved": cited_resolved,
         "new_concerns": new_concerns,
-        "reason": "" if ok else "edit introduces new concerns or fails to remove the cited one",
+        "reason": reason,
     }
+
+
+# Top-level command separators and substitutions, for the EDIT shape rule:
+# `;` `&&` `||` `|` newline, a lone `&` (background: it starts a second command,
+# so it is a separator too), `$(`, a backtick, and process substitution.
+_CHAIN_TOKEN = re.compile(r"&&|\|\||[|;\n`]|\$\(|[<>]\(|(?<![>&])&(?![&>])")
+
+
+def _chain_count(command: str) -> int:
+    return len(_CHAIN_TOKEN.findall(command))
+
+
+def _ids_all(catalog: dict, command: str) -> set[str]:
+    """Every concern id the command matches, across cross-cutting AND every
+    category, including concerns hidden in a base64 payload (as evaluate() does)."""
+    pools: list[list] = [catalog.get("cross_cutting") or []]
+    for lst in (catalog.get("categories") or {}).values():
+        if isinstance(lst, list):
+            pools.append(lst)
+    variants = _match_variants(command)
+    ids = {c["id"] for pool in pools for c in pool if _matches_variants(c, variants)}
+    decoded: set[str] = set()
+    for text in _iter_decoded_texts(command):
+        tv = _match_variants(text)
+        decoded |= {
+            c["id"]
+            for pool in pools
+            for c in pool
+            if c["id"] != "sce.embedded-base64-payload" and _matches_variants(c, tv)
+        }
+    if decoded:
+        ids |= decoded | {"sce.embedded-base64-payload"}
+    return ids
 
 
 _SELF_DISABLE_ID = "xc.tribunal-self-disable"
@@ -401,6 +496,17 @@ _RO_ALLOW_FIRST = re.compile(
 )
 
 
+# rg and ugrep can RUN a program per file: --pre / --pre-glob (rg), --filter
+# (ugrep), and the decompression modes (-z / --search-zip) shell out to external
+# decoders. --config-path, or a RIPGREP_CONFIG_PATH in the environment, can add
+# --pre invisibly. Any of these makes an rg/ugrep call not provably read-only.
+_RO_RG_FIRST = re.compile(r"\A\s*(?:rg|ugrep)\b", re.IGNORECASE)
+_RO_RG_EXEC = re.compile(
+    r"(?:^|\s)(?:--pre(?:-glob)?|--filter|--search-zip|--decompress|--config-path)(?:[=\s]|$)"
+    r"|(?:^|\s)-[A-Za-z]*z[A-Za-z]*(?![\w-])"
+)
+
+
 def _self_disable_read_only(command: str) -> bool:
     """True when `command` provably cannot write, so it cannot self-disable.
 
@@ -411,6 +517,13 @@ def _self_disable_read_only(command: str) -> bool:
         return False
     if _RO_WRITE_FLAG.search(stripped):
         return False
+    if _RO_RG_FIRST.match(stripped):
+        if os.environ.get("RIPGREP_CONFIG_PATH") is not None:
+            return False
+        # Quote characters are deleted, not quoted spans: the shell removes quotes,
+        # so `rg "--pre" prog ...` still hands rg the --pre flag.
+        if _RO_RG_EXEC.search(command.replace('"', "").replace("'", "")):
+            return False
     return bool(_RO_ALLOW_FIRST.match(stripped))
 
 

@@ -16,7 +16,7 @@ covers:
   - plugins/ravenclaude-core/scripts/guard-remediation-cause.sh
   - plugins/ravenclaude-core/scripts/preflight-command-review.sh
   - plugins/ravenclaude-core/scripts/replay-outcome-rules.py
-covers_digest: "sha256:ed53734d12f129ee50468ab9c1bbcd73bf0aabf6e2423d79a6f91a2165b8b14b"
+covers_digest: "sha256:9296513412af160b067af6a6a90d81df6ed7f24f5acd10533d00bbc8394a56d1"
 nuance: "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%."
 nuance_evidence:
   measured: "2026-08-25"

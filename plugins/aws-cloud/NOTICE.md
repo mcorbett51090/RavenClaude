@@ -19,10 +19,10 @@ The server runs via `uvx`, so the prerequisite is **`uv`** on `PATH`:
 # install uv (the uvx launcher) — see https://docs.astral.sh/uv/
 curl -LsSf https://astral.sh/uv/install.sh | sh
 # then uvx fetches and runs the pinned server on demand:
-uvx awslabs.aws-documentation-mcp-server@latest
+uvx awslabs.aws-documentation-mcp-server==1.2.3
 ```
 
-The `@latest` tag is what `plugin.json` declares. To pin a tested version instead, replace `@latest` with `==<tested-version>` in both `plugin.json` and the command above (keep the two identical) and re-confirm at each plugin version bump. `[verify-at-use]` the current published version on PyPI before pinning.
+`plugin.json` declares the same pin, `awslabs.aws-documentation-mcp-server==1.2.3` (keep the two identical). It replaced `@latest` in aws-cloud 0.3.6 (repo-review 2026-10-19): an unpinned server ran whatever release PyPI served at each MCP start, outside the tribunal. 1.2.3 was the current PyPI release on 2026-10-19 (uploaded 2026-10-13) and completed an MCP `initialize` + `tools/list` handshake under `uvx` that day (tools: `read_documentation`, `read_sections`, `search_table`, `search_documentation`, `recommend`). To move the pin, check the release on PyPI, re-run that handshake, and change both places in the same commit. `scripts/check-mcp-attribution.py` (Gate 98) fails on an `@latest` or unversioned `uvx`/`npx`/`bunx`/`pipx` package.
 
 ### PATH fallback (loud-but-non-fatal)
 
