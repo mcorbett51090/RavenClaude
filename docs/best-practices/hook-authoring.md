@@ -116,6 +116,7 @@ If pipe-test passes but the hook doesn't fire in a live session: the file watche
 - [Rebase orphans lesson](../memory-bank/lessons-learned.md) — the double-block trap that motivated the *don't duplicate the deny list* rule above.
 - [Plugin versioning rule](./plugin-versioning.md) — bump PATCH after every hook edit; bump MINOR when adding a new hook file.
 - [`harness-spectate-operations-and-troubleshooting.md`](./harness-spectate-operations-and-troubleshooting.md) — `spectate-emit.sh` (observe-only) and `spectate-steer.sh` (opt-in deny) when the `/spectate` graph is empty or steer is silent.
+- [`worktree-guard-deny-and-lease.md`](./worktree-guard-deny-and-lease.md) — `worktree-guard.sh` `check` fails closed (exit 2) on hook errors; SessionStart `register` cannot block. Three independent knobs; `RC_WORKTREE_GUARD_ACK` does not release a lease.
 - The official Claude Code hooks reference (run `/help` in any session and search for *hooks*) for the full event list and JSON output schema.
 
 ## Provenance
