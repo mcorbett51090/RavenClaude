@@ -145,6 +145,50 @@ _body="git commit -F - ${_HD}EOF"$'\n'"msg"$'\n'"EOF"
 run appsec-1430-allow-git-commit-F 0 "$_body"
 
 echo
+echo "── AppSec #1431 — open modes 'wt'/'w+b' and Ruby File.write must deny ──────"
+run appsec-1431-control-open-w 3 "python3 -c \"open('/workspace/sibling-wt/x','w').write('x')\""
+run appsec-1431-open-wt 3 "python3 -c \"open('/workspace/sibling-wt/x','wt').write('x')\""
+run appsec-1431-open-wpb 3 "python3 -c \"open('/workspace/sibling-wt/x','w+b').write('x')\""
+run appsec-1431-ruby-File-write 3 "ruby -e \"File.write('/workspace/sibling-wt/x','1')\""
+run appsec-1431-allow-open-r 0 "python3 -c \"open('/workspace/sibling-wt/x','r').read()\""
+run appsec-1431-allow-open-rb 0 "python3 -c \"open('/workspace/sibling-wt/x','rb').read()\""
+
+echo
+echo "── AppSec #1429 — Copilot chats cwd must not allow-list every session ──────"
+# HOME must NOT be under /tmp or /var/tmp (helper allowlists those). Prefer the
+# real $HOME (/home/ubuntu here, /home/runner on Actions).
+_HOME_BASE=""
+for _cand in "${HOME:-}" /home/ubuntu /home/runner; do
+  [ -n "$_cand" ] || continue
+  _rp="$(cd "$_cand" 2>/dev/null && pwd -P)" || continue
+  case "$_rp" in /tmp|/tmp/*|/var/tmp|/var/tmp/*) continue ;; esac
+  [ -w "$_cand" ] || continue
+  _HOME_BASE="$_cand"; break
+done
+if [ -z "$_HOME_BASE" ]; then
+  echo "FAIL HARNESS: no writable non-/tmp HOME base for #1429 fixture" >&2
+  exit 1
+fi
+_HOME1429="${_HOME_BASE}/.ravenclaude-wg1429-$$"
+mkdir -p "$_HOME1429/.copilot/chats/abc" "$_HOME1429/.copilot/chats/def" "$_HOME1429/.copilot/chats/other"
+trap 'rm -rf "$T" "$_HOME1429"' EXIT
+_CHATS="$(HOME="$_HOME1429" python3 -c 'import os; print(os.path.realpath(os.path.expanduser("~/.copilot/chats")))')"
+run_cwd() {
+  local name want body cwd got out
+  name="$1"; want="$2"; cwd="$3"; body="$4"
+  got=0; out=""
+  out="$(printf '%s' "$body" | HOME="$_HOME1429" python3 "$PY" "$ROOT" "$cwd" 2>&1)" || got=$?
+  if [ "$got" = "$want" ]; then
+    PASS=$((PASS + 1)); printf '  \033[32m✓\033[0m %s (rc=%s)\n' "$name" "$got"
+  else
+    FAIL=$((FAIL + 1)); printf '  \033[31m✗\033[0m %s want=%s got=%s: %s\n' "$name" "$want" "$got" "$out"
+  fi
+}
+run_cwd appsec-1429-chats-root-denies-other 3 "$_CHATS" "echo x > ${_CHATS}/other/x"
+run_cwd appsec-1429-session-allows-own 0 "${_CHATS}/abc" "echo x > ${_CHATS}/abc/x"
+run_cwd appsec-1429-session-denies-sibling 3 "${_CHATS}/abc" "echo x > ${_CHATS}/def/x"
+
+echo
 echo "── allow — data heredocs (non-interpreter) stay treated as inert data ───────"
 run allow-cat-only-mentions-path 0 "cat <<'EOF' | grep rf
 some text mentioning /workspace/other/f
