@@ -218,7 +218,7 @@ linter's internals are not a dependency, and it asserts the linter's
 
 [`scripts/audit-gates.sh`](../../../../scripts/audit-gates.sh) Gate 100 +
 [`hooks/tests/test-gate100-visual-feedback-loop.sh`](../../hooks/tests/test-gate100-visual-feedback-loop.sh)
-\+ the fixtures under [`tests/fixtures/visual-feedback-loop/`](../../../../tests/fixtures/visual-feedback-loop/)
+\+ the fixtures under [`tests/fixtures/visual-feedback-loop/fixtures.pack.json`](../../../../tests/fixtures/visual-feedback-loop/fixtures.pack.json)
 are the bidirectional floor: good fixtures pass, bad fixtures fail, a `..` config is
 rejected (and the linter rejects the same shape — path-guard parity), and an
 always-pass mutant lets a known-bad through (teeth).

@@ -17,7 +17,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 cd "$ROOT"
 D="python3 plugins/ravenclaude-core/skills/visual-feedback-loop/driver.py"
 LINT="python3 plugins/ravenclaude-core/skills/pbir-layout-engine/lint.py"
+PACK="tests/fixtures/visual-feedback-loop/fixtures.pack.json"
 F="tests/fixtures/visual-feedback-loop"
+# Unpack packed fixtures in place (path strings stay repo-relative). Clean on EXIT.
+python3 scripts/unpack-vfl-fixtures.py "$PACK" "$F" >/dev/null
 rc_total=0
 
 expect() { # desc, want_rc, file
@@ -111,7 +114,7 @@ fi
 # rejects the repo's own fixtures with exit 2. On Linux /tmp/x.py -> 4-up -> '/', which
 # contains everything, so this passed by ACCIDENT; macOS's deep $TMPDIR exposed it.
 MUT="plugins/ravenclaude-core/skills/visual-feedback-loop/.mut-$$.py"
-trap 'rm -f "$MUT"' EXIT
+trap 'rm -f "$MUT"; python3 scripts/unpack-vfl-fixtures.py --clean "$PACK" "$F" >/dev/null' EXIT
 sed 's/"passed": verdict\["passed"\]/"passed": True/' \
   plugins/ravenclaude-core/skills/visual-feedback-loop/driver.py >"$MUT"
 rc=0; python3 "$MUT" "$F/bad-config-layout-fail.json" >/dev/null 2>&1 || rc=$?
@@ -126,7 +129,7 @@ fi
 # reports the parity gate "pass") must let a known-divergent fixture through —
 # proving the parity fail is the diff logic, not luck.
 MUTP="plugins/ravenclaude-core/skills/visual-feedback-loop/.mutp-$$.py"
-trap 'rm -f "$MUT" "$MUTP"' EXIT
+trap 'rm -f "$MUT" "$MUTP"; python3 scripts/unpack-vfl-fixtures.py --clean "$PACK" "$F" >/dev/null' EXIT
 sed 's/record\["status"\] = "fail" if deltas else "pass"/record["status"] = "pass"/' \
   plugins/ravenclaude-core/skills/visual-feedback-loop/driver.py >"$MUTP"
 rc=0; python3 "$MUTP" "$F/bad-config-parity-calloutvalue.json" >/dev/null 2>&1 || rc=$?
@@ -148,7 +151,7 @@ MUTSSIM="plugins/ravenclaude-core/skills/visual-feedback-loop/.mutssim-$$.py"
 MUTCLAMP="plugins/ravenclaude-core/skills/visual-feedback-loop/.mutclamp-$$.py"
 NANEV="$F/.nan-ssim-$$.json"
 NANCFG="$F/.nan-cfg-$$.json"
-trap 'rm -f "$MUT" "$MUTP" "$MUTDS" "$MUTSSIM" "$MUTCLAMP" "$NANEV" "$NANCFG"' EXIT
+trap 'rm -f "$MUT" "$MUTP" "$MUTDS" "$MUTSSIM" "$MUTCLAMP" "$NANEV" "$NANCFG"; python3 scripts/unpack-vfl-fixtures.py --clean "$PACK" "$F" >/dev/null' EXIT
 
 # teeth 1: design-schema gate neutered to always-"pass" lets the diverging fixture through.
 sed 's/record\["status"\] = "fail" if diffs else "pass"/record["status"] = "pass"/' \
