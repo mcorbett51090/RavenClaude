@@ -1138,7 +1138,8 @@ def main():
         print(measure(args.count)["total"])
         return 0
 
-    surfaces = [args.surface] if args.surface else [DASHBOARD, INDEX]
+    # Phase 3b: fat index retired; stub is not DOM-budgeted.
+    surfaces = [args.surface] if args.surface else [DASHBOARD]
 
     if args.exempt_integrity:
         if args.must_fail:

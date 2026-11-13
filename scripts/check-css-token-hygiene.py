@@ -72,7 +72,7 @@ SOURCE_GLOBS = [
 ]
 
 # Rule 4 applies to the generated dashboard surfaces only — see the header.
-LINK_RULE_SURFACES = ["index.html", "plugins/*/dashboard.html"]
+LINK_RULE_SURFACES = ["plugins/*/dashboard.html"]  # Phase 3b: stub index has no portal CSS
 
 OPT_OUT = "token-hygiene-ok"
 

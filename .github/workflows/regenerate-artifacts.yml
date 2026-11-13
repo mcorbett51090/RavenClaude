@@ -262,14 +262,14 @@ jobs:
             python3 scripts/generate-dashboards.py --check
           fi
 
-          # 4. index.html — the unified portal. It folds in the dashboard
+          # 4. index.html — Phase 3b Pages stub (+ catalog-data.json). Was the unified portal;
           #    sub-app natively (via render_fragment) and inlines the per-plugin
           #    catalog data, so it must be regenerated AFTER the SVGs + dashboard
           #    above. --check
           #    strips the volatile generated-timestamp surfaces, so a pure
           #    timestamp delta reports fresh and we regenerate nothing.
           if ! python3 scripts/generate-index-dashboard.py --check >/dev/null 2>&1; then
-            echo "index.html stale — regenerating the unified portal."
+            echo "index.html stale — regenerating the Phase 3b Pages stub + catalog."
             python3 scripts/generate-index-dashboard.py
             python3 scripts/generate-index-dashboard.py --check
           fi
