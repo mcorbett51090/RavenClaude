@@ -1231,7 +1231,7 @@ The gate is **scoped and self-limiting** so it never becomes an obstacle. It onl
 
 Copilot turns a Stop block reason into the next user prompt, so the first line is a verdict. No block means **DONE**: end the turn and do not ask. `VERDICT: NOT DONE` means do the single `[FAIL]` line, then stop again. `VERDICT: STOP` means `max_blocks` is reached: end the turn and say the gate did not pass.
 
-One safety detail: the configured command is shell-executed, and it comes from a YAML field a malicious pull request could edit. So before the first run per session for a given command value, the gate refuses to execute and names the literal command. **A person** creates `.ravenclaude/runs/dod-gate/<session>/confirmed-<hash>` outside the agent session. The agent must not create it. Write and Bash attempts are denied. Set `definition_of_done.trusted: true` in a later commit than the `cmd` line to skip the prompt. Rotating the command or starting a new session re-triggers the check. The diagram node "ask to authorize" means that person, not the agent. Like the other guardrails it is **opt-in and deterministic** — the verdict is a command's exit code, no model in the loop — so it ports through the adapter's `stop` mode. The trust refusal is stdout JSON (`decision: block`) at exit 0, because Copilot drops stderr when a hook exits 2.
+One safety detail: the configured command is shell-executed, and it comes from a YAML field a malicious pull request could edit. So before the first run per session for a given command value, the gate refuses to execute and names the literal command. **A person** creates `~/.ravenclaude/dod-confirm/<repo-hash>/<session>/confirmed-<hash>` **outside the worktree** (and outside the agent session). The agent must not create it — Write and Bash attempts that name the confirm token are denied, and an in-tree `.ravenclaude/runs/dod-gate/.../confirmed-*` is no longer accepted. Set `definition_of_done.trusted: true` in a later commit than the `cmd` line to skip the prompt. Rotating the command or starting a new session re-triggers the check. The diagram node "ask to authorize" means that person, not the agent. Like the other guardrails it is **opt-in and deterministic** — the verdict is a command's exit code, no model in the loop — so it ports through the adapter's `stop` mode. The trust refusal is stdout JSON (`decision: block`) at exit 0, because Copilot drops stderr when a hook exits 2.
 
 ```mermaid
 flowchart TD
@@ -1252,7 +1252,7 @@ flowchart TD
 
 **Sources:** [dod-gate.sh hook](../plugins/ravenclaude-core/hooks/dod-gate.sh) · [ravenclaude-core constitution — Auto-mode guardrails](../plugins/ravenclaude-core/CLAUDE.md)
 
-_Last verified: 2026-11-05_
+_Last verified: 2026-11-13_
 
 
 ---

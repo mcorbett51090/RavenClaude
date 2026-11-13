@@ -158,16 +158,31 @@ else
   fail "G70.4a trust block should be JSON NOT DONE on stdout; rc=$rc_dod1 got: $(printf '%s' "$out_dod1" | head -c 180)"
 fi
 
-# G70.4b — after touching confirm file -> exit 0 (proceeds; the echo cmd passes)
+# G70.4b — after touching OUT-OF-TREE confirm file -> exit 0 (proceeds).
+# AppSec #1427: confirm lives under RC_DOD_CONFIRM_HOME (default ~/.ravenclaude/dod-confirm).
 hash_dod="$(printf '%s' "echo dod-trust-test" | sha256sum | cut -c1-16)"
-mkdir -p "$sb_dod/.ravenclaude/runs/dod-gate/s1"
-touch "$sb_dod/.ravenclaude/runs/dod-gate/s1/confirmed-$hash_dod"
+confirm_home_dod="$(mktemp -d)"
+repo_key_dod="$(printf '%s' "$sb_dod" | sha256sum | tr -dc '0-9a-f' | cut -c1-16)"
+mkdir -p "$confirm_home_dod/$repo_key_dod/s1"
+touch "$confirm_home_dod/$repo_key_dod/s1/confirmed-$hash_dod"
 rc_dod2=0
-CLAUDE_PROJECT_DIR="$sb_dod" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_dod\",\"session_id\":\"s1\"}" >/dev/null 2>&1 || rc_dod2=$?
+RC_DOD_CONFIRM_HOME="$confirm_home_dod" CLAUDE_PROJECT_DIR="$sb_dod" bash "$HOOK_DOD" \
+  <<< "{\"cwd\":\"$sb_dod\",\"session_id\":\"s1\"}" >/dev/null 2>&1 || rc_dod2=$?
 if [ "$rc_dod2" -eq 0 ]; then
-  pass "G70.4b confirm-file present -> exit 0 (proceeds)"
+  pass "G70.4b out-of-tree confirm-file present -> exit 0 (proceeds)"
 else
   fail "G70.4b confirm-file present should exit 0; got rc=$rc_dod2"
+fi
+# G70.4b2 — in-tree legacy confirm path MUST NOT authorize (AppSec #1427).
+mkdir -p "$sb_dod/.ravenclaude/runs/dod-gate/s1"
+touch "$sb_dod/.ravenclaude/runs/dod-gate/s1/confirmed-$hash_dod"
+rc_dod_intree=0
+out_dod_intree="$(CLAUDE_PROJECT_DIR="$sb_dod" bash "$HOOK_DOD" \
+  <<< "{\"cwd\":\"$sb_dod\",\"session_id\":\"s1\"}" 2>/dev/null)" || rc_dod_intree=$?
+if [ "$rc_dod_intree" -eq 0 ] && printf '%s' "$out_dod_intree" | jq -e '.decision=="block"' >/dev/null 2>&1; then
+  pass "G70.4b2 in-tree confirmed-* does not authorize (AppSec #1427)"
+else
+  fail "G70.4b2 in-tree confirm must still block; rc=$rc_dod_intree got: $(printf '%s' "$out_dod_intree" | head -c 180)"
 fi
 
 # G70.4c — trusted:true bypass -> exit 0, but ONLY when git blame shows the
@@ -265,9 +280,11 @@ git -C "$sb_fail" init -q
 echo "x" > "$sb_fail/x.py"
 git -C "$sb_fail" add x.py 2>/dev/null
 hash_fail="$(printf '%s' "false" | sha256sum | tr -dc '0-9a-f' | cut -c1-16)"
-mkdir -p "$sb_fail/.ravenclaude/runs/dod-gate/fail1"
-touch "$sb_fail/.ravenclaude/runs/dod-gate/fail1/confirmed-$hash_fail"
-out_fail="$(CLAUDE_PROJECT_DIR="$sb_fail" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_fail\",\"session_id\":\"fail1\"}" 2>/dev/null)" || true
+confirm_home_fail="$(mktemp -d)"
+repo_key_fail="$(printf '%s' "$sb_fail" | sha256sum | tr -dc '0-9a-f' | cut -c1-16)"
+mkdir -p "$confirm_home_fail/$repo_key_fail/fail1"
+touch "$confirm_home_fail/$repo_key_fail/fail1/confirmed-$hash_fail"
+out_fail="$(RC_DOD_CONFIRM_HOME="$confirm_home_fail" CLAUDE_PROJECT_DIR="$sb_fail" bash "$HOOK_DOD" <<< "{\"cwd\":\"$sb_fail\",\"session_id\":\"fail1\"}" 2>/dev/null)" || true
 if printf '%s' "$out_fail" | jq -e '.decision=="block" and .hookSpecificOutput.decision=="block" and .hookSpecificOutput.hookEventName=="Stop" and (.reason | contains("VERDICT: NOT DONE")) and (.reason | contains("do not ask if the work is done"))' >/dev/null 2>&1; then
   pass "G70.4f failing command -> JSON NOT DONE checklist (top-level and Local Chat)"
 else
