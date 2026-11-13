@@ -304,7 +304,68 @@ else
   fail "G70.4h cap release should warn STOP without decision block; got: $(printf '%s' "$out_stop" | head -c 220)"
 fi
 
-rm -rf "$sb_dod" "$sb_dod_trusted" "$sb_dod_samecommit" "$sb_cap" "$sb_fail" "$sb_stop" 2>/dev/null || true
+# G70.4i / G70.4j — AppSec #1428: Stop reason and systemMessage must scrub
+# secret-shaped tokens (ghp_/sk_live_/xoxb-) before they reach Copilot.
+# Assemble at runtime so the contiguous literals never land in git (push
+# protection otherwise blocks the fake Stripe-shaped fixture).
+_FAKE_GHP="ghp_$(printf 'A%.0s' {1..36})"
+_FAKE_SK="sk_""live_$(printf 'B%.0s' {1..28})"
+_FAKE_XOXB="xoxb-$(printf 'C%.0s' {1..20})"
+sb_scrub="$(mktemp -d)"
+# Fake Stop hook: exit 2 + secret-bearing stderr (block path, no JSON reason).
+cat > "$sb_scrub/hook-block.sh" <<HOOK
+#!/usr/bin/env bash
+printf 'blocked with %s and %s and %s\n' '$_FAKE_GHP' '$_FAKE_SK' '$_FAKE_XOXB' >&2
+exit 2
+HOOK
+chmod +x "$sb_scrub/hook-block.sh"
+out_scrub_block="$(printf '%s' "{\"cwd\":\"$sb_scrub\",\"sessionId\":\"scrub1\",\"stop_hook_active\":false}" \
+  | CLAUDE_PROJECT_DIR="$sb_scrub" bash "$ADAPTER" stop "$sb_scrub/hook-block.sh" 2>/dev/null)" || true
+if printf '%s' "$out_scrub_block" | jq -e '.decision=="block"' >/dev/null 2>&1 \
+  && ! printf '%s' "$out_scrub_block" | grep -qF "$_FAKE_GHP" \
+  && ! printf '%s' "$out_scrub_block" | grep -qF "$_FAKE_SK" \
+  && ! printf '%s' "$out_scrub_block" | grep -qF "$_FAKE_XOXB"; then
+  pass "G70.4i Stop block reason scrubs ghp_/sk_live_/xoxb- (AppSec #1428)"
+else
+  fail "G70.4i secrets leaked in block reason; got: $(printf '%s' "$out_scrub_block" | head -c 220)"
+fi
+# JSON stdout reason path (also must scrub).
+cat > "$sb_scrub/hook-json.sh" <<HOOK
+#!/usr/bin/env bash
+jq -cn --arg r "json reason ${_FAKE_GHP} ${_FAKE_SK} ${_FAKE_XOXB}" \
+  '{decision:"block",reason:\$r,hookSpecificOutput:{hookEventName:"Stop",decision:"block",reason:\$r}}'
+exit 0
+HOOK
+chmod +x "$sb_scrub/hook-json.sh"
+out_scrub_json="$(printf '%s' "{\"cwd\":\"$sb_scrub\",\"sessionId\":\"scrub1b\",\"stop_hook_active\":false}" \
+  | CLAUDE_PROJECT_DIR="$sb_scrub" bash "$ADAPTER" stop "$sb_scrub/hook-json.sh" 2>/dev/null)" || true
+if printf '%s' "$out_scrub_json" | jq -e '.decision=="block"' >/dev/null 2>&1 \
+  && ! printf '%s' "$out_scrub_json" | grep -qF "$_FAKE_GHP" \
+  && ! printf '%s' "$out_scrub_json" | grep -qF "$_FAKE_SK" \
+  && ! printf '%s' "$out_scrub_json" | grep -qF "$_FAKE_XOXB"; then
+  pass "G70.4i2 Stop JSON reason scrubs ghp_/sk_live_/xoxb- (AppSec #1428)"
+else
+  fail "G70.4i2 secrets leaked in JSON reason; got: $(printf '%s' "$out_scrub_json" | head -c 220)"
+fi
+# Fake Stop hook: exit 0 + VERDICT: STOP on stderr with secrets (systemMessage path).
+cat > "$sb_scrub/hook-stop.sh" <<HOOK
+#!/usr/bin/env bash
+printf 'VERDICT: STOP\nrelease with %s and %s and %s\n' '$_FAKE_GHP' '$_FAKE_SK' '$_FAKE_XOXB' >&2
+exit 0
+HOOK
+chmod +x "$sb_scrub/hook-stop.sh"
+out_scrub_stop="$(printf '%s' "{\"cwd\":\"$sb_scrub\",\"sessionId\":\"scrub2\",\"stop_hook_active\":true}" \
+  | CLAUDE_PROJECT_DIR="$sb_scrub" bash "$ADAPTER" stop "$sb_scrub/hook-stop.sh" 2>/dev/null)" || true
+if printf '%s' "$out_scrub_stop" | jq -e '(.systemMessage | contains("VERDICT: STOP")) and (.decision == null)' >/dev/null 2>&1 \
+  && ! printf '%s' "$out_scrub_stop" | grep -qF "$_FAKE_GHP" \
+  && ! printf '%s' "$out_scrub_stop" | grep -qF "$_FAKE_SK" \
+  && ! printf '%s' "$out_scrub_stop" | grep -qF "$_FAKE_XOXB"; then
+  pass "G70.4j Stop systemMessage scrubs ghp_/sk_live_/xoxb- (AppSec #1428)"
+else
+  fail "G70.4j secrets leaked in systemMessage; got: $(printf '%s' "$out_scrub_stop" | head -c 220)"
+fi
+
+rm -rf "$sb_dod" "$sb_dod_trusted" "$sb_dod_samecommit" "$sb_cap" "$sb_fail" "$sb_stop" "$sb_scrub" 2>/dev/null || true
 
 # ── G70.5 — guard-web-access first-use ask ───────────────────────────────────
 echo ""
