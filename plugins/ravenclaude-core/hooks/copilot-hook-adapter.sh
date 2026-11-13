@@ -380,6 +380,13 @@ Checklist:
 - [PASS] the configured command exits 0
 Do the failed check, then stop again. If the next stop is not blocked, the verdict is DONE — end the turn and do not re-ask."
       fi
+      # AppSec #1428: scrub secrets from JSON reason and stderr before they become
+      # Copilot's next prompt (reason) or UI text. Cap after scrub so the field
+      # stays bounded like the PreToolUse path.
+      reason="$(_scrub_reason "$reason")"
+      if [ "${#reason}" -gt 2500 ]; then
+        reason="${reason:0:2497}..."
+      fi
       jq -cn --arg r "$reason" \
         '{decision:"block",reason:$r,hookSpecificOutput:{hookEventName:"Stop",decision:"block",reason:$r}}'
       printf '%s\n' "$reason" >&2
@@ -388,7 +395,13 @@ Do the failed check, then stop again. If the next stop is not blocked, the verdi
       # reason into the next prompt; a systemMessage is a user warning and
       # does not. The fetched hooks reference (2026-11-05) says reason takes
       # effect only beside decision "block". Do not put STOP in reason.
-      jq -cn --arg m "$hook_stderr" '{systemMessage:$m}'
+      # AppSec #1428: scrub + cap systemMessage the same way as reason.
+      stop_msg="$(printf '%s' "$hook_stderr" | head -c 2500)"
+      stop_msg="$(_scrub_reason "$stop_msg")"
+      if [ "${#stop_msg}" -gt 2500 ]; then
+        stop_msg="${stop_msg:0:2497}..."
+      fi
+      jq -cn --arg m "$stop_msg" '{systemMessage:$m}'
     fi
     exit 0
     ;;
