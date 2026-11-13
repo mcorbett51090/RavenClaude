@@ -1,9 +1,10 @@
 # Phase 3b plan — thin `index.html` stub (single Pages entry)
 
 **Date:** 2026-11-12  
-**Status:** shipping  
+**Status:** done  
 **Predecessor:** Phase 3a merged (#1437)  
-**Parent plan:** [`docs/plans/2026-11-12-phase3-single-artifact.md`](2026-11-12-phase3-single-artifact.md)
+**Parent plan:** [`docs/plans/2026-11-12-phase3-single-artifact.md`](2026-11-12-phase3-single-artifact.md)  
+**Shipped:** #1438 (merged 2026-11-12 20:09 EST). Live Pages root serves the stub; dashboard + `catalog-data.json` return 200.
 
 ## Verdict
 

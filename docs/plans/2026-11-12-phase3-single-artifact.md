@@ -1,9 +1,10 @@
 # Phase 3 plan — single artifact (entry first, then collapse)
 
 **Date:** 2026-11-12  
-**Status:** shipping (3b)  
+**Status:** done  
 **Decision:** [`docs/decisions/2026-11-12-one-product-portal-dashboard.md`](../decisions/2026-11-12-one-product-portal-dashboard.md) Phase 3  
-**Predecessor:** Phase 2 Catalog hybrid on `main` (#1436)
+**Predecessor:** Phase 2 Catalog hybrid on `main` (#1436)  
+**Shipped:** 3a #1437 · 3b #1438 (2026-11-12/13 America/New_York). Pages `/` is the thin stub → `dashboard.html`.
 
 ## Verdict
 
