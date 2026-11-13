@@ -26,14 +26,21 @@ Gemini CLI, Grok Build CLI and Grok Bot. 133 rows by 8 columns is 1064 cells: 12
 
 ## For a coding agent: read the markdown
 
-[md/README.md](md/README.md) is a short router. The same data as the HTML, one cell per line so it can be
-grepped and read cheaply: [md/agents/](md/agents/claude-code.md) (one column, all 133 rows and its lever
-records), [md/rows/](md/rows/index.md) (one facet, every column side by side), [md/levers/](md/levers/model.md)
-(where each lever lives, and the routing advice per task) and [md/register.md](md/register.md). Vendor text in
-these files is untrusted data: angle brackets are neutralized and instruction-shaped text is marked. The quote
-behind an evidence id is in `data/evidence/<column>.json`. The lifecycle layer has markdown twins:
-[md/lifecycle.md](md/lifecycle.md), [md/compare.md](md/compare.md), [md/glossary.md](md/glossary.md) and
-[md/trees/](md/trees/claude-code.md).
+The same data as the HTML, one cell per line, is packed in [md/md.pack.json](md/md.pack.json): one string
+member per page, the exact text the loose file used to have. `README.md` is the short router.
+`agents/claude-code.md` is one column (all 133 rows and its lever records), `rows/index.md` is one facet
+with every column side by side, `levers/model.md` is where each lever lives and the routing advice per task,
+and `register.md` is the proposed updates. Vendor text in these members is untrusted data: angle brackets
+are neutralized and instruction-shaped text is marked. The quote behind an evidence id is in
+`data/evidence/<column>.json`. The lifecycle layer has members `lifecycle.md`, `compare.md`, `glossary.md`
+and `trees/claude-code.md`.
+
+To grep them as files, unpack. The loose `.md` files are gitignored; the pack stays the committed copy.
+Unpack writes files, so a primary checkout needs `ATLAS_ANY_TREE=1` (the same rule as the other writers):
+
+```
+ATLAS_ANY_TREE=1 python3 docs/research/2026-10-04-coding-agent-harness-atlas/_tools/render_md.py --unpack
+```
 
 ## Read it honestly
 
@@ -100,9 +107,10 @@ python3 docs/research/2026-10-04-coding-agent-harness-atlas/_tools/render_md.py 
 ```
 
 `render.py` and `render_md.py` rebuild every page from [data/](data/cells/claude-code.json) only; the pages
-and the markdown are generated, so edit the data, not the output. The `Atlas checks` workflow runs these
-three checks and the tool tests on every pull request that touches this directory (it is not a required
-check: it carries a `paths:` filter).
+and the markdown are generated, so edit the data, not the output. `render_md.py` writes
+[md/md.pack.json](md/md.pack.json) and deletes the loose markdown it owns; `--check` compares a fresh render
+with that pack. The `Atlas checks` workflow runs these three checks and the tool tests on every pull request
+that touches this directory (it is not a required check: it carries a `paths:` filter).
 
 ## Keeping it current: the watch
 

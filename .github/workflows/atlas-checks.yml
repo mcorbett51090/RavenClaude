@@ -11,7 +11,7 @@
 # re-measured below on every run.
 #
 # The planted-error half of the audit (a gate must fail on a known-bad input) is the unit
-# tests plus the explicit stale-file step below: a markdown file with one stray character
+# tests plus the explicit stale-pack step below: one stray character in a pack member
 # must make `render_md.py --check` fail.
 ########################################################################
 name: Atlas checks
@@ -59,17 +59,30 @@ jobs:
       - name: Markdown is what the renderer writes
         run: python3 render_md.py --check
 
-      - name: A stale markdown file must FAIL the check (known-bad fixture)
+      - name: A stale pack member must FAIL the check (known-bad fixture)
         run: |
-          set -u
+          set -euo pipefail
           tmp="$(mktemp -d)"
-          cp -r ../md "$tmp/md"
-          echo "x" >> "$tmp/md/register.md"
+          mkdir -p "$tmp/md"
+          cp ../md/md.pack.json "$tmp/md/md.pack.json"
+          python3 - "$tmp/md/md.pack.json" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          path = Path(sys.argv[1])
+          pack = json.loads(path.read_text(encoding="utf-8"))
+          pack["register.md"] += "x"
+          path.write_text(
+              json.dumps(pack, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+          PY
           if python3 render_md.py --check --out "$tmp/md"; then
-            echo "::error::render_md.py --check accepted a stale file"
+            echo "::error::render_md.py --check accepted a stale pack member"
             exit 1
           fi
-          echo "OK: the stale file was caught."
+          echo "OK: the stale pack member was caught."
 
       - name: Tool tests
         run: python3 -m unittest discover -s tests

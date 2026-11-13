@@ -36,3 +36,4 @@ plugins/ravenclaude-core/knowledge/concepts/visuals/visuals.pack.json text eol=l
 # The harness atlas is generated and byte-compared by its own validator, so its committed bytes stay LF
 # regardless of a contributor's core.autocrlf.
 docs/research/2026-10-04-coding-agent-harness-atlas/** text eol=lf
+docs/research/2026-10-04-coding-agent-harness-atlas/md/md.pack.json text eol=lf linguist-generated=true
