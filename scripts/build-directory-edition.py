@@ -46,6 +46,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -1101,7 +1102,7 @@ def structure_findings(root: Path, manifest: dict) -> list[str]:
 # argument as the command; its flags are not parsed, so a value that is its own
 # token (`sudo -u someuser`, `nice -n 5`, `env -u VAR`, `timeout 5`) still
 # reaches the interpreter. `which`/`type` and `command -v`/`-V` are lookups.
-_PY_NAME = r"(?:python|pypy)3?(?:\.\d+)?"
+_PY_NAME = r"(?:micropython|ipython|jython|python|pypy)3?(?:\.\d+)?"
 _PY_TOKEN = re.compile(r"(?<![\w./$-])" + _PY_NAME + r"(?![\w.-])")
 _PY_PATH = r"(?:(?:\.\./)+(?:[\w.@+-]+/)*|\./(?:[\w.@+-]+/)*|/(?:[\w.@+-]+/)*)"
 _PY_PATH_TOKEN = re.compile(r"(?<![\w./$-])" + _PY_PATH + _PY_NAME + r"(?![\w.-])")
@@ -1176,6 +1177,37 @@ def _logical_lines(text: str) -> list[str]:
     return joined.splitlines()
 
 
+def _skip_dollar_brace(s: str, i: int, limit: int) -> int | None:
+    """If `s[i:]` starts with `${`, return the index after the matching `}`."""
+    if not s.startswith("${", i) or i + 2 > limit:
+        return None
+    depth = 1
+    k = i + 2
+    while k < limit and depth:
+        ch = s[k]
+        if ch in "'\"":
+            q = ch
+            k += 1
+            while k < limit and s[k] != q and s[k] != "\n":
+                if s[k] == "\\" and k + 1 < limit:
+                    k += 2
+                    continue
+                k += 1
+            if k < limit and s[k] == q:
+                k += 1
+            continue
+        if s.startswith("${", k):
+            depth += 1
+            k += 2
+            continue
+        if ch == "}":
+            depth -= 1
+            k += 1
+            continue
+        k += 1
+    return k
+
+
 def _read_word(s: str, i: int) -> tuple[str, int]:
     n = len(s)
     if i >= n:
@@ -1203,6 +1235,10 @@ def _read_word(s: str, i: int) -> tuple[str, int]:
         return s[i:j], j
     j = i
     while j < n and s[j] not in " \t\n|&;)#<>":
+        close = _skip_dollar_brace(s, j, n)
+        if close is not None:
+            j = close
+            continue
         if s.startswith("$'", j) or s.startswith('$"', j):
             _, j = _read_word(s, j)
             continue
@@ -1331,7 +1367,7 @@ def _invocation_sensitive(tail: str, before: str) -> bool | None:
 
 _SCAN_DEPTH_CAP = 32
 
-_PY_SHELL_STDIN = frozenset({"bash", "sh", "dash", "zsh", "ksh", "eval"})
+_PY_SHELL_STDIN = frozenset({"bash", "sh", "dash", "zsh", "ksh", "mksh", "ash", "eval"})
 _PY_SCRIPT_LANG = frozenset({"perl", "ruby"})
 _PY_C_CLUSTER = re.compile(r"^-[A-Za-z]*c$")
 
@@ -1431,8 +1467,14 @@ def _cmd_base(word: str) -> str:
 
 
 def _is_interpreter_word(word: str) -> bool:
-    core = _unquote_word(word)
+    core = _normalize_dollar_word(word)
     if _PY_TOKEN.fullmatch(core) or _PY_PATH_CMD.fullmatch(core):
+        return True
+    # Operator forms and adjacent `$VAR` glue are not allowlisted; they are
+    # routed as dollar words and fail closed on `-c`/`-m`.
+    if _dollar_has_operator(core) or _dollar_is_glued(word):
+        return True
+    if _dollar_default_is_interpreter(core):
         return True
     return bool(_PY_INDIRECT_VAR.fullmatch(core))
 
@@ -1695,6 +1737,14 @@ def _command_ranges(line: str) -> list[tuple[int, int]]:
                 quote = ch
                 i += 1
                 continue
+            close = _skip_dollar_brace(line, i, end)
+            if close is not None:
+                i = close
+                continue
+            if ch == "#":
+                if line[seg:i].strip():
+                    ranges.append((seg, i))
+                return ranges
             if ch in "|&;()":
                 if line[seg:i].strip():
                     ranges.append((seg, i))
@@ -1731,7 +1781,9 @@ def _skip_shell_atom(s: str, i: int, limit: int) -> int:
         close = _matching_backtick(s, i + 1, limit)
         return close + 1 if close < limit else limit
     _word, j = _read_word(s, i)
-    return j if j <= limit else limit
+    if j <= i:
+        return min(i + 1, limit)
+    return min(j, limit)
 
 
 def _in_case_pattern(line: str, tok_start: int) -> bool:
@@ -1750,10 +1802,12 @@ def _in_case_pattern(line: str, tok_start: int) -> bool:
         if ch in " \t\n":
             i += 1
             continue
-        if line.startswith(";;", i):
+        if ch == "#":
+            break
+        if line.startswith(";;&", i) or line.startswith(";;", i) or line.startswith(";&", i):
             if stack and stack[-1] in ("case_pat", "case_body"):
                 stack[-1] = "case_pat"
-            i += 2
+            i += 3 if line.startswith(";;&", i) else 2
             continue
         if _is_kw(line, i, "esac"):
             if stack:
@@ -1781,6 +1835,12 @@ def _in_case_pattern(line: str, tok_start: int) -> bool:
                 i += 1
                 continue
             if ch in "(|":
+                i += 1
+                continue
+            # A lone `;` or `&` is not a pattern joiner (`;;` / `;&` already
+            # handled). `echo case x in; ( python3 )` is a real subshell.
+            if ch in ";&":
+                stack.pop()
                 i += 1
                 continue
             i = _skip_shell_atom(line, i, n)
@@ -2062,7 +2122,15 @@ def _piped_producer_sensitive(stage: str, depth: int) -> bool:
         if i >= end:
             continue
         word, j = _read_word(s, i)
-        if _cmd_base(word) in _PY_SAFE_DATA:
+        while word and (word in _PY_SYNTAX or word in {"fi", "done", "esac"}):
+            i = j
+            while i < end and s[i] in " \t":
+                i += 1
+            if i >= end:
+                word, j = "", i
+                break
+            word, j = _read_word(s, i)
+        if word and _cmd_base(word) in _PY_SAFE_DATA:
             if _args_payload_sensitive(s, j, end, depth):
                 return True
         for body in _env_s_bodies(s[start:end]):
@@ -2129,13 +2197,47 @@ def _text_is_isolated_python(text: str, depth: int) -> bool:
     return False
 
 
+def _is_process_subst_shell_stage(stage: str) -> bool:
+    """True when the stage writes to `>(bash)` / `>(sh)` (or mksh/ash, etc.)."""
+    s = stage
+    i = 0
+    n = len(s)
+    quote = ""
+    while i < n:
+        ch = s[i]
+        if not quote and (s.startswith("$'", i) or s.startswith('$"', i)):
+            quote = s[i + 1]
+            i += 2
+            continue
+        if quote:
+            if ch == "\\" and quote != "'" and i + 1 < n:
+                i += 2
+                continue
+            if ch == quote:
+                quote = ""
+            i += 1
+            continue
+        if ch in "'\"":
+            quote = ch
+            i += 1
+            continue
+        if s.startswith(">(", i):
+            close = _matching_paren(s, i + 1, n)
+            if _is_stdin_shell_stage(s[i + 2 : close]):
+                return True
+            i = close + 1 if close < n else n
+            continue
+        i += 1
+    return False
+
+
 def _pipeline_reaches_shell(line: str, depth: int) -> bool:
     """True when a producer (possibly grouped or filtered) is piped into bash/sh/eval."""
     stages = _split_pipeline_stages(line)
     if len(stages) < 2:
         return False
     for idx, st in enumerate(stages):
-        if not _is_stdin_shell_stage(st):
+        if not (_is_stdin_shell_stage(st) or _is_process_subst_shell_stage(st)):
             continue
         prev = stages[:idx]
         if any(_piped_producer_sensitive(p, depth) for p in prev if not _is_decode_stage(p)):
@@ -2156,12 +2258,150 @@ def _pipeline_reaches_shell(line: str, depth: int) -> bool:
 _PY_NAMED_VAR = re.compile(
     r"^(?:\$(?:PYTHON|python)3?|\$\{(?:PYTHON|python)3?(?::?[-+=][^}]*)?\})$"
 )
+_PY_DOLLAR_NAME = re.compile(
+    r"^(?:\$([A-Za-z_][A-Za-z0-9_]*)|\$\{([A-Za-z_][A-Za-z0-9_]*)(?::?[-+=][^}]*)?\})$"
+)
+# Bare `$VAR` or `${VAR}` only — no operator, modifier, substring, or indirection.
+_PY_DOLLAR_BARE = re.compile(
+    r"^(?:\$([A-Za-z_][A-Za-z0-9_]*)|\$\{([A-Za-z_][A-Za-z0-9_]*)\})$"
+)
+# ${VAR:-default} / ${VAR:=default} / ${VAR-default} / ${VAR=default} (not :+ or :?).
+_PY_DOLLAR_DEFAULT = re.compile(
+    r"^\$\{([A-Za-z_][A-Za-z0-9_]*)(:?)([-=])(.*)\}$"
+)
+
+def _dollar_var_name(word: str) -> str | None:
+    m = _PY_DOLLAR_NAME.fullmatch(_normalize_dollar_word(word))
+    if not m:
+        return None
+    return m.group(1) or m.group(2)
+
+
+def _dollar_is_bare(word: str) -> bool:
+    """True only for `$VAR` or `${VAR}` with no operator or modifier."""
+    return bool(_PY_DOLLAR_BARE.fullmatch(_unquote_word(word)))
+
+
+def _dollar_has_operator(word: str) -> bool:
+    """True for `${...}` that is not a bare `${NAME}` (any operator/modifier)."""
+    core = _normalize_dollar_word(word)
+    if not (core.startswith("${") and core.endswith("}") and len(core) >= 3):
+        return False
+    inner = core[2:-1]
+    return not bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", inner))
+
+
+def _strip_empty_quotes(word: str) -> str:
+    """Remove adjacent empty `""` / `''` so `$CC""` matches `$CC`."""
+    prev = None
+    while word != prev:
+        prev = word
+        word = word.replace('""', "").replace("''", "")
+    return word
+
+
+def _normalize_dollar_word(word: str) -> str:
+    return _strip_empty_quotes(_unquote_word(word))
+
+
+_PY_DOLLAR_LEAD = re.compile(
+    r"^\$(?:\{[A-Za-z_][A-Za-z0-9_]*(?:[^}]*)?\}|[A-Za-z_][A-Za-z0-9_]*)"
+)
+
+
+def _dollar_is_glued(word: str) -> bool:
+    """True for adjacent glue on a `$VAR` word (`$CC$X`, `${CC}python3`)."""
+    core = _normalize_dollar_word(word)
+    if not core.startswith("$"):
+        return False
+    if _PY_DOLLAR_BARE.fullmatch(core) or _PY_INDIRECT_VAR.fullmatch(core):
+        return False
+    if _dollar_has_operator(core):
+        return False
+    return bool(_PY_DOLLAR_LEAD.match(core))
+
+
+def _dollar_assign_default(word: str) -> str | None:
+    """The `:-` / `:=` / `-` / `=` default text, or None."""
+    m = _PY_DOLLAR_DEFAULT.fullmatch(_unquote_word(word))
+    if not m:
+        return None
+    return m.group(4)
+
+
+def _value_looks_like_interpreter(value: str) -> bool:
+    core = _unquote_word(value.strip())
+    if not core:
+        return False
+    if _PY_TOKEN.fullmatch(core) or _PY_PATH_CMD.fullmatch(core):
+        return True
+    if _PY_TOKEN.fullmatch(_cmd_base(core)):
+        return True
+    if _PY_NAMED_VAR.fullmatch(core):
+        return True
+    default = _dollar_assign_default(core)
+    if default and default != value:
+        return _value_looks_like_interpreter(default)
+    return False
+
+
+def _dollar_default_is_interpreter(word: str) -> bool:
+    default = _dollar_assign_default(word)
+    return bool(default) and _value_looks_like_interpreter(default)
+
+
+def _is_shell_var(word: str) -> bool:
+    """Bare `$SHELL` / `${SHELL}` — used only to rescan a `-c` body / stdin sink."""
+    if not _dollar_is_bare(word):
+        return False
+    name = _dollar_var_name(word)
+    return name is not None and name.upper() == "SHELL"
+
+
+def _assigned_interp_vars(line: str, before: int) -> set[str]:
+    """Allowlisted names assigned an interpreter value earlier on this line."""
+    names: set[str] = set()
+    i = 0
+    n = min(before, len(line))
+    while i < n:
+        while i < n and line[i] in " \t":
+            i += 1
+        if i >= n:
+            break
+        if line[i] == "#":
+            break
+        if line.startswith(";;&", i):
+            i += 3
+            continue
+        if line.startswith(";;", i) or line.startswith(";&", i) or line.startswith("||", i) or line.startswith("&&", i):
+            i += 2
+            continue
+        if line[i] in ";&|":
+            i += 1
+            continue
+        word, j = _read_word(line, i)
+        if not word:
+            i += 1
+            continue
+        if _PY_ASSIGN_WORD.match(word):
+            name, _, val = word.partition("=")
+            if _value_looks_like_interpreter(val):
+                names.add(name.upper())
+            i = j
+            continue
+        # `env CC=python3` / `export CC=python3`: keep walking for assignments.
+        i = j
+    return names
 
 
 def _is_generic_dollar_var(word: str) -> bool:
-    """`$PY` / `${VAR:-…}` but not the PYTHON/python names already treated as interpreters."""
-    core = _unquote_word(word)
-    return bool(_PY_INDIRECT_VAR.fullmatch(core)) and not _PY_NAMED_VAR.fullmatch(core)
+    """`$PY` / `${VAR:-…}` / glued `$CC$X`, but not a named PYTHON/python var."""
+    core = _normalize_dollar_word(word)
+    if _PY_NAMED_VAR.fullmatch(core):
+        return False
+    if _PY_INDIRECT_VAR.fullmatch(core) or _dollar_has_operator(core) or _dollar_is_glued(word):
+        return True
+    return False
 
 
 def _tail_has_c_or_m(tail: str) -> bool:
@@ -2187,6 +2427,20 @@ def _token_is_sensitive(line: str, tok_start: int, tok_end: int) -> bool:
     if re.match(r"[ \t]*\)", tail) and _in_case_pattern(line, tok_start):
         return False
     word = line[tok_start:tok_end]
+    name = _dollar_var_name(word)
+    assigned = name.upper() in _assigned_interp_vars(line, tok_start) if name else False
+    # Same-line `CC=python3` prefix treats the bare word as an interpreter.
+    if assigned:
+        before = line[tok_start - 1] if tok_start else ""
+        return bool(_invocation_sensitive(tail, before))
+    # Operator forms, glued `$VAR` words, and any `$VAR -c`/`-m` fail closed.
+    # Without `-c`/`-m` they are not a bare python invocation
+    # (`${CLAUDE_PLUGIN_ROOT:-}`). There is no compiler/editor allowlist.
+    if _dollar_has_operator(word) or _dollar_is_glued(word):
+        if not _tail_has_c_or_m(tail):
+            return False
+        before = line[tok_start - 1] if tok_start else ""
+        return bool(_invocation_sensitive(tail, before))
     # Any `$VAR -c` in interpreter position, but not a bare `$tmp` / `$file` path.
     if _is_generic_dollar_var(word) and not _tail_has_c_or_m(tail):
         return False
@@ -2298,7 +2552,40 @@ def _later_interpreter_sensitive(
         if _is_interpreter_word(word) or _PY_PATH_CMD.fullmatch(_unquote_word(word)):
             if _token_is_sensitive(line, i, j):
                 return True
+        if _cmd_base(word) in _PY_SHELL_STDIN or _is_shell_var(word):
+            if _shell_c_placeholder_or_body_sensitive(line, j, end, depth):
+                return True
         i = j
+    return False
+
+
+def _shell_c_placeholder_or_body_sensitive(
+    line: str, start: int, end: int, depth: int
+) -> bool:
+    """Fail-closed on `bash -c {}` (xargs placeholder) and rescan a `-c` body."""
+    k = start
+    while k < end:
+        while k < end and line[k] in " \t":
+            k += 1
+        if k >= end or line[k] in "|&;\n#)<>":
+            return False
+        flag, k2 = _read_word(line, k)
+        raw = _unquote_word(flag)
+        if raw in ("-c", "-lc") or (_PY_C_CLUSTER.match(raw) and "c" in raw[1:]):
+            while k2 < end and line[k2] in " \t":
+                k2 += 1
+            body, _k3 = _read_word(line, k2)
+            inner = _unquote_word(body)
+            if not inner:
+                return False
+            # xargs -I{} bash -c {} : the script comes from stdin. Fail closed.
+            if inner == "{}" or re.fullmatch(r"\{[A-Za-z0-9_]*\}", inner):
+                return True
+            return _rescan(inner, depth) or _safe_data_payload_sensitive(inner, depth)
+        if flag.startswith("-") and flag not in ("-", "--"):
+            k = k2
+            continue
+        return False
     return False
 
 
@@ -2362,8 +2649,8 @@ def _range_sensitive(line: str, start: int, end: int, depth: int = 0) -> bool:
             if k >= end:
                 break
             flag, k2 = _read_word(line, k)
-            # `-e 'body'`, glued `-e'body'`, and clusters (`-ne`, `-pe`, `-we'body'`).
-            glued = re.match(r"^-[A-Za-z]*e(.*)$", flag) if not flag.startswith("--") else None
+            # `-e`/`-E` 'body', glued `-e'system(…)'` / `-E'…'`, and clusters (`-ne`, `-pe`).
+            glued = re.match(r"^-[A-Za-z]*[eE](.*)$", flag) if not flag.startswith("--") else None
             if glued:
                 rest = glued.group(1)
                 if rest:
@@ -3334,12 +3621,114 @@ def self_test() -> int:
             "( echo python3 -I -c y ) | bash": False,
             "echo python3 -I -c y | tee | bash": False,
             "if echo python3 -I -c y; then true; fi | bash": False,
+            "echo case x in; ( python3 )": True,
+            "echo case x in; ( python3 -I )": False,
+            "echo ok # case x in ( python3 )": False,
+            "if true; then echo python3 -c y; fi | bash": True,
+            "if true; then echo python3 -I -c y; fi | bash": False,
+            "while true; do echo python3 -c y; done | bash": True,
+            "while true; do echo python3 -I -c y; done | bash": False,
+            "for x in a; do echo python3 -c y; done | bash": True,
+            "for x in a; do echo python3 -I -c y; done | bash": False,
+            "$CC -c foo.c": True,
+            "${CC} -c foo.c": True,
+            "${CC:-gcc} -c foo.c": True,
+            "$CXX -c foo.cpp": True,
+            "$INSTALL -c": True,
+            "$VISUAL -c": True,
+            "$SHELL -c 'echo hi'": True,
+            "$SHELL -c 'python3 -c y'": True,
+            "$SHELL -c 'python3 -I -c y'": True,
+            "${CC:-python3} -c y": True,
+            "${CXX:-python3} -c y": True,
+            "${CC:=python3} -c y": True,
+            "${SHELL:-python3} -c y": True,
+            "${CC:-python3} -c 'import os'": True,
+            "${CC:-python3} -I -c y": False,
+            "CC=python3; $CC -c 'import os'": True,
+            "CC=python3 $CC -c 'import os'": True,
+            "env CC=python3 $CC -c 'import os'": True,
+            "CC=python3; $CC -I -c 'import os'": False,
+            "$CC -c foo.py": True,
+            "$CC -c 'import os'": True,
+            "$CC -m json.tool": True,
+            "$CC -c foo.cpp": True,
+            "perl -E 'system(\"python3 -c y\")'": True,
+            "perl -E 'system(\"python3 -I -c y\")'": False,
+            "ipython -c y": True,
+            "micropython -c y": True,
+            "jython -c y": True,
+            "ipython -I -c y": False,
+            "echo python3 -c y | tee >(bash)": True,
+            "echo python3 -I -c y | tee >(bash)": False,
+            "echo python3 -c y | mksh": True,
+            "echo python3 -c y | ash": True,
+            "echo python3 -I -c y | mksh": False,
+            "xargs -I{} bash -c {}": True,
+            "xargs -I{} bash -c 'python3 -I -c y'": False,
+            "${CC:+python3} -c foo.c": True,
+            "${!var} -c y": True,
+            "$CC -cimport\\ os": True,
+            "${SHELL:+python3} -I -c y": False,
+            "$CC -mpip": True,
+            "$CC -mjson.tool": True,
+            "$CC -mthis": True,
+            "$CXX -mpip": True,
+            "$INSTALL -mpip": True,
+            "$VISUAL -mpip": True,
+            "$CC -m pip": True,
+            '$CC"" -c y': True,
+            "$CC'' -c 'import os'": True,
+            "$CC$X -c 'import os'": True,
+            "${CC}python3 -c y": True,
+            '$CC"" -I -c y': False,
         }
+        # L8 allowlist is bare `$VAR` / `${VAR}` only. Every operator/modifier
+        # on SHELL, CC, VISUAL, EDITOR, and INSTALL fails closed.
+        _l8_op_vars = ("SHELL", "CC", "VISUAL", "EDITOR", "INSTALL")
+        _l8_ops = (
+            "-", ":-", "=", ":=", "+", ":+", "?", ":?", "#", "##",
+            "%", "%%", "/", "//", "^", ",", ":0",
+        )
+        for _var in _l8_op_vars:
+            for _op in _l8_ops:
+                table[f"${{{_var}{_op}python3}} -c y"] = True
+                table[f"${{{_var}{_op}python3}} -c 'import os'"] = True
+            table[f"${{!{_var}}} -c y"] = True
+            table[f"${{!{_var}}} -c 'import os'"] = True
         wrong = [k for k, v in table.items() if python_cwd_sensitive(k) != v]
         check("python isolation: truth table " + (f"[wrong: {wrong}]" if wrong else ""), not wrong)
         check(
             "python isolation: recursion-depth cap fail-closes instead of raising",
             python_cwd_sensitive("echo python3", _SCAN_DEPTH_CAP) is True,
+        )
+
+        def _scan_finishes(form: str, expect: bool, seconds: float = 0.4) -> bool:
+            box: dict = {}
+
+            def run() -> None:
+                try:
+                    box["v"] = python_cwd_sensitive(form)
+                except Exception as exc:  # pragma: no cover - surfaced via box
+                    box["e"] = exc
+
+            worker = threading.Thread(target=run, daemon=True)
+            worker.start()
+            worker.join(seconds)
+            return (not worker.is_alive()) and "e" not in box and box.get("v") is expect
+
+        check(
+            "python isolation: case_pat ; does not hang and flags the subshell",
+            _scan_finishes("echo case x in; ( python3 )", True),
+        )
+        check(
+            "python isolation: comment with case … in does not hang",
+            _scan_finishes("echo ok # case x in ( python3 )", False),
+        )
+        check(
+            "python isolation: case_pat & and | do not hang",
+            _scan_finishes("echo case x in& ( python3 )", True)
+            and _scan_finishes("case $x in foo|bar) python3 -c y;; esac", True),
         )
         good_cmds = [
             '"${CLAUDE_PLUGIN_ROOT}/hooks/a.sh"',

@@ -433,7 +433,82 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("subshell group pipe bash", "( echo python3 -c y ) | bash"),
             ("tee pipe bash", "echo python3 -c y | tee | bash"),
             ("if fi pipe bash", "if echo python3 -c y; then true; fi | bash"),
+            ("case_pat semicolon subshell", "echo case x in; ( python3 )"),
+            ("if then-body pipe bash", "if true; then echo python3 -c y; fi | bash"),
+            ("while do-body pipe bash", "while true; do echo python3 -c y; done | bash"),
+            ("for do-body pipe bash", "for x in a; do echo python3 -c y; done | bash"),
+            ("$SHELL -c python3", "$SHELL -c 'python3 -c y'"),
+            ("perl -E system", "perl -E 'system(\"python3 -c y\")'"),
+            ("ipython -c", "ipython -c y"),
+            ("micropython -c", "micropython -c y"),
+            ("jython -c", "jython -c y"),
+            ("tee process subst bash", "echo python3 -c y | tee >(bash)"),
+            ("mksh pipe", "echo python3 -c y | mksh"),
+            ("ash pipe", "echo python3 -c y | ash"),
+            ("xargs bash -c placeholder", "xargs -I{} bash -c {}"),
+            ("${CC:-python3} -c", "${CC:-python3} -c y"),
+            ("${CXX:-python3} -c", "${CXX:-python3} -c y"),
+            ("${CC:=python3} -c", "${CC:=python3} -c y"),
+            ("${SHELL:-python3} -c", "${SHELL:-python3} -c y"),
+            ("CC=python3; $CC -c", "CC=python3; $CC -c 'import os'"),
+            ("prefix CC=python3 $CC -c", "CC=python3 $CC -c 'import os'"),
+            ("env CC=python3 $CC -c", "env CC=python3 $CC -c 'import os'"),
+            ("$CC -c foo.py", "$CC -c foo.py"),
+            ("$CC -c import", "$CC -c 'import os'"),
+            ("$CC -m json.tool", "$CC -m json.tool"),
+            ("${CC:+python3} -c foo.c", "${CC:+python3} -c foo.c"),
+            ("${!var} -c y", "${!var} -c y"),
+            ("$CC -cimport os glued", "$CC -cimport\\ os"),
+            ("$CC -c foo.c", "$CC -c foo.c"),
+            ("${CC} -c foo.c", "${CC} -c foo.c"),
+            ("$CXX -c foo.cpp", "$CXX -c foo.cpp"),
+            ("$CC -c foo.cpp", "$CC -c foo.cpp"),
+            ("$INSTALL -c", "$INSTALL -c"),
+            ("$VISUAL -c", "$VISUAL -c"),
+            ("$SHELL -c echo hi", "$SHELL -c 'echo hi'"),
+            ("$SHELL -c python3 -I", "$SHELL -c 'python3 -I -c y'"),
+            ("$CC -mpip", "$CC -mpip"),
+            ("$CC -mjson.tool", "$CC -mjson.tool"),
+            ("$CC -mthis", "$CC -mthis"),
+            ("$CXX -mpip", "$CXX -mpip"),
+            ("$INSTALL -mpip", "$INSTALL -mpip"),
+            ("$VISUAL -mpip", "$VISUAL -mpip"),
+            ('$CC empty-dquote -c', '$CC"" -c y'),
+            ("$CC empty-squote -c", "$CC'' -c 'import os'"),
+            ("$CC$X -c", "$CC$X -c 'import os'"),
+            ("${CC}python3 -c", "${CC}python3 -c y"),
         )
+        _m3_op_vars = ("SHELL", "CC", "VISUAL", "EDITOR", "INSTALL")
+        _m3_ops = (
+            "-", ":-", "=", ":=", "+", ":+", "?", ":?", "#", "##",
+            "%", "%%", "/", "//", "^", ",", ":0",
+        )
+        _m3_extra = []
+        _m3_seen = {
+            "${CC:-python3} -c y",
+            "${CXX:-python3} -c y",
+            "${CC:=python3} -c y",
+            "${SHELL:-python3} -c y",
+        }
+        for _var in _m3_op_vars:
+            for _op in _m3_ops:
+                body_y = f"${{{_var}{_op}python3}} -c y"
+                body_imp = f"${{{_var}{_op}python3}} -c 'import os'"
+                if body_y not in _m3_seen:
+                    _m3_extra.append((f"${{{_var}{_op}python3}} -c y", body_y))
+                    _m3_seen.add(body_y)
+                if body_imp not in _m3_seen:
+                    _m3_extra.append((f"${{{_var}{_op}python3}} import", body_imp))
+                    _m3_seen.add(body_imp)
+            body_ind = f"${{!{_var}}} -c y"
+            body_ind_imp = f"${{!{_var}}} -c 'import os'"
+            if body_ind not in _m3_seen:
+                _m3_extra.append((f"${{!{_var}}} -c y", body_ind))
+                _m3_seen.add(body_ind)
+            if body_ind_imp not in _m3_seen:
+                _m3_extra.append((f"${{!{_var}}} import", body_ind_imp))
+                _m3_seen.add(body_ind_imp)
+        forms = forms + tuple(_m3_extra)
         iso_forms = (
             ("if-then python3 -I -c", "if x; then python3 -I -c 'y'; fi"),
             ("{ python3 -I -c }", "{ python3 -I -c 'y'; }"),
@@ -493,6 +568,19 @@ def must_fail_python_cwd(dist: Path) -> None:
             ("subshell group pipe bash -I", "( echo python3 -I -c y ) | bash"),
             ("tee pipe bash -I", "echo python3 -I -c y | tee | bash"),
             ("if fi pipe bash -I", "if echo python3 -I -c y; then true; fi | bash"),
+            ("comment case in subshell", "echo ok # case x in ( python3 )"),
+            ("if then-body pipe bash -I", "if true; then echo python3 -I -c y; fi | bash"),
+            ("while do-body pipe bash -I", "while true; do echo python3 -I -c y; done | bash"),
+            ("for do-body pipe bash -I", "for x in a; do echo python3 -I -c y; done | bash"),
+            ("perl -E system -I", "perl -E 'system(\"python3 -I -c y\")'"),
+            ("ipython -I -c", "ipython -I -c y"),
+            ("tee process subst bash -I", "echo python3 -I -c y | tee >(bash)"),
+            ("mksh pipe -I", "echo python3 -I -c y | mksh"),
+            ("xargs bash -c isolated", "xargs -I{} bash -c 'python3 -I -c y'"),
+            ("${CC:-python3} -I -c", "${CC:-python3} -I -c y"),
+            ("CC=python3; $CC -I -c", "CC=python3; $CC -I -c 'import os'"),
+            ("${SHELL:+python3} -I -c", "${SHELL:+python3} -I -c y"),
+            ('$CC empty-dquote -I -c', '$CC"" -I -c y'),
         )
         try:
             for label, body in forms:
