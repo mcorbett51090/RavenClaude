@@ -386,9 +386,13 @@ def main():
         ]
         # Copilot Chat with no project uses ~/.copilot/chats/<id> as cwd. Writes inside
         # that one session folder are the chat's own scratch, not a sibling worktree.
+        # AppSec #1429: never allow-list _chats itself (that would open every session
+        # folder). Only allow exactly the session top folder (_chats/<id>).
         _chats = os.path.realpath(os.path.expanduser("~/.copilot/chats"))
-        if cwd == _chats or cwd.startswith(_chats + os.sep):
-            ALLOW.append(cwd)
+        if cwd.startswith(_chats + os.sep):
+            _session = cwd[len(_chats) + 1 :].split(os.sep, 1)[0]
+            if _session:
+                ALLOW.append(os.path.join(_chats, _session))
         for _e in [
             os.environ.get("TMPDIR"),
             os.environ.get("RC_WG_GUARD_HOME"),
@@ -506,9 +510,19 @@ def main():
             r"(?:\s-[ceE]\s|\s-\s|<<)",
             _scan,
         ):
-            # best-effort: any quoted absolute/~ path literal in the whole command that looks write-ish
+            # best-effort: any quoted absolute/~ path literal in the whole command that looks write-ish.
+            # AppSec #1431: mode match covers 'wt'/'w+b'/'ab+'/'xt'/'r+' (any mode with
+            # w/a/x/+); also Ruby File.write / File.open / IO.write / FileUtils and
+            # Perl open(... '>...'). Read-only 'r'/'rb' stay unmatched.
             if re.search(
-                r"open\([^)]*['\"][wax]b?\+?['\"]|write_text|write_bytes|writeFile|writeTextFile|file_put_contents|appendFile|createWriteStream|shutil\.|os\.(rename|replace|remove|unlink|makedirs|mkdir)|rmtree|unlinkSync|rmSync|Bun\.write|open\s*\(?\s*\w+\s*,\s*['\"]\+?>|print\s*\{",
+                r"open\([^)]*['\"][rwaxbt+]*[wax+][rwaxbt+]*['\"]"
+                r"|File\.write|IO\.write|FileUtils\."
+                r"|write_text|write_bytes|writeFile|writeTextFile|file_put_contents"
+                r"|appendFile|createWriteStream|shutil\."
+                r"|os\.(rename|replace|remove|unlink|makedirs|mkdir)|rmtree"
+                r"|unlinkSync|rmSync|Bun\.write"
+                r"|open\s*\(?\s*\w+\s*,\s*['\"]\+?>"
+                r"|print\s*\{",
                 _scan,
             ):
                 for p in re.findall(r"['\"]((?:/|~/)[^'\"\s]*)['\"]", _scan):

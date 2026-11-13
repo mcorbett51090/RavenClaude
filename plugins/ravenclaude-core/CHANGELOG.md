@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.363.2 — 2026-11-13
+
+### Fixed
+- **AppSec #1431 (Medium) — inline write detector missed `wt`/`w+b` and Ruby `File.write`.**
+  Broadened open-mode matching to any mode containing `w`/`a`/`x`/`+`; added
+  `File.write` / `IO.write` / `FileUtils.`. Read-only `r`/`rb` still allow.
+- **AppSec #1429 (Medium) — Copilot `~/.copilot/chats` cwd allow-listed every session.**
+  Only the session top folder (`_chats/<id>`) is allow-listed; never `_chats` itself.
+
 ## 0.363.1 — 2026-11-13
 
 ### Fixed
