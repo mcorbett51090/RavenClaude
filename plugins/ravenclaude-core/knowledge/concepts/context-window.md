@@ -6,18 +6,18 @@ kind: platform-fact
 order: 3
 summary: "Everything the model 'knows' this turn is the text in its context window — system prompt, tools, history, files. It's finite, it fills up, and when it's full the harness compacts."
 see_also: [agent-harness-loop, tool-use, session-start-context]
-last_verified: 2026-08-24
+last_verified: 2026-10-20
 refresh_when: "Frontier context-window sizes change materially, or Claude Code changes its compaction / auto-compact behavior."
 sources:
   - label: "Context windows — Claude API"
-    url: "https://docs.claude.com/en/docs/build-with-claude/context-windows"
+    url: "https://platform.claude.com/docs/en/build-with-claude/context-windows"
   - label: "Manage context — Claude Code"
     url: "https://code.claude.com/docs/en/costs"
 ---
 
 A model has **no memory between turns.** Everything it "knows" while answering is whatever text sits in its **context window** right now: the system prompt, the tool schemas, the project instructions (`CLAUDE.md` / `AGENTS.md`), the conversation so far, and the contents of any file or tool result that's been pulled in. Nothing outside that window exists to the model — if it isn't in context, the model can't see it, no matter how relevant.
 
-The window is **finite** (measured in tokens — roughly ¾ of a word each). Two consequences follow:
+The window is **finite** (measured in tokens — roughly ½ to ¾ of a word each, depending on the model's tokenizer). Two consequences follow:
 
 - **It fills up.** Long sessions, big files, and chatty tool output all consume the budget. As it fills, the *effective* room for reasoning shrinks, and far-back details get crowded out — the model can genuinely "forget" what happened early in a long session.
 - **When it's nearly full, the harness compacts.** Claude Code summarizes the older part of the conversation into a compact recap and continues with that plus the recent turns. The work isn't lost, but it's now a *summary* — which is why durable facts belong in `CLAUDE.md` or committed files, not just in chat.

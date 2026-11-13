@@ -3,6 +3,13 @@
 ## Unreleased
 
 - Deep-layer **coding-agent levers playbook** + HARD GATE link from quota-exhaustion tree/skill; tree unchanged as gate.
+- The playbook stop rule names RavenClaude's `VERDICT: STOP` at the block cap.
+
+## [0.3.22] — 2026-11-05
+
+### Changed
+
+- Coding-agent levers playbook: an explicit DONE / NOT DONE checklist under scope. End the turn when every line passes. Do not ask if the work is done.
 
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.

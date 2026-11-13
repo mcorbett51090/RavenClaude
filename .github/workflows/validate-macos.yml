@@ -71,6 +71,9 @@ jobs:
   macos-portability:
     name: Hooks run on a stock macOS toolchain (bash 3.2 / no coreutils / BSD grep)
     runs-on: macos-latest
+    # Moratorium: GitHub-hosted macOS/iOS runners stay off unless the owner
+    # sets vars.ALLOW_MACOS_RUNNERS to 'true' (unset/default is off).
+    if: vars.ALLOW_MACOS_RUNNERS == 'true'
     steps:
       # NOTE: the fail-closed audit runs on BOTH platforms — see the
       # `hook-failclosed` job below. A hook that fails closed on Linux and open
@@ -112,7 +115,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        # Job-level `if:` cannot read `matrix` (GH: "Unrecognized named-value").
+        # Drop macos-latest from the matrix when the variable is off so the
+        # ubuntu leg still always runs and a macOS runner is never scheduled.
+        os: ${{ fromJSON(vars.ALLOW_MACOS_RUNNERS == 'true' && '["macos-latest","ubuntu-latest"]' || '["ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -159,7 +165,7 @@ jobs:
     name: Plan macOS gate-audit shards
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && vars.ALLOW_MACOS_RUNNERS == 'true'
     env:
       SHARDS: "3"
     outputs:
@@ -232,7 +238,7 @@ jobs:
     # precisely because three assertions sat red on main for days with every check
     # reporting SUCCESS. Stretching that window is the wrong direction; a weekly cron
     # would save ~$5/month and take worst-case detection from 24h to 7 days.
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && vars.ALLOW_MACOS_RUNNERS == 'true'
     # WHY THIS JOB EXISTS (measured 2026-08-17, not hypothetical):
     # Gates 213/215 shipped GREEN in CI and RED for every developer inside VS Code.
     # The tests read the ambient host-detection surface (TERM_PROGRAM and ten
@@ -262,7 +268,7 @@ jobs:
       - name: Set up Node.js
         # The render/round-trip *.mjs gates run under node/npx, and audit-gates.sh
         # HARD-FAILS in CI when node/npx is absent (a skip is not a pass).
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "20"
 

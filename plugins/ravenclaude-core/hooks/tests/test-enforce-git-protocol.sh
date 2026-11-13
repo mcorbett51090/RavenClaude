@@ -77,6 +77,8 @@ _assert_stderr_has "branch @warn nudge"            "prefix convention"
 
 _run "$HOOK" "$PROJ" 'git checkout -b fix/thing'
 _assert_silent "checkout -b on-convention @warn"
+_run "$HOOK" "$PROJ" 'git checkout -b release/1.2.0'
+_assert_silent "checkout -b release/ is on-convention @warn"
 
 _run "$HOOK" "$PROJ" 'git push origin main'
 _assert_exit "push-to-main @warn NEVER blocks"     0

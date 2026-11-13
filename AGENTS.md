@@ -199,6 +199,14 @@ A new file's path must match at least one glob in `.repo-layout.json` `allowed_g
 
 ## Testing instructions
 
+> **CI for this repo runs on GitHub Actions; rely on it** (owner rule, 2026-10-26). This repo is
+> **public**, so Actions minutes are free. Don't hold a push to run the suite below locally: push the
+> branch, open the PR, let Actions validate it, then fix what it reports. The steps below are optional
+> fast feedback, worth running when you are iterating on one gate or have no network. Where a step
+> says "required before pushing", read it as "required to be green on the PR". What gates a merge is
+> unchanged: every required check green on the PR's current head. Private repos bill per minute and
+> keep their own push discipline; this rule is for this repo only.
+
 > **⚠️ If steps 3 or 4 fail with a network error, the cause is probably your host's sandbox — not a
 > broken checkout** (added 2026-07-29, audit MH-34). `npx --yes prettier@…` and `pip install ruff`
 > both **download**, and several hosts run the agent inside a sandbox that blocks outbound network by
@@ -336,7 +344,7 @@ CI runs the same checks plus the gate-audit meta-test.
 ## PR conventions
 
 - **When a PR is required vs. not** — changes that ship inside `plugins/` (agents, skills, hooks, manifests, scripts, generated `dashboard.html`) or that touch CI / config / boundary files (`AGENTS.md`, `CLAUDE.md`, `.repo-layout.json`, `.github/`) go through a **PR**. Pure **documentation** under `docs/` — plan, design, proposal, and research write-ups, plus the rolling `docs/session-log.md` — commits **straight to `main`, no PR**. (Rationale: docs can't break a consumer's `/plugin marketplace update`, and the PR overhead slows the planning loop. The boundary is "could this change a consumer's installed plugin?" — if no, it's docs-only.)
-- **Branches** — `feat/<plugin-name>-<slug>`, `fix/<plugin-name>-<slug>`, `chore/<slug>`.
+- **Branches** — `feat/<plugin-name>-<slug>`, `fix/<plugin-name>-<slug>`, `chore/<slug>`, and also `docs/`, `refactor/`, `agent/<role>/`, and `release/`. The git-protocol nudge accepts that set (`plugins/ravenclaude-core/rules/git-workflow.md`).
 - **Versioning** — bump the plugin's semver on every user-visible change.
 - **Migration notes** — if the change could break a consumer's existing project on `/plugin marketplace update`, add a "Migration" section to the plugin's release notes.
 - **Privacy** — the marketplace is private by default. Don't push to a public-readable remote without removing the `email` field from `marketplace.json` and `plugin.json`.
@@ -354,6 +362,14 @@ The filters were also the wrong shape independently: `validate-marketplace.yml`'
 **If PR minutes ever need trimming, gate individual _steps_ with `if:` inside the job — never the workflow trigger.** A skipped *job* reports Success; a skipped *workflow* reports nothing at all. Adding an eighth required check? Check its trigger for `paths:` / `branches:` first, and add its workflow to `REQUIRED_WORKFLOWS` in `scripts/check-inception-coverage.py`.
 
 > **Admin bypass is deliberate.** `RepositoryRole 5` (admin) keeps `bypass_mode: always` on the ruleset — the documented docs-straight-to-main flow and the `[skip ci]` artifact commits both depend on it, and it is the escape hatch if a required check ever does hang. The trade-off is real and accepted: **required checks do not bind an admin merge**, so `gh pr merge --auto` as an admin can still land ahead of a running check. If you want CI to gate your own merge, wait for green before merging — the ruleset will not do it for you.
+
+### Cursor review agents — out of tokens does not block a merge (owner rule, 2026-10-26)
+
+The **Cursor Approval Agent** and **Cursor Security Agent** run on PRs here. They are not required checks. When the Cursor account is out of tokens, each one finishes **neutral** within a second, with the summary *"run failed to start: … On-demand usage is required"*. That run reviewed nothing, so it does not block a merge: merge on the required checks.
+
+- A Cursor run that is still **queued or in progress** has not finished. Wait for it.
+- A Cursor run that **did** review and left findings is a review. Handle the findings.
+- A neutral Cursor result is never a review. If a PR needs one, a run that failed to start does not supply it.
 
 ## House rules
 

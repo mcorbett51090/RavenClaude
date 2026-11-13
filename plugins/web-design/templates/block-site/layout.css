@@ -1,0 +1,664 @@
+/* =============================================================================
+   layout.css: the block-site layout contract, as code.
+
+   What makes a block-composed page look pixel-perfect is not any one block. It
+   is that every block lands on the SAME grid lines, uses the SAME spacing
+   rhythm, and puts media in fixed-ratio frames. This file is that agreement.
+   Every block in the catalog builds on it and does not re-decide it.
+
+   Contract (the probe in scripts/layout-probe.js checks the parts marked ✓):
+     1. Page grid with named lines: full | wide | content. A block's children
+        sit on one of those lines (data-slot), so every block's content edge
+        lines up with every other block's to the pixel. ✓ off-grid
+     2. Gutters are one fluid token, widened for any device safe area.
+     3. Section rhythm comes from three tokens (s, m, l). Two adjacent blocks
+        on the same tone share one gap instead of doubling it, across the
+        header / main / footer boundary too.
+     4. Each slot is a named inline-size container (`slot`), and so is every
+        child of a switcher or sidebar, so a component changes on the width it
+        actually has, not on the viewport's width. Components use unnamed
+        @container queries (the nearest box that holds them); `@container slot`
+        means the block's line.
+     5. Layout comes from intrinsic primitives (stack, cluster, switcher,
+        sidebar, auto-grid, frame), not from per-block breakpoints.
+     6. Card grids choose their columns from the item count, so no card is left
+        alone on a row. ✓ orphan-row
+     7. Media sits in aspect-ratio frames with a focal point, and is never
+        stretched. ✓ distorted / upscaled
+     8. Text never pokes out of its box: long words break, headings balance,
+        and paragraphs keep a 45–75ch measure. ✓ text-overflow / heading-widow /
+        measure
+     9. Controls are at least 44px for primary actions (24px is the WCAG floor),
+        and form text is at least 16px. ✓ target-size / input-zoom
+    10. Dark, forced colours, more contrast, reduced motion, RTL and print are
+        handled here, once, for every block. Inverse and photo bands re-point
+        EVERY colour role, so a card or a form inside one stays legible.
+        ✓ text-contrast / photo-contrast
+
+   Fluid scales (in tokens.css): Utopia's formula, min viewport 320px, max
+   1440px. Body text is 16 → 19px at ratios 1.2 → 1.25. No step's max is more
+   than 1.46× its min, inside the ≤ 2.5× bound that keeps 200% zoom working
+   (WCAG 1.4.4; Barvian, Smashing Magazine, 2023-11-07).
+
+   Two files. tokens.css holds the VALUES a site tunes (type and space scales,
+   grid widths, shape, motion, colour roles); layout.css (this file) holds the
+   CONTRACT and is not edited per site. Load tokens.css first:
+     <link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="layout.css">
+
+   Cascade layers: block CSS goes in @layer blocks. The `contract` layer is last,
+   so a block cannot accidentally move itself off the grid or change the section
+   rhythm. Blocks tune the contract through the custom properties it reads
+   (--ratio, --focal, --min-col, --switch-at, --measure, --section-space…), never by
+   overriding its rules. Unlayered CSS beats every layer, so keep site CSS
+   layered.
+   ============================================================================= */
+
+@layer reset, tokens, primitives, blocks, contract;
+
+/* ─── reset ───────────────────────────────────────────────────────────────── */
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  * {
+    margin: 0;
+  }
+  html {
+    /* 100%, not none: stops landscape text inflation on iOS without blocking
+       a reader's text scaling. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Reserve the scrollbar's space, so a page that grows a scrollbar does not
+       shift sideways by its width (desktop browsers with classic scrollbars). */
+    scrollbar-gutter: stable;
+    /* The default when tokens.css does not say; tokens.css's :root sets the
+       site's own (light dark, dark light, dark), and wins as a later layer. */
+    color-scheme: light dark;
+  }
+  body {
+    min-block-size: 100vh;
+    min-block-size: 100svh; /* vh first, svh second: see adaptive-layout Step 3 */
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-inline-size: 100%;
+  }
+  img,
+  video {
+    block-size: auto;
+  }
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+/* ─── primitives: intrinsic layouts every block composes from ───────────────── */
+@layer primitives {
+  /* A text link takes the accent, the role the tokens gate scores for links on
+     every surface (a band re-points it); nav, footer and button links set their
+     own in @layer blocks. Without this they took the browser's blue. */
+  :where(a:not(.button)) {
+    color: var(--accent);
+    text-underline-offset: 0.15em;
+  }
+  body {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: var(--step-0);
+  }
+  /* Default heading sizes; a block may choose another step for its own headings. */
+  :where(h1, h2, h3, h4) {
+    font-family: var(--font-display);
+    line-height: 1.1;
+  }
+  :where(h1) {
+    font-size: var(--step-5);
+  }
+  :where(h2) {
+    font-size: var(--step-4);
+  }
+  :where(h3) {
+    font-size: var(--step-2);
+  }
+  /* Vertical flow with one gap. */
+  .stack {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--stack-gap, var(--space-s));
+  }
+  /* A wrapping row of things that size to their content (buttons, tags, meta). */
+  .cluster {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--cluster-gap, var(--space-xs));
+  }
+  /* Side by side until the CONTAINER is narrower than --switch-at, then
+     stacked, with no in-between state where one column is squeezed. */
+  .switcher {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--switcher-gap, var(--space-l));
+  }
+  .switcher > * {
+    flex-grow: 1;
+    flex-basis: calc((var(--switch-at, 40rem) - 100%) * 999);
+  }
+  /* Each child is a container, so a component inside half a switcher (a card
+     grid, say) answers to the half it has, not to the whole slot. */
+  :is(.switcher, .with-sidebar) > * {
+    container-type: inline-size;
+  }
+  /* A fixed-width side and a fluid main that wraps under it when main would
+     drop below --main-min. */
+  .with-sidebar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sidebar-gap, var(--space-l));
+  }
+  .with-sidebar > :first-child {
+    flex-basis: var(--side-width, 18rem);
+    flex-grow: 1;
+  }
+  .with-sidebar > :last-child {
+    flex-basis: 0;
+    flex-grow: 999;
+    min-inline-size: var(--main-min, 55%);
+  }
+  /* As many equal columns as fit at --min-col; never wider than its container.
+     For open-ended lists (a gallery of 7–12 photos) where a short last row is
+     expected: mark it data-ragged, and the probe's orphan-row check accepts it.
+     Countable items (1–6 cards) use .cards, which never strands one. */
+  .auto-grid {
+    display: grid;
+    gap: var(--grid-gap, var(--space-m));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--min-col, 16rem)), 1fr));
+  }
+  /* A fixed-ratio media box. */
+  .frame {
+    aspect-ratio: var(--ratio, 4 / 3);
+    overflow: hidden;
+    border-radius: var(--frame-radius, 0);
+  }
+  /* In a row beside taller copy, a stretched frame loses its ratio (stretch
+     overrides aspect-ratio) and cover-crops the photo to a sliver, enlarged.
+     It sits at the top of the row instead. */
+  :is(.switcher, .with-sidebar, .cluster) > .frame {
+    align-self: start;
+  }
+  /* Readable prose. */
+  .prose {
+    max-inline-size: var(--measure);
+  }
+  /* Flow spacing, unless the prose is also a .stack: the stack's gap spaces it
+     already, and both together doubled every gap (63px above a story heading). */
+  .prose:not(.stack) > * + * {
+    margin-block-start: var(--flow-space, 1em);
+  }
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2xs);
+    min-block-size: var(--target-min);
+    min-inline-size: var(--target-min);
+    padding-inline: var(--space-m);
+    border-radius: var(--radius-s);
+    border: var(--rule-width) solid transparent;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 600;
+    text-decoration: none;
+    line-height: 1.2;
+  }
+  .button[data-variant="ghost"] {
+    background: transparent;
+    color: inherit;
+    border-color: currentColor;
+  }
+  /* The first focusable thing on every page: hidden above the viewport until it
+     is focused (never pushed to left: -9999px, which reads as overflow). */
+  .skip-link {
+    position: absolute;
+    inset-block-start: var(--space-xs);
+    inset-inline-start: var(--space-xs);
+    z-index: 10;
+    transform: translateY(calc(-100% - var(--space-xs) - 4px));
+  }
+  .skip-link:focus-visible {
+    transform: none;
+  }
+  .visually-hidden {
+    position: absolute !important;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* ─── contract: last layer, so blocks cannot override it by accident ─────────── */
+@layer contract {
+  /* A theme chosen on the page ([data-theme]) sets the native controls too:
+     without this a date picker's icon follows the OS, and on a page forced
+     light under a dark OS it is white on a white field. In the last layer, so
+     tokens.css's color-scheme on :root cannot undo it. */
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+  /* 1. The page grid. Every block root is one, with the same named lines.
+     The two `wide` side tracks grow before the outer margins do, so `wide`
+     content widens first as the viewport grows. */
+  [data-block] {
+    --_gutter: max(var(--gutter), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+    --_wide-side: calc((var(--wide-max) - var(--content-max)) / 2);
+    display: grid;
+    grid-template-columns:
+      [full-start] minmax(var(--_gutter), 1fr)
+      [wide-start] minmax(0, var(--_wide-side))
+      [content-start] min(100% - 2 * var(--_gutter), var(--content-max))
+      [content-end] minmax(0, var(--_wide-side))
+      [wide-end] minmax(var(--_gutter), 1fr) [full-end];
+    row-gap: var(--slot-gap, var(--space-l));
+    /* 3. Rhythm. */
+    padding-block: var(--section-space, var(--section-m));
+  }
+  [data-block] > * {
+    grid-column: content;
+    min-inline-size: 0; /* a grid item's min-content must never widen the page */
+  }
+  /* 2. viewport-fit=cover (the renderer's viewport) hands the page the whole
+     screen. The side insets widen the gutter above; the header and footer pad
+     themselves past the notch and the home indicator, so their bands still run
+     under them. */
+  body > header[data-block] {
+    padding-block-start: calc(
+      var(--section-space, var(--section-m)) + env(safe-area-inset-top, 0px)
+    );
+  }
+  body > footer[data-block] {
+    padding-block-end: calc(
+      var(--section-space, var(--section-m)) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+  [data-block] > [data-slot="wide"] {
+    grid-column: wide;
+  }
+  [data-block] > [data-slot="full"] {
+    grid-column: full;
+  }
+  /* 4. Each slot is the container its block queries. A container query never
+     styles the container itself, so a component that changes with its width
+     (.cards, a switcher of cards…) goes INSIDE a slot, never AS the slot:
+       <section data-block="features"><div><div class="cards">…</div></div></section>
+     The probe's grid-span check catches the symptom when this is missed. */
+  [data-block] > * {
+    container: slot / inline-size;
+  }
+  [data-block][data-space="s"] {
+    --section-space: var(--section-s);
+  }
+  [data-block][data-space="l"] {
+    --section-space: var(--section-l);
+  }
+  [data-block][data-space="none"] {
+    --section-space: 0;
+  }
+  /* A short screen (a phone on its side, 375–440px tall) cannot spend a fifth
+     of its height above and below every heading: the rhythm steps down to s. */
+  @media (max-height: 32rem) {
+    [data-block]:not([data-space="none"]) {
+      --section-space: var(--section-s);
+    }
+  }
+  /* Two neighbours on the same tone share one gap: siblings, siblings with one
+     non-rendered element between them (a script), and across the main / footer
+     boundary. Not under the header: it is compact chrome, and the first block
+     keeps its own space above its heading. */
+  [data-tone="canvas"] + [data-tone="canvas"],
+  [data-tone="surface"] + [data-tone="surface"],
+  [data-tone="canvas"] + :is(script, template, style, link) + [data-tone="canvas"],
+  [data-tone="surface"] + :is(script, template, style, link) + [data-tone="surface"],
+  main:has(> [data-tone="canvas"]:last-child) + [data-tone="canvas"],
+  main:has(> [data-tone="surface"]:last-child) + [data-tone="surface"] {
+    padding-block-start: 0;
+  }
+  /* Tones are surfaces chosen at page level, never colours chosen by a block. */
+  [data-tone="canvas"] {
+    background: var(--canvas);
+    color: var(--ink);
+  }
+  [data-tone="surface"] {
+    background: var(--surface);
+    color: var(--ink);
+  }
+  /* A dark band re-points EVERY role, not only the text colour: a card, a form
+     field or a muted line inside it reads the same roles as on the page and
+     stays legible (each pair is in block_site_check.py's ROLE_PAIRS). */
+  :is([data-tone="inverse"], [data-tone="media"]) {
+    color: var(--on-inverse);
+    --canvas: var(--inverse);
+    --surface: var(--inverse-surface);
+    --ink: var(--on-inverse);
+    --ink-muted: var(--on-inverse-muted);
+    --rule: var(--inverse-rule);
+    --field-border: var(--on-inverse-muted);
+    --accent: var(--on-inverse);
+    --on-accent: var(--inverse);
+    --focus: var(--on-inverse);
+  }
+  [data-tone="inverse"] {
+    background: var(--inverse);
+  }
+  [data-tone="media"] {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  /* 6. Count-aware card grid: columns come from the number of items, which a
+     closed props schema bounds (maxItems 6), so every case is listed. Below
+     40rem of slot width: one column. 40–64rem: two, and an odd last card
+     takes the whole row. 64rem and up: 1→1, 2→2, 3→3, 4→2×2, 5→3+2, 6→3+3,
+     on a six-track grid so a row of two splits it evenly. */
+  .cards {
+    display: grid;
+    gap: var(--grid-gap, var(--space-m));
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @container (min-width: 40rem) {
+    .cards {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .cards > :last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+    }
+    /* A card with a photo never stretches: its photo would be drawn at the whole
+       slot's width (an 889px portrait among 403px ones). It keeps a column's
+       width, centred, so a photo card is never wider than half the slot. */
+    .cards > :last-child:nth-child(odd):has(.frame) {
+      justify-self: center;
+      inline-size: calc((100% - var(--grid-gap, var(--space-m))) / 2);
+    }
+  }
+  @container (min-width: 64rem) {
+    .cards {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .cards > *,
+    .cards > :last-child:nth-child(odd) {
+      grid-column: span 2;
+    }
+    .cards:has(> :last-child:nth-child(1)) > * {
+      grid-column: 2 / span 4;
+    }
+    /* Six tracks: every card is a third or a half already. A lone photo card
+       is a centred third, not two-thirds. */
+    .cards > :last-child:nth-child(odd):has(.frame) {
+      justify-self: stretch;
+      inline-size: auto;
+    }
+    .cards:has(> :last-child:nth-child(1)) > :has(.frame) {
+      grid-column: 3 / span 2;
+    }
+    .cards:has(> :last-child:nth-child(2)) > *,
+    .cards:has(> :last-child:nth-child(4)) > * {
+      grid-column: span 3;
+    }
+    .cards:has(> :last-child:nth-child(5)) > :nth-child(n + 4) {
+      grid-column: span 3;
+    }
+  }
+
+  /* 7. Media frames: fill the frame and keep the focal point in view. */
+  .frame > :is(img, video, picture) {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    object-position: var(--focal, 50% 50%);
+  }
+  .frame > picture > img,
+  .frame > :is(a, button) :is(img, video, picture, picture > img) {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    object-position: var(--focal, 50% 50%);
+  }
+  /* A linked photo: the link fills the frame, and the focus ring goes on the
+     frame, because the frame clips anything drawn outside its own box. */
+  .frame > :is(a, button) {
+    display: block;
+    block-size: 100%;
+  }
+  .frame:has(> :is(a, button):focus-visible) {
+    outline: var(--focus-width) solid var(--focus);
+    outline-offset: 2px;
+  }
+  .frame > :is(a, button):focus-visible {
+    outline: none;
+  }
+  /* A photo band: the image fills the block, and the scrim is anchored to the
+     copy rather than the photo (knowledge/text-over-photo-contrast-2026.md §2). */
+  /* `grid-column: auto` matters: an absolutely positioned grid child uses its
+     grid placement as its containing block, so the `content` placement every
+     other child gets would box the photo inside the content line. Auto lines
+     give it the block's padding box: full bleed. */
+  [data-tone="media"] > [data-slot="backdrop"] {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    grid-column: auto;
+    grid-row: auto;
+    --focal: var(--focal-wide, 50% 50%);
+  }
+  /* A portrait crop (art direction) has its own focal point. */
+  @media (max-width: 30em) and (orientation: portrait) {
+    [data-tone="media"] > [data-slot="backdrop"] {
+      --focal: var(--focal-tall, 50% 50%);
+    }
+  }
+  /* picture > img is its own selector: inside :is() after `>` it would need
+     the img's parent to be the backdrop AND a picture, so it never matched, and a
+     <picture> hero kept its photo's own aspect ratio instead of filling the band
+     (the probe's image-gap check now catches that). */
+  [data-tone="media"] > [data-slot="backdrop"] > :is(img, video, picture),
+  [data-tone="media"] > [data-slot="backdrop"] > picture > img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    object-position: var(--focal, 50% 50%);
+  }
+  [data-tone="media"] .on-photo {
+    position: relative;
+  }
+  /* The band runs from the foot of the block (through its bottom padding) to
+     --space-3xl above the copy, and the fade happens entirely in that top
+     strip: every line of copy sits on at least --scrim-weak, however tall the
+     copy wraps on a phone. A fade sized in percent of the band stops below the
+     eyebrow on phones; that is the failure the photo-contrast probe found. */
+  [data-tone="media"] .on-photo::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset-block: calc(-1 * var(--space-3xl)) calc(-1 * var(--section-space, var(--section-m)));
+    inset-inline: -50vw;
+    background: linear-gradient(
+      to top,
+      color-mix(in srgb, var(--scrim-color) var(--scrim-strong), transparent),
+      color-mix(in srgb, var(--scrim-color) var(--scrim-weak), transparent)
+        calc(100% - var(--space-3xl)),
+      transparent
+    );
+  }
+
+  /* 8. Text safety. `anywhere` (not `break-word`) also lowers min-content, so a
+     long word cannot widen a grid or flex track. */
+  :where(
+    h1,
+    h2,
+    h3,
+    h4,
+    p,
+    li,
+    dd,
+    dt,
+    address,
+    figcaption,
+    blockquote,
+    td,
+    th,
+    label,
+    summary,
+    a,
+    .button
+  ) {
+    overflow-wrap: anywhere;
+    hyphens: auto; /* needs <html lang>; a language without a hyphenation dictionary just wraps */
+  }
+  :where(h1, h2, h3, h4, blockquote, figcaption) {
+    text-wrap: balance;
+  }
+  :where(p, li, dd) {
+    text-wrap: pretty; /* no-op where unsupported (Firefox): plain wrap */
+  }
+  /* Running text keeps a readable measure wherever it lands: in a slot, a wide
+     card or a single centred card. An item of a list used for layout
+     (role="list": price rows, events, cards) is a row, not running text, so it
+     takes its slot's width; its own paragraphs still keep the measure. */
+  :where(p, li:not([role="list"] > li), dd, blockquote, figcaption) {
+    max-inline-size: var(--measure);
+  }
+
+  /* 9. Inputs and focus. */
+  /* 16px stops iOS zooming the page on focus (adaptive-layout Step 4). */
+  :where(input, select, textarea) {
+    font-size: max(16px, 1rem);
+  }
+  :where(
+    input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="hidden"]),
+    select
+  ) {
+    min-block-size: var(--target-min);
+  }
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: var(--focus-width) solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* 10. Modes. */
+  @media (forced-colors: active) {
+    /* Forced colours drop backgrounds and shadows, so an outline carries the
+       shape. An OUTLINE, not a border: a 1px border shrinks the block's content
+       box and moves every slot inside it 1px off the grid line (the device
+       matrix's off-grid check caught exactly that). */
+    .card,
+    .frame,
+    [data-tone="inverse"],
+    [data-tone="media"] {
+      outline: var(--rule-width) solid CanvasText;
+      outline-offset: calc(-1 * var(--rule-width));
+    }
+    .button {
+      border-color: ButtonText;
+    }
+    /* Gradients are dropped in forced colours, so the band becomes a solid
+       Canvas backplate: the copy stays readable over any photo. */
+    [data-tone="media"] .on-photo::before {
+      background: Canvas;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  @media print {
+    /* A closed <details> prints its answer: paper cannot be clicked open. Its
+       own rule, so a browser without ::details-content drops only this one
+       (Chromium 153 prints it, measured in a PDF). */
+    details::details-content {
+      content-visibility: visible;
+    }
+    /* Every tone prints as black on white: the roles are re-pointed, so a muted
+       line on a dark band does not print light grey on white paper. */
+    :root,
+    [data-tone] {
+      --canvas: white;
+      --surface: white;
+      --ink: black;
+      --ink-muted: dimgray;
+      --rule: darkgray;
+      --field-border: dimgray;
+      --accent: black;
+      --on-accent: black;
+      --on-inverse: black;
+      --on-inverse-muted: dimgray;
+      --inverse-surface: white;
+    }
+    [data-block],
+    body > :is(header, footer)[data-block] {
+      padding-block: 1.5rem;
+      break-inside: avoid-page;
+      background: none !important;
+      color: black !important;
+    }
+    [data-tone="media"] > [data-slot="backdrop"],
+    [data-tone="media"] .on-photo::before,
+    nav,
+    .button[data-variant="ghost"] {
+      display: none !important;
+    }
+    /* Browsers drop background colours when printing, so a filled button would
+       print its white label on white paper: print it as a black outline. A photo
+       band loses its photo, so it loses its screen-height minimum too. */
+    .button {
+      background: none !important;
+      color: black !important;
+      border-color: black !important;
+    }
+    [data-tone="media"] {
+      min-block-size: auto !important;
+    }
+    /* Paper drops backgrounds (unless a reader asks for them), so nothing may
+       rely on one: every text prints black, on nothing. A tag on --accent with
+       --on-accent text printed white on white. */
+    *,
+    *::before,
+    *::after {
+      background-color: transparent !important;
+      background-image: none !important;
+      color: black !important;
+      text-shadow: none !important;
+      box-shadow: none !important;
+    }
+    /* A text link prints its address; a button does not (the address would
+       squeeze its label inside the outline, "Get di-rec-tion s"). */
+    a[href^="http"]:not(.button)::after {
+      content: " (" attr(href) ")";
+      font-size: 0.85em;
+      overflow-wrap: anywhere;
+    }
+  }
+}

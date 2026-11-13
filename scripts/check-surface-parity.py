@@ -88,7 +88,9 @@ GROUP_TO_DESTINATION = {
     "control": "control",
     "activity": "activity",
     "guardrails": "guardrails",
+    # Pre-2026-11-12 label kept so older fixtures / mid-regen trees still parse.
     "learn & help": "catalog",
+    "catalog": "catalog",
 }
 
 
@@ -221,6 +223,14 @@ def audit(root: Path) -> list[Mismatch]:
 
     standalone = _read(root / STANDALONE)
     portal = _read(root / PORTAL)
+    # Phase 3b: Pages index.html is a thin redirect stub — no portal router to
+    # compare against the dashboard chrome. Dashboard is the sole product surface.
+    if "const DASH_OWNER" not in portal and "plugins/ravenclaude-core/dashboard.html" in portal:
+        print(
+            "OK: Phase 3b stub index — route-placement surface parity N/A "
+            "(dashboard-only product)"
+        )
+        return []
     expected = derive_routes_and_homes(standalone)
     if not expected:
         raise SystemExit(

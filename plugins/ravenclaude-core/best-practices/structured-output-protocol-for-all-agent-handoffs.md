@@ -74,7 +74,7 @@ Agents must end every substantive deliverable with the Structured Output Protoco
 
 ## Provenance
 
-Distilled from `plugins/ravenclaude-core/CLAUDE.md` §"Structured Output Protocol (Active — required for handoffs)" and the per-agent output contract sections. All 14 specialist agents in `agents/` declare this format.
+Distilled from `plugins/ravenclaude-core/CLAUDE.md` §"Structured Output Protocol (Active — required for handoffs)" and the per-agent output contract sections. Every specialist agent in `agents/` declares this format. An older note that said "14" is the v0.6 roster, not the current directory.
 
 ---
 

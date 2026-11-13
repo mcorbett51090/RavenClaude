@@ -70,7 +70,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "The fundamental agent-loop shape changes, or Claude Code/the Agent SDK restructures how a turn is driven.",
       "sources": [
         {
@@ -80,6 +80,14 @@
         {
           "label": "\"The Anatomy of an Agent Harness\" (Akshay Pachaar)",
           "url": "https://x.com/_avichawla/status/2062082282878627946"
+        },
+        {
+          "label": "Agent SDK — How the agent loop works",
+          "url": "https://code.claude.com/docs/en/agent-sdk/agent-loop"
+        },
+        {
+          "label": "LangChain — The anatomy of an agent harness (source of the quoted saying)",
+          "url": "https://langchain.com/blog/the-anatomy-of-an-agent-harness"
         }
       ],
       "body_md": "A language model on its own is **stateless**: it forgets what it did three steps ago, a failed tool call would otherwise vanish silently, and its context window fills with noise. An **agent** is a model plus the software that fixes all that — the **harness**. As the saying goes, *\"if you're not the model, you're the harness.\"*\n\nThe harness drives one **turn** as a loop, and every agentic tool — Claude Code, the Agent SDK, your own script — runs some version of it:\n\n1. **Assemble the prompt** — system prompt + tool schemas + project memory (`CLAUDE.md` / `AGENTS.md`) + the conversation so far + your message.\n2. **Call the model.**\n3. **Classify the output** — did it ask to use a tool, or just answer? Plain text with no tool call ends the turn.\n4. **Execute the requested tools** — and this is where permission gates, hooks, or a review panel can deny, edit, or wave the call through.\n5. **Package the results** as the next message — crucially, an *error* comes back as a result the model can read and self-correct from, not a crash.\n6. **Update context** (compacting when it fills) and loop back to step 1.\n\nThe same loop scales up: a lead agent can **dispatch a subagent** for a slice of work and fold its short summary back in at step 5. A guiding principle the better harnesses inherit: **treat memory as a hint and verify against real state before acting** — which is why a careful agent doesn't stop at \"looks done,\" it stops when a verification step says it's done.\n\nRavenClaude is one such harness layer: it rides on Claude Code's loop and adds orchestration, a review tribunal at step 4, and verification gates at the end — but the loop itself is how *any* agent works by default.",
@@ -139,19 +147,19 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Anthropic changes the tool-use request/result message shape, the tool_choice options, or the parallel-tool-call behavior.",
       "sources": [
         {
           "label": "Tool use (function calling) — Claude API",
-          "url": "https://docs.claude.com/en/docs/build-with-claude/tool-use"
+          "url": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview"
         },
         {
           "label": "Agent SDK — tools & permissions",
           "url": "https://code.claude.com/docs/en/agent-sdk"
         }
       ],
-      "body_md": "A language model only produces **text**. It can't read a file, run a command, or call an API by itself. **Tool use** (also called *function calling*) is the bridge: you describe the available tools — each with a name, a description, and a JSON schema for its inputs — and the model, instead of answering in prose, emits a structured **tool-use request** naming one tool and the arguments to call it with.\n\nThe model never runs anything. The **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.\n\nThree details that bite:\n\n- **The model picks the tool, not the harness.** You can constrain it (`tool_choice` can force a specific tool, force *any* tool, or leave it `auto`), but in normal operation the model chooses. A vague tool description is the most common reason it picks the wrong one or fills arguments badly.\n- **Errors are data, not crashes.** A failed tool call should return its error *as a tool-result* so the model can read it and self-correct. Throwing away the loop on the first failure is the classic broken-agent bug.\n- **Results re-enter the context window.** Tool output isn't free — a command that dumps 10k lines lands all of it back in the prompt. This is why focused tools that return *conclusions* beat raw firehoses.\n\nA permission layer can sit between the request and the execution: the model may *ask* for a tool, but the harness (or a hook, or a tribunal) can still deny, edit, or gate the call before it runs.",
+      "body_md": "A language model only produces **text**. It can't read a file, run a command, or call an API by itself. **Tool use** (also called *function calling*) is the bridge: you describe the available tools — each with a name, a description, and a JSON schema for its inputs — and the model, instead of answering in prose, emits a structured **tool-use request** naming one tool and the arguments to call it with.\n\nThe model never runs anything. For client tools — the usual case — the **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. (Server tools such as web search run on Anthropic's infrastructure instead, with no handler code in your harness.) The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.\n\nThree details that bite:\n\n- **The model picks the tool, not the harness.** You can constrain it (`tool_choice` can force a specific tool, force *any* tool, or leave it `auto`), but in normal operation the model chooses. A vague tool description is the most common reason it picks the wrong one or fills arguments badly.\n- **Errors are data, not crashes.** A failed tool call should return its error *as a tool-result* so the model can read it and self-correct. Throwing away the loop on the first failure is the classic broken-agent bug.\n- **Results re-enter the context window.** Tool output isn't free — a command that dumps 10k lines lands all of it back in the prompt. This is why focused tools that return *conclusions* beat raw firehoses.\n\nA permission layer can sit between the request and the execution: the model may *ask* for a tool, but the harness (or a hook, or a tribunal) can still deny, edit, or gate the call before it runs.",
       "diagram": "flowchart TD\n  G[Your goal] --> M[Model reads prompt + tool schemas]\n  M --> D{Answer or act?}\n  D -- answer --> OUT[Plain-text reply · turn ends]\n  D -- act --> REQ[Tool-use request<br/>name + JSON arguments]\n  REQ --> GATE{Permission / hook}\n  GATE -- deny --> BACK[Denied result fed back]\n  GATE -- allow --> RUN[Harness executes the tool]\n  RUN --> RES[Tool-result message<br/>output or error]\n  RES --> M\n  BACK --> M\n  class M,REQ,RUN,RES fact\n  class GATE built",
       "diagram_mini": "flowchart LR\n  M[model] --> R[tool request] --> X[harness runs it] --> O[result] --> M\n  class M,R,X,O fact",
       "steps": [],
@@ -173,19 +181,19 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Frontier context-window sizes change materially, or Claude Code changes its compaction / auto-compact behavior.",
       "sources": [
         {
           "label": "Context windows — Claude API",
-          "url": "https://docs.claude.com/en/docs/build-with-claude/context-windows"
+          "url": "https://platform.claude.com/docs/en/build-with-claude/context-windows"
         },
         {
           "label": "Manage context — Claude Code",
           "url": "https://code.claude.com/docs/en/costs"
         }
       ],
-      "body_md": "A model has **no memory between turns.** Everything it \"knows\" while answering is whatever text sits in its **context window** right now: the system prompt, the tool schemas, the project instructions (`CLAUDE.md` / `AGENTS.md`), the conversation so far, and the contents of any file or tool result that's been pulled in. Nothing outside that window exists to the model — if it isn't in context, the model can't see it, no matter how relevant.\n\nThe window is **finite** (measured in tokens — roughly ¾ of a word each). Two consequences follow:\n\n- **It fills up.** Long sessions, big files, and chatty tool output all consume the budget. As it fills, the *effective* room for reasoning shrinks, and far-back details get crowded out — the model can genuinely \"forget\" what happened early in a long session.\n- **When it's nearly full, the harness compacts.** Claude Code summarizes the older part of the conversation into a compact recap and continues with that plus the recent turns. The work isn't lost, but it's now a *summary* — which is why durable facts belong in `CLAUDE.md` or committed files, not just in chat.\n\nThe practical model: treat context like a **desk, not a filing cabinet.** Things on the desk are usable now; everything else has to be fetched back on (a tool call, a file read) before the model can use it — and fetching it costs space. Good agent design keeps the desk clear: focused tool results, subagents that return short summaries instead of raw dumps, and important state written somewhere persistent.\n\nThis is also why a **SessionStart** context injection (the orientation banner) is deliberately kept small — it rides in *every* session's window, so it's a recurring tax on the budget.",
+      "body_md": "A model has **no memory between turns.** Everything it \"knows\" while answering is whatever text sits in its **context window** right now: the system prompt, the tool schemas, the project instructions (`CLAUDE.md` / `AGENTS.md`), the conversation so far, and the contents of any file or tool result that's been pulled in. Nothing outside that window exists to the model — if it isn't in context, the model can't see it, no matter how relevant.\n\nThe window is **finite** (measured in tokens — roughly ½ to ¾ of a word each, depending on the model's tokenizer). Two consequences follow:\n\n- **It fills up.** Long sessions, big files, and chatty tool output all consume the budget. As it fills, the *effective* room for reasoning shrinks, and far-back details get crowded out — the model can genuinely \"forget\" what happened early in a long session.\n- **When it's nearly full, the harness compacts.** Claude Code summarizes the older part of the conversation into a compact recap and continues with that plus the recent turns. The work isn't lost, but it's now a *summary* — which is why durable facts belong in `CLAUDE.md` or committed files, not just in chat.\n\nThe practical model: treat context like a **desk, not a filing cabinet.** Things on the desk are usable now; everything else has to be fetched back on (a tool call, a file read) before the model can use it — and fetching it costs space. Good agent design keeps the desk clear: focused tool results, subagents that return short summaries instead of raw dumps, and important state written somewhere persistent.\n\nThis is also why a **SessionStart** context injection (the orientation banner) is deliberately kept small — it rides in *every* session's window, so it's a recurring tax on the budget.",
       "diagram": "flowchart TD\n  subgraph W[Context window · finite token budget]\n    S[System prompt + tool schemas]\n    P[Project memory · CLAUDE.md / AGENTS.md]\n    H[Conversation history]\n    F[Pulled-in files + tool results]\n  end\n  W --> M[Model reasons over ONLY what's in the window]\n  H --> FULL{Near the limit?}\n  FULL -- yes --> C[Harness compacts older turns to a summary]\n  C --> W\n  FULL -- no --> M\n  class S,P,H,F,M fact\n  class C built",
       "diagram_mini": "flowchart LR\n  C[context window] --> L{full?}\n  L -- yes --> S[compact to summary]\n  L -- no --> R[model reasons]\n  class C,R fact",
       "steps": [],
@@ -207,7 +215,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Claude Code changes the subagent dispatch model, the Task/Agent tool shape, or how subagent results return to the parent.",
       "sources": [
         {
@@ -240,7 +248,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "The MCP spec changes its primitives (tools/resources/prompts), transport set, or Claude Code changes how MCP servers are configured.",
       "sources": [
         {
@@ -252,7 +260,7 @@
           "url": "https://code.claude.com/docs/en/mcp"
         }
       ],
-      "body_md": "Tool use lets a model call a tool — but who *supplies* the tools? If every integration (GitHub, a database, a ticketing system) had to be hand-wired into every agent, you'd rebuild the same connectors over and over. The **Model Context Protocol (MCP)** is the open standard that fixes this. It's often described as *\"a USB-C port for AI\"*: a single, uniform way for an agent to plug into outside tools and data.\n\nThe shape is **client ↔ server.** Your agent host (Claude Code, an IDE, a desktop app) is an **MCP client**. An **MCP server** is a small program that exposes capabilities over the protocol. Write the server once, and *any* MCP-aware client can use it — the glue is the protocol, not bespoke per-app code. Servers offer three kinds of primitive:\n\n- **Tools** — actions the model can call (the GitHub tools this very session uses are an MCP server).\n- **Resources** — data the agent can read (files, records, query results).\n- **Prompts** — reusable prompt templates the server provides.\n\nTwo things worth knowing:\n\n- **Servers run as separate processes** and connect over a transport (local stdio, or remote HTTP/SSE). A server may be on your machine or across the network — the client talks to both the same way.\n- **MCP tools are still just tool use.** Once connected, an MCP tool appears to the model exactly like any built-in tool: same request/result loop, same permission gating. MCP standardizes *where tools come from*, not *how the model calls them*. (In Claude Code a server can show as \"still connecting\" at startup — its tools are name-only until the schema loads, which is a connection state, not an absent capability.)",
+      "body_md": "Tool use lets a model call a tool — but who *supplies* the tools? If every integration (GitHub, a database, a ticketing system) had to be hand-wired into every agent, you'd rebuild the same connectors over and over. The **Model Context Protocol (MCP)** is the open standard that fixes this. It's often described as *\"a USB-C port for AI\"*: a single, uniform way for an agent to plug into outside tools and data.\n\nThe shape is **client ↔ server.** Your agent host (Claude Code, an IDE, a desktop app) is an **MCP client**. An **MCP server** is a small program that exposes capabilities over the protocol. Write the server once, and *any* MCP-aware client can use it — the glue is the protocol, not bespoke per-app code. Servers offer three kinds of primitive:\n\n- **Tools** — actions the model can call (the GitHub tools this very session uses are an MCP server).\n- **Resources** — data the agent can read (files, records, query results).\n- **Prompts** — reusable prompt templates the server provides.\n\nTwo things worth knowing:\n\n- **Servers run as separate processes** and connect over a transport (local stdio, or remote Streamable HTTP — the older SSE transport is deprecated). A server may be on your machine or across the network — the client talks to both the same way.\n- **MCP tools are still just tool use.** Once connected, an MCP tool appears to the model exactly like any built-in tool: same request/result loop, same permission gating. MCP standardizes *where tools come from*, not *how the model calls them*. (In Claude Code a server can show as \"still connecting\" at startup — its tools are name-only until the schema loads, which is a connection state, not an absent capability.)",
       "diagram": "flowchart TD\n  H[Agent host · MCP client<br/>Claude Code · IDE · app] -->|protocol| S1[MCP server: GitHub]\n  H -->|protocol| S2[MCP server: database]\n  H -->|protocol| S3[MCP server: your own]\n  S1 --> P[Tools · Resources · Prompts]\n  S2 --> P\n  S3 --> P\n  P --> M[Model calls them like any tool<br/>same request/result loop]\n  class H,M fact\n  class S1,S2,S3 built",
       "diagram_mini": "flowchart LR\n  C[agent · client] -->|MCP| S[servers] --> T[tools · data]\n  class C,T fact",
       "steps": [],
@@ -273,19 +281,19 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "The Claude model line-up (Opus / Sonnet / Haiku tiers) or the default-model guidance for agents changes.",
       "sources": [
         {
           "label": "Models overview — Claude API",
-          "url": "https://docs.claude.com/en/docs/about-claude/models"
+          "url": "https://platform.claude.com/docs/en/models/overview"
         },
         {
           "label": "Choosing a model — Claude Code",
           "url": "https://code.claude.com/docs/en/model-config"
         }
       ],
-      "body_md": "An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the three tiers exist precisely so you can match the model to the work:\n\n- **Frontier (e.g. Opus)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and most expensive per token. Reach for it when the task genuinely needs it.\n- **Balanced (e.g. Sonnet)** — the everyday workhorse: strong reasoning at much lower cost and latency. The sensible default for most agent work.\n- **Fast (e.g. Haiku)** — quick, cheap, great for classification, routing, summarizing, and high-volume routine steps where frontier-grade reasoning is overkill.\n\nTwo ideas make this practical:\n\n- **Mix models within one task.** A capable orchestrator can plan and supervise while dispatching the routine legwork to a faster, cheaper model — *strong model supervises, cheap models execute.* Subagents are the natural place to drop a tier: the lead reasons in Sonnet/Opus, the workers grind in Haiku.\n- **Diversity is a safety property, not just a cost one.** When multiple agents *review* the same thing, running them all on the **same** model means one model's blind spot can pass the whole panel — the \"anti-correlated hallucination\" failure. Deliberately running ≥2 *different* backbones on a review panel catches what a monoculture would miss. (RavenClaude's command-review tribunal enforces exactly this.)\n\nThe wrong instinct is \"always use the biggest model.\" The right instinct is \"use the smallest model that reliably clears this specific bar,\" and let a stronger model check the cheaper ones' work.",
+      "body_md": "An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the model tiers exist precisely so you can match the model to the work (this page teaches the three everyday tiers; Anthropic's line-up now also has a Fable tier above Opus for the most demanding long-horizon work):\n\n- **Frontier (e.g. Opus; Fable for the most demanding long-horizon work)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and pricier per token than the tiers below. Reach for it when the task genuinely needs it.\n- **Balanced (e.g. Sonnet)** — the everyday workhorse: strong reasoning at much lower cost and latency. The sensible default for most agent work.\n- **Fast (e.g. Haiku)** — quick, cheap, great for classification, routing, summarizing, and high-volume routine steps where frontier-grade reasoning is overkill.\n\nTwo ideas make this practical:\n\n- **Mix models within one task.** A capable orchestrator can plan and supervise while dispatching the routine legwork to a faster, cheaper model — *strong model supervises, cheap models execute.* Subagents are the natural place to drop a tier: the lead reasons in Sonnet/Opus, the workers grind in Haiku.\n- **Diversity is a safety property, not just a cost one.** When multiple agents *review* the same thing, running them all on the **same** model means one model's blind spot can pass the whole panel — the \"anti-correlated hallucination\" failure. Deliberately running ≥2 *different* backbones on a review panel catches what a monoculture would miss. (RavenClaude's command-review tribunal enforces exactly this.)\n\nThe wrong instinct is \"always use the biggest model.\" The right instinct is \"use the smallest model that reliably clears this specific bar,\" and let a stronger model check the cheaper ones' work.",
       "diagram": "flowchart TD\n  T[Task slice] --> Q{How hard?}\n  Q -- routine: classify / route / summarize --> FAST[Fast model · Haiku-class]\n  Q -- everyday reasoning + edits --> BAL[Balanced · Sonnet-class]\n  Q -- hardest reasoning + planning --> FRONT[Frontier · Opus-class]\n  FRONT --> SUP[Strong model supervises<br/>cheaper models execute]\n  REV[Review panel] --> DIV[Run ≥2 DIFFERENT models<br/>· avoid a blind-spot monoculture]\n  class FAST,BAL,FRONT,Q fact\n  class SUP,DIV built",
       "diagram_mini": "flowchart LR\n  J{job} -- routine --> F[fast]\n  J -- everyday --> B[balanced]\n  J -- hardest --> O[frontier]\n  class J,F,B,O fact",
       "steps": [],
@@ -306,7 +314,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-10-20",
       "refresh_when": "Git or GitHub change a load-bearing default (branch name, PR flow), or the marketplace's PR conventions or branch-archive contract change.",
       "sources": [
         {
@@ -322,8 +330,8 @@
           "url": "https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control"
         }
       ],
-      "body_md": "**Source control** (the tool is called **git**, the website is **GitHub**) is a time-machine for every file in a project: every change is saved as a labeled snapshot, and many people can work on the same project in parallel without overwriting each other. The load-bearing fact for you: **RavenClaude does almost all of the git work for you** — this page is the vocabulary so you understand what Claude Code is doing on your behalf, and can step in when something goes sideways.\n\n**Four ideas cover almost everything you'll see:**\n\n- **Commit** — one saved snapshot of your work, with a short message explaining _why_ (not what — the diff already shows what).\n- **Branch** — a parallel timeline for a piece of work-in-progress, kept separate from the project's official timeline (the **main** branch).\n- **Pull request (PR)** — a proposal that the work on a branch be merged back into main; it gets reviewed (by a person, by CI checks, sometimes by Claude) before anything moves.\n- **Merge** — combining a branch's commits into main once the PR is approved.\n\n**The minimum vocabulary** you'll see in commands and logs:\n\n- `git status` — what's changed since the last snapshot\n- `git add <file>` — stage a file for the next snapshot\n- `git commit -m \"why\"` — take the snapshot\n- `git push` — upload local commits to GitHub\n- `git pull` — download new commits from GitHub\n- `git log` — read the history\n\n**Two patterns you'll actually encounter in this repo:**\n\n1. **Docs commit straight to main, no PR.** Pure documentation under `docs/` (plans, designs, research notes, the rolling session log) commits direct to main because it can't break a consumer's `/plugin marketplace update`. Faster planning loop.\n2. **Code, hooks, manifests, and CI go through a PR.** Claude Code creates the branch, makes the commits, opens the PR, and tells you the URL. You review in GitHub and click **Merge**.\n\n**The safety nets** mean you can experiment without breaking things:\n\n- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push to main**, `git reset --hard`, `git clean -f`, and `git branch -D` on a protected branch. It denies them before they run.\n- The sanctioned way to retire a finished branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost.\n\nYou will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _\"I opened PR #238 on branch `feat/rc-hardener-followups`\"_ or _\"the guard denied a force-push\"_, you know exactly what happened and what your next click is.",
-      "diagram": "flowchart TD\n  W[Your working files] -->|git add| S[Staging area]\n  S -->|git commit| C[Commit on a branch]\n  C -->|git push| GH[(GitHub: branch)]\n  GH -->|open PR| PR[Pull request · reviewed]\n  PR -->|merge| MAIN[(main branch · official timeline)]\n  D[Docs change under docs/] -->|commit + push| MAIN\n  X[git push --force to main<br/>git reset --hard<br/>rm -rf the repo] -.->|guard-destructive.sh| BLOCK[Blocked — safety net]\n  R[Retire a finished branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]\n  class C,PR,MAIN,TAG fact\n  class BLOCK,GH built",
+      "body_md": "**Source control** (the tool is called **git**, the website is **GitHub**) is a time-machine for every file in a project: every change is saved as a labeled snapshot, and many people can work on the same project in parallel without overwriting each other. The load-bearing fact for you: **RavenClaude does almost all of the git work for you** — this page is the vocabulary so you understand what Claude Code is doing on your behalf, and can step in when something goes sideways.\n\n**Four ideas cover almost everything you'll see:**\n\n- **Commit** — one saved snapshot of your work, with a short message explaining _why_ (not what — the diff already shows what).\n- **Branch** — a parallel timeline for a piece of work-in-progress, kept separate from the project's official timeline (the **main** branch).\n- **Pull request (PR)** — a proposal that the work on a branch be merged back into main; it gets reviewed (by a person, by CI checks, sometimes by Claude) before anything moves.\n- **Merge** — combining a branch's commits into main once the PR is approved.\n\n**The minimum vocabulary** you'll see in commands and logs:\n\n- `git status` — what's changed since the last snapshot\n- `git add <file>` — stage a file for the next snapshot\n- `git commit -m \"why\"` — take the snapshot\n- `git push` — upload local commits to GitHub\n- `git pull` — download new commits from GitHub\n- `git log` — read the history\n\n**Two patterns you'll actually encounter in this repo:**\n\n1. **Docs commit straight to main, no PR.** Pure documentation under `docs/` (plans, designs, research notes, the rolling session log) commits direct to main because it can't break a consumer's `/plugin marketplace update`. Faster planning loop.\n2. **Code, hooks, manifests, and CI go through a PR.** Claude Code creates the branch, makes the commits, opens the PR, and tells you the URL. You review in GitHub and click **Merge**.\n\n**The safety nets** mean you can experiment without breaking things:\n\n- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push**, `git reset --hard`, `git clean -f`, and `git branch -D` (on any branch). It denies them before they run.\n- The sanctioned way to retire an abandoned or unmerged branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost. (A cleanly merged branch needs no archive tag — its commits already live in `main`, so you just delete it on GitHub.)\n\nYou will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _\"I opened PR #238 on branch `feat/rc-hardener-followups`\"_ or _\"the guard denied a force-push\"_, you know exactly what happened and what your next click is.",
+      "diagram": "flowchart TD\n  W[Your working files] -->|git add| S[Staging area]\n  S -->|git commit| C[Commit on a branch]\n  C -->|git push| GH[(GitHub: branch)]\n  GH -->|open PR| PR[Pull request · reviewed]\n  PR -->|merge| MAIN[(main branch · official timeline)]\n  D[Docs change under docs/] -->|commit + push| MAIN\n  X[git push --force to main<br/>git reset --hard<br/>rm -rf the repo] -.->|guard-destructive.sh| BLOCK[Blocked — safety net]\n  R[Retire an abandoned branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]\n  class C,PR,MAIN,TAG fact\n  class BLOCK,GH built",
       "diagram_mini": "flowchart LR\n  E[edit] --> C[commit] --> B[branch] --> P[PR] --> M[main]\n  class C,P,M fact",
       "steps": [
         {
@@ -1476,7 +1484,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-08",
+      "last_verified": "2026-11-13",
       "refresh_when": "The Stop-block mechanism, the max_blocks force-allow cap, the source-changed filter, or the first-run trust gate change.",
       "sources": [
         {
@@ -1488,7 +1496,7 @@
           "url": "plugins/ravenclaude-core/CLAUDE.md"
         }
       ],
-      "body_md": "The **definition-of-done gate** closes the gap that command review can't see: it gates work **correctness**, not command safety. The Thing tribunal asks \"is this command dangerous?\"; this gate asks \"is the work actually finished, or does it just *look* finished?\" It is a `Stop` hook — it fires when the agent tries to end its turn — and if a `definition_of_done.cmd` is configured in `.ravenclaude/comfort-posture.yaml`, it runs that command (your tests, build, lint) and **blocks the stop until the command exits zero**. That turns \"looks done\" into \"is done\" without the human having to be the verification loop.\n\nThe gate is **scoped and self-limiting** so it never becomes an obstacle. It only fires when *source files actually changed* this session (it inspects `git status --porcelain` for code extensions), so a docs-only or read-only session ends cleanly. When the command fails, the gate feeds the tail of the failing output back to the agent so it can fix the problem and try again. To guarantee it can't deadlock, it blocks at most **`max_blocks`** (default 8) consecutive times, then **force-allows** the stop with a warning — Claude Code force-overrides Stop after 8 anyway, but Copilot CLI gives no such guarantee, so the cap is built in. With no `definition_of_done.cmd` set, the gate is inert and the advisory `remind-tests.sh` nudge handles the reminder instead.\n\nOne safety detail: the configured command is shell-executed, and it comes from a YAML field a malicious pull request could edit. So before the *first* run per session for a given command value, the gate refuses to execute and surfaces the literal command plus a one-line `touch` step to authorize it (or set `definition_of_done.trusted: true` to skip the prompt permanently). Rotating the command or starting a new session re-triggers the check. Like the other guardrails it is **opt-in and deterministic** — the verdict is just a command's exit code, no model in the loop — so it ports unchanged to Copilot through the adapter's `stop` mode.",
+      "body_md": "The **definition-of-done gate** closes the gap that command review can't see: it gates work **correctness**, not command safety. The Thing tribunal asks \"is this command dangerous?\"; this gate asks \"is the work actually finished, or does it just *look* finished?\" It is a `Stop` hook — it fires when the agent tries to end its turn — and if a `definition_of_done.cmd` is configured in `.ravenclaude/comfort-posture.yaml`, it runs that command (your tests, build, lint) and **blocks the stop until the command exits zero**. That turns \"looks done\" into \"is done\" without the human having to be the verification loop.\n\nThe gate is **scoped and self-limiting** so it never becomes an obstacle. It only fires when *source files actually changed* this session (it inspects `git status --porcelain` for code extensions), so a docs-only or read-only session ends cleanly. When the command fails, the gate feeds the tail of the failing output back to the agent so it can fix the problem and try again. To guarantee it can't deadlock, it blocks at most **`max_blocks`** (default 8) consecutive times, then releases the stop with `VERDICT: STOP` (end the turn; do not ask). Claude Code force-overrides Stop after 8 anyway, but Copilot CLI gives no such guarantee, so the cap is ours. On Copilot that release is a user warning, not a new prompt. The first-run trust refusal counts toward that same cap. With no `definition_of_done.cmd` set, the gate is inert and the advisory `remind-tests.sh` nudge handles the reminder instead.\n\nCopilot turns a Stop block reason into the next user prompt, so the first line is a verdict. No block means **DONE**: end the turn and do not ask. `VERDICT: NOT DONE` means do the single `[FAIL]` line, then stop again. `VERDICT: STOP` means `max_blocks` is reached: end the turn and say the gate did not pass.\n\nOne safety detail: the configured command is shell-executed, and it comes from a YAML field a malicious pull request could edit. So before the first run per session for a given command value, the gate refuses to execute and names the literal command. **A person** creates `~/.ravenclaude/dod-confirm/<repo-hash>/<session>/confirmed-<hash>` **outside the worktree** (and outside the agent session). The agent must not create it — Write and Bash attempts that name the confirm token are denied, and an in-tree `.ravenclaude/runs/dod-gate/.../confirmed-*` is no longer accepted. Set `definition_of_done.trusted: true` in a later commit than the `cmd` line to skip the prompt. Rotating the command or starting a new session re-triggers the check. The diagram node \"ask to authorize\" means that person, not the agent. Like the other guardrails it is **opt-in and deterministic** — the verdict is a command's exit code, no model in the loop — so it ports through the adapter's `stop` mode. The trust refusal is stdout JSON (`decision: block`) at exit 0, because Copilot drops stderr when a hook exits 2.",
       "diagram": "flowchart TD\n  A[Stop: agent tries to finish] --> B{source changed<br/>and DoD cmd set?}\n  B -- no --> Z[allow stop]\n  B -- yes --> F{first run of this cmd?<br/>trust gate}\n  F -- not authorized --> ASK[refuse · show cmd · ask to authorize]\n  F -- authorized --> R[run the DoD command]\n  R -- exit 0 --> PASS[allow stop · work is done]\n  R -- fails --> C{blocks < max_blocks?}\n  C -- yes --> BLOCK[block stop · feed failure back]\n  C -- no --> FORCE[force-allow + warning]\n  class ASK,R,PASS,BLOCK,FORCE built\n  class B,F,C fact",
       "diagram_mini": "flowchart LR\n  S[Stop] --> R[run tests/lint]\n  R -- pass --> A[allow]\n  R -- fail --> B[block · keep working]\n  class A,B,R built",
       "steps": [],
@@ -2199,11 +2207,7 @@
       "refresh_when": "The Last-Mile Completion Protocol section in ravenclaude-core/CLAUDE.md changes — the five rules, the done-vs-your-turn report shape, or the deep-link requirement.",
       "sources": [
         {
-          "label": "ravenclaude-core constitution — Last-Mile Completion Protocol",
-          "url": "plugins/ravenclaude-core/CLAUDE.md"
-        },
-        {
-          "label": "Capability Grounding Protocol (the floor it pairs with)",
+          "label": "ravenclaude-core constitution — Last-Mile Completion Protocol; Capability Grounding Protocol (the floor it pairs with)",
           "url": "plugins/ravenclaude-core/CLAUDE.md"
         }
       ],
@@ -2422,7 +2426,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-09",
+      "last_verified": "2026-11-05",
       "refresh_when": "The Copilot package generator, the hook adapter's envelope mapping, Copilot's plugin-hook bug status, or the GitHub Copilot CLI customization surface (instruction files / agents / skills / hooks) changes.",
       "sources": [
         {
@@ -2438,7 +2442,7 @@
           "url": "scripts/generate-copilot-plugin.py"
         }
       ],
-      "body_md": "Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (mapping its `toolName`/`toolArgs` ⇄ Claude's `tool_name`/`tool_input`, the lowercase tool-name *values* ⇄ Claude's PascalCase, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing.\n\n> **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37]`. \"Unmodified scripts run under Copilot\" is true of the *translation*, not of the *coverage*: the Copilot hooks file is hand-maintained, and **12+ shipped hooks are not in it**, so they never fire on that host at all (MH-12, open). Read this card as \"the bridge does not require forking the hooks\", **not** as \"every guardrail you see under Claude Code is also protecting you under Copilot\". The authoritative per-component answer is [`../host-support.json`](../host-support.json), and it is the one to trust if this card and it ever disagree.\n\nThe design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## Dual-file project instructions (DOC adapt 2026-09-20 — UNVERIFIED)\n- **Copilot:** `AGENTS.md` remains first-class (root / cwd /\n  `COPILOT_CUSTOM_INSTRUCTIONS_DIRS`) — unchanged.\n- **Claude Code (Anthropic API):** if a project has **no** `CLAUDE.md`,\n  Claude Code reads **`AGENTS.md`** as project instructions (CC 2.1.277);\n  change under Project instructions in `/config`.\n- **Gap:** AGENTS.md-as-CLAUDE-fallback is **not yet** on **Bedrock,\n  Vertex, or Foundry** per changelog — keep `CLAUDE.md` on those hosts.\n- Multi-harness repos: prefer keeping **both** files in sync, or a short\n  `CLAUDE.md` that points at shared policy also mirrored in `AGENTS.md`.",
+      "body_md": "Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (camelCase `toolName`/`toolArgs` as a JSON string, or PascalCase `tool_input` as an object, ⇄ Claude's `tool_name`/`tool_input`; lowercase tool-name *values* ⇄ Claude's PascalCase; a PreToolUse deny is top-level `permissionDecision` with no `hookSpecificOutput` wrapper, which Copilot ignores; Gate 20 requires the top-level key; Stop still emits both shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing. On VS Code Copilot Chat, leave `chat.useClaudeHooks` off while `.github/hooks/ravenclaude.json` is present so the Claude settings hooks do not run a second copy.\n\n> **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37; coverage corrected 2026-11-05]`. \"Unmodified scripts run under Copilot\" is true of the *translation*, not of the *coverage*. **MH-12 is closed** (0.219.0): `scripts/generate-copilot-hooks.py` projects the Copilot hooks file from the canonical manifest, and Gate 158 fails the build if a hook is neither wired nor explicitly skipped. Skips are written into the generated file with reasons. Read this card as \"the bridge does not require forking the hooks\", **not** as \"every guardrail you see under Claude Code is also protecting you under Copilot\". The authoritative per-component answer is [`../host-support.json`](../host-support.json), and it is the one to trust if this card and it ever disagree.\n\nThe design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n## Dual-file project instructions (DOC adapt 2026-09-20 — UNVERIFIED)\n- **Copilot:** `AGENTS.md` remains first-class (root / cwd /\n  `COPILOT_CUSTOM_INSTRUCTIONS_DIRS`) — unchanged.\n- **Claude Code (Anthropic API):** if a project has **no** `CLAUDE.md`,\n  Claude Code reads **`AGENTS.md`** as project instructions (CC 2.1.277);\n  change under Project instructions in `/config`.\n- **Gap:** AGENTS.md-as-CLAUDE-fallback is **not yet** on **Bedrock,\n  Vertex, or Foundry** per changelog — keep `CLAUDE.md` on those hosts.\n- Multi-harness repos: prefer keeping **both** files in sync, or a short\n  `CLAUDE.md` that points at shared policy also mirrored in `AGENTS.md`.",
       "diagram": "flowchart TD\n  CANON[Canonical plugin] --> GEN[generate-copilot-plugin.py]\n  GEN --> PKG[copilot/ package · --check gated]\n  CO[Copilot PreToolUse envelope] --> AD[hook adapter]\n  AD --> CL[unmodified hook scripts]\n  CL --> AD\n  UP[Update] --> PULL[git pull · loads live]\n  class CANON,GEN,PKG,AD,CL,UP,PULL built\n  class CO fact",
       "diagram_mini": "flowchart LR\n  C[Canonical plugin] --> A[adapter] --> CO[Copilot CLI]\n  C --> U[update = git pull]\n  class C,A,U built",
       "steps": [
@@ -2808,8 +2812,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-19",
-      "refresh_when": null,
+      "last_verified": "2026-11-13",      "refresh_when": null,
       "sources": [
         {
           "label": "measured in the FORGE product-inventory run",
@@ -2875,10 +2878,10 @@
         "plugins/ravenclaude-core/hooks/thing-orchestrator.sh",
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh",
+        "plugins/ravenclaude-core/hooks/worktree-guard-bash.py",
         "plugins/ravenclaude-core/hooks/emit-permission-denied.sh"
       ],
-      "covers_digest": "sha256:d95394282d496b990099819764e6f57ea7e5e22fa26935a24dcbd97f78e8a7a0",
-      "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
+      "covers_digest": "sha256:e621016ac6d87bae2f2830f7327a27b5c4e019c0221d9877a8f4152742183863",      "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
         "control": "a SessionStart additionalContext sentinel came back in every trial while the stderr token never did",
@@ -2906,7 +2909,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-18",
+      "last_verified": "2026-11-11",
       "refresh_when": null,
       "sources": [
         {
@@ -2926,7 +2929,7 @@
         "plugins/ravenclaude-core/hooks/alias-deprecation-advisory.sh",
         "plugins/ravenclaude-core/scripts/alias-deprecation-advisory.py"
       ],
-      "covers_digest": "sha256:2fd3ae8ed70a89c65c8112804a628a511a9457d594bda15932d547fa6b2f1d19",
+      "covers_digest": "sha256:a56cf454eb27dd8b349a6784aefb4eef3deceb074a02ea820f97dcd6cc532ed3",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3000,8 +3003,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-19",
-      "refresh_when": null,
+      "last_verified": "2026-11-13",      "refresh_when": null,
       "sources": [
         {
           "label": "measured in the FORGE product-inventory run",
@@ -3020,8 +3022,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:693fac25e92217c273c77bda92f273f63c8a946183654614e78481ce31e88e0f",
-      "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
+      "covers_digest": "sha256:8382f577c279bb844a3189f3978ae75f9a388197a0dbe789e3fbb11be518bb30",      "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
         "control": "a bumped version propagated on the next update while an unbumped one did not",
@@ -3049,8 +3050,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-20",
-      "refresh_when": null,
+      "last_verified": "2026-11-11",      "refresh_when": null,
       "sources": [
         {
           "label": "measured in the FORGE product-inventory run",
@@ -3082,8 +3082,7 @@
         "scripts/inventory-nuance-judge.py",
         "plugins/ravenclaude-core/scripts/forge-receipt.py"
       ],
-      "covers_digest": "sha256:bf2837c664e4aef39c64ef81ce29d569b74de8ad7414ae09d72161ef9dffc167",
-      "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
+      "covers_digest": "sha256:a557def7e74d97a5aab734f813d433ed32d83107c9ec2e404ea68956634604f2",      "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
         "control": "ran --must-fail on both: each exits 0 on success, so the 0-vs-2 divergence is in the CHECK exit each teeth run observes, not in the teeth exit itself",
@@ -3342,7 +3341,7 @@
         "scripts/concepts.py",
         "scripts/spike-selfheal-contract.sh"
       ],
-      "covers_digest": "sha256:e68d056ff57df98aa5136037d8531b1b067af607ffdd7344a0bcfdbc9761ffa9",
+      "covers_digest": "sha256:c6b50e926a9735f3b1bbc9a6a5b12bc45a0b3829e161b512aabebce571a96544",
       "nuance": "`regenerate-artifacts.yml` greps `RC-CONCEPTS-CLASS: human-reverify-required` (plus a one-release prose OR-fallback); an unmarked class runs `exit '$_crc'` and every later self-heal step is skipped.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3522,7 +3521,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-18",
+      "last_verified": "2026-11-12",
       "refresh_when": null,
       "sources": [
         {
@@ -3543,7 +3542,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:ce1a20e7450ba8ca5c10bf8c3957b847d6d8aa7de85551cd98c40ed650b690c1",
+      "covers_digest": "sha256:158e38a115f9a415b237de98aea26db4ba02f49f363c4d855f3d1bf1c585acbb",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3620,8 +3619,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-10-19",
-      "refresh_when": null,
+      "last_verified": "2026-11-05",      "refresh_when": null,
       "sources": [
         {
           "label": "measured in the verify-before-assert Phase 1 corpus run",
@@ -3645,8 +3643,7 @@
         "plugins/ravenclaude-core/scripts/preflight-command-review.sh",
         "plugins/ravenclaude-core/scripts/replay-outcome-rules.py"
       ],
-      "covers_digest": "sha256:f68f7c8204d1e9b346caf62016e77499eab87b52b10b246b48740cc8548675c9",
-      "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
+      "covers_digest": "sha256:ed53734d12f129ee50468ab9c1bbcd73bf0aabf6e2423d79a6f91a2165b8b14b",      "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
       "nuance_evidence": {
         "measured": "2026-08-25",
         "control": "the same rule measured post-hoc (with stdout_empty) fired 487 times and lexically (without it) 2,816 times over the same 34,014 evidence-bearing commands, so the gap is the missing field and not a different corpus",
@@ -4331,7 +4328,7 @@
         "plugins/ravenclaude-core/skills/forge-pipeline/agents/openai.yaml",
         "plugins/ravenclaude-core/skills/spawn-team/agents/openai.yaml"
       ],
-      "covers_digest": "sha256:92ac17abd312b8454b4ed0b5710d2940dd96466a76c8108038286014927c6fa5",
+      "covers_digest": "sha256:192fd80fbcb8ede23249c1144bd2f7e33d478260b585b452718e07f71bdcfc64",
       "nuance": "The generator discovers skills by globbing plugins/*/skills/*/SKILL.md, and its own output file matches that glob. On a fresh repo the first write cannot see itself (the file does not exist yet), so it writes N entries; running it again now finds N+1 (itself included) and writes THAT count -- a fixed point reached on the second pass, never the first.",
       "nuance_evidence": {
         "measured": "2026-09-08",
@@ -4424,7 +4421,7 @@
         "plugins/ravenclaude-core/knowledge/coordinator-ledger-convention.md",
         "plugins/ravenclaude-core/scripts/ledger.py"
       ],
-      "covers_digest": "sha256:983feeaa5cda1ad9db0b67c063002ed45ef2e016f7bb415cb3301225138faa18",
+      "covers_digest": "sha256:9560f7f3ea8b8c09c36f3ffea5749dd79eed8b428842328537e092ab3c22bf27",
       "nuance": "--repo-root/--actor are ledger.py's TOP-LEVEL parser flags, added before add_subparsers(); a build plan citing them AFTER `append` fails with 'unrecognized arguments', verified live. A companion claim (fresh ledger = exit 2/UNKNOWN) was also wrong: cmd_init always appends a ledger_init event, so the true fresh state is exit 0/PASS.",
       "nuance_evidence": {
         "measured": "2026-09-09",
@@ -4949,9 +4946,12 @@
         "plugins/ravenclaude-core/skills/wallet-passes/references/google.md",
         "plugins/ravenclaude-core/skills/wallet-passes/references/business-card-layout.md",
         "plugins/ravenclaude-core/skills/wallet-passes/references/tap-to-share.md",
-        "plugins/ravenclaude-core/skills/wallet-passes/references/verify.md"
+        "plugins/ravenclaude-core/skills/wallet-passes/references/verify.md",
+        "plugins/ravenclaude-core/skills/wallet-passes/references/pass-types.md",
+        "plugins/ravenclaude-core/skills/wallet-passes/references/pass-builder.md",
+        "plugins/ravenclaude-core/skills/wallet-passes/references/contact-card-vcard.md"
       ],
-      "covers_digest": "sha256:f76e8c6d8d95d4d4bb3bdaa49315d38a2ec3dd3ea8ce8334dd7c43cc2618e27b",
+      "covers_digest": "sha256:c5de2ef17c5e421119d2a88f77ad4bd819da59da0f9ea9bdba17f800e209eecb",
       "nuance": "Apple `PassKit_PG/Creating.html` names `headerFields` counts and says overflow hides fields; it never publishes a per-slot character maximum. Google `generic/resources/brand-guidelines` Content does publish English caps. An invented Apple char-limit table is working guidance, not a contract.",
       "nuance_evidence": {
         "measured": "2026-10-11",
@@ -5110,6 +5110,54 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/scripts/subagent-ttl-advisor.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "worktree-clean-all-dry-run-by-default",
+      "title": "A bulk cleanup that previews before it touches anything",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 947,
+      "summary": "Why a bulk worktree sweep is safe to run blind: --all alone never removes anything.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-11-10",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "worktree-clean.sh usage doc + P12/T2 of its own lifecycle test",
+          "url": "plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nA `--all` bulk-cleanup flag mutates immediately, the way most bulk-delete commands do.\n\n## The discriminator\n\ncontrol: a plain `--all` run left a genuinely clean, removable worktree on disk untouched, and the output was labeled DRY RUN\nMeasured 2026-11-10: `--all` alone only previews — framed as what `--execute` would do to each worktree — and never passes `--force` even once `--execute` is given. The SessionEnd report hook (`worktree-cleanup-report.sh`) runs the same `--status`/preview path on every session close, which is exactly what makes an always-on hook safe: there is no mutating code path for it to accidentally reach.\n\n## Why it matters\n\nFalsifier: a plain `--all` run (no `--execute`) deleting any worktree.\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh` (P12a/P12b/T2 exercise exactly this contract, including a teeth check that neuters the `--execute` gate and confirms a plain `--all` then mutates).",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/worktree-clean.sh",
+        "plugins/ravenclaude-core/scripts/worktree-cleanup-report.sh"
+      ],
+      "covers_digest": "sha256:54c3e56ca08066bcdeabec0115a64e8ef1e9ae32626b08fd852650c4a5bd793d",
+      "nuance": "Unlike a typical bulk-cleanup command, `--all` alone never removes anything — it only PREVIEWS what `--execute` would do, worktree by worktree; the SessionEnd report hook reuses that same preview mode, so it can run on every session close without ever mutating a worktree.",
+      "nuance_evidence": {
+        "measured": "2026-11-10",
+        "control": "a plain --all run left a genuinely clean, removable worktree on disk untouched, and the output was labeled DRY RUN",
+        "falsifier": "a plain --all run (no --execute) deleting any worktree",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/worktree-clean.sh:27-38",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

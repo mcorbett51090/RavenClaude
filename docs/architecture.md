@@ -1,6 +1,8 @@
 # RavenClaude — Architecture
 
-This repo is a **private Claude Code plugin marketplace**. Each plugin inside it bundles a set of agents, skills, hooks, rules, and templates that a consumer project can install through Claude Code's native `/plugin marketplace add` mechanism. The repo itself isn't loaded into consumer projects — only individual plugins are.
+This repo is a Claude Code plugin marketplace. Anyone can read and clone it; write access is limited ([`docs/access.md`](access.md)). Each plugin bundles agents, skills, hooks, rules, and templates that a consumer installs through Claude Code's `/plugin marketplace add`, or through `scripts/ravenclaude install --host` for Copilot, Codex, Cursor, Gemini, and Aider. The repo itself isn't loaded into consumer projects — only individual plugins are.
+
+> **The diagram below is the early marketplace shape** (14 core agents, 15 named domain plugins, "private"). Do not use those counts. Current inventory is the [portal](https://mcorbett51090.github.io/RavenClaude/) and [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json). Core component counts are in [`plugins/ravenclaude-core/README.md`](../plugins/ravenclaude-core/README.md).
 
 > **Audience for this doc:** anyone working *on* the marketplace (adding a plugin, changing a plugin, reviewing a PR). For instructions on *installing* the plugins as a consumer, see the root [`README.md`](../README.md). For team rules that ship inside `ravenclaude-core`, see [`plugins/ravenclaude-core/CLAUDE.md`](../plugins/ravenclaude-core/CLAUDE.md).
 

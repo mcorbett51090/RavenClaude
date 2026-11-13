@@ -41,6 +41,8 @@ Inspect the DOM:
 
 ### Pass 3 — Keyboard navigation
 
+On a portal or signed-in page, also fill the A11Y rows in [`../../knowledge/portal-and-site-review-checklist-2026-11.md`](../../knowledge/portal-and-site-review-checklist-2026-11.md) (focus census, ring, obscured focus, names, live save status). Do this after PLACE. AA does not fail on 2.4.13 or 2.3.3 alone.
+
 With mouse / trackpad disconnected (or covered):
 - Tab through every interactive element
 - Check focus is **visible** (focus indicator not removed)
@@ -69,6 +71,10 @@ For each high-stakes flow:
 ### Pass 5 — Color + contrast + motion
 
 - Color contrast: every text foreground vs background, including hover / active states, gradients, image overlays
+  - Text over a photo cannot be scored from hexes. Measure the composited pixels behind each line in a browser (the
+    5th-percentile pixel is a defensible reading), per
+    [`text-over-photo-contrast-2026.md`](../../knowledge/text-over-photo-contrast-2026.md). If you did not measure it,
+    report it as not measured, never as passing.
   - Body text ≥ 4.5:1
   - Large text (≥ 18pt regular or 14pt bold) ≥ 3:1
   - UI components and graphical objects ≥ 3:1

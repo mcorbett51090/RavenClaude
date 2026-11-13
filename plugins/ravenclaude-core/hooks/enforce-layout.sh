@@ -57,6 +57,20 @@ if [[ -z "$file" ]] && ! command -v jq >/dev/null 2>&1; then
 fi
 [[ -z "$file" ]] && exit 0
 
+# The definition-of-done confirm file is a person's approval. The agent must
+# not write it (BTCSI session: the agent created the file and the gate then
+# ran). This deny is independent of .repo-layout.json.
+case "$file" in
+  */.ravenclaude/runs/dod-gate/*/confirmed-*|.ravenclaude/runs/dod-gate/*/confirmed-*|*/.ravenclaude/dod-confirm/*/confirmed-*|*/dod-confirm/*/confirmed-*)
+    echo "[enforce-layout] DENIED — definition-of-done confirm file is human-only. Do not create it. A person creates it outside this session, or the stop gate releases at max_blocks with VERDICT: STOP." >&2
+    if command -v jq >/dev/null 2>&1; then
+      jq -cn --arg r "definition-of-done confirm file is human-only. Do not create it." \
+        '{permissionDecision:"deny",permissionDecisionReason:$r,hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
+    fi
+    exit 2
+    ;;
+esac
+
 project_root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 # hooks-10 (2026-10-19): a trailing `/` on the project dir made the in-project
 # prefix test below (`$project_root/*`) look for `//`, so EVERY absolute path read

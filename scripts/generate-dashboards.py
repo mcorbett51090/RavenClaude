@@ -212,14 +212,29 @@ def _other_hosts_sentence() -> str:
     )
 
 
-def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> dict:
+def _page_kwargs(
+    plugin_dir: Path,
+    schema: dict,
+    include_trees: bool = True,
+    include_catalog: bool = False,
+) -> dict:
     """Build the substitution dict shared by render_dashboard (full page) and
     render_fragment (the native-merge body for index.html). Single source of
     truth so the standalone page and the folded-in section can never drift.
 
-    `include_trees` controls the Guidance tab's decision-tree section: True for the
-    standalone dashboard.html (its only home), False for the portal fragment where
-    the trees moved onto plugin detail pages (see _render_trees_tab)."""
+    `include_trees` controls the Guidance tab's decision-tree section. Both the
+    standalone dashboard.html and the portal fragment ship the FULL consolidated
+    trees index (owner-restored: G4) — pass True. The historical "False for portal"
+    split was reversed; do not reintroduce it without an owned byte-budget raise.
+
+    `include_catalog` (Phase 2 mode diet, default False): when True, embed a lean
+    `window.__RC_DATA__` script so Catalog browse works without a sidecar fetch.
+    The shipped consumer `dashboard.html` stays False (Gate 132 / byte ceiling);
+    marketplace hybrid browse uses runtime fetch of `/catalog-data.json` or the
+    portal `index.html` shell. Embedding adds one <script> element — never ship
+    True into the committed consumer artifact without an owned Gate 132 raise.
+    """
+    _ = include_catalog  # mode-diet flag; embed happens in render_dashboard
     global PATTERN_EXPLANATIONS
     PATTERN_EXPLANATIONS = _load_pattern_explanations(plugin_dir)
 
@@ -309,10 +324,71 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
     }
 
 
-def render_dashboard(plugin_dir: Path, schema: dict) -> str:
-    """Compose the full dashboard.html string for one plugin."""
-    result = _PAGE_TEMPLATE.format(**_page_kwargs(plugin_dir, schema))
-    return result.replace("/*__SHARED_TOKENS__*/", _load_shared_tokens_root())
+def _lean_catalog_embed_script() -> str:
+    """Build an optional inline window.__RC_DATA__ script from the lean sidecar.
+
+    Used only when include_catalog=True (marketplace hybrid build / tests). The
+    committed consumer dashboard.html never embeds this (Gate 132 + bytes).
+    Prefers an already-generated catalog-data.json; falls back to importing the
+    index generator's scan + lean helper when the sidecar is missing.
+    """
+    root = Path(__file__).resolve().parent.parent
+    side = root / "catalog-data.json"
+    lean = None
+    if side.is_file():
+        try:
+            lean = json.loads(side.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            lean = None
+    if lean is None:
+        try:
+            import importlib.util
+
+            spec = importlib.util.spec_from_file_location(
+                "_gen_index_for_catalog",
+                Path(__file__).resolve().parent / "generate-index-dashboard.py",
+            )
+            mod = importlib.util.module_from_spec(spec)
+            assert spec.loader is not None
+            spec.loader.exec_module(mod)
+            lean = mod._lean_catalog_sidecar(mod.scan_repo())
+        except Exception as exc:  # noqa: BLE001 — build-time optional path
+            raise SystemExit(
+                f"include_catalog=True but could not build lean catalog payload: {exc}"
+            ) from exc
+    raw = json.dumps(lean, ensure_ascii=False, separators=(",", ":")).replace(
+        "<", "\\u003c"
+    )
+    # One script element — Gate 132 +1 when this path is used.
+    return (
+        '<script id="rc-catalog-data">window["__RC_DATA__"] = '
+        + raw
+        + ";</script>\n"
+    )
+
+
+def render_dashboard(
+    plugin_dir: Path, schema: dict, include_catalog: bool = False
+) -> str:
+    """Compose the full dashboard.html string for one plugin.
+
+    include_catalog=False (default / shipped consumer artifact): lean Catalog
+    (Learn · Guidance · Help · Plugins). Runtime hybrid enables Browse when
+    window.__RC_DATA__ is present or /catalog-data.json fetches successfully.
+
+    include_catalog=True: embed lean window.__RC_DATA__ (+1 Gate 132 element).
+    Do not commit that build as the consumer dashboard.html without an owned raise.
+    """
+    result = _PAGE_TEMPLATE.format(
+        **_page_kwargs(plugin_dir, schema, include_catalog=include_catalog)
+    )
+    result = result.replace("/*__SHARED_TOKENS__*/", _load_shared_tokens_root())
+    if include_catalog:
+        inject = _lean_catalog_embed_script()
+        if "</body>" not in result:
+            raise SystemExit("dashboard template missing </body> for catalog embed")
+        result = result.replace("</body>", inject + "</body>", 1)
+    return result
 
 
 # Markers that bound the native-merge body slice inside _PAGE_TEMPLATE: the
@@ -342,7 +418,9 @@ def render_fragment(plugin_dir: Path, schema: dict) -> dict:
     all of them. This reverses the P6 trees-payload byte-diet on the portal — see the
     matching `_PORTAL_ONLY_PAYLOAD_IDS` note in generate-index-dashboard.py.
     """
-    kw = _page_kwargs(plugin_dir, schema, include_trees=True)
+    # include_catalog=False: portal Catalog browse lives in the index shell,
+    # not in the folded fragment (Phase 2 mode diet — Gate 132 Δ0 on fragment).
+    kw = _page_kwargs(plugin_dir, schema, include_trees=True, include_catalog=False)
     start = _PAGE_TEMPLATE.index(_FRAG_BODY_START) + len(_FRAG_BODY_START)
     end = _PAGE_TEMPLATE.index(_FRAG_BODY_END)
     body = _PAGE_TEMPLATE[start:end].format(**kw)
@@ -1248,6 +1326,11 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "mark-web-domain-seen.sh": "internal consent-ordering bookkeeping for guard-web-access; not a distinct guardrail",
     "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",
     "stream-prompt-attribute.sh": "work-stream tracking (UserPromptSubmit); observability, not a guardrail",
+    "worktree-cleanup-report.sh": "SessionEnd dry-run worktree-cleanup report (never mutates): runs "
+    "the shipped worktree-clean.sh in `--status --no-network` mode and flushes a summary to "
+    ".ravenclaude/runs/worktree-cleanup/report.md when there's something to report. Observability "
+    "side-effect, same class as stream-session-close.sh / thing-denial-kb-sync.sh — not a guardrail, "
+    "so deliberately NOT a Pipeline stage card",
     "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
     "handoff-tax-meter.sh": "handoff-tax meter (PostToolUse Agent) — per-dispatch ledger of brief/report "
     "size + model tier under .ravenclaude/runs/<session>/dispatch-ledger.jsonl and an ADVISORY when a "
@@ -4592,7 +4675,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   display: inline-flex;
   align-items: center;
   /* Green halo around the raven mark — commerce .nav__mark language. */
-  filter: drop-shadow(0 0 8px rgba(86, 208, 138, 0.14));
+  filter: drop-shadow(0 0 8px rgba(58, 163, 145, 0.14));
 }
 .brand-mark img {
   width: 30px;
@@ -4692,7 +4775,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
    hides the folded copy's whole nav in the portal.) */
 
 /* ── Standalone left sidebar — the 4-destination IA (Control · Activity ·
-   Guardrails · Learn & Help) ──────────────────────────────────────────────
+   Guardrails · Catalog) ───────────────────────────────────────────────────
    Matches the portal shell's .sidebar look (dark gradient, brand at top,
    uppercase group labels, sub-items with a left accent bar when active).
    The sidebar is position:fixed and the content margin lives on ONE named
@@ -6654,7 +6737,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   border: 1px solid var(--border);
   border-radius: var(--rc-radius-lg, 12px);
   background:
-    radial-gradient(120% 140% at 88% 8%, var(--rc-accent-soft, rgba(86, 208, 138, 0.14)), transparent 55%),
+    radial-gradient(120% 140% at 88% 8%, var(--rc-accent-soft, rgba(58, 163, 145, 0.14)), transparent 55%),
     linear-gradient(180deg, var(--panel-2, #10131a), var(--panel, #0a0c10));
   overflow: hidden;
 }
@@ -6666,8 +6749,8 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .eyebrow__dot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: var(--rc-accent, #56d08a);
-  box-shadow: 0 0 12px var(--rc-accent-glow, rgba(86, 208, 138, 0.35));
+  background: var(--rc-accent, #3aa391);
+  box-shadow: 0 0 12px var(--rc-accent-glow, rgba(58, 163, 145, 0.35));
 }
 .ov-hero__title {
   font-family: var(--rc-font-display, "Space Grotesk", sans-serif);
@@ -6675,7 +6758,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   font-size: clamp(26px, 3.2vw, 40px); margin: 0 0 14px; color: var(--text);
   text-wrap: balance;
 }
-.ov-hero__accent { color: var(--rc-accent, #56d08a); }
+.ov-hero__accent { color: var(--rc-accent, #3aa391); }
 .ov-hero__sub {
   margin: 0; color: var(--muted, #9aa3b2); line-height: 1.6; max-width: 56ch;
   font-size: clamp(15px, 1.4vw, 16.5px);
@@ -6686,7 +6769,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   justify-self: end; align-self: center;
   width: 100%; max-width: clamp(180px, 26vw, 340px); height: auto;
   opacity: 0.92;
-  filter: drop-shadow(0 8px 30px var(--rc-accent-glow, rgba(86, 208, 138, 0.28)));
+  filter: drop-shadow(0 8px 30px var(--rc-accent-glow, rgba(58, 163, 145, 0.28)));
   -webkit-mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
   mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
   user-select: none;
@@ -6753,8 +6836,8 @@ footer.page-footer a:hover { text-decoration: underline; }
   width: 18px;
   height: 2px;
   border-radius: 2px;
-  background: var(--rc-accent, #56d08a);
-  box-shadow: 0 0 10px var(--rc-accent-glow, rgba(86, 208, 138, 0.35));
+  background: var(--rc-accent, #3aa391);
+  box-shadow: 0 0 10px var(--rc-accent-glow, rgba(58, 163, 145, 0.35));
   flex: none;
 }
 .ov-cards {
@@ -12183,7 +12266,12 @@ function wireHostScopeFilter(root) {
     // must land on a VISIBLE Control panel (exactly one .tab-panel.active), never a blank
     // host — the shared render_fragment means a missing fallback target would blank BOTH
     // surfaces with zero console error. Agrees with route()'s shell-level default (Control).
-    if (!validTabs.includes(tab)) tab = "settings";
+    // Phase 2 hybrid: catalog-browse is JS-injected (Gate 132 Δ0) — not in the
+    // static .tab-btn set that seeds validTabs. Allow it once the panel exists.
+    if (!validTabs.includes(tab) && tab !== "catalog-browse") tab = "settings";
+    if (tab === "catalog-browse" && !document.getElementById("panel-catalog-browse")) {
+      tab = "settings";
+    }
     syncSidebar(tab);
     document.querySelectorAll(".tab-btn").forEach(b => {
       b.setAttribute("aria-selected", b.dataset.tab === tab ? "true" : "false");
@@ -12241,6 +12329,7 @@ function wireHostScopeFilter(root) {
       try { initHostContext(); hcLoaded = true; }
       catch (e) { hcLoaded = false; console.error("Host Context init failed", e); }
     }
+    if (tab === "catalog-browse") renderCatalogBrowse(sub || "all");
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
   // deep-linking + browser back/forward. (The hashchange listener re-applies on
@@ -12251,7 +12340,16 @@ function wireHostScopeFilter(root) {
   }
   function applyHash() {
     const seg = (location.hash || "#/settings").replace(/^#\//, "").split("/");
-    activate(seg[0], seg[1]);
+    let tab = seg[0];
+    let sub = seg[1];
+    // Phase 2 hybrid: portal-shaped Catalog browse routes on the standalone when
+    // catalogMode is on. Without a payload, fall through to settings (lean ship).
+    if ((tab === "catalog" || tab === "discover" || tab === "marketplace" || tab === "team")
+        && window.__RC_CATALOG_MODE__) {
+      sub = (tab === "discover" && sub) ? sub : (sub || "all");
+      tab = "catalog-browse";
+    }
+    activate(tab, sub);
   }
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.addEventListener("click", () => goTo(b.dataset.tab));
@@ -12630,6 +12728,221 @@ function wireHostScopeFilter(root) {
 
   window.addEventListener("hashchange", applyHash);
   applyHash();
+
+  /* ── Phase 2: Catalog hybrid mode (lean ship + runtime payload) ─────────
+   * Gate 132 Δ0: Browse nav + panel are createElement'd only when a marketplace
+   * catalog payload is present (inline window.__RC_DATA__ or GET /catalog-data.json).
+   * Consumer installs stay lean (Learn · Guidance · Help · Plugins). */
+  (function initCatalogHybrid() {
+    const CAT_TAB = "catalog-browse";
+    let browseWired = false;
+    let mktState = { cat: "all", q: "" };
+
+    function esc(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+    function hasPayload(d) {
+      return !!(d && Array.isArray(d.plugins) && d.plugins.length);
+    }
+    function catalogModeOn() {
+      return hasPayload(window.__RC_DATA__);
+    }
+
+    function ensureBrowseChrome() {
+      if (browseWired || !catalogModeOn()) return;
+      browseWired = true;
+      window.__RC_CATALOG_MODE__ = true;
+
+      const group = Array.from(document.querySelectorAll(".ds-group")).find(g => {
+        const lab = g.querySelector(".ds-label");
+        return lab && lab.textContent.trim() === "Catalog";
+      });
+      if (group && !group.querySelector('[data-tab="' + CAT_TAB + '"]')) {
+        const a = document.createElement("a");
+        a.className = "ds-sub";
+        a.href = "#/catalog";
+        a.dataset.tab = CAT_TAB;
+        a.textContent = "Browse plugins";
+        a.title = "Browse the marketplace plugin catalog";
+        group.insertBefore(a, group.querySelector(".ds-sub"));
+      }
+
+      if (!document.getElementById("panel-catalog-browse")) {
+        const main = document.querySelector("main.dash-main") || document.querySelector("main");
+        if (main) {
+          const sec = document.createElement("section");
+          sec.className = "tab-panel";
+          sec.id = "panel-catalog-browse";
+          sec.dataset.tab = CAT_TAB;
+          sec.setAttribute("role", "tabpanel");
+          sec.setAttribute("aria-label", "Browse plugins");
+          sec.innerHTML = '<div id="catalog-browse-mount" class="rc-cat"></div>';
+          main.appendChild(sec);
+        }
+      }
+
+      if (!document.getElementById("rc-cat-style")) {
+        const st = document.createElement("style");
+        st.id = "rc-cat-style";
+        st.textContent =
+          ".rc-cat{max-width:1100px}" +
+          ".rc-cat-head h1{font-size:1.45rem;margin:0 0 .35rem}" +
+          ".rc-cat-lede{color:var(--muted);margin:0 0 1rem;max-width:52rem}" +
+          ".rc-cat-filters{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1rem}" +
+          ".rc-cat-filters input[type=search]{flex:1;min-width:14rem;background:var(--surface);" +
+          "border:1px solid var(--border);color:var(--text);padding:.55rem .8rem;border-radius:8px}" +
+          ".rc-cat-cats{display:flex;flex-wrap:wrap;gap:.35rem;margin:0 0 1rem}" +
+          ".rc-cat-chip{border:1px solid var(--border);background:var(--surface);color:var(--muted);" +
+          "border-radius:999px;padding:.25rem .7rem;font-size:.78rem;cursor:pointer}" +
+          ".rc-cat-chip.is-on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}" +
+          ".rc-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px, 100%),1fr));gap:12px}" +
+          ".rc-cat-card{border:1px solid var(--border);border-radius:12px;padding:14px 14px 12px;background:var(--surface)}" +
+          ".rc-cat-card .nm{font-weight:650}" +
+          ".rc-cat-card .ver{font-size:.75rem;color:var(--faint);margin-left:.4rem}" +
+          ".rc-cat-card .desc{color:var(--muted);font-size:.86rem;margin:.45rem 0 .6rem}" +
+          ".rc-cat-metrics{display:flex;flex-wrap:wrap;gap:.55rem;font-size:.76rem;color:var(--faint);margin-bottom:.55rem}" +
+          ".rc-cat-metrics b{color:var(--accent)}" +
+          ".rc-cat-tags{display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.7rem}" +
+          ".rc-cat-tags span{font-size:.72rem;border:1px solid var(--border);border-radius:999px;padding:.12rem .45rem;color:var(--muted)}" +
+          ".rc-cat-foot{display:flex;gap:.4rem;flex-wrap:wrap}" +
+          ".rc-cat-foot .btn{font-size:.8rem}" +
+          ".rc-cat-empty{color:var(--muted);padding:1rem 0}";
+        document.head.appendChild(st);
+      }
+    }
+
+    window.renderCatalogBrowse = function renderCatalogBrowse(catId) {
+      ensureBrowseChrome();
+      const D = window.__RC_DATA__;
+      const mount = document.getElementById("catalog-browse-mount");
+      if (!mount || !hasPayload(D)) return;
+      mktState.cat = catId || mktState.cat || "all";
+      const cats = D.categories || [];
+      const stats = D.stats || {};
+      const n = (D.plugins || []).length;
+      const chip = (id, label) =>
+        '<button type="button" class="rc-cat-chip' + (mktState.cat === id ? " is-on" : "") +
+        '" data-cat="' + esc(id) + '">' + esc(label) + "</button>";
+      const catChips = [chip("all", "All (" + n + ")")].concat(
+        cats.map(c => {
+          const count = (D.plugins || []).filter(p => p.category === c.id).length;
+          return chip(c.id, (c.label || c.id) + " (" + count + ")");
+        })
+      ).join("");
+
+      mount.innerHTML =
+        '<div class="rc-cat-head"><p class="eyebrow" style="margin:0 0 .35rem;color:var(--accent);font-size:.72rem;letter-spacing:.04em;text-transform:uppercase">Marketplace</p>' +
+        "<h1>Browse the plugin catalog</h1>" +
+        '<p class="rc-cat-lede">' + n + " ready-made plugins" +
+        (stats.specialists ? (" · " + stats.specialists + " specialists") : "") +
+        ". Hybrid Catalog mode — lean consumer install until this payload is present.</p></div>" +
+        '<div class="rc-cat-filters"><input type="search" id="rc-cat-q" placeholder="Search plugins by name, description or technology…" value="' +
+        esc(mktState.q) + '" aria-label="Search plugins" /></div>' +
+        '<div class="rc-cat-cats" id="rc-cat-cats">' + catChips + "</div>" +
+        '<div id="rc-cat-grid" class="rc-cat-grid"></div>';
+
+      function pluginCard(p) {
+        const c = p.counts || {};
+        const reqs = (p.requires || []).length ? '<span>requires core</span>' : "";
+        const kws = (p.keywords || []).slice(0, 5).map(k => "<span>" + esc(k) + "</span>").join("");
+        const install = "/plugin install " + p.name + "@ravenclaude";
+        return '<article class="rc-cat-card">' +
+          '<div><span class="nm">' + esc(p.label || p.name) + '</span>' +
+          '<span class="ver">v' + esc(p.version || "") + "</span></div>" +
+          '<p class="desc">' + esc(p.short || "") + "</p>" +
+          '<div class="rc-cat-metrics">' +
+          "<span><b>" + (c.agents || 0) + "</b> specialists</span>" +
+          "<span><b>" + (c.skills || 0) + "</b> skills</span>" +
+          "<span><b>" + (c.knowledge || 0) + "</b> knowledge</span>" +
+          "</div>" +
+          '<div class="rc-cat-tags">' + kws + reqs + "</div>" +
+          '<div class="rc-cat-foot">' +
+          '<button type="button" class="btn primary rc-cat-copy" data-copy="' + esc(install) + '">Copy install</button>' +
+          '<button type="button" class="btn rc-cat-cfg" data-plugin="' + esc(p.name) + '">Configure</button>' +
+          "</div></article>";
+      }
+
+      function renderGrid() {
+        const q = (mktState.q || "").toLowerCase().trim();
+        let list = (D.plugins || []).filter(p => mktState.cat === "all" || p.category === mktState.cat);
+        if (q) {
+          list = list.filter(p =>
+            ((p.label || "") + " " + (p.short || "") + " " + (p.name || "") + " " +
+             ((p.keywords || []).join(" "))).toLowerCase().includes(q)
+          );
+        }
+        const grid = document.getElementById("rc-cat-grid");
+        if (!grid) return;
+        grid.innerHTML = list.length
+          ? list.map(pluginCard).join("")
+          : '<p class="rc-cat-empty">No plugins match.</p>';
+      }
+
+      const qEl = document.getElementById("rc-cat-q");
+      if (qEl) qEl.addEventListener("input", e => { mktState.q = e.target.value; renderGrid(); });
+      const catsEl = document.getElementById("rc-cat-cats");
+      if (catsEl) catsEl.addEventListener("click", e => {
+        const btn = e.target.closest("[data-cat]");
+        if (!btn) return;
+        mktState.cat = btn.getAttribute("data-cat") || "all";
+        if (location.hash !== "#/discover/" + mktState.cat && mktState.cat !== "all") {
+          location.hash = "/discover/" + mktState.cat;
+        } else if (mktState.cat === "all" && location.hash !== "#/catalog") {
+          location.hash = "/catalog";
+        } else {
+          renderCatalogBrowse(mktState.cat);
+        }
+      });
+      mount.addEventListener("click", e => {
+        const cfg = e.target.closest(".rc-cat-cfg");
+        if (cfg) {
+          const name = cfg.getAttribute("data-plugin") || "";
+          if (name) location.hash = "/plugin-vars/" + name;
+          return;
+        }
+        const btn = e.target.closest(".rc-cat-copy");
+        if (!btn) return;
+        const t = btn.getAttribute("data-copy") || "";
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(t).then(() => {
+            btn.textContent = "Copied";
+            setTimeout(() => { btn.textContent = "Copy install"; }, 1200);
+          }).catch(() => {});
+        }
+      });
+      renderGrid();
+    };
+
+    function enableIfReady() {
+      if (!catalogModeOn()) return false;
+      ensureBrowseChrome();
+      const seg = (location.hash || "").replace(/^#\//, "").split("/");
+      if (seg[0] === "catalog" || seg[0] === "discover" || seg[0] === "marketplace" || seg[0] === "team") {
+        applyHash();
+      }
+      return true;
+    }
+
+    if (enableIfReady()) return;
+
+    const urls = ["catalog-data.json", "/catalog-data.json"];
+    let i = 0;
+    function tryNext() {
+      if (i >= urls.length || catalogModeOn()) return;
+      const url = urls[i++];
+      fetch(url, { credentials: "same-origin" }).then(r => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      }).then(data => {
+        if (!hasPayload(data)) return;
+        window["__RC_DATA__"] = data;
+        enableIfReady();
+      }).catch(() => { tryNext(); });
+    }
+    tryNext();
+  })();
 
   /* ── Pipeline tab ──────────────────────────────────────────────────────
    * Visual guardrail map. Posture-backed knobs mutate the SHARED `state` and
@@ -17135,7 +17448,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <span class="ds-mark" aria-hidden="true">{raven_mark}</span>
     <span class="ds-word">
       <span class="ds-name">Raven<b>Claude</b></span>
-      <span class="ds-tag">Dashboard</span>
+      <span class="ds-tag">Engineering Team Platform</span>
     </span>
   </div>
   <nav class="ds-nav" aria-label="Dashboard sections">
@@ -17163,7 +17476,7 @@ _PAGE_TEMPLATE = """<!doctype html>
       <a class="ds-sub" href="#/nidhoggr" data-tab="nidhoggr">Debt</a>
     </div>
     <div class="ds-group">
-      <div class="ds-label">Learn &amp; Help</div>
+      <div class="ds-label">Catalog</div>
       <a class="ds-sub" href="#/learn" data-tab="learn">Learn</a>
       <a class="ds-sub" href="#/trees" data-tab="trees">Guidance</a>
       <a class="ds-sub" href="#/help" data-tab="help">Help</a>
@@ -17407,6 +17720,14 @@ def main() -> int:
         "in place. For hermetic validation: a caller renders to a temp file without "
         "mutating the committed artifact (see scripts/audit-gates.sh Gate 13).",
     )
+    p.add_argument(
+        "--include-catalog",
+        action="store_true",
+        help="Embed lean window.__RC_DATA__ for Catalog browse (Gate 132 +1). "
+        "Default/shipped consumer dashboard.html omits this; use runtime fetch "
+        "of /catalog-data.json instead. Do not commit --include-catalog output "
+        "as the consumer artifact without an owned Gate 132 raise.",
+    )
     args = p.parse_args()
 
     if args.stdout and not args.plugin:
@@ -17438,7 +17759,7 @@ def main() -> int:
     exit_code = 0
     for plugin_dir in plugins:
         schema = load_schema(plugin_dir)
-        new_html = render_dashboard(plugin_dir, schema)
+        new_html = render_dashboard(plugin_dir, schema, include_catalog=args.include_catalog)
         out_path = plugin_dir / "dashboard.html"
 
         if args.stdout:

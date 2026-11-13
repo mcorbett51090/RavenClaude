@@ -47,9 +47,9 @@ flowchart TD
 
 **See also:** Tool use (function calling) · The context window · Subagents & orchestration
 
-**Sources:** [Building agents with the Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk) · ["The Anatomy of an Agent Harness" (Akshay Pachaar)](https://x.com/_avichawla/status/2062082282878627946)
+**Sources:** [Building agents with the Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk) · ["The Anatomy of an Agent Harness" (Akshay Pachaar)](https://x.com/_avichawla/status/2062082282878627946) · [Agent SDK — How the agent loop works](https://code.claude.com/docs/en/agent-sdk/agent-loop) · [LangChain — The anatomy of an agent harness (source of the quoted saying)](https://langchain.com/blog/the-anatomy-of-an-agent-harness)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -60,7 +60,7 @@ _Last verified: 2026-08-24_
 
 A language model only produces **text**. It can't read a file, run a command, or call an API by itself. **Tool use** (also called *function calling*) is the bridge: you describe the available tools — each with a name, a description, and a JSON schema for its inputs — and the model, instead of answering in prose, emits a structured **tool-use request** naming one tool and the arguments to call it with.
 
-The model never runs anything. The **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.
+The model never runs anything. For client tools — the usual case — the **harness** (Claude Code, the Agent SDK, your own loop) executes the requested tool, captures the output, and feeds it back as a **tool-result** message. (Server tools such as web search run on Anthropic's infrastructure instead, with no handler code in your harness.) The model reads that result on the next turn and decides what to do next — call another tool, or answer. Every single thing an agent *does* — edit a file, run a test, open a PR — is one trip around this request → execute → result cycle.
 
 Three details that bite:
 
@@ -88,9 +88,9 @@ flowchart TD
 
 **See also:** The agent loop: one turn · Permission layers & precedence
 
-**Sources:** [Tool use (function calling) — Claude API](https://docs.claude.com/en/docs/build-with-claude/tool-use) · [Agent SDK — tools & permissions](https://code.claude.com/docs/en/agent-sdk)
+**Sources:** [Tool use (function calling) — Claude API](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) · [Agent SDK — tools & permissions](https://code.claude.com/docs/en/agent-sdk)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -101,7 +101,7 @@ _Last verified: 2026-08-24_
 
 A model has **no memory between turns.** Everything it "knows" while answering is whatever text sits in its **context window** right now: the system prompt, the tool schemas, the project instructions (`CLAUDE.md` / `AGENTS.md`), the conversation so far, and the contents of any file or tool result that's been pulled in. Nothing outside that window exists to the model — if it isn't in context, the model can't see it, no matter how relevant.
 
-The window is **finite** (measured in tokens — roughly ¾ of a word each). Two consequences follow:
+The window is **finite** (measured in tokens — roughly ½ to ¾ of a word each, depending on the model's tokenizer). Two consequences follow:
 
 - **It fills up.** Long sessions, big files, and chatty tool output all consume the budget. As it fills, the *effective* room for reasoning shrinks, and far-back details get crowded out — the model can genuinely "forget" what happened early in a long session.
 - **When it's nearly full, the harness compacts.** Claude Code summarizes the older part of the conversation into a compact recap and continues with that plus the recent turns. The work isn't lost, but it's now a *summary* — which is why durable facts belong in `CLAUDE.md` or committed files, not just in chat.
@@ -129,9 +129,9 @@ flowchart TD
 
 **See also:** The agent loop: one turn · Tool use (function calling) · SessionStart context injection
 
-**Sources:** [Context windows — Claude API](https://docs.claude.com/en/docs/build-with-claude/context-windows) · [Manage context — Claude Code](https://code.claude.com/docs/en/costs)
+**Sources:** [Context windows — Claude API](https://platform.claude.com/docs/en/build-with-claude/context-windows) · [Manage context — Claude Code](https://code.claude.com/docs/en/costs)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -174,7 +174,7 @@ flowchart TD
 
 **Sources:** [Subagents — Claude Code](https://code.claude.com/docs/en/sub-agents) · [Building agents with the Agent SDK](https://code.claude.com/docs/en/agent-sdk)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -193,7 +193,7 @@ The shape is **client ↔ server.** Your agent host (Claude Code, an IDE, a desk
 
 Two things worth knowing:
 
-- **Servers run as separate processes** and connect over a transport (local stdio, or remote HTTP/SSE). A server may be on your machine or across the network — the client talks to both the same way.
+- **Servers run as separate processes** and connect over a transport (local stdio, or remote Streamable HTTP — the older SSE transport is deprecated). A server may be on your machine or across the network — the client talks to both the same way.
 - **MCP tools are still just tool use.** Once connected, an MCP tool appears to the model exactly like any built-in tool: same request/result loop, same permission gating. MCP standardizes *where tools come from*, not *how the model calls them*. (In Claude Code a server can show as "still connecting" at startup — its tools are name-only until the schema loads, which is a connection state, not an absent capability.)
 
 ```mermaid
@@ -213,7 +213,7 @@ flowchart TD
 
 **Sources:** [Model Context Protocol — specification](https://modelcontextprotocol.io) · [Connect to MCP servers — Claude Code](https://code.claude.com/docs/en/mcp)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -222,9 +222,9 @@ _Last verified: 2026-08-24_
 
 > Bigger isn't always better. Match the model to the job — a fast, cheap model for routine steps, a frontier model for hard reasoning — and use the strong one to supervise the cheap ones.
 
-An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the three tiers exist precisely so you can match the model to the work:
+An agent isn't locked to one model, and the strongest model isn't always the right one. Picking a model is a **cost / latency / capability** trade, and the model tiers exist precisely so you can match the model to the work (this page teaches the three everyday tiers; Anthropic's line-up now also has a Fable tier above Opus for the most demanding long-horizon work):
 
-- **Frontier (e.g. Opus)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and most expensive per token. Reach for it when the task genuinely needs it.
+- **Frontier (e.g. Opus; Fable for the most demanding long-horizon work)** — deepest reasoning, hardest planning, gnarliest debugging. Slower and pricier per token than the tiers below. Reach for it when the task genuinely needs it.
 - **Balanced (e.g. Sonnet)** — the everyday workhorse: strong reasoning at much lower cost and latency. The sensible default for most agent work.
 - **Fast (e.g. Haiku)** — quick, cheap, great for classification, routing, summarizing, and high-volume routine steps where frontier-grade reasoning is overkill.
 
@@ -249,9 +249,9 @@ flowchart TD
 
 **See also:** The agent loop: one turn · Subagents & orchestration
 
-**Sources:** [Models overview — Claude API](https://docs.claude.com/en/docs/about-claude/models) · [Choosing a model — Claude Code](https://code.claude.com/docs/en/model-config)
+**Sources:** [Models overview — Claude API](https://platform.claude.com/docs/en/models/overview) · [Choosing a model — Claude Code](https://code.claude.com/docs/en/model-config)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -285,8 +285,8 @@ _Last verified: 2026-08-24_
 
 **The safety nets** mean you can experiment without breaking things:
 
-- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push to main**, `git reset --hard`, `git clean -f`, and `git branch -D` on a protected branch. It denies them before they run.
-- The sanctioned way to retire a finished branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost.
+- The `guard-destructive.sh` hook blocks the truly destructive commands — **force-push**, `git reset --hard`, `git clean -f`, and `git branch -D` (on any branch). It denies them before they run.
+- The sanctioned way to retire an abandoned or unmerged branch is `scripts/archive-branch.sh` — it **tags the branch tip** (so the work is recoverable forever on the tag), pushes the tag to GitHub, writes an audit log, then deletes the local branch. Work is never actually lost. (A cleanly merged branch needs no archive tag — its commits already live in `main`, so you just delete it on GitHub.)
 
 You will rarely type any of these commands yourself. The reason to learn the vocabulary is so that when Claude says _"I opened PR #238 on branch `feat/rc-hardener-followups`"_ or _"the guard denied a force-push"_, you know exactly what happened and what your next click is.
 
@@ -299,7 +299,7 @@ flowchart TD
   PR -->|merge| MAIN[(main branch · official timeline)]
   D[Docs change under docs/] -->|commit + push| MAIN
   X[git push --force to main<br/>git reset --hard<br/>rm -rf the repo] -.->|guard-destructive.sh| BLOCK[Blocked — safety net]
-  R[Retire a finished branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]
+  R[Retire an abandoned branch] -->|archive-branch.sh| TAG[Tag pushed · branch deleted · recoverable forever]
   class C,PR,MAIN,TAG fact
   class BLOCK,GH built
 ```
@@ -308,7 +308,7 @@ flowchart TD
 
 **Sources:** [AGENTS.md — PR conventions; House rules (branch-archive)](../AGENTS.md) · [branch-archive skill](../plugins/ravenclaude-core/skills/branch-archive/SKILL.md) · [Pro Git — About Version Control](https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-10-20_
 
 
 ---
@@ -1227,9 +1227,11 @@ _Last verified: 2026-06-08_
 
 The **definition-of-done gate** closes the gap that command review can't see: it gates work **correctness**, not command safety. The Thing tribunal asks "is this command dangerous?"; this gate asks "is the work actually finished, or does it just *look* finished?" It is a `Stop` hook — it fires when the agent tries to end its turn — and if a `definition_of_done.cmd` is configured in `.ravenclaude/comfort-posture.yaml`, it runs that command (your tests, build, lint) and **blocks the stop until the command exits zero**. That turns "looks done" into "is done" without the human having to be the verification loop.
 
-The gate is **scoped and self-limiting** so it never becomes an obstacle. It only fires when *source files actually changed* this session (it inspects `git status --porcelain` for code extensions), so a docs-only or read-only session ends cleanly. When the command fails, the gate feeds the tail of the failing output back to the agent so it can fix the problem and try again. To guarantee it can't deadlock, it blocks at most **`max_blocks`** (default 8) consecutive times, then **force-allows** the stop with a warning — Claude Code force-overrides Stop after 8 anyway, but Copilot CLI gives no such guarantee, so the cap is built in. With no `definition_of_done.cmd` set, the gate is inert and the advisory `remind-tests.sh` nudge handles the reminder instead.
+The gate is **scoped and self-limiting** so it never becomes an obstacle. It only fires when *source files actually changed* this session (it inspects `git status --porcelain` for code extensions), so a docs-only or read-only session ends cleanly. When the command fails, the gate feeds the tail of the failing output back to the agent so it can fix the problem and try again. To guarantee it can't deadlock, it blocks at most **`max_blocks`** (default 8) consecutive times, then releases the stop with `VERDICT: STOP` (end the turn; do not ask). Claude Code force-overrides Stop after 8 anyway, but Copilot CLI gives no such guarantee, so the cap is ours. On Copilot that release is a user warning, not a new prompt. The first-run trust refusal counts toward that same cap. With no `definition_of_done.cmd` set, the gate is inert and the advisory `remind-tests.sh` nudge handles the reminder instead.
 
-One safety detail: the configured command is shell-executed, and it comes from a YAML field a malicious pull request could edit. So before the *first* run per session for a given command value, the gate refuses to execute and surfaces the literal command plus a one-line `touch` step to authorize it (or set `definition_of_done.trusted: true` to skip the prompt permanently). Rotating the command or starting a new session re-triggers the check. Like the other guardrails it is **opt-in and deterministic** — the verdict is just a command's exit code, no model in the loop — so it ports unchanged to Copilot through the adapter's `stop` mode.
+Copilot turns a Stop block reason into the next user prompt, so the first line is a verdict. No block means **DONE**: end the turn and do not ask. `VERDICT: NOT DONE` means do the single `[FAIL]` line, then stop again. `VERDICT: STOP` means `max_blocks` is reached: end the turn and say the gate did not pass.
+
+One safety detail: the configured command is shell-executed, and it comes from a YAML field a malicious pull request could edit. So before the first run per session for a given command value, the gate refuses to execute and names the literal command. **A person** creates `~/.ravenclaude/dod-confirm/<repo-hash>/<session>/confirmed-<hash>` **outside the worktree** (and outside the agent session). The agent must not create it — Write and Bash attempts that name the confirm token are denied, and an in-tree `.ravenclaude/runs/dod-gate/.../confirmed-*` is no longer accepted. Set `definition_of_done.trusted: true` in a later commit than the `cmd` line to skip the prompt. Rotating the command or starting a new session re-triggers the check. The diagram node "ask to authorize" means that person, not the agent. Like the other guardrails it is **opt-in and deterministic** — the verdict is a command's exit code, no model in the loop — so it ports through the adapter's `stop` mode. The trust refusal is stdout JSON (`decision: block`) at exit 0, because Copilot drops stderr when a hook exits 2.
 
 ```mermaid
 flowchart TD
@@ -1250,7 +1252,7 @@ flowchart TD
 
 **Sources:** [dod-gate.sh hook](../plugins/ravenclaude-core/hooks/dod-gate.sh) · [ravenclaude-core constitution — Auto-mode guardrails](../plugins/ravenclaude-core/CLAUDE.md)
 
-_Last verified: 2026-06-08_
+_Last verified: 2026-11-13_
 
 
 ---
@@ -1812,7 +1814,7 @@ flowchart TD
 
 **See also:** Capability Grounding Protocol · Structured Output Protocol · Claim Grounding & Source Honesty · Command-review tribunal (the Thing) · The Sága audit log
 
-**Sources:** [ravenclaude-core constitution — Last-Mile Completion Protocol](../plugins/ravenclaude-core/CLAUDE.md) · [Capability Grounding Protocol (the floor it pairs with)](../plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [ravenclaude-core constitution — Last-Mile Completion Protocol; Capability Grounding Protocol (the floor it pairs with)](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-06-08_
 
@@ -1952,9 +1954,9 @@ _Last verified: 2026-05-26_
 
 > RavenClaude runs under GitHub Copilot CLI too — via a generated package + a hook adapter — and updating is just `git pull`, never a re-install.
 
-Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (mapping its `toolName`/`toolArgs` ⇄ Claude's `tool_name`/`tool_input`, the lowercase tool-name *values* ⇄ Claude's PascalCase, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing.
+Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (camelCase `toolName`/`toolArgs` as a JSON string, or PascalCase `tool_input` as an object, ⇄ Claude's `tool_name`/`tool_input`; lowercase tool-name *values* ⇄ Claude's PascalCase; a PreToolUse deny is top-level `permissionDecision` with no `hookSpecificOutput` wrapper, which Copilot ignores; Gate 20 requires the top-level key; Stop still emits both shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing. On VS Code Copilot Chat, leave `chat.useClaudeHooks` off while `.github/hooks/ravenclaude.json` is present so the Claude settings hooks do not run a second copy.
 
-> **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37]`. "Unmodified scripts run under Copilot" is true of the *translation*, not of the *coverage*: the Copilot hooks file is hand-maintained, and **12+ shipped hooks are not in it**, so they never fire on that host at all (MH-12, open). Read this card as "the bridge does not require forking the hooks", **not** as "every guardrail you see under Claude Code is also protecting you under Copilot". The authoritative per-component answer is [`../host-support.json`](../plugins/ravenclaude-core/knowledge/host-support.json), and it is the one to trust if this card and it ever disagree.
+> **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37; coverage corrected 2026-11-05]`. "Unmodified scripts run under Copilot" is true of the *translation*, not of the *coverage*. **MH-12 is closed** (0.219.0): `scripts/generate-copilot-hooks.py` projects the Copilot hooks file from the canonical manifest, and Gate 158 fails the build if a hook is neither wired nor explicitly skipped. Skips are written into the generated file with reasons. Read this card as "the bridge does not require forking the hooks", **not** as "every guardrail you see under Claude Code is also protecting you under Copilot". The authoritative per-component answer is [`../host-support.json`](../plugins/ravenclaude-core/knowledge/host-support.json), and it is the one to trust if this card and it ever disagree.
 
 The design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.
 
@@ -2002,7 +2004,7 @@ flowchart TD
 
 **Sources:** [ravenclaude-core constitution — Copilot CLI bridge](../plugins/ravenclaude-core/CLAUDE.md) · [Copilot CLI customization surface (canonical, docs-verified)](../plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) · [generate-copilot-plugin.py](../scripts/generate-copilot-plugin.py)
 
-_Last verified: 2026-06-09_
+_Last verified: 2026-11-05_
 
 
 ---
@@ -2353,8 +2355,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-19_
-
+_Last verified: 2026-11-13_
 
 ---
 
@@ -2379,7 +2380,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-11-11_
 
 
 ---
@@ -2449,8 +2450,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-19_
-
+_Last verified: 2026-11-13_
 
 ---
 
@@ -2475,8 +2475,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-20_
-
+_Last verified: 2026-11-11_
 
 ---
 
@@ -2749,7 +2748,7 @@ Probe: `scripts/check-artifact-budgets.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-10-18_
+_Last verified: 2026-11-12_
 
 
 ---
@@ -2821,8 +2820,7 @@ predicate names anything the command has not done yet.
 
 **Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/archive/2026-08-19-verify-before-assert/plan.md)
 
-_Last verified: 2026-10-19_
-
+_Last verified: 2026-11-05_
 
 ---
 
@@ -3892,6 +3890,32 @@ Measured 2026-10-18: a gap under 5 minutes already reads the 5-minute cache, and
 **Sources:** [2026-10-14 prompt-caching build plan — Phase 4, subagent TTL from data](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-10-14-prompt-caching/BUILD-PLAN.md)
 
 _Last verified: 2026-10-18_
+
+
+---
+
+### A bulk cleanup that previews before it touches anything · _RavenClaude-built_
+
+> Why a bulk worktree sweep is safe to run blind: --all alone never removes anything.
+
+## What a reader would have assumed instead
+
+A `--all` bulk-cleanup flag mutates immediately, the way most bulk-delete commands do.
+
+## The discriminator
+
+control: a plain `--all` run left a genuinely clean, removable worktree on disk untouched, and the output was labeled DRY RUN
+Measured 2026-11-10: `--all` alone only previews — framed as what `--execute` would do to each worktree — and never passes `--force` even once `--execute` is given. The SessionEnd report hook (`worktree-cleanup-report.sh`) runs the same `--status`/preview path on every session close, which is exactly what makes an always-on hook safe: there is no mutating code path for it to accidentally reach.
+
+## Why it matters
+
+Falsifier: a plain `--all` run (no `--execute`) deleting any worktree.
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh` (P12a/P12b/T2 exercise exactly this contract, including a teeth check that neuters the `--execute` gate and confirms a plain `--all` then mutates).
+
+**Sources:** [worktree-clean.sh usage doc + P12/T2 of its own lifecycle test](../plugins/ravenclaude-core/hooks/tests/test-worktree-clean-lifecycle.sh)
+
+_Last verified: 2026-11-10_
 
 
 ---

@@ -99,7 +99,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.x"
 
@@ -113,7 +113,7 @@ jobs:
         run: python3 -m pip install --quiet pyyaml
 
       - name: Set up Node.js (mermaid-cli is fetched on demand by npx when an SVG is stale)
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "20"
 
@@ -262,14 +262,14 @@ jobs:
             python3 scripts/generate-dashboards.py --check
           fi
 
-          # 4. index.html — the unified portal. It folds in the dashboard
+          # 4. index.html — Phase 3b Pages stub (+ catalog-data.json). Was the unified portal;
           #    sub-app natively (via render_fragment) and inlines the per-plugin
           #    catalog data, so it must be regenerated AFTER the SVGs + dashboard
           #    above. --check
           #    strips the volatile generated-timestamp surfaces, so a pure
           #    timestamp delta reports fresh and we regenerate nothing.
           if ! python3 scripts/generate-index-dashboard.py --check >/dev/null 2>&1; then
-            echo "index.html stale — regenerating the unified portal."
+            echo "index.html stale — regenerating the Phase 3b Pages stub + catalog."
             python3 scripts/generate-index-dashboard.py
             python3 scripts/generate-index-dashboard.py --check
           fi

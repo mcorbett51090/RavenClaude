@@ -42,6 +42,14 @@
 | Blog post | `/blog/[year]/[slug]/` | `BlogPost.astro` | [...] |
 | ... | ... | ... | ... |
 
+## Content placement (signed-in / portal pages)
+
+Skip with `N/A — single-purpose page` when the page has one job (a marketing page, a legal page). Otherwise every major block gets one verdict before this IA is signed. A builder or editor on a page whose nav parent is a different product entity is Move or Remove, not Keep. Procedure: `skills/information-architecture` §8.
+
+| Route | Block | Verdict (Keep / Move / Remove) | Destination route, if not Keep |
+|---|---|---|---|
+| `/…` | [editor / table / form / share kit / analytics / settings] | | |
+
 ## Navigation
 
 ### Primary navigation
@@ -68,6 +76,22 @@
 
 - Hamburger → drawer with primary nav
 - Sticky CTA on mobile if conversion-driven
+
+## Signed-in page content (portal)
+
+> Run on every signed-in portal UX pass, before chrome polish. One row per major block, from the rendered page. Procedure: [`../knowledge/content-placement-page-ia-2026-11.md`](../knowledge/content-placement-page-ia-2026-11.md). Marketing-only site: `N/A — no signed-in routes`.
+
+Walk signed in. Open every route the rail, account menu, and in-page tabs can reach.
+
+| Route | Block | Verdict (Keep / Move / Remove/redirect) | Destination (route — product area) | Old page keeps |
+|---|---|---|---|---|
+| /account/site | Card editor | Move | /account/cards/site — Cards | Link only. Not a second editor. |
+| ... | ... | ... | ... | ... |
+
+- [ ] No editor or builder remains on a page whose nav already points at a dedicated route for it.
+- [ ] Move and Remove/redirect rows name the route. "The nav looks fine" is not a substitute for this table.
+
+The `/account/site` row is the reported shape `[user-described 2026-11-05]`, not a route every product must copy.
 
 ## IA validation (card sort — G2 acceptance record)
 

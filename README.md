@@ -1,6 +1,6 @@
 # 🐦‍⬛ RavenClaude
 
-**A private Claude Code plugin marketplace** — governed multi-agent teams, specialist plugins, and a comfort-posture dashboard that travel with you across projects.
+**A public Claude Code plugin marketplace** — governed multi-agent teams, specialist plugins, and a comfort-posture dashboard that travel with you across projects.
 
 > 🚀 **[▶ See what RavenClaude is (`pitch.html`)](https://mcorbett51090.github.io/RavenClaude/pitch.html)** — value prop, proof, and catalog at a glance. **Start here.**
 >
@@ -16,7 +16,7 @@ Today this marketplace ships **184 plugins** (live inventory: **[portal Marketpl
 
 **[`ravenclaude-core`](plugins/ravenclaude-core/)** is the foundation: Team Lead + specialist agents, dispatch playbooks, gates, hooks, templates, comfort-posture, and the Learn / teaching surfaces on the dashboard. Domain plugins (Power Platform, cloud, finance, security, and many more) install beside it.
 
-### What's new in core (through **0.324.7**)
+### What's new in core (bullets below stop at **0.324.7**; later notes are in `plugins/ravenclaude-core/CHANGELOG.md`, including the 0.360.1 stop verdict)
 
 - **Thing tribunal** — opt-in command-review for risky tools; **hardening EDIT** behind `command_review.hardening_edit` (**default ON**; set false to opt out). Force-push / mirror-push / hard-rule floors stay DENY under EDIT ON.
 - **Runes ready-queue** — Oath-hook + `rc runes`; dashboard **Runes at session start** opt-in (`runes:` absent ⇒ off); may auto-claim ungated ready work when On; never auto Longship merge.
@@ -31,14 +31,34 @@ Today this marketplace ships **184 plugins** (live inventory: **[portal Marketpl
 
 ## Install
 
-There are **two install paths**, depending on which agent host you use. Pick one and follow that column — the surfaces don't overlap (the `/plugin` slash commands exist only in Claude Code; the `ravenclaude` script exists only on the Copilot side).
+This repository is **public**: anyone can read it, clone it, and install from it without being added as a collaborator. Write access is limited to the collaborators listed in [`docs/access.md`](docs/access.md).
+
+Quick start in Claude Code (inside a session):
+
+```text
+/plugin marketplace add mcorbett51090/RavenClaude
+/plugin install ravenclaude-core@ravenclaude
+```
+
+Since Claude Code v2.1.221 this often loads without `/reload-plugins`. Run that only if the agents do not appear.
+
+Or from your shell:
+
+```shell
+claude plugin marketplace add mcorbett51090/RavenClaude
+claude plugin install ravenclaude-core@ravenclaude
+```
+
+The marketplace name is `ravenclaude` (from [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json)), so every install id is `<plugin>@ravenclaude`.
+
+Claude Code uses the `/plugin` slash commands. Every other supported host uses `scripts/ravenclaude` with `--host copilot` (the default), `codex`, `cursor`, `gemini`, or `aider`. The table below is Path A (Claude Code) and Path B (Copilot CLI / Codespace). For the other hosts, use Path B's clone and `setup`/`install` line and add `--host <name>`.
 
 |  | **Path A — Claude Code** (recommended if you have it) | **Path B — GitHub Copilot CLI / Codespace** |
 |---|---|---|
 | **Audience** | You run `claude` and want the marketplace's agents/skills/hooks inside it. | You run `copilot` (or want the dashboard + governance in a Codespace without Claude Code). |
-| **Install** | `/plugin marketplace add mcorbett51090/RavenClaude` <br> `/plugin install ravenclaude-core@ravenclaude` <br> `/reload-plugins` | `git clone https://github.com/mcorbett51090/RavenClaude.git ~/RavenClaude` <br> `bash ~/RavenClaude/scripts/ravenclaude setup --project .` <br> `source ~/.bashrc` |
-| **Add a plugin** | `/plugin install power-platform@ravenclaude` <br> `/reload-plugins` | `bash ~/RavenClaude/scripts/ravenclaude setup --project . --with-plugin power-platform` |
-| **Update later** | `/plugin marketplace update ravenclaude` <br> `/reload-plugins` | `rc` (the alias = `ravenclaude update && copilot --plugin-dir …`) |
+| **Install** | `/plugin marketplace add mcorbett51090/RavenClaude` <br> `/plugin install ravenclaude-core@ravenclaude` | `git clone https://github.com/mcorbett51090/RavenClaude.git ~/RavenClaude` <br> `bash ~/RavenClaude/scripts/ravenclaude setup --project .` <br> `source ~/.bashrc` |
+| **Add a plugin** | `/plugin install power-platform@ravenclaude` | `bash ~/RavenClaude/scripts/ravenclaude setup --project . --with-plugin power-platform` |
+| **Update later** | `/plugin marketplace update ravenclaude` | `rc` (the alias = `ravenclaude update && copilot --plugin-dir …`) |
 | **Pin a SHA** | `/plugin marketplace add mcorbett51090/RavenClaude#<sha>` | `git -C ~/RavenClaude checkout <sha>` |
 | **Launch** | (nothing — Claude Code loads the plugin automatically) | `rc` in a NEW terminal (or `bash -i -c rc` from a non-interactive shell) |
 
@@ -60,7 +80,7 @@ The post-create script auto-installs these on Debian-family images, but if you'r
 
 - **Node 22+** (Copilot CLI requires it). The template image `mcr.microsoft.com/devcontainers/universal:2-linux` already has Node; the `python:3.12` family does not.
 - **git-lfs** (for any repo with LFS-tracked assets).
-- **GitHub CLI** (`gh`) — used to clone a private marketplace fork via your Codespace's auth.
+- **GitHub CLI** (`gh`) — used to clone the marketplace (or your own private fork of it) via your Codespace's auth.
 
 ---
 
@@ -254,6 +274,12 @@ If Gate 302 fails, pack generated per-file artifacts into a few files (the patte
 `salesforce` (Apex, Flow, Agentforce, platform-architecture specialists) has since **shipped** as well — it is now one of the 184 plugins above, no longer planned-only.
 
 Each builds on top of `ravenclaude-core` (which provides the neutral team) and adds domain-specific agents that the consumer can choose to install or skip. `power-platform` is the reference implementation of this pattern.
+
+---
+
+## Security
+
+Found a vulnerability, or a secret that shouldn't be here? **Don't open a public issue.** Report it privately as described in [`SECURITY.md`](SECURITY.md).
 
 ---
 

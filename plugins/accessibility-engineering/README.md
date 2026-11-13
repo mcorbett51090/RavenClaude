@@ -10,7 +10,7 @@ A **Accessibility Engineering specialist team** for an accessibility lead, front
 |---|---|
 | **agents** | `accessibility-lead`, `wcag-audit-analyst`, `assistive-tech-testing-specialist`, `inclusive-design-strategist` |
 | **skills / commands** | `run-wcag-audit` · `prioritize-remediation` · `test-assistive-tech` · `verify-contrast` · `design-accessible-pattern` |
-| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees · portal chrome and coding-agent legibility (2026-11-04 standing bar) |
 | **templates** | scorecard · exec readout · audit-worksheet.md · remediation-plan.md |
 | **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, user PII) in generated deliverables |
 | **`scripts/accessibility_calc.py`** | stdlib calculator — `conformance` · `remediation` · `contrast` |

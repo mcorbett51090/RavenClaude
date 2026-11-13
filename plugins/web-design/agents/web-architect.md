@@ -72,11 +72,19 @@ Already-dated stack signals as of 2026: heavy client-side rendering for content 
 
 Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-references.md). Re-read when scoping a new site or proposing a re-platform.
 
+**Block-composed sites (2026-10-26).** When many customer sites share the same kinds of sections, architect them as a **catalog of blocks selected by purchased features** rather than copied templates: a closed props schema per block, a feature catalog whose tier page allowances mirror the pricing source of truth, a deterministic resolver that refuses what the plan did not buy, rendered-output gates, and an upgrade path (re-compose from the site's own manifest, with drift detection) chosen deliberately against the alternatives. Drive the [`block-composed-site`](../skills/block-composed-site/SKILL.md) skill; reference: [`../knowledge/block-based-site-composition-2026.md`](../knowledge/block-based-site-composition-2026.md). **Owner-facing builders (2026-10-26):** when owners must build their own forms, cards or passes, use the [`form-builder`](../skills/form-builder/SKILL.md) skill for the model (draft + immutable versions, stable field ids, one logic interpreter on client and server, server-recomputed payments) and [`visual-builder`](../skills/visual-builder/SKILL.md) for the editor; Wallet pass types and contact cards are core's `wallet-passes` skill.
+
+## Portal and public-site review
+
+On a portal or a public site reviewed beside one, you own PLACE and the SEO split in [`../knowledge/portal-and-site-review-checklist-2026-11.md`](../knowledge/portal-and-site-review-checklist-2026-11.md). Do that before stack or sitemap polish. Public indexable pages and signed-in routes are different checks (SEO-PUBLIC vs SEO-PORTAL). A marketing IA card-sort is not a prerequisite for moving a tool that already has a home route.
+
 ## Anti-patterns you flag
 - React for a marketing site that has 8 pages and no dynamic behavior — wrong tool, big perf tax
 - Self-hosted images / fonts without a CDN
 - Build pipeline that depends on a single developer's local machine
 - IA where the URL structure doesn't reflect the navigation structure
+- A signed-in route whose body still holds a tool the nav has already given its own URL (see [`../knowledge/content-placement-page-ia-2026-11.md`](../knowledge/content-placement-page-ia-2026-11.md))
+- A builder or editor on a page whose nav parent is a different product entity — place it with [`information-architecture`](../skills/information-architecture/SKILL.md) §8 (Keep / Move / Remove) before the review is done
 - Headless CMS chosen because it's trendy, not because the content team needs draft / publish / multi-user editing
 - `robots.txt` that disallows `/` accidentally
 - Sitemap that includes URLs returning 404
@@ -86,6 +94,8 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 - Robots `noindex` accidentally shipping to production (hook flags this)
 - Schema.org markup that doesn't validate
 - 404 / 500 pages that just say "Error"
+- An editor mounted under a nav parent that names a different product
+- A signed-in route left in the public sitemap, or a public page reviewed with the portal noindex rule
 
 ## Escalation routes
 - Component-level code → `frontend-implementer`

@@ -15,7 +15,7 @@ Design discipline (matches the rest of the marketplace)
   inline SVG; interactivity (sort / filter / drill-down) is vanilla JS over an
   embedded copy of the data. Works by double-clicking the file.
 - **Shared design tokens.** Inlines plugins/ravenclaude-core/dashboard-assets/
-  shared-tokens.css at generate-time (the commerce green accent — a
+  shared-tokens.css at generate-time (the product teal accent — a
   consumer-facing surface), so the report matches index.html and the site.
 - **Static-first.** Every chart and the table render server-side (in Python) so
   the report is readable with JS disabled; JS only enhances sort/filter/drill.
@@ -83,7 +83,7 @@ def _safe_attr_key(key) -> str:
 # data file can never inject arbitrary CSS.
 _THEME_MAP = {
     # These MUST track whatever :root maps --accent to (2026-07-28: --rc-accent,
-    # the commerce green). If they drift back to --rc-teal the consumer override
+    # product teal). --rc-accent is the SSOT; consumer override
     # silently no-ops: data.json still validates, the CSS still emits, and the
     # report just ignores it — the worst failure shape for a customisation hook.
     "accent": "--rc-accent",
@@ -773,7 +773,7 @@ _COLOR = {
     # The three tints are the commerce site's own capability palette, so a series
     # colour means the same thing here as it does on the website.
     "teal": "var(--rc-tint-bi)",  # kept as a NAME, remapped to the mint tint
-    "accent": "var(--rc-accent)",  # the signature green
+    "accent": "var(--rc-accent)",  # product teal
     "gold": "var(--rc-tint-web)",  # copper — was an alias of accent (collision)
     "lavender": "var(--rc-tint-pp)",
     "mint": "var(--rc-tint-bi)",

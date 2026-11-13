@@ -129,6 +129,53 @@ def _git(root: Path, *args: str, timeout: int = 60) -> tuple[int, str]:
     return r.returncode, r.stdout.strip()
 
 
+# ⛔ Deepen in bounded steps BEFORE the full `--unshallow` (found live, PR #1394,
+# 2026-10-23 — Validate macOS run 40030178445). On the macOS runner a full
+# `--unshallow` of this repo's history took longer than FETCH_TIMEOUT; the fetch
+# was killed and every merge-base consumer (changed-concept renders, inception,
+# ratchet freshness, D-14) reported UNKNOWN. The dependabot PR earlier that day
+# passed the same step at ~50s, i.e. it was always one slow network away from red.
+# Measured on the real PR #1394 CI checkout shape (depth-2 refs/pull/N/merge):
+# `--deepen=1` of the two parents took ~4s and resolved the merge base; a full
+# `--unshallow` took ~40s on Linux. The common PR shape needs only a few
+# generations, so try small deepenings first and keep `--unshallow` as the last,
+# unchanged fallback. Every step is bounded and failure-safe: an unresolved walk
+# still ends in UNKNOWN, never in a fabricated base.
+_DEEPEN_STEPS = (1, 16, 256)
+
+
+def _is_shallow(root: Path) -> bool:
+    rc, out = _git(root, "rev-parse", "--is-shallow-repository")
+    return rc == 0 and out == "true"
+
+
+def _deepen_until_merge_base(root: Path, left: str, right: str) -> tuple[str | None, str]:
+    """merge-base(left, right) after the fewest bounded deepen steps, or (None, why)."""
+    for step in _DEEPEN_STEPS:
+        if not _is_shallow(root):
+            break
+        _git(
+            root,
+            "fetch",
+            "--quiet",
+            "--no-tags",
+            f"--deepen={step}",
+            "origin",
+            left,
+            right,
+            timeout=FETCH_TIMEOUT,
+        )
+        rc, sha = _git(root, "merge-base", left, right)
+        if rc == 0 and sha:
+            return sha, f" (after --deepen={step})"
+    if _is_shallow(root):
+        _git(root, "fetch", "--quiet", "--unshallow", "origin", timeout=FETCH_TIMEOUT)
+    rc, sha = _git(root, "merge-base", left, right)
+    if rc == 0 and sha:
+        return sha, " (after --unshallow)"
+    return None, ""
+
+
 def _resolves(root: Path, ref: str) -> bool:
     return _git(root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")[0] == 0
 
@@ -349,10 +396,9 @@ def merge_base(
         # `--unshallow` (same primitive the network fallback below already uses,
         # same FETCH_TIMEOUT) deepens whatever is already present rather than
         # fetching a second, redundant ref.
-        _git(root, "fetch", "--quiet", "--unshallow", "origin", timeout=FETCH_TIMEOUT)
-        rc4, nested2 = _git(root, "merge-base", p1, p2)
-        if rc4 == 0 and nested2:
-            return nested2, how + " (after --unshallow)"
+        nested2, how2 = _deepen_until_merge_base(root, p1, p2)
+        if nested2:
+            return nested2, how + how2
         return None, how + ", but the parents share no merge base even after --unshallow"
     rc, sha = _git(root, "merge-base", "HEAD", base)
     if rc == 0 and sha:
@@ -414,10 +460,16 @@ def merge_base(
     # originally triggered it), so it also recovers a separately shallow-fetched
     # base ref like `origin/main` without needing branch-specific logic here.
     if force_fetch:
-        _git(root, "fetch", "--quiet", "--unshallow", "origin", timeout=FETCH_TIMEOUT)
-        rc3, sha3 = _git(root, "merge-base", "HEAD", base)
-        if rc3 == 0 and sha3:
-            return sha3, how + " (after --unshallow retry)"
+        # SHAs, not names: `git fetch origin HEAD` would mean the REMOTE's HEAD.
+        rc_h, head_sha = _git(root, "rev-parse", "HEAD^{commit}")
+        rc_b, base_sha = _git(root, "rev-parse", f"{base}^{{commit}}")
+        sha3, how3 = (
+            _deepen_until_merge_base(root, head_sha, base_sha)
+            if rc_h == 0 and head_sha and rc_b == 0 and base_sha
+            else (None, "")
+        )
+        if sha3:
+            return sha3, how + (how3 or " (after --unshallow retry)")
         return (
             None,
             how + ", but no merge base could be computed even after --unshallow"

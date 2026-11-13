@@ -13,6 +13,14 @@ No traps, visible focus, logical order, every control reachable and operable (§
 ## Step 2 — Test with a screen reader
 Name, role, value, state changes, and live-region announcements conveyed correctly (§3 #3).
 
+## Step 2b — Rail and disclosures
+On a portal or app shell, also check [`../../knowledge/portal-and-agent-accessibility-2026-11.md`](../../knowledge/portal-and-agent-accessibility-2026-11.md) (§3b):
+
+- The current location is announced. More than one `aria-current` is not, by itself, a failure.
+- A disclosure button announces expanded or collapsed (`aria-expanded`) and controls the region named by `aria-controls`.
+- Wayfinding is not announced as a menu. `role="menu"` on a nav disclosure is a failure.
+- Every primary rail item has a visible text label, and that label is the accessible name (or includes it).
+
 ## Step 3 — Cover the AT a population uses
 Multiple screen readers/magnification/switch as scope demands; date the AT/browser versions (§3 #8).
 

@@ -6,13 +6,17 @@ kind: platform-fact
 order: 1
 summary: "Every agent turn runs the same loop: assemble prompt → call model → run tools → feed results back → repeat until done. The 'harness' is the software wrapping the model that drives it."
 see_also: [tool-use, context-window, subagents]
-last_verified: 2026-08-24
+last_verified: 2026-10-20
 refresh_when: "The fundamental agent-loop shape changes, or Claude Code/the Agent SDK restructures how a turn is driven."
 sources:
   - label: "Building agents with the Claude Agent SDK"
     url: "https://code.claude.com/docs/en/agent-sdk"
   - label: "\"The Anatomy of an Agent Harness\" (Akshay Pachaar)"
     url: "https://x.com/_avichawla/status/2062082282878627946"
+  - label: "Agent SDK — How the agent loop works"
+    url: "https://code.claude.com/docs/en/agent-sdk/agent-loop"
+  - label: "LangChain — The anatomy of an agent harness (source of the quoted saying)"
+    url: "https://langchain.com/blog/the-anatomy-of-an-agent-harness"
 ---
 
 A language model on its own is **stateless**: it forgets what it did three steps ago, a failed tool call would otherwise vanish silently, and its context window fills with noise. An **agent** is a model plus the software that fixes all that — the **harness**. As the saying goes, *"if you're not the model, you're the harness."*

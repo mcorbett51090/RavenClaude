@@ -135,7 +135,7 @@ Two top-level posture keys carry **trust flags** that hooks read at runtime — 
 
 | Key | Read by | When `false` (default) | When `true` |
 |---|---|---|---|
-| `definition_of_done.trusted` | `dod-gate.sh` | First run per session per cmd-hash: deny + stderr `touch <confirm-path>` to authorize | Skip first-run confirm; `bash -c $cmd` runs as before |
+| `definition_of_done.trusted` | `dod-gate.sh` | First run per session per cmd-hash: `VERDICT: NOT DONE` on stdout. A person creates the confirm file outside the session. The agent must not. The refusal counts toward `max_blocks`. | Skip first-run confirm; `bash -c $cmd` runs as before |
 | `web_access.trusted` | `guard-web-access.sh` | First WebFetch per domain per session to a YAML-whitelisted host: `permissionDecision: ask` | Skip first-use ask; whitelisted hosts auto-allow as before |
 
 These flags address Codex desktop trust review Findings 1 + 5 (an untrusted YAML edit auto-executing on `Stop` / auto-allowing on `WebFetch`). They are tool-layer trust signals — `security_deny` is still the layer-independent floor.

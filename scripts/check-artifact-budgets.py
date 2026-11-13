@@ -65,7 +65,7 @@ from pathlib import Path
 
 DASHBOARD = "plugins/ravenclaude-core/dashboard.html"
 INDEX = "index.html"
-SURFACES = (DASHBOARD, INDEX)
+SURFACES = (DASHBOARD,)  # Phase 3b: fat index retired; stub not byte-budgeted
 
 # An islanded payload is a <script type="application/json"> block. Inside it every
 # `<` survives verbatim (the HTML parser reads it as CDATA), so a tag-open counter

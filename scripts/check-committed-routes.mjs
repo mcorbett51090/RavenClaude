@@ -7,19 +7,22 @@
  * `#/…` route on both surfaces resolves to a REAL destination** — not the
  * router's catch-all fallback (viewHome on index / overview on the standalone).
  *
- * Two surfaces, two DIFFERENT routers (verified against the source, 2026-07-16):
- *   • index.html — the unified portal shell. A `#/section[/sub]` is dispatched by
- *     route(): SECTION_ALIAS → plugin-* → observe/act → DASH_OWNER →
- *     the catalog/discover/learn branches. The LIVE default lands on Control, but
- *     this mirror treats an unknown section as UNRESOLVED to keep its teeth (see
- *     resolveIndex). `#/learn/<concept>` resolves to the Learn section; the concept
- *     sub-segment is dropped by the shell (honored only on the standalone surface).
+ * Two surfaces (Phase 3b — thin index stub):
+ *   • index.html — Pages `/` is a THIN redirect stub to dashboard.html. It no
+ *     longer carries `const DASH_SECTIONS` / `function route()`. When the index
+ *     surface lacks that scaffold, this checker treats it as ZERO routes (empty
+ *     enumeration) and only validates the dashboard surface + sibling #/ hrefs.
  *   • plugins/ravenclaude-core/dashboard.html — the standalone, hashchange router.
  *     applyHash() → activate(seg0, seg1); activate() falls back to "settings" for
  *     any tab ∉ validTabs (the `.tab-btn[data-tab]` set — P5 retarget off the
  *     deleted "overview" panel). `#/learn/<concept>` opens the concept via
  *     openConcept(sub) — so the concept MUST exist (`data-concept`) for the route
  *     to reach its destination.
+ *
+ * Legacy fat-portal index (pre-3b) still parses if present: a `#/section[/sub]`
+ * is dispatched by route(): SECTION_ALIAS → plugin-* → observe/act → DASH_OWNER
+ * → catalog/discover/learn. The LIVE default lands on Control, but this mirror
+ * treats an unknown section as UNRESOLVED to keep its teeth (see resolveIndex).
  *
  * The fixture (tests/fixtures/routes/committed-routes.json) is the committed
  * enumeration of every `#/…` on both surfaces → its destination. This checker
@@ -51,10 +54,12 @@
  *
  * ── Shipped sibling pages ────────────────────────────────────────────────────
  * The portal is not the only shipped surface that links into the router:
- * pitch.html carries user-facing `href="index.html#/<route>"` links and nothing
- * gated them, so a route rename rots a shipped marketing link silently. Every
- * root-level `*.html` is scanned for cross-file `#/…` hrefs and each is resolved
- * through the SAME derived router — assert-against-each-other again, not a list.
+ * pitch.html carries user-facing deep links into the dashboard
+ * (`href="plugins/ravenclaude-core/dashboard.html#/<route>"` after Phase 3b;
+ * legacy `href="index.html#/…"` still resolves when a fat index is present).
+ * Every root-level `*.html` is scanned for cross-file `#/…` hrefs and each is
+ * resolved through the SAME derived router — assert-against-each-other again,
+ * not a list.
  *
  * Usage:
  *   node scripts/check-committed-routes.mjs            # assert the committed tree
@@ -320,6 +325,11 @@ function resolveIndex(section, R) {
 }
 
 /* ── standalone dashboard.html hashchange router ──────────────────────────── */
+/* Phase 2/3b hybrid: applyHash() remaps catalog|discover|marketplace|team →
+ * catalog-browse (JS-injected panel, not a static .tab-btn). Mirror that here
+ * so sibling / pitch deep-links to #/catalog|#/discover resolve honestly. */
+const DASH_CATALOG_ALIASES = new Set(["catalog", "discover", "marketplace", "team"]);
+
 function parseDashRouter(html) {
   const validTabs = new Set();
   for (const btn of html.matchAll(/<button\b([^>]*)>/g)) {
@@ -329,12 +339,23 @@ function parseDashRouter(html) {
     if (dt) validTabs.add(dt[1]);
   }
   const concepts = new Set([...html.matchAll(/data-concept="([^"]+)"/g)].map((m) => m[1]));
-  return { validTabs, concepts };
+  // Presence of the live remap (or the catalog-browse id) means the hybrid is wired.
+  const catalogHybrid =
+    /tab\s*===\s*"catalog"\s*\|\|\s*tab\s*===\s*"discover"/.test(html) ||
+    html.includes("catalog-browse");
+  return { validTabs, concepts, catalogHybrid };
 }
-// Mirrors activate(tab, sub): unknown tab → "settings" (the P5 fallback); modeled
-// here as UNRESOLVED so a committed href to a non-existent tab still fails. learn+sub
-// → openConcept(sub), so the concept must exist.
+// Mirrors activate(tab, sub) + applyHash catalog remap: unknown tab → "settings"
+// (the P5 fallback); modeled here as UNRESOLVED so a committed href to a
+// non-existent tab still fails. learn+sub → openConcept(sub), so the concept
+// must exist. catalog|discover|… → catalog-browse when the hybrid is present.
 function resolveDash(section, sub, R) {
+  if (DASH_CATALOG_ALIASES.has(section) || section === "catalog-browse") {
+    if (!R.catalogHybrid) {
+      return { resolved: false, destination: "UNRESOLVED:catalog-hybrid-absent" };
+    }
+    return { resolved: true, destination: "activate:catalog-browse" };
+  }
   if (!R.validTabs.has(section)) return { resolved: false, destination: "UNRESOLVED" };
   if (section === "learn" && sub) {
     if (!R.concepts.has(sub)) return { resolved: false, destination: `UNRESOLVED:concept:${sub}` };
@@ -349,7 +370,31 @@ function splitRoute(route) {
   const idx = raw.indexOf("/");
   return idx === -1 ? [raw, null] : [raw.slice(0, idx), raw.slice(idx + 1) || null];
 }
+
+/* Phase 3b: thin Pages stub has no shell router. Detect by scaffold absence —
+ * neither `const DASH_SECTIONS` nor `function route(` — so a half-migrated file
+ * that still carries one marker is NOT treated as empty (it fails closed via
+ * the normal parse path instead of silently dropping routes). */
+function isIndexStub(html) {
+  return !/\bconst\s+DASH_SECTIONS\b/.test(html) && !/\bfunction\s+route\s*\(/.test(html);
+}
+
+function emptyIndexSurface() {
+  return {
+    href_count: 0,
+    distinct_static: 0,
+    distinct_dynamic: 0,
+    static_href_routes: [],
+    dynamic_href_templates: [],
+    nav_routes: [],
+  };
+}
+
 function buildSurface(kind, html) {
+  if (kind === "index" && isIndexStub(html)) {
+    return emptyIndexSurface();
+  }
+
   const hrefs = extractHrefs(html);
   const staticRoutes = uniqSort(hrefs.filter((r) => !isDynamic(r)));
   const dynamicRoutes = uniqSort(hrefs.filter(isDynamic));
@@ -456,7 +501,15 @@ function listSiblingPages(explicit) {
 
 function resolveSiblingHref(target, route, indexRouter, dashRouter) {
   const [section, sub] = splitRoute(route);
-  if (target === "index.html") return resolveIndex(section, indexRouter);
+  if (target === "index.html") {
+    if (!indexRouter) {
+      return {
+        resolved: false,
+        destination: "UNRESOLVED:index-is-stub",
+      };
+    }
+    return resolveIndex(section, indexRouter);
+  }
   if (target === "dashboard.html") return resolveDash(section, sub, dashRouter);
   return { resolved: false, destination: `UNRESOLVED:unknown-target:${target}` };
 }
@@ -586,12 +639,16 @@ function runCheck(opts = {}) {
   }
 
   let surfaces, indexRouter, dashRouter;
+  const indexIsStub = isIndexStub(indexHtml);
   try {
     surfaces = {
       dashboard: buildSurface("dashboard", dashHtml),
       index: buildSurface("index", indexHtml),
     };
-    indexRouter = parseIndexRouter(indexHtml);
+    // Stub index has no route() ladder — leave indexRouter null so sibling
+    // resolution of legacy index.html#/… fails closed (those links must be
+    // retargeted to dashboard.html after Phase 3b).
+    indexRouter = indexIsStub ? null : parseIndexRouter(indexHtml);
     dashRouter = parseDashRouter(dashHtml);
   } catch (e) {
     return { exit: 2, failures: [`cannot derive router: ${e.message}`], siblingHrefs: 0 };
@@ -691,7 +748,8 @@ function runCheck(opts = {}) {
     failures: [...failures],
     surfaces,
     siblingHrefs,
-    dispatch: indexRouter.dispatch,
+    dispatch: indexRouter ? indexRouter.dispatch : null,
+    indexIsStub,
   };
 }
 
@@ -725,9 +783,10 @@ function report(result) {
 }
 
 /* ── teeth ───────────────────────────────────────────────────────────────── */
-// The live dispatch arm, not the comment that names the same comparison.
+// Phase 3b pitch deep-links target the dashboard artifact (not the stub).
+const PITCH_LEARN_HREF = 'href="plugins/ravenclaude-core/dashboard.html#/learn"';
+// Legacy fat-portal learn-branch arm (only exercised when index is NOT a stub).
 const LEARN_EQ = 'else if (section === "learn")';
-const PITCH_LEARN_HREF = 'href="index.html#/learn"';
 // Planted rot — assembled so a source-scan of THIS file cannot satisfy a
 // sibling-href matcher (self-non-recursion). # noport
 const ROTTEN_ROUTE = "#/" + "this-route-does-not-exist";
@@ -746,11 +805,28 @@ function retargetLearnBranch(html) {
   );
 }
 
+/* Break the settings tab-btn so #/settings dead-ends (Phase 3b teeth when the
+ * index surface is a stub and has no route() ladder to retarget). Must target
+ * the `.tab-btn` attribute specifically — a bare first-match replace can hit
+ * a non-tab occurrence and leave validTabs unchanged (vacuous teeth). */
+function breakDashboardSettingsTab(html) {
+  const re = /(<button\b[^>]*\btab-btn\b[^>]*\bdata-tab=")settings(")/;
+  if (!re.test(html)) {
+    throw new Error(
+      'dashboard missing <button … tab-btn … data-tab="settings"> — cannot plant destination break',
+    );
+  }
+  return html.replace(re, "$1settings-GONE$2");
+}
+
 function plantRottenPitch(html) {
   if (!html.includes(PITCH_LEARN_HREF)) {
     throw new Error(`pitch.html is missing ${PITCH_LEARN_HREF} — cannot plant rot`);
   }
-  return html.replace(PITCH_LEARN_HREF, `href="index.html${ROTTEN_ROUTE}"`);
+  return html.replace(
+    PITCH_LEARN_HREF,
+    `href="plugins/ravenclaude-core/dashboard.html${ROTTEN_ROUTE}"`,
+  );
 }
 
 function mustFail() {
@@ -776,23 +852,45 @@ function selfTest() {
 
   const live = runCheck({});
   note(live.exit === 0, "live tree (surfaces + sibling #/ hrefs) is clean");
-  note(
-    Array.isArray(live.dispatch) &&
-      live.dispatch.some((b) => b.kind === "equals" && b.sections.includes("learn")),
-    "route() learn branch is DERIVED from source (not a constant ladder)",
-  );
+  if (live.indexIsStub) {
+    note(
+      live.surfaces.index.static_href_routes.length === 0 && live.dispatch === null,
+      "Phase 3b stub index: zero routes, no route() dispatch",
+    );
+  } else {
+    note(
+      Array.isArray(live.dispatch) &&
+        live.dispatch.some((b) => b.kind === "equals" && b.sections.includes("learn")),
+      "route() learn branch is DERIVED from source (not a constant ladder)",
+    );
+  }
 
   const tmp = mkdtempSync(join(tmpdir(), "g205-selftest-"));
   try {
-    const retargeted = retargetLearnBranch(readFileSync(INDEX_PATH, "utf8"));
-    const idxPath = join(tmp, "index-retarget.html");
-    writeFileSync(idxPath, retargeted);
-    const drifted = runCheck({ indexPath: idxPath, scanSiblings: false });
-    note(
-      drifted.exit === 2 &&
-        drifted.failures.some((f) => f.includes("#/learn") && f.includes("drifted")),
-      "retargeting the learn branch is exit-2 destination drift (a hard-coded learn→viewResources would stay green)",
-    );
+    if (live.indexIsStub) {
+      const brokenDash = breakDashboardSettingsTab(readFileSync(DASH_PATH, "utf8"));
+      const dashPath = join(tmp, "dash-broken-settings.html");
+      writeFileSync(dashPath, brokenDash);
+      const drifted = runCheck({ dashPath, scanSiblings: false });
+      note(
+        drifted.exit === 2 &&
+          drifted.failures.some(
+            (f) =>
+              f.includes("#/settings") && (f.includes("does not resolve") || f.includes("floor")),
+          ),
+        "breaking dashboard data-tab=settings is exit 2 (destination / floor)",
+      );
+    } else {
+      const retargeted = retargetLearnBranch(readFileSync(INDEX_PATH, "utf8"));
+      const idxPath = join(tmp, "index-retarget.html");
+      writeFileSync(idxPath, retargeted);
+      const drifted = runCheck({ indexPath: idxPath, scanSiblings: false });
+      note(
+        drifted.exit === 2 &&
+          drifted.failures.some((f) => f.includes("#/learn") && f.includes("drifted")),
+        "retargeting the learn branch is exit-2 destination drift (a hard-coded learn→viewResources would stay green)",
+      );
+    }
 
     const rottenPath = join(tmp, "pitch-rotten.html");
     writeFileSync(rottenPath, plantRottenPitch(readFileSync("pitch.html", "utf8")));
@@ -805,7 +903,8 @@ function selfTest() {
     const goodPath = join(tmp, "pitch-good.html");
     writeFileSync(
       goodPath,
-      '<a href="index.html#/learn">ok</a><a href="index.html#/discover">ok</a>\n',
+      '<a href="plugins/ravenclaude-core/dashboard.html#/learn">ok</a>' +
+        '<a href="plugins/ravenclaude-core/dashboard.html#/settings">ok</a>\n',
     );
     const good = runCheck({ siblings: [goodPath] });
     note(good.exit === 0, "a sibling whose #/ hrefs all resolve is silent");

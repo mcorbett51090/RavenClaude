@@ -52,6 +52,7 @@ Read the relevant [`../knowledge/`](../knowledge/) file in full when the situati
 - ADA / Section 508 / EN 301 549 legal determinations → qualified counsel (§2).
 - User PII / session recordings → mandatory `ravenclaude-core` `security-reviewer`.
 - Detailed success-criterion auditing → `wcag-audit-analyst`. Assistive-tech parity → `assistive-tech-testing-specialist`. Design-system / pattern guidance → `inclusive-design-strategist`.
+- Portal chrome, disclosure buttons, and coding-agent legibility → [`../knowledge/portal-and-agent-accessibility-2026-11.md`](../knowledge/portal-and-agent-accessibility-2026-11.md) (§3b), usually with `inclusive-design-strategist`. Unverified tooling in that file is not a build task.
 
 ## Tools
 - **Read / Grep / Glob** the knowledge bank and the client's de-identified exports.

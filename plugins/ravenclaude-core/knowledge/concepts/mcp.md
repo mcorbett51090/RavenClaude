@@ -6,7 +6,7 @@ kind: platform-fact
 order: 5
 summary: "The Model Context Protocol is a standard way to plug external tools and data into any agent. Write a server once; every MCP-aware client can use it — no per-app glue."
 see_also: [tool-use, agent-harness-loop]
-last_verified: 2026-08-24
+last_verified: 2026-10-20
 refresh_when: "The MCP spec changes its primitives (tools/resources/prompts), transport set, or Claude Code changes how MCP servers are configured."
 sources:
   - label: "Model Context Protocol — specification"
@@ -25,7 +25,7 @@ The shape is **client ↔ server.** Your agent host (Claude Code, an IDE, a desk
 
 Two things worth knowing:
 
-- **Servers run as separate processes** and connect over a transport (local stdio, or remote HTTP/SSE). A server may be on your machine or across the network — the client talks to both the same way.
+- **Servers run as separate processes** and connect over a transport (local stdio, or remote Streamable HTTP — the older SSE transport is deprecated). A server may be on your machine or across the network — the client talks to both the same way.
 - **MCP tools are still just tool use.** Once connected, an MCP tool appears to the model exactly like any built-in tool: same request/result loop, same permission gating. MCP standardizes *where tools come from*, not *how the model calls them*. (In Claude Code a server can show as "still connecting" at startup — its tools are name-only until the schema loads, which is a connection state, not an absent capability.)
 
 ```mermaid

@@ -9,9 +9,7 @@ see_also: [capability-grounding-protocol, structured-output-protocol, claim-grou
 last_verified: 2026-06-08
 refresh_when: "The Last-Mile Completion Protocol section in ravenclaude-core/CLAUDE.md changes — the five rules, the done-vs-your-turn report shape, or the deep-link requirement."
 sources:
-  - label: "ravenclaude-core constitution — Last-Mile Completion Protocol"
-    url: "plugins/ravenclaude-core/CLAUDE.md"
-  - label: "Capability Grounding Protocol (the floor it pairs with)"
+  - label: "ravenclaude-core constitution — Last-Mile Completion Protocol; Capability Grounding Protocol (the floor it pairs with)"
     url: "plugins/ravenclaude-core/CLAUDE.md"
 ---
 

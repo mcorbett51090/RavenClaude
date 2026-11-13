@@ -48,6 +48,78 @@ It is a map, not an endorsement — pick tools by fit, and re-verify versions/AP
 - **Release cadence** — on-merge is fine early; move to a scheduled release train once several
   external teams consume you (reduces upgrade churn for consumers).
 
+## Multi-site section libraries — distribution and upgrades
+
+> Added 2026-10-26. The case: one library of page sections ("blocks" — hero, menu, gallery, contact) feeds **many small
+> sites**, each in its own repo, often for different customers. The fuller treatment (block contract, feature-to-block
+> mapping, resolver rules, gates) is web-design's
+> [`block-based-site-composition-2026.md`](../../web-design/knowledge/block-based-site-composition-2026.md); this
+> section is the versioning and distribution half, which is this team's job.
+
+A section library is a component library whose consumers are sites, not apps — so the same contract rules apply, but
+the distribution choice dominates the cost of every later fix.
+
+| Model | How a fix reaches a shipped site | Cost | Fits when |
+|---|---|---|---|
+| **Copy-in** (shadcn-style) | It doesn't — each site owns its copy | Lowest to start; fixes never propagate | Sites are expected to diverge and nobody maintains them centrally |
+| **Generator + lock** | Re-run the generator; the lock records what was emitted | Hand edits get overwritten unless detected | A small team owns every site |
+| **Generator + data-only authored surface + drift check** | `build --site` regenerates everything except the site's data (a manifest + its images); hashes of kit-owned files in the lock detect hand edits first | Needs a deterministic generator and a drift gate | Many sites, separate repos, private kit — no package auth needed in each site's CI |
+| **Versioned package** (npm, private registry) | Bump the dependency; codemod for majors | Registry auth in every site's CI; one install per site | Sites are apps with their own build and a team per site |
+| **Monorepo** | One commit, every site rebuilt | Every site in one repo and one CI | One owner, sites never handed to customers |
+| **Central renderer** (headless CMS / page service) | Deploy the renderer once | A runtime dependency per site; outage = every site | Content changes often; sites can tolerate a shared runtime |
+
+**Rules that hold for every model:**
+
+- **A block's props are a data contract.** Semver it: a new optional prop is minor; a renamed, removed or newly required
+  prop is major and ships with a **data migration** (the codemod's equivalent for manifests), not a guide.
+- **Record what each site was built from** — the library version, each block's version and content hash, and the
+  generator commit — so a fleet scan can answer "which sites still have the old hero?" without opening each one.
+- **Detect hand edits before you overwrite them.** An upgrade that silently discards a customer-requested tweak breaks
+  trust faster than one that refuses and lists the edited files.
+- **Roll out in rings** — an internal site, then a few customers, then the fleet — and keep the previous version
+  buildable until the last ring lands.
+- **Allow deliberate ejection.** A site that needs a bespoke section marks it as site-owned; the drift check then skips
+  it and the upgrade report lists it, rather than the library growing a prop for one customer.
+- **Merge is not deployment.** A fix merged to the library reaches no customer until each site is rebuilt and deployed;
+  track that per site, not per merge.
+
+---
+
+## Settings-surface primitives (added 2026-11-05)
+
+Component contract for the controls that replace dropdowns and long help text. **Which** control to use is
+`web-design`'s [`settings-and-choice-controls-2026.md`](../../web-design/knowledge/settings-and-choice-controls-2026.md);
+the markup and keys are `accessibility-engineering`'s
+[`settings-controls-markup-and-keyboard-2026-11.md`](../../accessibility-engineering/knowledge/settings-controls-markup-and-keyboard-2026-11.md).
+The API shapes below are house design `[inference]`, not a studied or vendor-verified spec.
+
+| Primitive | Required props (types enforce them) | Built on | Notes |
+|---|---|---|---|
+| `Switch` | `label` (fixed text), `checked`/`onCheckedChange` | `<input type=checkbox>` | `pending` + rollback on failure; `description` slot is one line |
+| `SegmentedControl` | `legend`, `items[{value,label}]`, `value`, `onValueChange` | `fieldset` + radios | dev warning above 5 items or labels past ~12 characters |
+| `ChoiceTile` / `ChoiceTileGroup` | `legend`, `type: radio\|checkbox`, tile `title` | native radio/checkbox, tile = `<label>` | `description` and trailing `value` slots; no interactive children |
+| `AmountTiles` | `legend`, `presets[]`, `allowOther` | radios + one text input (`inputmode=decimal`) | currency is part of the group label |
+| `SliderField` | `label`, `min`, `max`, `step`, `format(value)` → `aria-valuetext` | `input type=range` + `<output>` | `onPreview` (every `input`) separate from `onCommit` (`change`); `reset`; −/+ step buttons on by default |
+| `InfoTip` (toggletip) | `label` ("More about …"), `children` ≤ 2 sentences | `<button type=button>` + `role=status` | Esc and outside click clear it |
+| `SettingsCard` / `SettingsRow` | `heading` + `level`; row `label` | semantic `section`/`h2`; control associated by `<label>` | caption ≤ 1 line; row click target is the label |
+| `Sheet` | `title`, a non-removable Close button | native `<dialog>.showModal()` | sheet on narrow viewports, dialog or side panel wider; never opens another sheet |
+| `UsageMeterCard` | `title`, `value`, `max`, `unitLabel`, text equivalent | `<meter>` | threshold word or icon required; one action slot |
+| `ConnectorRow` | `providerName`, decorative `brandIcon`, `accountCount`, `onAuthorize` | row + button "Authorize \<providerName\>" | count is text ("2 accounts" / "Not connected"); the icon is not the name |
+| `AccountList` | `accounts[{id,label,identifier,status}]`, `onAuthorize(id)`, `onAddAccount`, `singleAccountOnly` | `<ul>` + an Authorize button per row; "Add account" last | hides Add account when `singleAccountOnly`; label is the person's name for the account, never an internal id |
+| `AccountLabelField` | visible label "Account label" | text input | rendered only for Add account |
+| `BaseScopeTiles` | `value`: `minimal` \| `read-only` \| `full` \| `requested` | `fieldset` legend "Access" + four radios | visible labels are exactly Minimal, Read only, Full, Requested; the product passes the scope ids, the component does not hard-code them |
+| `ScopeTileGroup` / `ScopeTile` | `legend`, tile `title`, `scopeId`, `locked?` | native checkboxes inside Advanced | a locked (Required) scope is not a checkbox; optional scopes start unticked; `scopeId` is never the visible title |
+| `ScopePills` | `items[{id,label}]`, `onRemove?` | `<ul>` + `<button>` per pill when removable | removal button name is "Remove \<label\>"; status announcement once per removal; the list equals the request |
+| `RequiredScopeList` | `items[{id,label,alreadyGranted?}]` | `<ul>` of static tiles with the word "Required" | not an input; no disabled checkbox |
+| `AdditionalAccessGroups` | `groups[{legend, items[{id,label}]}]` | one `fieldset` per group | every item starts unchecked; the legend says the group is optional |
+| `MakeDefaultRadios` | `accounts[]`, `value` | separate radio group | not the Authorize control; omit when the product has no default |
+| `AuthorizeFlow` | `step`: `accounts` \| `choose-access` \| `authorize`, `onAuthorize(accountId, scopeIds)` | one `Sheet` (native `<dialog>`); steps replace its content | "Step 1 of 2" / "Step 2 of 2" as text; focus to the step heading; **the scope ids sent equal the ids rendered** on the authorize step (a test asserts it) |
+
+- **Tokens by meaning** (solid rule in the 2026-11-04 standing bar): `control.selected.fill`, `control.selected.outline`, `tile.selected.border`, `meter.fill.default`, `meter.fill.warning`. Per-mode values live where you can point at them.
+- **Accessible name is a required prop,** never optional; that is how "a11y baked in" is enforced by the compiler rather than a review.
+- **Versioning:** adding a required prop is a breaking change; ship a codemod per the versioning skill.
+- **Not covered:** a vendor comparison of component libraries' switch/segmented implementations. That was not researched.
+
 ---
 
 ## What this reference is *not*

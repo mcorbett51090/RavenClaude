@@ -21,30 +21,25 @@
  * tokens into the surface's <style> block. NO RUNTIME LOAD — every HTML
  * artifact stays self-contained.
  *
- * Aesthetic: borrows the RavenPower commerce site's visual language — a
- * cool near-black canvas with ONE signature GREEN accent across every surface.
- * (Until 2026-07-28 the portal and both generated reports carried a teal
- * "secondary"; that split is retired — the estate is single-accent now.) Depth is
+ * Aesthetic: borrows the RavenPower commerce site's cool near-black canvas
+ * with ONE signature TEAL accent across every estate surface (decision
+ * 2026-11-12 — portal + dashboard are one product; keep teal). Depth is
  * hairline-led: layered panels lift off pure-black + a rgba(255,255,255)
  * hairline; shadows stay a whisper. DARK IS THE DEFAULT (`:root` = the cool
  * near-black #07080a canvas + the commerce panel ladder); the light theme
  * (Intercom-inspired cool near-white #f5f6f8) is retained as an opt-in
- * override under `[data-theme="light"]`, re-tuned so the green reads on light.
+ * override under `[data-theme="light"]`, re-tuned so teal clears AA on light.
  *
- * a11y discipline (contrast re-verified 2026-07-16 with a WCAG-2.2 calc):
+ * a11y discipline (contrast re-verified 2026-11-12 with a WCAG-2.2 calc):
  *   DEFAULT (dark, :root, --rc-bg #07080a):
- *   - --rc-accent (green #56D08A) on --rc-bg is 10.29:1 — AAA (10.79:1 on
- *     pure #000). Comfortably safe as body text; reserving it for borders /
- *     headings / icons / accent rules is aesthetic restraint, not an a11y
- *     floor. --rc-gold is a back-compat ALIAS of --rc-accent (same green).
- *   - --rc-text #f5f7fa on --rc-bg is 18.67:1; --rc-teal #3aa391 on --rc-bg
- *     is 6.51:1 (AA, safe for body text).
+ *   - --rc-accent (teal #3aa391) on --rc-bg is 6.51:1 — AA. Safe for body /
+ *     links; reserving it for borders / headings / icons / accent rules is
+ *     aesthetic restraint, not an a11y floor. --rc-gold is a back-compat
+ *     ALIAS of --rc-accent (same teal). --rc-teal aliases the same value.
+ *   - --rc-text #f5f7fa on --rc-bg is 18.67:1.
  *   LIGHT ([data-theme="light"], --rc-bg #f5f6f8):
- *   - --rc-accent (green #157a45) on --rc-bg is 4.98:1 — AA, clears the
- *     4.5:1 body-text floor (a darker green than the dark theme, since the
- *     bright #56D08A is tuned for dark backgrounds). This is BETTER than the
- *     gold it replaces (the old light gold was 3.12:1, UI-only).
- *   - --rc-teal #1f7f78 on --rc-bg is 4.45:1 (~AA body / inline links).
+ *   - --rc-accent (teal #186e68) on --rc-bg is 5.60:1 — AA (darker than the
+ *     dark-theme teal, which washes out on near-white).
  *   - --rc-warn #9a7010 on --rc-bg is 4.13:1 (borderline; for badges use the
  *     --rc-warn-bg / --rc-warn-fg pair, not --rc-warn on the canvas).
  *
@@ -84,40 +79,27 @@
   --rc-ink-fg: #07080a;
   --rc-ink-soft: #d4d8de;
 
-  /* ── Accent: the commerce signature GREEN (dashboard primary identity) ─
-     --rc-accent is the semantic name; --rc-gold is a back-compat ALIAS that
-     points at it (avoids churning every historical reference while fixing the
-     misleading "gold" name — same green resolves everywhere). */
-  /* CONTRAST NOTE: --rc-accent green #56D08A is 10.29:1 on --rc-bg (#07080a) —
-     AAA (10.79:1 on pure #000; verified). Comfortably safe as body text;
-     reserving it for borders / headings / icons / accent rules is aesthetic
-     restraint, not an a11y floor. (In [data-theme="light"] it darkens to
-     #157a45 = 4.98:1 AA — see that block.) */
-  --rc-accent: #56d08a; /* commerce --accent (the signature green) */
-  --rc-accent-2: #6ee0a1; /* commerce --accent-2 (hover / brighter) */
-  --rc-accent-soft: rgba(86, 208, 138, 0.16); /* commerce --accent-soft */
-  --rc-accent-glow: rgba(86, 208, 138, 0.35); /* commerce --accent-glow */
-  --rc-gold: var(--rc-accent); /* back-compat alias → green */
-  --rc-gold-soft: var(--rc-accent-2); /* back-compat alias → green */
-
-  /* ── Accent: teal — RETIRED 2026-07-28, definition retained ───────────
-     No live consumer remains. Teal used to be the "secondary" accent: the portal
-     (index.html) aliased its accent to it, and both generated reports themed
-     their charts on it — which made every one of those surfaces off-brand from
-     the RavenPower commerce site, where dashboard.html and the site already
-     agreed on the green #56D08A. All of them were unified onto the green:
-     the portal, the BI report, the feedback report, and the four shared
-     component rules below (.rc-card--accent / .rc-rule / .rc-tab.is-active /
-     .rc-input:focus) that still hardcoded it.
-
-     The DEFINITION is deliberately kept, not deleted. It is cheap, and a
-     consumer's own data.json theme override or a downstream fork may still
-     reference the name. But do NOT reintroduce it as a UI accent without
-     re-opening the brand decision — one accent is the point. */
-  /* CONTRAST NOTE: --rc-teal #3aa391 is 6.51:1 on --rc-bg — AA, safe for
-     body text and inline links. */
-  --rc-teal: #3aa391;
-  --rc-teal-soft: #5fbfae;
+  /* ── Accent: product TEAL (one product — portal + dashboard) ─────────
+     2026-11-12 decision: keep teal as the estate accent. --rc-accent is the
+     semantic name; --rc-gold / --rc-teal are back-compat aliases of the same
+     teal (avoids churning historical references). Commerce green remains as
+     --rc-commerce for forks that still want the RavenPower site green; it is
+     NOT the product accent. */
+  /* CONTRAST NOTE: --rc-accent teal #3aa391 is 6.51:1 on --rc-bg (#07080a) —
+     AA (verified). Comfortably safe for body / links; reserving it for
+     borders / headings / icons / accent rules is aesthetic restraint.
+     (In [data-theme="light"] it darkens to #186e68 = 5.60:1 AA.) */
+  --rc-accent: #3aa391; /* product teal */
+  --rc-accent-2: #5fbfae; /* hover / brighter */
+  --rc-accent-soft: rgba(58, 163, 145, 0.16);
+  --rc-accent-glow: rgba(58, 163, 145, 0.35);
+  --rc-gold: var(--rc-accent); /* back-compat alias → teal */
+  --rc-gold-soft: var(--rc-accent-2); /* back-compat alias → teal */
+  --rc-teal: var(--rc-accent); /* alias → same product teal */
+  --rc-teal-soft: var(--rc-accent-2);
+  /* Historical commerce green — available, not the accent. */
+  --rc-commerce: #56d08a;
+  --rc-commerce-2: #6ee0a1;
 
   /* ── Status — recalibrated for the dark base ─────────────────────── */
   --rc-ok: #4ade80;
@@ -183,9 +165,9 @@
      verbatim so a discipline reads the same colour on the site and in the
      dashboard. Declared as tokens now; wiring them to plugin categories is a
      separate, deliberate step — an unused token costs nothing, a miswired one
-     costs a colour-coding people have learned. --tint-ai is the signature
-     green, i.e. an alias of --rc-accent, not a fourth colour. */
-  --rc-tint-ai: var(--rc-accent); /* commerce --tint-ai (green, primary) */
+     costs a colour-coding people have learned. --tint-ai tracks the product
+     accent (teal), not a fourth colour. */
+  --rc-tint-ai: var(--rc-accent); /* product accent (teal) */
   --rc-tint-pp: #b79cff; /* commerce --tint-pp (lavender) */
   --rc-tint-bi: #6fddc4; /* commerce --tint-bi (teal-mint) */
   --rc-tint-web: #e8995a; /* commerce --tint-web (copper) */
@@ -219,13 +201,10 @@
 
   /* ── Focus ring (a11y) — brighter accents on the dark base; light values
      under [data-theme="light"]. ── */
-  /* 2026-07-28: collapsed to ONE ring. Two rings existed because the system had
-     two accents (teal for index, green for dashboard); with index unified onto
-     the commerce green there is one accent, so a teal focus ring would be the
-     only teal left on the page. Both names now resolve to the same green —
-     -gold is kept purely so existing rules don't have to be rewritten. */
-  --rc-focus-ring: 0 0 0 3px rgba(86, 208, 138, 0.45); /* green (dark) */
-  --rc-focus-ring-gold: 0 0 0 3px rgba(86, 208, 138, 0.45); /* alias, kept for back-compat */
+  /* ONE focus ring — product teal. -gold is kept so existing rules don't
+     have to be rewritten. */
+  --rc-focus-ring: 0 0 0 3px rgba(58, 163, 145, 0.45); /* teal (dark) */
+  --rc-focus-ring-gold: 0 0 0 3px rgba(58, 163, 145, 0.45); /* alias, kept for back-compat */
 
   /* ── Motion easing (the commerce curves) — a small, consistent set:
      --rc-ease for through-states, --rc-ease-out for entrances. ── */
@@ -258,21 +237,20 @@
   --rc-ink-fg: #ffffff;
   --rc-ink-soft: #34393f;
 
-  /* Accents */
-  /* CONTRAST NOTE: --rc-accent green #157a45 is 4.98:1 on --rc-bg (#f5f6f8) —
-     AA, clears the 4.5:1 body-text floor. It is a DARKER green than the dark
-     theme's #56D08A, because the bright commerce green is tuned for dark
-     backgrounds and washes out on near-white. This is stronger than the gold
-     it replaced (old light gold was 3.12:1, UI-only). --rc-gold aliases it. */
-  --rc-accent: #157a45; /* green, darkened for the light canvas — 4.98:1 AA */
-  --rc-accent-2: #1c8a54; /* hover / brighter — 4.04:1 (AA-large / UI) */
-  --rc-accent-soft: rgba(21, 122, 69, 0.1);
-  --rc-accent-glow: rgba(21, 122, 69, 0.24);
-  --rc-gold: var(--rc-accent); /* back-compat alias → green */
-  --rc-gold-soft: var(--rc-accent-2); /* back-compat alias → green */
-  /* --rc-teal #1f7f78 is 4.45:1 on --rc-bg — ~AA body text / inline links. */
-  --rc-teal: #1f7f78;
-  --rc-teal-soft: #4a9590;
+  /* Accents — product teal, darkened for the light canvas */
+  /* CONTRAST NOTE: --rc-accent teal #186e68 is 5.60:1 on --rc-bg (#f5f6f8) —
+     AA. Darker than the dark-theme #3aa391 (which is only 2.84:1 on light).
+     --rc-gold / --rc-teal alias it. */
+  --rc-accent: #186e68; /* teal, darkened for the light canvas — 5.60:1 AA */
+  --rc-accent-2: #1f7f78; /* hover / brighter — 4.45:1 (AA-large / UI) */
+  --rc-accent-soft: rgba(24, 110, 104, 0.1);
+  --rc-accent-glow: rgba(24, 110, 104, 0.24);
+  --rc-gold: var(--rc-accent); /* back-compat alias → teal */
+  --rc-gold-soft: var(--rc-accent-2); /* back-compat alias → teal */
+  --rc-teal: var(--rc-accent);
+  --rc-teal-soft: var(--rc-accent-2);
+  --rc-commerce: #157a45;
+  --rc-commerce-2: #1c8a54;
 
   /* Status */
   --rc-ok: #1f7a3f;
@@ -299,9 +277,9 @@
   --rc-shadow-lg: 0 12px 28px rgba(20, 28, 40, 0.1), 0 4px 8px rgba(20, 28, 40, 0.05);
   --rc-shadow-xl: 0 20px 40px rgba(20, 28, 40, 0.12), 0 8px 16px rgba(20, 28, 40, 0.07);
 
-  /* Focus rings — teal / green at .32 alpha on the light canvas */
-  --rc-focus-ring: 0 0 0 3px rgba(21, 122, 69, 0.32); /* green at .32 (light) */
-  --rc-focus-ring-gold: 0 0 0 3px rgba(21, 122, 69, 0.32); /* alias, kept for back-compat */
+  /* Focus rings — product teal at .32 alpha on the light canvas */
+  --rc-focus-ring: 0 0 0 3px rgba(24, 110, 104, 0.32); /* teal at .32 (light) */
+  --rc-focus-ring-gold: 0 0 0 3px rgba(24, 110, 104, 0.32); /* alias, kept for back-compat */
 }
 
 /* ── Shared component classes (prefixed .rc-* to avoid collision) ──── */
@@ -329,7 +307,7 @@
 }
 /* Minimal-accent modifiers — a single thin rule, never a fill. Use sparingly
    to flag a primary/active tile (Intercom keeps accent to a hairline). The
-   `--accent-gold` name is kept for back-compat; it now resolves to the green. */
+   `--accent-gold` name is kept for back-compat; it now resolves to product teal. */
 .rc-card--accent {
   border-left: 3px solid var(--rc-accent);
 }
@@ -338,8 +316,8 @@
 }
 
 /* Hairline accent rule — the horizontal/vertical accent line used to divide
-   sections or top-edge a panel. Teal by default; the green (`--gold`-named)
-   variant for the dashboard. Gradient-faded ends so the rule reads as a
+   sections or top-edge a panel. Product teal; `--gold`-named variant is an
+   alias of the same accent. Gradient-faded ends so the rule reads as a
    whisper, not a bar. */
 .rc-rule {
   height: 1px;
@@ -538,8 +516,8 @@
   background: var(--rc-ink-soft);
   border-color: var(--rc-ink-soft);
 }
-/* Primary CTA — the commerce green pill. Resting: solid green fill, dark
-   text. Hover: brighter green + the commerce ring+glow beat (a soft accent
+/* Primary CTA — the product teal pill. Resting: solid teal fill, dark
+   text. Hover: brighter teal + the commerce ring+glow beat (a soft accent
    ring feathered into an outer glow). One memorable interactive beat, applied
    consistently — not a per-button flourish. */
 .rc-button--gold {

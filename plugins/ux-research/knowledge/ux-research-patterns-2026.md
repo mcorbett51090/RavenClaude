@@ -5,6 +5,8 @@
 
 The team's discipline: **research-theater gate first; method follows the question; sample follows the claim; observation stays separate from interpretation; participant data is PII from first contact; small samples are directional, not statistics; every insight ends in a decision.**
 
+UI-pattern evidence for portal and app chrome (what is solid, what stays provisional, what was discarded) is a separate file: [`ui-pattern-standing-bar-2026-11.md`](ui-pattern-standing-bar-2026-11.md). Read it before citing a navigation, token, skeleton, forms, Core Web Vitals, or Baseline claim. This patterns file does not restate those grades.
+
 ---
 
 ## The method matrix
@@ -100,6 +102,28 @@ Every finding carries its weight, stated explicitly:
 - **Retention limits** — set a deletion date **before** collecting; delete raw recordings/PII on schedule, retain only de-identified findings.
 - **Sensitive populations & topics** — minors, health, vulnerable groups, and protected data get heightened consent (guardian where relevant), extra minimization, and ethics review where applicable.
 - **The rule:** participant data is PII from first contact — the ethics plan is set *before* recruiting, never bolted on after.
+
+---
+
+## Testing a settings-surface redesign (added 2026-11-05)
+
+`web-design` now prefers visible choice controls (tiles, segmented controls, sliders with preview, switches) and short copy over dropdowns and long help text ([`settings-and-choice-controls-2026.md`](../../web-design/knowledge/settings-and-choice-controls-2026.md)). **No study in this repository shows that preference is better.** It rests on GOV.UK's published statement about selects, platform guidance, and convention. Treat each line below as a hypothesis to test, not a result to quote. This section does not re-grade or extend the 2026-11-04 UI standing bar.
+
+| Hypothesis | Method | Measure | Decision it informs |
+|---|---|---|---|
+| H1: for 2–5 options, a segmented control or tiles are chosen faster and with fewer wrong picks than a `<select>` | Moderated task test, same tasks on both variants (within-subjects, order rotated), ~5 per segment for a **directional** read | Task success, time on task, wrong-option count, "what did you pick?" recall | Ship tiles, keep the select, or mix |
+| H2: a slider with live preview gets to the preferred text size in fewer back-and-forth adjustments | Think-aloud on text-size and density tasks, plus a participant who uses browser zoom | Adjustments to settle, final size vs stated preference, zoom conflicts | Slider vs named stops |
+| H3: trimmed copy is understood as well as the long version | Comprehension probe after each setting ("what happens if you turn this on?"), then the same probe on the long version | Correct-answer rate per setting, where it differs | Which text moves into a toggletip and which must stay visible |
+| H4: people find and use the "more info" toggletip when they need it | Task that needs the hidden detail; no hint | Found without help (yes/no), time, assistive-tech users included | Keep it, or move the text into the caption |
+| H5: in the scope-then-authorize flow, people can say which access is unavoidable (Required) and which they chose (an Additional Access group) | Test-account walkthrough; after the flow, ask "what can this app do on your account? what could you have declined?" | Correct statements per scope, mismatch between what they say and what was granted | Whether Required vs Additional wording and layout are clear enough to ship |
+| H6: with two accounts on one connector, people can tell which account an app will act as | Task on a provider that allows two accounts (Grok's help names Notion, and says Gmail is one mailbox — do not use Gmail as the two-account fixture): open the accounts sheet, connect a second labeled account, then "use your personal account" | Wrong-account actions, hesitation, whether they use the label | Account label, the provider identifier beside it, and the point-of-use name |
+| H7: the four base tiles (Minimal, Read only, Full, Requested) mean different things, and the pills match what the person later sees as Required plus what they could decline | Walkthrough. After they pick one tile, ask which they picked and what the pills listed, then compare with the authorize step | Mismatch between the tile they name, the pills, and the authorize step | Whether those four words can ship without a caption |
+
+- **Recruit assistive-technology users** (screen reader, keyboard-only, magnification) as a stratum, not an afterthought. A WCAG audit is a different job and routes to `accessibility-engineering`.
+- **H6's provider note is not a study result.** Gmail-is-one-mailbox and Notion-can-have-a-second are what Grok's help pages say, as recorded in [`settings-and-choice-controls-2026.md`](../../web-design/knowledge/settings-and-choice-controls-2026.md) §7 (fetched 2026-11-05). The four tile names in H7 are the owner's labels. No session in this repo has watched someone use them.
+- **Report with a denominator and evidence strength.** "4 of 5 chose correctly" is directional, never "80% of users" (house opinion #3). Removing words has lowered conversion before; read the [`forms-engineering` scenario](../../forms-engineering/scenarios/2026-08-17-we-removed-fields-and-conversion-fell.md) before attributing a change to the copy.
+- **Observation, then interpretation,** on separate lines (house opinion #5). A QA walk finding is not a study result.
+- **Consent and PII first** (house opinion #6), especially for settings that touch connected accounts: use test accounts, never a participant's real connector.
 
 ---
 

@@ -47,6 +47,7 @@ git worktree remove ../repo-feat-auth                # clean up when the branch 
 - Reconcile the parallel work through **merge / PR**, the same way you'd integrate two humans' branches — that's the integration point, not the filesystem.
 - Use the bundled [`new-worktree`](../skills/new-worktree/SKILL.md) / [`cleanup-worktrees`](../skills/cleanup-worktrees/SKILL.md) skills so the create/branch/remove lifecycle is consistent (and prune stale worktrees — an abandoned one holds a branch ref and disk; Claude Code also auto-removes its own session worktrees past `cleanupPeriodDays` once they have no uncommitted/untracked/unpushed work).
 - In user-facing dispatch prose, the cross-branch traversal is "**Sleipnir**" — the same convention the sub-agent reads use. Sleipnir remains a **label**, not a component.
+- **Session lease.** When two hook copies of the *same chat* write one tree (Copilot's plugin hooks and the adapter use different session-id strings), `worktree-guard.sh` shares the lease only if the session id matches **or** the `transcript_path` hash matches. A shared parent process id is not the same chat. A second session under one process does not inherit the lease.
 
 ### Operator layout (all supported hosts) — dated 2026-08-14
 
@@ -56,7 +57,7 @@ CONTENTION (two live writers, one tree) is **not** Chat context isolation. FOREI
 |---|---|---|---|---|
 | **Claude Code** | Native worktree isolation blocks writes/cwd/git-redirects into the **main** checkout. FOREIGN-TREE additionally blocks **sibling-B**. | One session per worktree. Shared approvals on main `.claude/settings.local.json` are policy bleed, not file-write bleed. | Native + FOREIGN-TREE. | `~/.claude/` memory. |
 | **Copilot CLI** | Projected `.github/hooks` `worktree-guard` FOREIGN-TREE (after `/plugin marketplace update`). | SessionStart LANE pin when hooks fire. | FOREIGN-TREE on `git -C`. | Shared `~/.copilot`. |
-| **VS Code Copilot Chat** | **Not claimed.** Preview hooks *may* load `.github/hooks` `[unverified]` (CL-19). Sandbox does not cover built-in file tools. Sibling built-in Write `[unverified]` (CL-3). | **Operator layout:** `code -n` one folder per window; never multi-root two worktrees; new Chat session; never hop Agents-window sessions. | Same as write — not claimed until probed. | Agent Host session reuse. Open-editor bleed inside one window. |
+| **VS Code Copilot Chat** | Local harness loads `.github/hooks/ravenclaude.json` through the adapter. Leave `chat.useClaudeHooks` off while that file is present (one install; two stacks double the wait). Agent Host does not inherit Local hooks. Sandbox does not cover built-in file tools. Sibling built-in Write `[unverified]`. | **Operator layout:** `code -n` one folder per window; never multi-root two worktrees; new Chat session; never hop Agents-window sessions. | Same as write. | Agent Host session reuse. Open-editor bleed inside one window. |
 | **Codex CLI** | `workspace-write` sandbox is the write floor. FOREIGN-TREE is extra. After a hook-script change, `/hooks` (hash-trust). | cwd walk for `AGENTS.md`. | FOREIGN-TREE. | ChatGPT desktop managed worktrees are **not** this lane. |
 | **Gemini CLI** | Projected hooks + FOREIGN-TREE. Do **not** set `experimental.worktrees`. | JIT-on-touch: a **Read** of a sibling path can pull that tree's `GEMINI.md`. FOREIGN-TREE does **not** deny Read by default. | FOREIGN-TREE. | `~/.gemini/`. |
 
@@ -65,6 +66,42 @@ CONTENTION (two live writers, one tree) is **not** Chat context isolation. FOREI
 - Don't point two parallel instances at the **same** working directory expecting git to sort it out — it can't; concurrent edits/stages to one tree race and silently lose writes.
 - Don't conflate this with the **sub-agent** case — a sub-agent's tool access and permissions are set by its `tools` / `disallowedTools` grant plus the session's permission mode (per [sub-agents.md](https://code.claude.com/docs/en/sub-agents)), and `isolation: "worktree"` on a sub-agent isolates its **working directory**, not its tools. Peer-process worktrees are for independent **instances**, not a lever for sub-agent permissions.
 - Don't leave worktrees lying around after their branch merges — `git worktree remove` (or the cleanup skill); a stale worktree is the peer-process analogue of an un-deleted merged branch.
+
+### Cleanup lifecycle rationale (added 2026-11-10)
+
+[`cleanup-worktrees`](../skills/cleanup-worktrees/SKILL.md)'s tool
+([`scripts/worktree-clean.sh`](../scripts/worktree-clean.sh)) discovers via
+`git worktree list --porcelain` rather than only globbing
+`.claude/worktrees/`, because the porcelain format is the one surface that
+tells you, per worktree, everything needed to decide safety without
+guessing: `[docs-verified 2026-11-10 — git-scm.com/docs/git-worktree §LIST
+OUTPUT FORMAT]` the first attribute of a record is always `worktree <path>`;
+`locked` (bare, or `locked <reason>` when one was given to `git worktree
+lock --reason`) and `prunable <reason>` (e.g. `"gitdir file points to a
+non-existent location"`) are each present **only when true**, label-only
+boolean style — exactly the shape that lets a parser tell "locked" apart
+from "merely absent" without a second probe. `git worktree prune` and the
+`gc.worktreePruneExpire` config `[docs-verified, same page §DESCRIPTION /
+§COMMANDS]` are documented as the two ways a dangling admin record (one
+whose working directory was removed outside `git worktree remove`) gets
+cleaned up — confirming `prunable` is a distinct, real git concept and not
+something this tool invented a label for. All three facts were also
+reproduced directly against a real git 2.47.3 binary in this change's own
+test fixtures before being relied on, not just read off the docs.
+
+The SessionEnd trigger ([`scripts/worktree-cleanup-report.sh`](../scripts/worktree-cleanup-report.sh))
+writes a report file rather than attempting `systemMessage`/
+`additionalContext`, because the Claude Code hooks reference says so
+directly `[docs-verified 2026-11-10 — code.claude.com/docs/en/hooks]`:
+`SessionEnd`'s decision-control entry is **None** — no context injection,
+no blocking — and its exit-code table marks blocking **No**. Its stated
+purpose is side effects like logging or cleanup, which is exactly what
+writing `.ravenclaude/runs/worktree-cleanup/report.md` is. (The same fetch
+confirmed, in passing, that `PreCompact` genuinely *can* block and its
+stdout is parsed as compaction-summary instructions — a capability this
+repo's own `hooks/precompact-digest.sh` deliberately never uses, per its own
+header; not relevant to worktree cleanup, but worth not conflating the two
+events' capabilities.)
 
 ## Edge cases / when the rule does NOT apply
 

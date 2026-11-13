@@ -6,7 +6,11 @@ Single source of truth for the layout allow-list match logic, shared by:
   - scripts/audit-gates.sh (the meta-test fixture that proves this gate bites).
 
 Two modes:
-  --diff <base>   check only files Added/Copied/Renamed vs <base> (the PR check)
+  --diff <base>   check only files Added/Copied/Renamed vs <base> (the PR check).
+                  Default is three-dot (`base...HEAD`): the merge-base walk.
+                  --two-dot compares the two trees directly (`base..HEAD`). CI
+                  passes that when <base> is already the merge-base commit and
+                  the clone does not contain the commits in between.
   --all           check EVERY tracked file (git ls-files) against the allow-list
                   (catches pre-existing / modified off-allow-list files the
                   diff-only check can never see — two-panel audit 2026-05-31, P1)
@@ -18,6 +22,7 @@ checked path is allowed; exit 1 with a per-path report otherwise.
 Usage:
     check-layout.py --all
     check-layout.py --diff origin/main
+    check-layout.py --diff <merge-base-sha> --two-dot
     check-layout.py --root <dir> --all        # test-fixture override
 """
 
@@ -71,7 +76,15 @@ def main() -> int:
     mode = ap.add_mutually_exclusive_group(required=True)
     mode.add_argument("--all", action="store_true", help="scan every tracked file")
     mode.add_argument("--diff", metavar="BASE", help="scan files added/copied/renamed vs BASE")
+    ap.add_argument(
+        "--two-dot",
+        action="store_true",
+        help="compare BASE..HEAD (the two trees). Requires --diff. Use when BASE "
+        "is already the merge-base commit.",
+    )
     args = ap.parse_args()
+    if args.two_dot and not args.diff:
+        ap.error("--two-dot requires --diff")
     root = Path(args.root)
 
     layout = json.loads((root / ".repo-layout.json").read_text(encoding="utf-8"))
@@ -89,12 +102,15 @@ def main() -> int:
         paths = out.stdout.splitlines()
         scope = f"all {len(paths)} tracked files"
     else:
+        # Three-dot walks to the merge base and needs those commits in the
+        # clone. Two-dot compares the two trees and does not. `A..B` for
+        # commits is `git diff A B`.
+        spec = f"{args.diff}..HEAD" if args.two_dot else f"{args.diff}...HEAD"
         out = subprocess.run(
-            ["git", "-C", str(root), "diff", "--name-only", "--diff-filter=ACR",
-             f"{args.diff}...HEAD"],
+            ["git", "-C", str(root), "diff", "--name-only", "--diff-filter=ACR", spec],
             capture_output=True, text=True)
         if out.returncode != 0:
-            print(f"check-layout: `git diff ...{args.diff}` failed (exit {out.returncode}) "
+            print(f"check-layout: `git diff {spec}` failed (exit {out.returncode}) "
                   f"— base ref unresolvable, refusing to pass silently: {out.stderr.strip()}",
                   file=sys.stderr)
             return 2
