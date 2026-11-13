@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.363.5 — 2026-11-13
+
+### Fixed
+- **Directory-edition cwd-import AppSec residuals (from draft #1434).** The
+  build-time scanner now fail-closes on `${…}` operator/modifier forms
+  (`:-`/`:=`/`:+`/…), glued `$CC -m…` / empty-quote stripping, same-line
+  assignment of allowlisted vars to interpreters, non-C/C++ `$CC -c` operands,
+  additional interpreters (`ipython`/`micropython`/`jython`/`mksh`/`ash`), and
+  related pipe/process-subst shapes. L8 compiler/editor allowlist no longer
+  softens `-c`/`-m` after `$CC`/`$CXX`/`$INSTALL`/`$VISUAL`/`$SHELL`. Builder
+  self-test 80/80; `check-directory-edition.py` 473/473.
+
 ## 0.363.2 — 2026-11-13
 
 ### Fixed
