@@ -2,6 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.9] — 2026-11-16
+
+CI gates and agent-reported checks, from `docs/research/2026-11-15-ci-gates-and-agent-checks/`.
+
+- **Knowledge rows.** New `knowledge/ci-gates-and-agent-checks-2026-11.md`: skipped job versus skipped workflow, `integration_id`, check runs versus commit statuses, the aggregate job, and why a model's paragraph is not a pass. Each row cites the page it came from.
+- **Required-check rule.** `pipeline-required-checks-gate-the-merge.md` now says to require the aggregate job only (a skipped required name reports Success), and to set `integration_id` instead of "any source". GitHub Actions was app id 15368 on `GET /apps/github-actions` this session.
+- **Capability map.** Lockfile preview (changelog 2026-10-14), the source-app pin, the Actions app id, and BuildKit `gha` scope (the default scope keeps the last image).
+
 ## [0.3.8] — 2026-11-16
 
 Mac mini (M6, 16 GB / 256 GB) as a self-hosted runner host. Dated rows in `knowledge/deployment-strategy-and-runner-cache-decision-trees.md` point at `docs/research/2026-11-15-mac-mini-m6-runners/`. The live Commerce CI guard accepts Linux only, so the rows send that factory's jobs to one Linux arm64 VM, with per-runner npm caches, and they keep deploy and secrets runners off the machine.
