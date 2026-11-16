@@ -35,3 +35,4 @@ Facts are tagged with where they came from and the date they were checked. Treat
 
 - `plugins/devops-cicd/knowledge/deployment-strategy-and-runner-cache-decision-trees.md` already had a "runner and build-cache placement" tree. This research adds the dynamic and mixed-machine layer, and that file's capability map now links here.
 - Operational runbooks for the actual machines (watchdog, keepalive, ports, labels in force) live with the machines and in the private product repo. This public doc keeps to patterns and leaves out host details.
+- The 16 GB Mac mini line in [03](03-macos-apple-silicon.md) and [07](07-recommendations-raven-fleet.md) is the generic plan. The machine that actually shipped is the M6 16 GB / 256 GB model; the setup for that SKU is [2026-11-15-mac-mini-m6-runners](../2026-11-15-mac-mini-m6-runners/README.md).
