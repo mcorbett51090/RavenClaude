@@ -39,6 +39,7 @@ knowledge/agent-routing.md
 knowledge/claude-code-permissions.md
 knowledge/claude-in-ci.md
 knowledge/consistency-failure-modes.md
+knowledge/cross-plugin-invocation.md
 knowledge/declarative-visualization.md
 knowledge/design-first-report-workflow.md
 knowledge/dynamic-workflows.md
@@ -56,6 +57,7 @@ rules/git-workflow.md
 rules/security.md
 scripts/ask-on-ambiguity.sh
 scripts/claim_grounding_scan.py
+scripts/cross-plugin-invoke.py
 scripts/dashboard-prompt.sh
 scripts/edition-trust.sh
 scripts/pseudonymize-brief.py
