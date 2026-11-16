@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.9.24 — 2026-11-16
+
+### Changed
+
+- Capability-map lineup re-verified against the Claude models overview and pricing page. Current GA rows are Fable 5.2 ($8/$40), Opus 5.5 ($4/$20), Sonnet 5.5 ($2/$10), and Haiku 5.5 ($0.10/$0.50, higher above 100k prompt tokens). Routing ladder updated. Forced-tool behavior on the three new ids was not re-checked.
+
 ## 0.9.23 — 2026-10-20
 
 ### Fixed (2026-10-20 autonomous repo review, PR #1389)
