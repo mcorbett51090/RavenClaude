@@ -2,7 +2,7 @@
 
 _Two Mermaid decision trees that **complement** [`devops-cicd-decision-trees.md`](devops-cicd-decision-trees.md): that file's "Deploy / rollout strategy selection" tree picks the rollout shape by reversibility; these two go a layer deeper — (1) the data/dependency preconditions a rollout strategy actually requires before it's safe to run, and (2) where CI compute and the build cache should live. Capability rows are `[verify-at-use]` — re-check against the vendor before quoting._
 
-_Last reviewed: 2026-07-08._
+_Last reviewed: 2026-11-15 (runner rows; trees unchanged since 2026-07-08)._
 
 ## Decision Tree: Deployment-strategy preconditions — is this rollout actually safe to run?
 
@@ -91,8 +91,14 @@ flowchart TD
 | GitHub Actions self-hosted runners | GA | Prefer ephemeral; isolate untrusted PR code |
 | `actions/cache` lockfile-hash keying | GA | `hashFiles()` + `restore-keys` fallback prefix |
 | GitHub Actions cache — read-only for untrusted triggers | GA, default (2026-06) | Actions now issues read-only cache tokens to the default-branch cache for events runnable without write perms (pull_request_target, issue_comment, fork workflow_run) — blocks cross-fork cache poisoning by default; you gain it with no config. Don't design a pipeline that WRITES cache from an untrusted-trigger job (the write is now dropped). [Changelog 2026-06-26](https://github.blog/changelog/2026-06-26-read-only-actions-cache-for-untrusted-triggers/) |
+| Self-hosted runner autoscaling outside Kubernetes (`actions/scaleset` Go client) | Public preview, v0.5.0 (2026-10-23) | Long-poll scale-set API; scale on `TotalAssignedJobs`; report per-host `maxCapacity`; JIT runners; no inbound webhook needed. See [self-hosted runner research](../../../docs/research/2026-11-15-self-hosted-runners/README.md) |
+| ARC multi-label scale sets | GA since ARC 0.14.0 (2026-03-19); 0.15.1 latest (2026-10-23) | One scale set per runner type, several labels each |
+| `runs-on` label matching | GA, AND-only | No OR, fallback or priority; overflow via superset labels, picker job, or scale-set capacity |
+| Self-hosted runner $0.002/min platform fee | Announced 2025-12-16, **postponed**, no date (Nov 2026) | Self-hosted minutes still free; plan for it possibly returning |
+| Actions cache above 10 GB/repo | GA (2025-11-20), billed above 10 GB | Keep caches under 10 GB where billing is unavailable |
+| Offline self-hosted runner auto-removal | 14 days (ephemeral 1 day) | Part-time machines need re-registration after long absences |
 | Docker BuildKit `cache-from`/`cache-to` | GA | Registry or remote (`type=gha`, `type=registry`) backends |
 | Argo Rollouts automated analysis | GA | `AnalysisTemplate` + metric provider gates promote/abort |
 | Flagger (Flux) progressive delivery | GA | Same canary-with-analysis model for Flux users |
 
-_Sources: [GitHub Actions runners docs](https://docs.github.com/en/actions/using-github-hosted-runners), [GitHub Actions caching docs](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows), [Docker build cache docs](https://docs.docker.com/build/cache/), [Argo Rollouts analysis docs](https://argo-rollouts.readthedocs.io/en/stable/features/analysis/) — all retrieved 2026-06-05; capability/version rows are volatile, re-confirm at use._
+_Sources: [GitHub Actions runners docs](https://docs.github.com/en/actions/using-github-hosted-runners), [GitHub Actions caching docs](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows), [Docker build cache docs](https://docs.docker.com/build/cache/), [Argo Rollouts analysis docs](https://argo-rollouts.readthedocs.io/en/stable/features/analysis/) — all retrieved 2026-06-05; runner rows added 2026-11-15 from the linked research doc; capability/version rows are volatile, re-confirm at use._
