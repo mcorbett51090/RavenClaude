@@ -1,21 +1,21 @@
 {
   "schema_version": 1,
-  "retrieved": "2026-10-17",
+  "retrieved": "2026-11-16",
   "hosts": {
     "claude": {
-      "_note": "hosts.claude pins moved to the 2026-10-17 playbook ids (Opus 5.5 / Sonnet 5.5 / Haiku 5.5). This pass did not re-probe live alias resolution, and it did not re-probe copilot, grok, or codex rows. Re-verify at use.",
+      "_note": "hosts.claude pins are the 2026-11-16 capability-map ids (claude-opus-5-5 / claude-sonnet-5-5 / claude-haiku-5-5). Grok, Codex, and Copilot rows were aligned to plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md as re-verified in #1451 (ee923b3d). This pass did not re-probe a live CLI.",
       "fast": "claude-haiku-5-5",
       "balanced": "claude-sonnet-5-5",
       "top": "claude-opus-5-5"
     },
     "grok": {
       "fast": {
-        "model": "grok-4.5",
+        "model": "grok-4.3",
         "effort": "low",
         "perspective": "scanner"
       },
       "balanced": {
-        "model": "grok-4.6",
+        "model": "grok-4.7",
         "effort": "high",
         "perspective": "architect"
       },
@@ -31,16 +31,16 @@
       "top": "gpt-6.1-sol"
     },
     "copilot": {
-      "fast": "Claude Haiku 4.5",
-      "balanced": "Claude Sonnet 5",
+      "fast": "Claude Haiku 5.5",
+      "balanced": "Claude Sonnet 5.5",
       "top": "Claude Opus 5.5"
     }
   },
   "notes": {
-    "grok_distinct": "fast=grok-4.5/low/scanner balanced=grok-4.6/high/architect top=grok-4.7/high/critic",
-    "codex_pro_mode": "reasoning.mode pro on gpt-6.1-sol (GPT-6 Sol family) \u2014 not a separate slug; no Terra tier in current Codex GPT-6 docs naming",
-    "copilot_balanced": "Sonnet 5 primary; Auto footnote",
+    "grok_distinct": "fast=grok-4.3/low/scanner balanced=grok-4.7/high/architect top=grok-4.7/high/critic. Decision tree in the 2026-11-16 lineup: fast leaf grok-4.3; balanced and top are grok-4.7 (Grok Build default). They share the model and differ on perspective. Effort stays high, the documented Grok 4.7 default (low/medium/high/xhigh). xhigh is documented and not used here. Fast effort stays low; the lineup does not publish a separate effort set for Grok 4.3.",
+    "codex_pro_mode": "reasoning.mode pro on gpt-6.1-sol is not a separate slug. Decision-tree top is GPT-6 Astra, and the 2026-11-16 lineup records no CLI slug for Astra, so hosts.codex.top stays the models-page example default gpt-6.1-sol. Fast is gpt-6-luna. GPT-6.1 Terra (gpt-6.1-terra) is the fast-everyday tier and is not the decision-tree fast leaf.",
+    "copilot_balanced": "Sonnet 5.5 is the decision-tree balanced leaf; Auto remains the picker footnote",
     "seats": "Thing seats stay Claude; not this map",
-    "claude_aliases": "Tier ids under hosts.claude are the 2026-10-17 catalog pins (claude-opus-5-5 / claude-sonnet-5-5 / claude-haiku-5-5), not a live alias probe from this pass. Copilot display names were not re-probed and must not be read as the Claude Code pin. Grok and Codex rows were not changed."
+    "claude_aliases": "Tier ids under hosts.claude are the 2026-11-16 catalog pins (claude-opus-5-5 / claude-sonnet-5-5 / claude-haiku-5-5). Copilot rows are display names from the same lineup (Claude Haiku 5.5 / Claude Sonnet 5.5 / Claude Opus 5.5), not Claude Code pins."
   }
 }
