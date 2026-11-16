@@ -11,16 +11,18 @@
 #                                           [--repo <dir>] [--timeout <secs>]
 #                                           [--max-turns <n>] [--effort low|medium|high]
 #
-# THE MATRIX (2026-08-26). Model + effort + perspective come from the shared
+# THE MATRIX. Model + effort + perspective come from the shared
 # substrate-tier-map.json (the same map FORGE's G2/G3 panels resolve from) —
-# this script is not a second source of truth for those three. What IS local
-# to cheap-lane delegation, because it is a cost/turnaround decision rather
-# than a model-capability one, is the per-tier TURN/TIMEOUT BUDGET below:
+# this script is not a second source of truth for those three. The ids below
+# match that map as aligned to the 2026-11-16 lineup (fast grok-4.3; balanced
+# and top grok-4.7). What IS local to cheap-lane delegation, because it is a
+# cost/turnaround decision rather than a model-capability one, is the per-tier
+# TURN/TIMEOUT BUDGET below:
 #
 #   tier      model(grok)  effort  perspective  max_turns  timeout_s
-#   fast      grok-4.5     low     scanner      15         300
-#   balanced  grok-4.5     high    architect    30         600
-#   top       grok-4.6     high    critic       60         1200
+#   fast      grok-4.3     low     scanner      15         300
+#   balanced  grok-4.7     high    architect    30         600
+#   top       grok-4.7     high    critic       60         1200
 #
 # An explicit --max-turns/--timeout/--effort always overrides its column.
 # --effort is validated against Grok CLI's real set (low|medium|high — xhigh
@@ -208,7 +210,8 @@ PY
   effort="$(printf '%s' "$_resolved" | cut -f2)"
 fi
 # The map is the source of truth; this is only the floor if it is unreadable.
-[ -n "$model" ] || model="grok-4.5"
+# grok-4.7 is the Grok Build default in the 2026-11-16 lineup.
+[ -n "$model" ] || model="grok-4.7"
 # An explicit --effort wins over the tier-resolved effort (validated above).
 [ -n "$effort_override" ] && effort="$effort_override"
 
