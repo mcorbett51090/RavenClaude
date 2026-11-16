@@ -2306,10 +2306,12 @@ installed list counts as "used."
 
 ## The discriminator
 
-control: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (41 pass).
-Measured 2026-09-19: with `auto_uninstall` OFF the sweep makes zero uninstall CLI
+control: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (46 pass, 0 fail on 2026-11-16).
+With `auto_uninstall` OFF the sweep makes zero uninstall CLI
 calls; with ON + mock CLI it records executed uninstalls via `claude plugin
-uninstall -y`. `auto_install: auto` is honored only when explicit (absent => off);
+uninstall -y` for a name the resolver accepts. A traversal-shaped name is
+refused before an install command or an uninstall argv is built.
+`auto_install: auto` is honored only when explicit (absent => off);
 uncited auto stays CTA. Auto `--execute` is tip/SHA pin-gated (prefer ask).
 Core is hard-pinned (MF teeth).
 
@@ -2329,7 +2331,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.
 
 **Sources:** [scripts/plugin-lifecycle.py](../plugins/ravenclaude-core/scripts/plugin-lifecycle.py)
 
-_Last verified: 2026-09-19_
+_Last verified: 2026-11-16_
 
 
 ---
