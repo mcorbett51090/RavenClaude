@@ -16,6 +16,10 @@ The **devops-cicd** plugin — building and operating the delivery pipeline that
 /plugin install devops-cicd@ravenclaude
 ```
 
+## Run state
+
+[`knowledge/ci-run-status.md`](knowledge/ci-run-status.md) is how an agent decides that a GitHub Actions run is still going, has stalled, or has failed, and which single corrective action follows. `scripts/classify_ci_run_state.py` prints the same decision as JSON.
+
 ## Seams
 
 - **Provisioning the infrastructure the pipeline deploys to** → `terraform-iac` (the cluster, the registry, the DNS) — this plugin *uses* that infra, it doesn't author it.

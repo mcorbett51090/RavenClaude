@@ -2,6 +2,13 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.7] — 2026-11-16
+
+How an agent tells a live GitHub Actions run from a stopped or failed one, and what to do next.
+
+- **Procedure.** `knowledge/ci-run-status.md` is the decision procedure: run and job states, ghost runs, log availability, the JSON verdict, and the corrective-action table with rerun guardrails. The research behind it is `docs/research/2026-11-15-ci-run-observability-for-agents/`.
+- **Classifier.** `scripts/classify_ci_run_state.py` turns a run/job/runner snapshot into that JSON verdict. It does not call the network unless `--repo` and `--run-id` are passed. `python3 plugins/devops-cicd/scripts/classify_ci_run_state.py --self-test` runs the tests.
+
 ## [0.3.6] — 2026-11-05
 
 Source-control operating practices, cited rather than restated as slogans. The checklist lives in `ravenclaude-core` `knowledge/source-control-operating-practices.md`; this plugin holds the specialist rules.
