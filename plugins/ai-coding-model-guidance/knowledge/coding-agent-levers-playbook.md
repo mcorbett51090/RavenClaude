@@ -18,6 +18,8 @@ Do **not** use this file as a substitute for the HARD GATE. The quota tree remai
 
 **Bot rule of thumb:** if the surface is still usable, exhaust same-surface levers here first; if the surface is hard-capped, jump to missing-lever failover / surface hop (sections 5–6) without inventing params.
 
+**Where the process runs** is not a model lever. A sandbox, an Actions runner, and a self-hosted worker bill different meters and hold different machines. See [`coding-agent-compute-placement.md`](coding-agent-compute-placement.md) (2026-11-16) before recommending a runner.
+
 ---
 
 ## 2. Apply order (default)

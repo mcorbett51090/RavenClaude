@@ -2,12 +2,23 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.3.7] — 2026-11-16
+## [0.3.8] — 2026-11-16
 
 How an agent tells a live GitHub Actions run from a stopped or failed one, and what to do next.
 
 - **Procedure.** `knowledge/ci-run-status.md` is the decision procedure: run and job states, ghost runs, log availability, the JSON verdict, and the corrective-action table with rerun guardrails. The research behind it is `docs/research/2026-11-15-ci-run-observability-for-agents/`.
 - **Classifier.** `scripts/classify_ci_run_state.py` turns a run/job/runner snapshot into that JSON verdict. It does not call the network unless `--repo` and `--run-id` are passed. `python3 plugins/devops-cicd/scripts/classify_ci_run_state.py --self-test` runs the tests.
+
+## [0.3.7] — 2026-11-16
+
+Coding-agent compute on the runner/cache capability map. The trees are unchanged.
+
+- Copilot cloud agent on Actions: 59-minute cap, setup-file keys, Ubuntu x64 or Windows 64-bit, self-hosted firewall requirement. Cloud sandbox does not use the consumer's runners.
+- An agent job holds the runner for the model wait. Hosted jobs end at 6 hours, self-hosted at 5 days, and the default token on self-hosted refreshes for 24 hours.
+- `queue: max` (up to 100 pending) is the wrong cap for a small fleet. `cancel-in-progress: true` belongs on test workflows, not on a job that pushes.
+- Claude Code's GitHub Action is a job step. Set a timeout. Do not check out an untrusted ref at the workspace root on `pull_request_target`.
+
+Write-up: `docs/research/2026-11-15-runners-for-coding-agents/`.
 
 ## [0.3.6] — 2026-11-05
 
