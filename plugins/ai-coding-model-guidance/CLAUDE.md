@@ -73,6 +73,8 @@ Each agent ends with its role-specific contract (see the agent file) **plus the 
 
 [`knowledge/cross-tool-model-lineup-2026.md`](knowledge/cross-tool-model-lineup-2026.md) is the **single source of truth** for all three ecosystems: the vendor-neutral decision tree, the dated per-ecosystem lineups with inline citations, the closed-world model list, and the "how to keep this current" refresh procedure. It is tagged **Tier-4 (fast-churn)** for the `knowledge-file-staleness-sweep` skill and is in scope for the weekly `researcher-reminder.yml` sweep. **All numeric/availability claims live here, dated — one file refreshes, not three personas** (the same discipline as `claude-app-engineering`'s capability map).
 
+Where the agent process runs (vendor sandbox, a GitHub Actions runner, or a self-hosted worker) is a different fact from which model it calls. That placement table is [`knowledge/coding-agent-compute-placement.md`](knowledge/coding-agent-compute-placement.md), dated 2026-11-16, and it is not part of the closed-world model list.
+
 ---
 
 ## 8. Why this is one plugin, not three
