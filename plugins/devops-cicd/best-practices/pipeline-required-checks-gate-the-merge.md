@@ -55,7 +55,9 @@ Key decisions:
 - Allow status checks to be required only for non-admins — that's branch protection theater.
 - Treat a consistently-red required check as acceptable; fix it or remove it.
 - Put a `paths:` or `branches:` filter on a workflow you are about to require. A skipped workflow stays pending and the pull request cannot merge. Gate a step with `if:` instead. The write-up is `ravenclaude-core` `knowledge/github-actions-hardening.md` rule 5.
-- Add an advisory reviewer to the required list. GitHub's troubleshooting page, retrieved 2026-11-05 from <https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks>, treats `success`, `skipped`, and `neutral` as conclusions that satisfy a required check. A bot that exits neutral when it did not review anything would then satisfy the gate. Keep it off the list. A gate you mean to enforce exits non-zero when it fails.
+- Add an advisory reviewer to the required list. GitHub's troubleshooting page, retrieved 2026-11-16 from <https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks>, treats `success`, `skipped`, and `neutral` as conclusions that satisfy a required check. A bot that exits neutral when it did not review anything would then satisfy the gate. Keep it off the list. A gate you mean to enforce exits non-zero when it fails.
+- Require a job that an `if:` can skip, and also require the aggregate. The skipped job reports Success, so the skip satisfies that required name. Require the aggregate only, and make the aggregate fail when the skip was not allowed.
+- Leave a required context on "any source" when a token or a workflow can post commit statuses. Set `integration_id` to the GitHub App that posts it. GitHub Actions is app id 15368 (read 2026-11-16 from `GET /apps/github-actions`; re-read before pinning). A model's paragraph is not that App. Dated rows: [`knowledge/ci-gates-and-agent-checks-2026-11.md`](../knowledge/ci-gates-and-agent-checks-2026-11.md).
 
 ## Strict, or a merge queue
 
@@ -88,4 +90,4 @@ Codifies GitHub branch protection documentation (docs.github.com/repositories/co
 
 ---
 
-_Last reviewed: 2026-06-05 by `claude`_
+_Last reviewed: 2026-11-16. The source-app pin and the aggregate-only required name were added from the CI-gates research of that date._
