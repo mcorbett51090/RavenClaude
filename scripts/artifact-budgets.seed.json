@@ -136,6 +136,11 @@
         "PR #1387 revive: Gates 310\u2013316/318\u2013319 + merge through 0.363.5 (2026-11-13)",
         33330,
         "Whole-repo review revive onto main through e352b94d (0.363.5). Regenerated/merged dashboard.html measures 33,316 island payload elements, over the prior 33,310 Phase-2 Catalog ceiling by 6 (largest panel learn-payload). Pure content-size raise from review-fix concepts/gates landing beside main's AppSec residual regen \u2014 not a DOM control. Appended, never edited. Re-measured on branch head after prettier + merge."
+      ],
+      [
+        "cross-plugin invocation inventory entry (core 0.365.0)",
+        33370,
+        "core 0.365.0 adds scripts/cross-plugin-invoke.py and inventory concept cross-plugin-invocation, required by Gate 242 because the resolver is a new script under plugins/ravenclaude-core/scripts. Regenerated dashboard.html measures 33,352 island payload elements, over the prior 33,330 ceiling by 22 (largest panel learn-payload at 25,975). The entry ships no mermaid block. Pure content-size raise, not a DOM control. Appended, never edited."
       ]
     ],
     "index.html": [
