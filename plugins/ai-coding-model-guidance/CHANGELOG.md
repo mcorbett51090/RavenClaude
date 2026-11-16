@@ -1,5 +1,11 @@
 # Changelog — ai-coding-model-guidance
 
+## [0.3.24] — 2026-11-16
+
+### Added
+
+- `knowledge/coding-agent-compute-placement.md`: where Copilot, Codex, and a Cursor cloud agent run, and which of those paths occupy a GitHub Actions runner. Dated 2026-11-16. Not a model-lineup change. The levers playbook points at it.
+
 ## [0.3.23] — 2026-11-16
 
 ### Changed

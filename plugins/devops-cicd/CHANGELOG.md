@@ -2,9 +2,20 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.3.7] — 2026-11-16
+## [0.3.8] — 2026-11-16
 
 Mac mini (M6, 16 GB / 256 GB) as a self-hosted runner host. Dated rows in `knowledge/deployment-strategy-and-runner-cache-decision-trees.md` point at `docs/research/2026-11-15-mac-mini-m6-runners/`. The live Commerce CI guard accepts Linux only, so the rows send that factory's jobs to one Linux arm64 VM, with per-runner npm caches, and they keep deploy and secrets runners off the machine.
+
+## [0.3.7] — 2026-11-16
+
+Coding-agent compute on the runner/cache capability map. The trees are unchanged.
+
+- Copilot cloud agent on Actions: 59-minute cap, setup-file keys, Ubuntu x64 or Windows 64-bit, self-hosted firewall requirement. Cloud sandbox does not use the consumer's runners.
+- An agent job holds the runner for the model wait. Hosted jobs end at 6 hours, self-hosted at 5 days, and the default token on self-hosted refreshes for 24 hours.
+- `queue: max` (up to 100 pending) is the wrong cap for a small fleet. `cancel-in-progress: true` belongs on test workflows, not on a job that pushes.
+- Claude Code's GitHub Action is a job step. Set a timeout. Do not check out an untrusted ref at the workspace root on `pull_request_target`.
+
+Write-up: `docs/research/2026-11-15-runners-for-coding-agents/`.
 
 ## [0.3.6] — 2026-11-05
 
