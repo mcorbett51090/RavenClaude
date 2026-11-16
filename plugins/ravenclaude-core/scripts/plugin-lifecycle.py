@@ -62,6 +62,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -343,9 +344,49 @@ def _pin_matches(pin: str, key: str) -> bool:
 
 
 # ── record (telemetry) ────────────────────────────────────────────────────────
+def _shape_reason(plugin: str) -> str | None:
+    """Same exact-name shape as the resolver, with no registry and no sibling import.
+
+    The teeth fixture copies this file alone. A ledger-name check that imports
+    the resolver from beside ``__file__`` crashes that copy. Shape is local.
+    Install and uninstall still ask the resolver, and refuse if it cannot load.
+    """
+    if not isinstance(plugin, str) or plugin == "":
+        return "empty_plugin"
+    if "\x00" in plugin or "\n" in plugin or "\r" in plugin:
+        return "invalid_plugin_name"
+    if plugin.startswith("/") or plugin.startswith("\\"):
+        return "absolute_path"
+    if len(plugin) > 2 and plugin[1] == ":" and plugin[0].isalpha():
+        return "absolute_path"
+    if "/" in plugin or "\\" in plugin or ".." in plugin:
+        return "path_traversal"
+    if any(c.isspace() or c in ";|&$`'\"<>*?(){}[]!#~" for c in plugin):
+        return "invalid_plugin_name"
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", plugin):
+        return "invalid_plugin_name"
+    return None
+
+
+def _ledger_name_ok(plugin: str) -> tuple[bool, str]:
+    """Ledger rows may name a plugin this checkout does not ship.
+
+    Traversal, absolute paths, and metacharacters are never a row. Catalog
+    membership is enforced when an install or uninstall argv is built.
+    """
+    reason = _shape_reason(plugin)
+    if reason:
+        return False, reason
+    return True, "ok"
+
+
 def cmd_record(args) -> int:
     if args.signal not in ALL_SIGNALS:
         _err(f"unknown signal: {args.signal!r} (expected one of {', '.join(ALL_SIGNALS)})")
+        return 2
+    ok, reason = _ledger_name_ok(args.plugin)
+    if not ok:
+        _err(f"refusing plugin name: {reason}")
         return 2
     path = resolve_ledger_path(args.project)
     data = load_ledger(path)
@@ -419,6 +460,11 @@ def cmd_seed(args) -> int:
     data = load_ledger(path)
     plugins = data["plugins"]
     names = [p.strip() for p in (args.plugins or "").split(",") if p.strip()]
+    for name in names:
+        ok, reason = _ledger_name_ok(name)
+        if not ok:
+            _err(f"refusing plugin name {name!r}: {reason}")
+            return 2
     seeded = []
     for name in names:
         key = make_key(name, args.marketplace)
@@ -487,6 +533,9 @@ def cmd_telemetry(args) -> int:
             signal = "slash"
 
     if not plugin or not signal:
+        return 0
+    ok, _reason = _ledger_name_ok(plugin)
+    if not ok:
         return 0
 
     key = make_key(plugin, args.marketplace)
@@ -676,6 +725,50 @@ def _claude_bin() -> str:
     return os.environ.get("PLUGIN_LIFECYCLE_CLAUDE", "claude").strip() or "claude"
 
 
+def _invoke_module():
+    """Load the cross-plugin resolver beside this file. No shell, no package install."""
+    import importlib.util
+
+    path = Path(__file__).resolve().with_name("cross-plugin-invoke.py")
+    spec = importlib.util.spec_from_file_location("cross_plugin_invoke", path)
+    if spec is None or spec.loader is None:
+        raise LifecycleError("cross-plugin resolver is missing")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _plugin_decision(plugin: str) -> dict:
+    """Exact-name decision for a plugin we might install or uninstall.
+
+    Shape failures always refuse. When the resolver cannot be loaded, refuse
+    rather than build an argv. A consumer install that can see the marketplace
+    tree also requires a catalog hit. Shape-only success is only what the
+    resolver itself returns when no tree is visible.
+    """
+    shape = _shape_reason(plugin)
+    if shape:
+        return {"ok": False, "reason": shape, "registry": "shape"}
+    try:
+        module = _invoke_module()
+    except (LifecycleError, OSError):
+        return {"ok": False, "reason": "registry_unavailable", "registry": "missing"}
+    return module.decide_plugin_name(plugin)
+
+
+def _refuse_plugin_key(key: str) -> dict | None:
+    """None when `name@ravenclaude` is safe to pass as one argv element."""
+    if key.count("@") != 1:
+        return {"ok": False, "reason": "invalid_plugin_key"}
+    plugin, marketplace = key.split("@", 1)
+    if marketplace != ALLOWED_MARKETPLACE:
+        return {"ok": False, "reason": "marketplace_not_allowlisted"}
+    decision = _plugin_decision(plugin)
+    if not decision.get("ok"):
+        return {"ok": False, "reason": decision.get("reason", "unknown_plugin")}
+    return None
+
+
 def _run_plugin_cli(argv: list, timeout: float = 120.0) -> dict:
     """Run ``claude plugin …`` (or injected mock). Never shells ragnarok/cache-reset.
 
@@ -730,6 +823,15 @@ def execute_uninstall(key: str) -> dict:
             "action": "uninstall",
             "executed": False,
             "reason": "core_hard_pin",
+            "argv": [],
+        }
+    refused = _refuse_plugin_key(key)
+    if refused is not None:
+        return {
+            "key": key,
+            "action": "uninstall",
+            "executed": False,
+            "reason": refused["reason"],
             "argv": [],
         }
     bin_ = _claude_bin()
@@ -921,6 +1023,16 @@ def execute_install(
     posture = posture or {"install_pins": {}}
     expected = resolve_expected_install_pin(key, expected_sha, posture)
     observed = resolve_observed_install_pin(key, install_path)
+    refused = _refuse_plugin_key(key)
+    if refused is not None:
+        return {
+            "key": key,
+            "action": "install",
+            "executed": False,
+            "reason": refused["reason"],
+            "argv": [],
+            "exit_code": None,
+        }
     pin = verify_install_pin(key, expected, observed)
     if not pin["ok"]:
         return {
@@ -1039,6 +1151,12 @@ def cmd_allowlist_check(args) -> int:
         else f"marketplace {marketplace!r} is not the allowlisted {ALLOWED_MARKETPLACE!r}"
     )
 
+    if allowed:
+        decision = _plugin_decision(args.plugin)
+        if not decision.get("ok"):
+            allowed = False
+            reason = decision.get("reason", "unknown_plugin")
+
     if allowed and args.install_path and not _install_path_ok(args.install_path):
         allowed = False
         reason = f"install path {args.install_path!r} is not under a ravenclaude plugin cache"
@@ -1077,6 +1195,21 @@ def cmd_ask_install(args) -> int:
                     "allowed": False,
                     "reason": f"{marketplace!r} is not the allowlisted {ALLOWED_MARKETPLACE!r} marketplace",
                     "plugin": args.plugin,
+                }
+            )
+        )
+        return 3
+
+    decision = _plugin_decision(args.plugin)
+    if not decision.get("ok"):
+        print(
+            json.dumps(
+                {
+                    "mode": "rejected",
+                    "allowed": False,
+                    "reason": decision.get("reason", "unknown_plugin"),
+                    "plugin": args.plugin,
+                    "marketplace": marketplace,
                 }
             )
         )

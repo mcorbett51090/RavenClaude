@@ -144,7 +144,7 @@ Agents that should consult this skill carry a one-paragraph inline prior in thei
 
 ## v0.1.0 scope notes
 
-- **Plugin coverage:** scenarios bank is enabled in `power-platform` only as of v0.1.0. Other plugins have `TODO` markers in their CLAUDE.md to enable the bank when they accumulate scenarios.
+- **Plugin coverage:** a plugin has a scenario bank when `plugins/<plugin>/scenarios/` contains markdown. On 2026-11-16 a directory count in this checkout found 102 plugins with at least one scenario file, so the v0.1.0 sentence that named only `power-platform` is stale. Read the bank for the plugin you are in. A missing directory is an observation about that plugin, not a reason to skip the question, and a path under a plugin `scripts/cross-plugin-invoke.py resolve` refuses is not a bank to open.
 - **Retrieval mechanism:** glob + frontmatter parsing. No vector index, no embedding pipeline.
 - **Auto-promotion:** disabled in v0.1.0. When ≥2 independent scenarios corroborate the same finding (different `contributed_at` quarters), an agent will eventually propose promotion to `docs/best-practices/`. v0.2.0 work.
 - **Conflict detection:** disabled in v0.1.0. If two scenarios disagree, a future `conflicts_with:` field handles it. v0.2.0 work.

@@ -1,0 +1,39 @@
+name: Validate cross-plugin references
+
+# Runs the ravenclaude-core resolver's own check. A backtick reference whose
+# left side is a catalog plugin must name an agent, skill, or command that
+# plugin ships. The self-test is the negative suite (traversal, prefix match,
+# symlink, cycle, depth, over-privileged tools).
+#
+# Not a ruleset-required check. pull_request has no paths filter so a later
+# promotion to required cannot hang on a skipped workflow.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: validate-cross-plugin-refs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Cross-plugin references resolve
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolver self-test
+        run: python3 plugins/ravenclaude-core/scripts/cross-plugin-invoke.py --self-test
+
+      - name: Live references resolve
+        run: python3 plugins/ravenclaude-core/scripts/cross-plugin-invoke.py check
