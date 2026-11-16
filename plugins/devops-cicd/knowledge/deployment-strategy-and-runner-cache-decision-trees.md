@@ -2,7 +2,7 @@
 
 _Two Mermaid decision trees that **complement** [`devops-cicd-decision-trees.md`](devops-cicd-decision-trees.md): that file's "Deploy / rollout strategy selection" tree picks the rollout shape by reversibility; these two go a layer deeper — (1) the data/dependency preconditions a rollout strategy actually requires before it's safe to run, and (2) where CI compute and the build cache should live. Capability rows are `[verify-at-use]` — re-check against the vendor before quoting._
 
-_Last reviewed: 2026-11-15 (runner rows; trees unchanged since 2026-07-08)._
+_Last reviewed: 2026-11-16 (Mac mini M6 rows; trees unchanged since 2026-07-08)._
 
 ## Decision Tree: Deployment-strategy preconditions — is this rollout actually safe to run?
 
@@ -97,8 +97,11 @@ flowchart TD
 | Self-hosted runner $0.002/min platform fee | Announced 2025-12-16, **postponed**, no date (Nov 2026) | Self-hosted minutes still free; plan for it possibly returning |
 | Actions cache above 10 GB/repo | GA (2025-11-20), billed above 10 GB | Keep caches under 10 GB where billing is unavailable |
 | Offline self-hosted runner auto-removal | 14 days (ephemeral 1 day) | Part-time machines need re-registration after long absences |
+| Mac mini (M6, 2026) base SKU as a runner host | Shipping since 2026-09-22. 12-core CPU (2 super, 4 performance, 6 efficiency), 12-core GPU, 16 GB unified memory at 153 GB/s, 256 GB soldered SSD. Wall power for that exact SKU: 4 W idle, 70 W CPU max (Apple, 2026-09-21). 155 W is the supply's continuous maximum, not the draw | Memory and the SSD are not upgradable. Plan capacity for 16 GB and ~238 GiB, not for a later upgrade. Detail: [Mac mini M6 runner research](../../../docs/research/2026-11-15-mac-mini-m6-runners/README.md) |
+| Commerce CI on that Mac | The live job guard requires `RUNNER_OS=Linux` and the legacy name regex. A native macOS runner fails it. Use one Linux arm64 VM. New names look like `rp-macmini-fast-1` and match only after the pending guard change lands. Leave the regex as it is | Two runners (fast + medium) inside a 6 GB / 3 vCPU VM. No `lane-slow` until an arm64 `npm ci` and one shard match the x64 box. Never a deploy or secrets runner on this machine |
+| npm cache shared by concurrent runners | Unsafe on this factory. Concurrent `npm ci` against one cache has corrupted tarballs (npm/cli#1484) and raced executing binaries (`ETXTBSY`) | One `npm_config_cache` directory per runner. A shared Playwright browser directory is fine after a single locked install |
 | Docker BuildKit `cache-from`/`cache-to` | GA | Registry or remote (`type=gha`, `type=registry`) backends |
 | Argo Rollouts automated analysis | GA | `AnalysisTemplate` + metric provider gates promote/abort |
 | Flagger (Flux) progressive delivery | GA | Same canary-with-analysis model for Flux users |
 
-_Sources: [GitHub Actions runners docs](https://docs.github.com/en/actions/using-github-hosted-runners), [GitHub Actions caching docs](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows), [Docker build cache docs](https://docs.docker.com/build/cache/), [Argo Rollouts analysis docs](https://argo-rollouts.readthedocs.io/en/stable/features/analysis/) — all retrieved 2026-06-05; runner rows added 2026-11-15 from the linked research doc; capability/version rows are volatile, re-confirm at use._
+_Sources: [GitHub Actions runners docs](https://docs.github.com/en/actions/using-github-hosted-runners), [GitHub Actions caching docs](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows), [Docker build cache docs](https://docs.docker.com/build/cache/), [Argo Rollouts analysis docs](https://argo-rollouts.readthedocs.io/en/stable/features/analysis/) — all retrieved 2026-06-05; runner rows added 2026-11-15 from the linked research doc; Mac mini M6 rows added 2026-11-16 from [that research](../../../docs/research/2026-11-15-mac-mini-m6-runners/README.md); capability/version rows are volatile, re-confirm at use._

@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.7] — 2026-11-16
+
+Mac mini (M6, 16 GB / 256 GB) as a self-hosted runner host. Dated rows in `knowledge/deployment-strategy-and-runner-cache-decision-trees.md` point at `docs/research/2026-11-15-mac-mini-m6-runners/`. The live Commerce CI guard accepts Linux only, so the rows send that factory's jobs to one Linux arm64 VM, with per-runner npm caches, and they keep deploy and secrets runners off the machine.
+
 ## [0.3.6] — 2026-11-05
 
 Source-control operating practices, cited rather than restated as slogans. The checklist lives in `ravenclaude-core` `knowledge/source-control-operating-practices.md`; this plugin holds the specialist rules.
