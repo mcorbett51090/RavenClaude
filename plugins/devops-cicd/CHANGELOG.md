@@ -2,13 +2,24 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.3.7] — 2026-11-16
+## [0.3.8] — 2026-11-16
 
 CI gates and agent-reported checks, from `docs/research/2026-11-15-ci-gates-and-agent-checks/`.
 
 - **Knowledge rows.** New `knowledge/ci-gates-and-agent-checks-2026-11.md`: skipped job versus skipped workflow, `integration_id`, check runs versus commit statuses, the aggregate job, and why a model's paragraph is not a pass. Each row cites the page it came from.
 - **Required-check rule.** `pipeline-required-checks-gate-the-merge.md` now says to require the aggregate job only (a skipped required name reports Success), and to set `integration_id` instead of "any source". GitHub Actions was app id 15368 on `GET /apps/github-actions` this session.
 - **Capability map.** Lockfile preview (changelog 2026-10-14), the source-app pin, the Actions app id, and BuildKit `gha` scope (the default scope keeps the last image).
+
+## [0.3.7] — 2026-11-16
+
+Coding-agent compute on the runner/cache capability map. The trees are unchanged.
+
+- Copilot cloud agent on Actions: 59-minute cap, setup-file keys, Ubuntu x64 or Windows 64-bit, self-hosted firewall requirement. Cloud sandbox does not use the consumer's runners.
+- An agent job holds the runner for the model wait. Hosted jobs end at 6 hours, self-hosted at 5 days, and the default token on self-hosted refreshes for 24 hours.
+- `queue: max` (up to 100 pending) is the wrong cap for a small fleet. `cancel-in-progress: true` belongs on test workflows, not on a job that pushes.
+- Claude Code's GitHub Action is a job step. Set a timeout. Do not check out an untrusted ref at the workspace root on `pull_request_target`.
+
+Write-up: `docs/research/2026-11-15-runners-for-coding-agents/`.
 
 ## [0.3.6] — 2026-11-05
 
