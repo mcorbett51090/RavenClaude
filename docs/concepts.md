@@ -2458,6 +2458,36 @@ _Last verified: 2026-11-13_
 
 ---
 
+### Cross-plugin names resolve exactly · _RavenClaude-built_
+
+> A call into another plugin is an exact catalog name plus a real directory, or a refusal. No prefix match and no nearest-name fallback.
+
+## What a reader would have assumed instead
+
+A near name is close enough, and a missing target falls through to a similar agent.
+
+## The discriminator
+
+control: `python3 plugins/ravenclaude-core/scripts/cross-plugin-invoke.py --self-test` (pass on 2026-11-16).
+A prefix of a real plugin name, a `../` path, a symlink out of `plugins/`, and an unknown target each exit 2 with a reason and no suggestion list.
+
+## Why it matters
+
+The Team Lead is the only caller, and the plan it gets is the tool list it may pass on.
+
+Falsifier: a prefix name, a traversal, or an unknown target returning a plan.
+
+Probe: `plugins/ravenclaude-core/scripts/cross-plugin-invoke.py`.
+
+**See also:** Plugin lifecycle (last-used ledger)
+
+**Sources:** [scripts/cross-plugin-invoke.py](../plugins/ravenclaude-core/scripts/cross-plugin-invoke.py)
+
+_Last verified: 2026-11-16_
+
+
+---
+
 ### must-fail conventions diverge · _RavenClaude-built_
 
 > Every self-testing tool declares its own teeth-bit exit, because no single number fits all.
