@@ -105,6 +105,11 @@ if [ -f "$TELEMETRY" ]; then
     | env CLAUDE_PROJECT_DIR="$p" bash "$TELEMETRY" >/dev/null 2>&1
   has="$(PY --project "$p" list --json | json_get ".get('plugins',{}).get('general-purpose@ravenclaude') is not None")"
   [ "$has" = "False" ] && pass "TRACK telemetry ignores built-in (no namespace)" || fail "TRACK telemetry recorded a namespaceless agent"
+
+  echo '{"prompt":"/../evil:cmd"}' \
+    | env CLAUDE_PROJECT_DIR="$p" bash "$TELEMETRY" >/dev/null 2>&1
+  has="$(PY --project "$p" list --json | json_get ".get('plugins',{}).get('../evil@ravenclaude') is not None")"
+  [ "$has" = "False" ] && pass "TRACK telemetry drops a traversal plugin name" || fail "TRACK telemetry stored a traversal name"
 else
   fail "TRACK telemetry hook body missing at $TELEMETRY"
 fi
@@ -195,6 +200,17 @@ rc=$?
 PY --project "$p" allowlist-check --plugin finance --marketplace ravenclaude --install-path /tmp/evil/finance >/dev/null 2>&1
 rc=$?
 [ "$rc" -eq 3 ] && pass "ALLOW ravenclaude + non-cache path rejected (AppSec #4)" || fail "ALLOW bad install path not rejected (rc=$rc)"
+PY --project "$p" allowlist-check --plugin '../finance' --marketplace ravenclaude >/dev/null 2>&1
+rc=$?
+[ "$rc" -eq 3 ] && pass "ALLOW traversal plugin name rejected" || fail "ALLOW traversal name not rejected (rc=$rc)"
+PY --project "$p" allowlist-check --plugin 'finance;id' --marketplace ravenclaude >/dev/null 2>&1
+rc=$?
+[ "$rc" -eq 3 ] && pass "ALLOW shell-metacharacter plugin name rejected" || fail "ALLOW metacharacter name not rejected (rc=$rc)"
+PY --project "$p" allowlist-check --plugin 'not-a-real-plugin-xyz' --marketplace ravenclaude >/dev/null 2>&1
+rc=$?
+[ "$rc" -eq 3 ] && pass "ALLOW unknown plugin name rejected" || fail "ALLOW unknown plugin name not rejected (rc=$rc)"
+mode="$(PY --project "$p" ask-install --plugin '../finance' --need cited --json | json_get "['mode']")"
+[ "$mode" = "rejected" ] && pass "ASK traversal plugin name rejected before an install command is built" || fail "ASK traversal got mode '$mode'"
 
 # ── AUTO: auto_install: auto honored when explicit (M5 follow-on) ─────────────
 p="$(mk_project autoexplicit on off auto '[]')"

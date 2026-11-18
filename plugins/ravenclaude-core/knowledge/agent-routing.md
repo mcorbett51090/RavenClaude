@@ -1,12 +1,12 @@
 # Agent routing — which specialist the Team Lead spawns for a given request
 
-> **Last reviewed:** 2026-09-13. **Refresh trigger:** when (a) a new specialist is added to or removed from `plugins/ravenclaude-core/agents/`, (b) a domain plugin starts overlapping a core agent's territory (the `prompt-engineer` adjudicates), or (c) a pattern of wrong-first-pick spawns is flagged during retrospective.
+> **Last reviewed:** 2026-11-16. **Refresh trigger:** when (a) a new specialist is added to or removed from `plugins/ravenclaude-core/agents/`, (b) a domain plugin starts overlapping a core agent's territory (the `prompt-engineer` adjudicates), or (c) a pattern of wrong-first-pick spawns is flagged during retrospective.
 
 This file is written for **the Team Lead** — the top-level Claude Code session that orchestrates specialists. It is **not** for the specialists themselves (they receive a focused task from the Team Lead and do not re-route work). The decision tree below is the proactive companion to the Capability Grounding Protocol's reactive alternate-methods rule: the tree prevents picking the wrong specialist on first try; CGP catches what the tree missed.
 
 > **Prerequisite — surface first.** This tree answers *which specialist* **after** [`spawn-team`](../skills/spawn-team/SKILL.md) **Step 1.25** has already chosen the **agent** surface (not a slash command, not a main-session skill alone). Spawning `designer` when `/wireframe` would do is a Step 1.25 miss, not an agent-routing miss.
 
-The roster the tree branches across is the 14 agents under `plugins/ravenclaude-core/agents/`. Domain plugins (e.g. `power-platform`, `data-platform`) layer specialists on top — when a domain plugin is installed and its CLAUDE.md routing table matches the request more specifically than this tree, **the domain routing wins**. Use this tree when the request is domain-neutral or the active domain plugin defers.
+The diagram below draws the build and review path. The roster on disk is the 18 files in `plugins/ravenclaude-core/agents/`. Three of them are not boxes in the diagram: `explore`, `viz-spec-reviewer`, and `source-control-coordinator`. They are in the table and the section under it. Domain plugins layer specialists on top. A domain name is dispatched only after `scripts/cross-plugin-invoke.py resolve` accepts it — when a domain plugin's own routing table matches the request more specifically than this tree, **the domain routing wins**, and the resolver is still what checks the name. Use this tree when the request is domain-neutral or the active domain plugin defers.
 
 ---
 
@@ -14,7 +14,7 @@ The roster the tree branches across is the 14 agents under `plugins/ravenclaude-
 
 **When this applies:** a user request has just arrived at the Team Lead session, and the Team Lead is choosing whether to handle it directly or delegate to one specialist (or a sequence). **Traverse top-to-bottom before spawning — do NOT keyword-match the request to an agent name.**
 
-**Last verified:** 2026-09-14 against the 17-agent roster shipped in `ravenclaude-core` v0.322.0 (`scout` added).
+**Last verified:** 2026-11-16 against the 18 agent files in `plugins/ravenclaude-core/agents/`. The diagram draws 15 of them. `explore`, `viz-spec-reviewer`, and `source-control-coordinator` are specified under the table.
 
 ```mermaid
 flowchart TD
@@ -92,8 +92,17 @@ flowchart TD
 | data-engineer             | mid (`sonnet`)                | Medium                         | Pipelines / warehouse / ELT / dbt / query perf / lineage                          | No                                    |
 | tester-qa                 | mid (`sonnet`)                | Medium                         | Code change exists, suite needs writing or running                                | YES — must clear before code-reviewer |
 | code-reviewer             | frontier (`opus`) — gate      | Medium                         | Tests are green, diff is ready for human-quality review                           | YES — final pre-merge gate            |
+| explore                   | fast (`haiku`)                | Low                            | Path and symbol search that must stay read-only and shell-free                    | No — feeds the next brief             |
+| viz-spec-reviewer         | frontier (`opus`) — gate      | Medium                         | Vega-Lite, Vega, or SVG spec before it is embedded                                | YES — spec does not ship on DENY      |
+| source-control-coordinator | mid (`sonnet`)              | Medium                         | Another session handed off a PR for CI, merge, or branch hygiene                  | No — owns the handed-off PR          |
 
 > **The Tier column is who pays.** Every agent file pins its `model:` (gated by `check-frontmatter.py`), so the tier is not a per-dispatch guess: the gates and the architect are frontier because a de-escalated gate is a removed gate; the coders are mid because a bounded edit against a plan needs competence, not invention; the scout is fast because reading a lot and returning a little is the one job where the cheap tier is strictly better. Override downward only for a worker, never for a gate — [`spawn-team`](../skills/spawn-team/SKILL.md) Step 4.25.
+
+### Roster leaves the diagram does not draw
+
+- **`explore`** — path and symbol search when the answer is a location list and the worker must not have a shell. Use `scout` when the answer has to be written into a run directory. An unpinned built-in Explore is not this agent.
+- **`viz-spec-reviewer`** — a Vega-Lite, Vega, or SVG spec, after the declarative-viz or svg-report linter, and before the spec is embedded. A Power BI semantic model is still `power-platform/power-bi-engineer`, and only after `cross-plugin-invoke.py resolve` accepts that name.
+- **`source-control-coordinator`** — a PR another session handed off for CI, merge, or branch hygiene. Solo PR work in the current session stays with the Team Lead.
 
 If the request matches multiple branches, the **earliest-blocking gate wins**: a UI feature that also touches auth spawns `security-reviewer` first (Q2 catches it before Q5), even though Q5 would otherwise route to `frontend-coder`.
 

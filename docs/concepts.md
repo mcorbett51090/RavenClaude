@@ -2306,10 +2306,12 @@ installed list counts as "used."
 
 ## The discriminator
 
-control: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (41 pass).
-Measured 2026-09-19: with `auto_uninstall` OFF the sweep makes zero uninstall CLI
+control: `bash plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh` (46 pass, 0 fail on 2026-11-16).
+With `auto_uninstall` OFF the sweep makes zero uninstall CLI
 calls; with ON + mock CLI it records executed uninstalls via `claude plugin
-uninstall -y`. `auto_install: auto` is honored only when explicit (absent => off);
+uninstall -y` for a name the resolver accepts. A traversal-shaped name is
+refused before an install command or an uninstall argv is built.
+`auto_install: auto` is honored only when explicit (absent => off);
 uncited auto stays CTA. Auto `--execute` is tip/SHA pin-gated (prefer ask).
 Core is hard-pinned (MF teeth).
 
@@ -2329,7 +2331,7 @@ Probe: `plugins/ravenclaude-core/hooks/tests/test-plugin-lifecycle.sh`.
 
 **Sources:** [scripts/plugin-lifecycle.py](../plugins/ravenclaude-core/scripts/plugin-lifecycle.py)
 
-_Last verified: 2026-09-19_
+_Last verified: 2026-11-16_
 
 
 ---
@@ -2452,6 +2454,36 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
 _Last verified: 2026-11-13_
+
+
+---
+
+### Cross-plugin names resolve exactly · _RavenClaude-built_
+
+> A call into another plugin is an exact catalog name plus a real directory, or a refusal. No prefix match and no nearest-name fallback.
+
+## What a reader would have assumed instead
+
+A near name is close enough, and a missing target falls through to a similar agent.
+
+## The discriminator
+
+control: `python3 plugins/ravenclaude-core/scripts/cross-plugin-invoke.py --self-test` (pass on 2026-11-16).
+A prefix of a real plugin name, a `../` path, a symlink out of `plugins/`, and an unknown target each exit 2 with a reason and no suggestion list.
+
+## Why it matters
+
+The Team Lead is the only caller, and the plan it gets is the tool list it may pass on.
+
+Falsifier: a prefix name, a traversal, or an unknown target returning a plan.
+
+Probe: `plugins/ravenclaude-core/scripts/cross-plugin-invoke.py`.
+
+**See also:** Plugin lifecycle (last-used ledger)
+
+**Sources:** [scripts/cross-plugin-invoke.py](../plugins/ravenclaude-core/scripts/cross-plugin-invoke.py)
+
+_Last verified: 2026-11-16_
 
 
 ---

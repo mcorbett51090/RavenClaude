@@ -1,13 +1,13 @@
 # Routing map — which doc answers which question
 
-**Last reviewed:** 2026-09-16 · **Owner:** ravenclaude-core (domain-neutral).  
+**Last reviewed:** 2026-11-16 · **Owner:** ravenclaude-core (domain-neutral).  
 **Purpose:** stop wrong-first-pick among four overlapping "routing" surfaces.  
 **Non-goal:** do **not** collapse these trees into one mega-file.
 
 | # | Question | SSOT | Path |
 |---|---|---|---|
 | 1 | **Surface / whether / playbook** — slash vs skill vs agent vs FORGE? Spawn at all? | `spawn-team` Step 1.25 | [`skills/spawn-team/SKILL.md`](../skills/spawn-team/SKILL.md) |
-| 2 | **Which specialist** — which of the 17 agents? | Agent routing decision tree | [`agent-routing.md`](agent-routing.md) |
+| 2 | **Which specialist** — which of the 18 core agents? | Agent routing decision tree | [`agent-routing.md`](agent-routing.md) |
 | 3 | **Which host × model for task shape** — Claude vs Codex vs Copilot vs Grok? | Agent routing matrix (heuristic) | [`agent-routing-matrix.md`](agent-routing-matrix.md) (+ `.json`) |
 | 4 | **Which tier × surface cell** — fast/balanced/top + archival pins | **Unified Model Matrix (UMM)** | [`unified-model-matrix.md`](unified-model-matrix.md) (+ `.json`) |
 

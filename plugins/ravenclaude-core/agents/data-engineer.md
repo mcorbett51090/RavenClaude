@@ -101,7 +101,7 @@ Given a data goal — "build this pipeline", "model this warehouse", "why is thi
 ## Escalation routes
 
 - Application database schema driven by a *product* feature (a new entity, a new auth model, a new transactional flow) → `architect`. Data Engineer joins as a consultant on read-side / analytics implications; doesn't own the OLTP schema design.
-- Power BI semantic models or DAX → `power-platform/power-bi-engineer` (only if that plugin is installed).
+- Power BI semantic models or DAX → `power-platform/power-bi-engineer`, only when `scripts/cross-plugin-invoke.py resolve --plugin power-platform --target power-bi-engineer --kind agent` accepts it. If it refuses, say so. Do not substitute another specialist.
 - Anything touching PII, PHI, PCI, regulated data, cross-border data movement, or row-level/column-level masking → `security-reviewer` (mandatory).
 - Cost / capacity planning at the platform tier (warehouse credits, compute pools) — produce the data engineering recommendation; loop in `project-manager` for tracking and the user for budget sign-off.
 - UI / visualization questions — your job ends at the dataset. Hand off to `designer` (visualization design) or whichever BI specialist is appropriate.
