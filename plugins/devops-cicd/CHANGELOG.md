@@ -2,6 +2,13 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.10] — 2026-11-16
+
+How an agent tells a live GitHub Actions run from a stopped or failed one, and what to do next.
+
+- **Procedure.** `knowledge/ci-run-status.md` is the decision procedure: run and job states, ghost runs, log availability, the JSON verdict, and the corrective-action table with rerun guardrails. The research behind it is `docs/research/2026-11-15-ci-run-observability-for-agents/`.
+- **Classifier.** `scripts/classify_ci_run_state.py` turns a run/job/runner snapshot into that JSON verdict. It does not call the network unless `--repo` and `--run-id` are passed. `python3 plugins/devops-cicd/scripts/classify_ci_run_state.py --self-test` runs the tests.
+
 ## [0.3.9] — 2026-11-16
 
 CI gates and agent-reported checks, from `docs/research/2026-11-15-ci-gates-and-agent-checks/`.
