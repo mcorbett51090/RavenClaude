@@ -69,10 +69,15 @@ def self_test() -> int:
     grok_fast = resolve_tier("grok", "fast", data=data)
     grok_bal = resolve_tier("grok", "balanced", data=data)
     grok_top = resolve_tier("grok", "top", data=data)
-    if grok_fast["model"] != "grok-4.5" or grok_bal["model"] != "grok-4.5":
-        errors.append("grok fast/balanced must be grok-4.5")
-    if grok_top["model"] != "grok-4.6":
-        errors.append("grok top must be grok-4.6")
+    # Pins from cross-tool-model-lineup-2026.md as re-verified in #1451
+    # (ee923b3d, retrieved 2026-11-16). Fast leaf grok-4.3; balanced and top
+    # are grok-4.7, the Grok Build default. grok-4.6 is not a tier.
+    if grok_fast["model"] != "grok-4.3":
+        errors.append("grok fast must be grok-4.3")
+    if grok_bal["model"] != "grok-4.7" or grok_top["model"] != "grok-4.7":
+        errors.append("grok balanced and top must be grok-4.7")
+    if "grok-4.6" in {grok_fast["model"], grok_bal["model"], grok_top["model"]}:
+        errors.append("grok tiers must not pin grok-4.6")
     if grok_fast.get("effort") == grok_bal.get("effort") and grok_fast.get(
         "perspective"
     ) == grok_bal.get("perspective"):
@@ -81,8 +86,35 @@ def self_test() -> int:
         errors.append("grok fast vs balanced must differ on effort")
     if grok_fast.get("perspective") == grok_bal.get("perspective"):
         errors.append("grok fast vs balanced must differ on perspective")
+    if grok_bal.get("perspective") == grok_top.get("perspective"):
+        errors.append("grok balanced vs top must differ on perspective")
     if grok_top["model"].startswith("claude-"):
         errors.append("grok top must not be a claude-* id")
+    claude_fast = resolve_tier("claude", "fast", data=data)
+    claude_bal = resolve_tier("claude", "balanced", data=data)
+    if claude_fast["model"] != "claude-haiku-5-5":
+        errors.append("claude fast must be claude-haiku-5-5")
+    if claude_bal["model"] != "claude-sonnet-5-5":
+        errors.append("claude balanced must be claude-sonnet-5-5")
+    codex_fast = resolve_tier("codex", "fast", data=data)
+    codex_bal = resolve_tier("codex", "balanced", data=data)
+    codex_top = resolve_tier("codex", "top", data=data)
+    if codex_fast["model"] != "gpt-6-luna":
+        errors.append("codex fast must be gpt-6-luna")
+    if codex_bal["model"] != "gpt-6.1-sol":
+        errors.append("codex balanced must be gpt-6.1-sol")
+    # The lineup names GPT-6 Astra as the flagship and records no CLI slug.
+    if codex_top["model"] != "gpt-6.1-sol":
+        errors.append("codex top stays gpt-6.1-sol until the lineup records a GPT-6 Astra slug")
+    copilot_fast = resolve_tier("copilot", "fast", data=data)
+    copilot_bal = resolve_tier("copilot", "balanced", data=data)
+    copilot_top = resolve_tier("copilot", "top", data=data)
+    if copilot_fast["model"] != "Claude Haiku 5.5":
+        errors.append("copilot fast must be Claude Haiku 5.5")
+    if copilot_bal["model"] != "Claude Sonnet 5.5":
+        errors.append("copilot balanced must be Claude Sonnet 5.5")
+    if copilot_top["model"] != "Claude Opus 5.5":
+        errors.append("copilot top must be Claude Opus 5.5")
     missing = resolve_tier(None, "top", data=data)
     if missing["model"] != "claude-opus-5-5":
         errors.append(f"default host top should be claude-opus-5-5, got {missing}")

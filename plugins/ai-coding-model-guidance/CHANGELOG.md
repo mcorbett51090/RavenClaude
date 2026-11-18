@@ -1,5 +1,17 @@
 # Changelog — ai-coding-model-guidance
 
+## [0.3.24] — 2026-11-16
+
+### Added
+
+- `knowledge/coding-agent-compute-placement.md`: where Copilot, Codex, and a Cursor cloud agent run, and which of those paths occupy a GitHub Actions runner. Dated 2026-11-16. Not a model-lineup change. The levers playbook points at it.
+
+## [0.3.23] — 2026-11-16
+
+### Changed
+
+- Lineup re-verified against vendor docs (last verified 2026-11-15; pages fetched 2026-11-16). Decision-tree leaves are now Haiku 5.5 / Sonnet 5.5 / Opus 5.5, GPT-6 Luna / GPT-6.1 Sol / GPT-6 Astra, and grok-4.3 / grok-4.7. Codex-Spark is retired. Grok 4.1 Fast is no longer listed. Copilot's October 19, November 16, and December 14 deprecation waves are recorded, including the Grok 4.5 conflict between the completion post and the supported-models page.
+
 ## Unreleased
 
 - Deep-layer **coding-agent levers playbook** + HARD GATE link from quota-exhaustion tree/skill; tree unchanged as gate.

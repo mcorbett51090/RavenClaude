@@ -59,13 +59,36 @@ function selfTest() {
   const gf = resolveTier("grok", "fast", data);
   const gb = resolveTier("grok", "balanced", data);
   const gt = resolveTier("grok", "top", data);
-  if (gf.model !== "grok-4.5" || gb.model !== "grok-4.5")
-    errors.push("grok fast/balanced must be grok-4.5");
-  if (gt.model !== "grok-4.6") errors.push("grok top must be grok-4.6");
+  // Pins from cross-tool-model-lineup-2026.md as re-verified in #1451
+  // (ee923b3d, retrieved 2026-11-16).
+  if (gf.model !== "grok-4.3") errors.push("grok fast must be grok-4.3");
+  if (gb.model !== "grok-4.7" || gt.model !== "grok-4.7")
+    errors.push("grok balanced and top must be grok-4.7");
+  if (gf.model === "grok-4.6" || gb.model === "grok-4.6" || gt.model === "grok-4.6")
+    errors.push("grok tiers must not pin grok-4.6");
   if (gf.effort === gb.effort) errors.push("grok fast vs balanced must differ on effort");
   if (gf.perspective === gb.perspective)
     errors.push("grok fast vs balanced must differ on perspective");
+  if (gb.perspective === gt.perspective)
+    errors.push("grok balanced vs top must differ on perspective");
   if (gt.model.startsWith("claude-")) errors.push("grok top must not be claude-*");
+  const cf = resolveTier("claude", "fast", data);
+  const cb = resolveTier("claude", "balanced", data);
+  if (cf.model !== "claude-haiku-5-5") errors.push("claude fast must be claude-haiku-5-5");
+  if (cb.model !== "claude-sonnet-5-5") errors.push("claude balanced must be claude-sonnet-5-5");
+  const xf = resolveTier("codex", "fast", data);
+  const xb = resolveTier("codex", "balanced", data);
+  const xt = resolveTier("codex", "top", data);
+  if (xf.model !== "gpt-6-luna") errors.push("codex fast must be gpt-6-luna");
+  if (xb.model !== "gpt-6.1-sol") errors.push("codex balanced must be gpt-6.1-sol");
+  if (xt.model !== "gpt-6.1-sol")
+    errors.push("codex top stays gpt-6.1-sol until the lineup records a GPT-6 Astra slug");
+  const pf = resolveTier("copilot", "fast", data);
+  const pb = resolveTier("copilot", "balanced", data);
+  const pt = resolveTier("copilot", "top", data);
+  if (pf.model !== "Claude Haiku 5.5") errors.push("copilot fast must be Claude Haiku 5.5");
+  if (pb.model !== "Claude Sonnet 5.5") errors.push("copilot balanced must be Claude Sonnet 5.5");
+  if (pt.model !== "Claude Opus 5.5") errors.push("copilot top must be Claude Opus 5.5");
   const missing = resolveTier(undefined, "top", data);
   if (missing.model !== "claude-opus-5-5")
     errors.push("default host top should be claude-opus-5-5");

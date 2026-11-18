@@ -11,8 +11,8 @@
 | Agent | Owns | When to spawn |
 |---|---|---|
 | [`copilot-model-strategist`](agents/copilot-model-strategist.md) | GitHub Copilot's model picker across surfaces (completions / chat / coding agent / cloud agent / mobile), plan-gated availability, org **model rules** | "which Copilot model?"; "did a model leave Copilot?"; "restrict models for my org" |
-| [`codex-model-strategist`](agents/codex-model-strategist.md) | OpenAI Codex (CLI + cloud) model **and reasoning-level** selection — GPT-5.6 Luna/Terra/Sol; pro is a mode on Sol | "which Codex model?"; "bigger model or more reasoning?"; "model for a long unsupervised run" |
-| [`grok-model-strategist`](agents/grok-model-strategist.md) | xAI Grok lineup — Grok 4.6 flagship/top, Grok 4.5 balanced, and the **grok-code-fast-1 retirement** billing warning | "which Grok model?"; "I still call grok-code-fast-1"; "huge context on Grok cheaply" |
+| [`codex-model-strategist`](agents/codex-model-strategist.md) | OpenAI Codex (CLI + cloud) model **and reasoning-level** selection — GPT-6 Luna / GPT-6.1 Sol / GPT-6 Astra | "which Codex model?"; "bigger model or more reasoning?"; "model for a long unsupervised run" |
+| [`grok-model-strategist`](agents/grok-model-strategist.md) | xAI Grok lineup — Grok 4.7 flagship, Grok 4.3 cheaper tier, and the **grok-code-fast-1 retirement** billing warning | "which Grok model?"; "I still call grok-code-fast-1"; "huge context on Grok cheaply" |
 
 Three coherent personas, one per non-Claude ecosystem, sharing **one** knowledge bank. Per the marketplace house rule this is a specialist *advisory* team and forks **no** core review role — security/compliance/governance verdicts (org model rules, API-key handling) escalate to `ravenclaude-core/security-reviewer`. **Sub-agents do not spawn other sub-agents** — only the Team Lead delegates.
 
@@ -72,6 +72,8 @@ Each agent ends with its role-specific contract (see the agent file) **plus the 
 ## 7. Knowledge bank — one file, the freshness anchor
 
 [`knowledge/cross-tool-model-lineup-2026.md`](knowledge/cross-tool-model-lineup-2026.md) is the **single source of truth** for all three ecosystems: the vendor-neutral decision tree, the dated per-ecosystem lineups with inline citations, the closed-world model list, and the "how to keep this current" refresh procedure. It is tagged **Tier-4 (fast-churn)** for the `knowledge-file-staleness-sweep` skill and is in scope for the weekly `researcher-reminder.yml` sweep. **All numeric/availability claims live here, dated — one file refreshes, not three personas** (the same discipline as `claude-app-engineering`'s capability map).
+
+Where the agent process runs (vendor sandbox, a GitHub Actions runner, or a self-hosted worker) is a different fact from which model it calls. That placement table is [`knowledge/coding-agent-compute-placement.md`](knowledge/coding-agent-compute-placement.md), dated 2026-11-16, and it is not part of the closed-world model list.
 
 ---
 
